@@ -1,0 +1,28 @@
+File Edit Options Buffers Tools Help                                        
+femtoemacs requires the libncurses                                          
+library. This library allows to treat                                       
+a text terminal as a window. You must                                       
+download, build and install ncurses.                                        
+Here is where to get it:                                                    
+                                                                            
+http://ftp.gnu.org/gnu/ncurses/                                             
+                                                                            
+If you DON'T CARE about diacritics,                                         
+you can compile it as shown below:                                          
+                                                                            
+./configure                                                                 
+make                                                                        
+sudo make install                                                           
+                                                                            
+In English, some people add marks or                                        
+glyphs to certain letters. For instance,                                    
+instead of writing "facade", they write                                     
+"façade". On the same token, they write                                     
+"café" in lieu de "cafe". If you need                                       
+or like diacritics, you must compile                                        
+the libncurses library thus:                                                
+                                                                            
+./configure --enable-widec                                                  
+make                                                                        
+sudo make install                                                           
+                  
