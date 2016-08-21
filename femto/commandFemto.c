@@ -259,8 +259,9 @@ void killbuffer()
 	int bcount = count_buffers();
 
 	/* do nothing if only buffer left is the scratch buffer */
-	if (bcount == 1 && 0 == strcmp(get_buffer_name(curbp), str_scratch))
-		return;
+	/* if (bcount == 1 && 0 == strcmp(get_buffer_name(curbp), str_scratch))
+		return; */
+        if (bcount == 1) return;
 	
 	if (curbp->b_flags & B_MODIFIED) {
 		mvaddstr(MSGLINE, 0, str_notsaved);
