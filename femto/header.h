@@ -18,7 +18,7 @@
 #undef _
 #define _(x)    x
 
-#define VERSION	 "femto 1.5, Public Domain, June 2016, by Hugh Barney,  No warranty."
+#define VERSION	 "FemtoEmacs 1.0, Public Domain, 2016"
 #define EXIT_OK         0               /* Success */
 #define EXIT_ERROR      1               /* Unknown error. */
 #define EXIT_USAGE      2               /* Usage */
