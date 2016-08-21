@@ -259,10 +259,9 @@ void killbuffer()
 	int bcount = count_buffers();
 
 	/* do nothing if only buffer left is the scratch buffer */
-	/* if (bcount == 1 && 0 == strcmp(get_buffer_name(curbp), str_scratch))
-		return; */
-        if (bcount == 1) return;
-	
+	if (bcount == 1 && 0 == strcmp(get_buffer_name(curbp), str_scratch))
+              return;
+        
 	if (curbp->b_flags & B_MODIFIED) {
 		mvaddstr(MSGLINE, 0, str_notsaved);
 		clrtoeol();
@@ -270,11 +269,14 @@ void killbuffer()
 			return;
 	}
 
-	if (bcount == 1) {
+       if (bcount == 1) {
 		/* create a scratch buffer */
 		bp = find_buffer(str_scratch, TRUE);
 		strcpy(bp->b_bname, str_scratch);
+		if (!growgap(bp, MIN_GAP_EXPAND))
+			fatal(f_alloc);
 	}
+
 
 	next_buffer();
 	assert(kill_bp != curbp);
