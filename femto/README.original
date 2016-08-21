@@ -105,22 +105,22 @@ Atto was based on the public domain code of Anthony Howe's editor (commonly know
 
     C-<spacebar> Set mark at current position.
 
-    ^X^B  List Buffers
-    ^X^C  Exit. Any unsaved files will require confirmation.
-    ^X^F  Find file; read into a new buffer created from filename.
-    ^X^S  Save current buffer to disk, using the buffer's filename as the name of
-    ^X^W  Write current buffer to disk. Type in a new filename at the prompt to
-	^X@   shell-command (you are prompted for a command which is sent to the shell
-	      and the result is displayed in the *output* buffer
-    ^Xi   Insert file at point
-    ^X=   Show Character at position
-	^X^N  next-buffer
-	^Xn   next-buffer
-	^Xk   kill-buffer
+    C-x C-b  List Buffers
+    C-x C-c  Exit. Any unsaved files will require confirmation.
+    C-x C-f  Find file; read into a new buffer created from filename.
+    C-x C-s  Save current buffer to disk, using the buffer's filename as the name of
+    C-x C-w  Write current buffer to disk. Type in a new filename at the prompt to
+    C-x @    shell-command (you are prompted for a command which is sent to the shell
+	     and the result is displayed in the *output* buffer
+    C-x i   Insert file at point
+    C-x =   Show Character at position
+    C-x C-n next-buffer
+    C-x n   next-buffer
+    C-x k   kill-buffer
 
-    ^X1   delete-other-windows
-	^X2   split-window
-	^Xo   other-window
+    C-x 1   delete-other-windows
+    C-x 2   split-window
+    C-x o   other-window
 
     Home  Beginning-of-line
     End   End-of-line
@@ -138,8 +138,8 @@ Atto was based on the public domain code of Anthony Howe's editor (commonly know
 
 ###Copying and moving
     C-<spacebar> Set mark at current position
-    ^W   Delete region
-    ^Y   Yank back kill buffer at cursor
+    C-x   Delete region
+    C-y   Yank back kill buffer at cursor
     M-w  Copy Region
 
 A region is defined as the area between this mark and the current cursor position. The kill buffer is the text which has been most recently deleted or copied.
