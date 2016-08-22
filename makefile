@@ -16,7 +16,7 @@ RM      = rm
 E       =
 O       = .o
 
-OBJ     = complete$(O) commandFemto$(O) data$(O) displayFemto$(O) gap$(O) \
+OBJ     = complete$(O) commandFemto$(O) data$(O) display$(O) gap$(O) \
              keyFemto$(O) search$(O) buffer$(O) replace$(O) window$(O) \
              mainFemto$(O) femtolisp/interface2editor$(O) \
              femtolisp/flcall$(O)
@@ -40,8 +40,8 @@ commandFemto$(O): commandFemto.c header.h
 data$(O): data.c header.h
 	$(CC) $(CFLAGS)  -I$(LLTDIR) -c data.c
 
-displayFemto$(O): displayFemto.c header.h
-	$(CC) $(CFLAGS)   -I$(LLTDIR) -c displayFemto.c
+display$(O): display.c header.h
+	$(CC) $(CFLAGS)   -I$(LLTDIR) -c display.c
 
 gap$(O): gap.c header.h
 	$(CC) $(CFLAGS)  -I$(LLTDIR) -c gap.c

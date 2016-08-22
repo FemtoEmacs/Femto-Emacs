@@ -89,9 +89,11 @@ point_t lncolumn(buffer_t *bp, point_t offset, int column)
 	return (offset);
 }
 
-void display_char(buffer_t *bp, char_t *p)
+void display_char(buffer_t *bp, char_t *p, int keyword_char_count)
 {
-	if ((ptr(bp, bp->b_mark) == p) && (bp->b_mark != NOMARK)) {
+	if (keyword_char_count > 0 ) {
+		addch(*p | A_UNDERLINE);
+	} else if ((ptr(bp, bp->b_mark) == p) && (bp->b_mark != NOMARK)) {
 		addch(*p | A_REVERSE);
 	} else if (pos(bp,p) == bp->b_point && bp->b_paren != NOPAREN) {
 		attron(COLOR_PAIR(3));
@@ -106,11 +108,26 @@ void display_char(buffer_t *bp, char_t *p)
 	}
 }
 
+char *get_file_extension(char *filename)
+{
+	static char exts[20];
+
+	char *dot = strrchr(filename, '.');
+	if (!dot)
+		strcpy(exts, "");
+	else
+		strcpy(exts, dot);
+	return exts;
+}
+
 void display(window_t *wp, int flag)
 {
 	char_t *p;
 	int i, j, k, nch;
 	buffer_t *bp = wp->w_bufp;
+        int keywd_char_count = 0; /*EdMort*/
+
+	setLanguage(get_file_extension(bp->b_fname)); /*EdMort*/
 
 	/* find start of screen, handle scroll up off page or top of file  */
 	/* point is always within b_page and b_epage */
@@ -156,7 +173,10 @@ void display(window_t *wp, int flag)
 			}
 			else if (isprint(*p) || *p == '\t' || *p == '\n') {
 				j += *p == '\t' ? 8-(j&7) : 1;
-				display_char(bp, p);
+				
+				if (keywd_char_count <= 0)
+					keywd_char_count = kwrd(p);
+				display_char(bp, p, keywd_char_count--);
 			} else {
 				const char *ctrl = unctrl(*p);
 				j += (int) strlen(ctrl);
