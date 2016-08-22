@@ -368,11 +368,9 @@ void paste()
 
 void insert_string(char *str)
 {
-	int len;
-	if (str == NULL) return;
-	len= strlen(str);
+	int len = (str == NULL) ? 0 : strlen(str);
 	
-	if(curbp->b_flags & B_OVERWRITE)
+	if (curbp->b_flags & B_OVERWRITE)
 		return;
 	if (len <= 0) {
 		msg(m_empty);
