@@ -60,7 +60,9 @@ int main(int argc, char **argv)
 		input = getkey(key_map, &key_return);
 
 		if (key_return != NULL) {
-		      if (key_return->key_bind[0]==':') {
+		      if ( key_return->key_bind[0]=='C' &&
+                           key_return->key_bind[1]=='-' && 
+                           key_return->key_bind[2]=='c') {
 		      whatKey= key_return->key_bind; }
 		  (key_return->func)();}
 		else
