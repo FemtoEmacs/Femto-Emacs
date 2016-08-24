@@ -72,6 +72,7 @@ keymap_t keymap[] = {
 	{"C-k kill-to-eol          ", "\x0B", killtoeol },
 	{"C-s search               ", "\x13", search },
 	{"C-r search               ", "\x12", search },
+	{"C-o eval region          ", "\x0F", repl },
        
 	{"C-x 1 delete-other-window", "\x18\x31", delete_other_windows },
 	{"C-x 2 split-window       ", "\x18\x32", split_window },

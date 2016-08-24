@@ -67,7 +67,7 @@ char *temp;
 
 void callLisp (char *buff, char *expr) {
     FL_TRY_EXTERN {
-        char cbuffer[200];
+        char cbuffer[1000];
         sprintf(cbuffer, wrp, expr);
         value_t BB = volta_buffer(cbuffer);
         value_t CC = ler_buffer(BB);

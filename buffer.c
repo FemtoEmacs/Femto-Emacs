@@ -5,7 +5,7 @@
 #include "header.h"
 
 void buffer_init(buffer_t *bp)
-{       bp->killed= 0;
+{  /*     bp->killed= 0; */
 	bp->b_mark = NOMARK;
 	bp->b_point = 0;
 	bp->b_paren = NOPAREN;

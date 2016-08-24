@@ -304,7 +304,7 @@ void toggle_overwrite_mode() {
 void killtoeol()
 {
 	/* point = start of empty line or last char in file */
-	curbp->killed= 1;
+        curbp->killed= 1;
 	if (*(ptr(curbp, curbp->b_point)) == 0xa || (curbp->b_point + 1 == ((curbp->b_ebuf - curbp->b_buf) - (curbp->b_egap - curbp->b_gap))) ) {
 		delete();
 	} else {
@@ -558,4 +558,18 @@ void keyboardDefinition() {
   sprintf(query, wrp, que);
   callLisp(ans, query); }
 
-
+void repl() {
+  char prompt[201];
+  char ans[1000];
+  char query[1000];
+  char inpt[1000];
+  temp[0] = '\0';
+  sprintf(prompt, "> ");
+  result = getinput(prompt, (char *) temp, 1000);
+  sprintf(query, wrp, temp);
+  callLisp(ans, query);
+  sprintf(inpt, "C-o > %s", temp);
+  insert_string("\n");
+  insert_string(ans);
+  insert_string("\n"); }
+  

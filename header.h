@@ -41,6 +41,11 @@ typedef char *msg_t;
 typedef unsigned char char_t;
 typedef long point_t;
 
+typedef struct pscrap_t {
+        char_t *scrap;
+        struct pscrap_t *next;
+} pscrap_t;
+  
 typedef struct keymap_t {
 	char *key_bind;
 	char *lhs;              /* Left hand side invokes function or macro. */
@@ -57,7 +62,8 @@ typedef struct undo_t {
 typedef struct buffer_t
 {
 	struct buffer_t *b_next;  /* Link to next buffer_t */
-	int killed;
+  	int killed; 
+
 	point_t b_mark;	     	  /* the mark */
 	point_t b_point;          /* the point */
 	point_t b_paren;          /* matching paren to the point */
@@ -286,4 +292,9 @@ extern void setLanguage(char* extension);
 extern void keyboardDefinition(void);
 extern void chkPar(void);
 extern char *whatKey;
+extern void repl(void);
 
+
+/* Functions to pscrap_t */
+extern void ps_push(pscrap_t *p, char_t *scrap);
+extern char_t* ps_pop(pscrap_t *p);
