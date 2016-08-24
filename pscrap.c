@@ -7,9 +7,9 @@ void ps_push(pscrap_t **pst, char_t *scrap) {
 	 *     ps_push(&stack, scrap); 
 	 */
 	pscrap_t *nst = (pscrap_t*) malloc(sizeof(pscrap_t));
-    nst->scrap = scrap;
-    nst->next = *pst;
-    *pst = nst;
+    	nst->scrap = scrap;
+    	nst->next = *pst;
+    	*pst = nst;
 }
 
 void ps_pop(pscrap_t **pst) {
