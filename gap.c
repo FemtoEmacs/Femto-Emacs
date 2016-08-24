@@ -189,6 +189,7 @@ void undoset()
 void undo()
 {
 	undo_t tmp;
+	if (curbp->killed == 0) return;
 	memcpy(&tmp, &(curbp->b_ubuf), sizeof (undo_t));
 	undoset();
 	curbp->b_point = tmp.u_point;
