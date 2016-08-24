@@ -44,7 +44,8 @@ typedef long point_t;
 typedef struct pscrap_t {
         char_t *scrap;
         struct pscrap_t *next;
-} pscrap_t;
+} pscrap_t; /* To define a stack for scraps, use pointers:  *
+			 *     pscrap_t *sstack;                        */
   
 typedef struct keymap_t {
 	char *key_bind;
@@ -297,4 +298,6 @@ extern void repl(void);
 
 /* Functions to pscrap_t */
 extern void ps_push(pscrap_t *p, char_t *scrap);
-extern char_t* ps_pop(pscrap_t *p);
+extern void ps_pop(pscrap_t *p);
+extern char_t* ps_top(pscrap_t *st);
+extern int ps_size(pscrap_t *st);
