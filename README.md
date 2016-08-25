@@ -105,3 +105,10 @@ You will notice that it will pop up much faster than emacs.
      of scripting language.
      
   
+## Lisp Interaction Mode
+
+There are two way to interact with Femto Lisp from inside FemtoEmacs.
+
+1) At a command prompt:  Enter C-o and type a lisp command followed by carriage return.  The result is inserted into the current buffer at the cursor location
+
+2) Inside the actual buffer:  Place the cursor on the openning or closing bracket ( or ). This will define a block.  Now enter escape-].   The code will be copied to the FemtoLisp interpreter and the result inserted into the buffer.  This is very useful for trying out bits of lisp code when developing Emacs extensions.
