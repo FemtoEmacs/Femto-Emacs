@@ -28,13 +28,16 @@ Therefore, enter the folder where you unpacked the ncursesw-6.0 distribution
 archive, and copy the libncursesw.a file to /usr/local/lib/ as shown below.
 
 > ~/$ cd ncurses-6.0
+
 > ~/ncurses-6.0$ cd lib
+
 > ~/ncurses-6.0/lib$ sudo cp libncursesw.a /usr/local/lib/
 
 After installing libncursesw, enter the folder Femto-Emacs/femto/ and build
 the editor for Macistosh:
 
 > ~/$ cd ~/Femto-Emacs/femto/
+
 > ~/Femto-Emacs/femto$ make -f Makefile.macosx
 
 You can test the editor in loco:
@@ -45,8 +48,11 @@ Of course, you may want to use femto anywhere in the directory tree.
 Here is how to achieve this goal:
 
 > ~/Femto-Emacs/femto$ sudo cp femto /usr/local/bin/
+
 > ~/Femto-Emacs/femto$ sudo cp femto.boot /usr/local/bin/
+
 > ~/Femto-Emacs/femto$ cp init.lsp ~/
+
 > ~/Femto-Emacs/femto$ cp aliases.scm ~/
 
 
@@ -56,13 +62,17 @@ Do not use apt-get to install ncurses, because the repositories are old.
 Instead, download a recent source distribution and build it thus:
 
 > ~/$ cd ncurses-6.0
+
 > ~/ncurses-6.0$ ./configure --enable-widec                                                  
+
 > ~/ncurses-6.0$ make                                                                        
+
 > ~/ncurses-6.0$ sudo make install
 
 After installing ncursesw, you can make the editor:
 
 > ~/$ cd ~/Femto-Emacs/femto/
+
 > ~/Femto-Emacs/femto$ make
 
 Test the editor in loco:
@@ -72,11 +82,13 @@ Test the editor in loco:
 Then, copy femto to /usr/local/bin in order to make it globally available:
 
 > ~/Femto-Emacs/femto$ sudo cp femto /usr/local/bin/
+
 > ~/Femto-Emacs/femto$ sudo cp femto.boot /usr/local/bin/
 
 You will need the lisp configuration files in your home directory:
 
 > ~/Femto-Emacs/femto$ cp init.lsp ~/
+
 > ~/Femto-Emacs/femto$ cp aliases.scm ~/
 
 Hopefully, you will be able to use femto anywhere in your computer.
