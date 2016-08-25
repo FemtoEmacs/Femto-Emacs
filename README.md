@@ -10,7 +10,7 @@ http://ftp.gnu.org/gnu/ncurses/
                                                                             
 If you DON'T CARE about diacritics, you can compile ncurses as shown below:                                          
 
-> ~$ cd ncurses-6.0 
+> ~$ cd ncurses-6.0 \\
 > ~/ncurses-6.0$ ./configure                                                                 
 > ~/ncurses-6.0$ make                                                                        
 > ~/ncurses-6.0$ sudo make install                                                           
