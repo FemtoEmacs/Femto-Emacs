@@ -71,25 +71,25 @@ Instead, download a recent source distribution and build it thus:
 
 After installing ncursesw, you can make the editor:
 
-> ~/$ cd ~/Femto-Emacs/femto/
+> ~/$ cd ~/Femto-Emacs/
 
-> ~/Femto-Emacs/femto$ make
+> ~/Femto-Emacs$ make
 
 Test the editor in loco:
 
-~/Femto-Emacs/femto$ ./femto test.scm
+~/Femto-Emacs$ ./femto test.scm
 
 Then, copy femto to /usr/local/bin in order to make it globally available:
 
-> ~/Femto-Emacs/femto$ sudo cp femto /usr/local/bin/
+> ~/Femto-Emacs$ sudo cp femto /usr/local/bin/
 
-> ~/Femto-Emacs/femto$ sudo cp femto.boot /usr/local/bin/
+> ~/Femto-Emacs$ sudo cp femto.boot /usr/local/bin/
 
 You will need the lisp configuration files in your home directory:
 
-> ~/Femto-Emacs/femto$ cp init.lsp ~/
+> ~/Femto-Emacs$ cp init.lsp ~/
 
-> ~/Femto-Emacs/femto$ cp aliases.scm ~/
+> ~/Femto-Emacs$ cp aliases.scm ~/
 
 Hopefully, you will be able to use femto anywhere in your computer.
 You will notice that it will pop up much faster than emacs.
