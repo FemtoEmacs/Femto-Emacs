@@ -158,7 +158,7 @@ void insert()
 }
 
 void backsp()
-{
+{       curbp->killed= 1;
 	int n = prev_utf8_char_size();
 	curbp->b_point = movegap(curbp, curbp->b_point);
 	undoset();
@@ -260,8 +260,8 @@ void killbuffer()
 
 	/* do nothing if only buffer left is the scratch buffer */
 	if (bcount == 1 && 0 == strcmp(get_buffer_name(curbp), str_scratch))
-		return;
-	
+              return;
+        
 	if (curbp->b_flags & B_MODIFIED) {
 		mvaddstr(MSGLINE, 0, str_notsaved);
 		clrtoeol();
@@ -269,11 +269,14 @@ void killbuffer()
 			return;
 	}
 
-	if (bcount == 1) {
+       if (bcount == 1) {
 		/* create a scratch buffer */
 		bp = find_buffer(str_scratch, TRUE);
 		strcpy(bp->b_bname, str_scratch);
+		if (!growgap(bp, MIN_GAP_EXPAND))
+			fatal(f_alloc);
 	}
+
 
 	next_buffer();
 	assert(kill_bp != curbp);
@@ -301,6 +304,7 @@ void toggle_overwrite_mode() {
 void killtoeol()
 {
 	/* point = start of empty line or last char in file */
+        curbp->killed= 1;
 	if (*(ptr(curbp, curbp->b_point)) == 0xa || (curbp->b_point + 1 == ((curbp->b_ebuf - curbp->b_buf) - (curbp->b_egap - curbp->b_gap))) ) {
 		delete();
 	} else {
@@ -365,9 +369,9 @@ void paste()
 
 void insert_string(char *str)
 {
-	int len = strlen(str);
+	int len = (str == NULL) ? 0 : strlen(str);
 	
-	if(curbp->b_flags & B_OVERWRITE)
+	if (curbp->b_flags & B_OVERWRITE)
 		return;
 	if (len <= 0) {
 		msg(m_empty);
@@ -524,4 +528,92 @@ void shell_command(char *command)
 void version()
 {
 	msg(m_version);
+}
+
+/*Ed Mort*/
+static char *wrp=
+"(trycatch (let ((b (buffer))) \
+   (with-output-to b (princ %s)) \
+   (io.tostring! b)) (lambda(x) x ))";
+
+char *whatKey= "";
+
+/* Keyboard Definition is done by user in Lisp */
+void keyboardDefinition() {
+  char ans[400];
+  char que[400];
+  char query[400];
+  
+  if ((scrap == NULL) || (nscrap < 1)) {
+    sprintf(que, "(keyboard \"%s\" \"\")", 
+	  whatKey);}
+  else { char clp[200];
+    int i;
+    
+    for(i=0; i<nscrap; i++){
+      clp[i]= (char) scrap[i];}
+    clp[i]= '\0';
+    sprintf(que, "(keyboard \"%s\" \"%s\")", 
+	    whatKey, clp);}
+  sprintf(query, wrp, que);
+  callLisp(ans, query); }
+
+void repl() {
+  char prompt[201];
+  char ans[1000];
+  char query[1000];
+  char inpt[1000];
+  temp[0] = '\0';
+  sprintf(prompt, "> ");
+  result = getinput(prompt, (char *) temp, 1000);
+  sprintf(query, wrp, temp);
+  callLisp(ans, query);
+  sprintf(inpt, "C-o > %s", temp);
+  insert_string("\n");
+  insert_string(ans);
+  insert_string("\n"); }
+  
+
+void eval_block() {
+	char ans[1000];
+	char query[1000];
+	point_t temp;
+  
+	if (curbp->b_paren == -1) {
+		msg("No block detected");
+		return;
+	}
+
+	curbp->b_mark = curbp->b_paren;
+
+	/* if at start of block got to end of block */
+	if (curbp->b_point < curbp->b_paren) {
+		temp = curbp->b_mark;
+		curbp->b_mark =	curbp->b_point;
+		curbp->b_point = temp;
+	}
+
+	right(); /* if we have a matching brace we should always be able to move to right */
+	copy();
+	assert(scrap != NULL);
+	remove_control_chars(scrap);
+
+	sprintf(query, wrp, scrap);
+	debug("eval_block: %s\n", query);
+
+	callLisp(ans, query);
+	insert_string("\n");
+	insert_string(ans);
+	insert_string("\n"); 
+}
+
+void remove_control_chars(char_t *s)
+{
+	char_t *p = s;
+
+	while (*p != '\0') {
+		if (*p < 32)
+			*p = ' ';
+		p++;
+	}
 }

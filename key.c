@@ -72,6 +72,7 @@ keymap_t keymap[] = {
 	{"C-k kill-to-eol          ", "\x0B", killtoeol },
 	{"C-s search               ", "\x13", search },
 	{"C-r search               ", "\x12", search },
+	{"C-o eval region          ", "\x0F", repl },
        
 	{"C-x 1 delete-other-window", "\x18\x31", delete_other_windows },
 	{"C-x 2 split-window       ", "\x18\x32", split_window },
@@ -90,7 +91,37 @@ keymap_t keymap[] = {
 	{"C-x C-s save-buffer      ", "\x18\x13", savebuffer },  
 	{"C-x C-w write-file       ", "\x18\x17", writefile },  /* write and prompt for name */
 	{"C-x C-c exit             ", "\x18\x03", quit_ask },
+	{"esc ] eval_block         ", "\x1B\x5D", eval_block },
+
 	{"esc esc show-version     ", "\x1B\x1B", version },
+
+        {"C-c a", "\x03\x61", keyboardDefinition},
+        {"C-c b", "\x03\x62", keyboardDefinition},
+        {"C-c c", "\x03\x63", keyboardDefinition},
+        {"C-c d", "\x03\x64", keyboardDefinition},
+        {"C-c e", "\x03\x65", keyboardDefinition},
+        {"C-c f", "\x03\x66", keyboardDefinition},
+        {"C-c g", "\x03\x67", keyboardDefinition},
+        {"C-c h", "\x03\x68", keyboardDefinition},
+        {"C-c i", "\x03\x69", keyboardDefinition},
+        {"C-c j", "\x03\x6A", keyboardDefinition},
+        {"C-c k", "\x03\x6B", keyboardDefinition},
+        {"C-c l", "\x03\x6C", keyboardDefinition},
+        {"C-c m", "\x03\x6D", keyboardDefinition},
+        {"C-c n", "\x03\x6E", keyboardDefinition},
+        {"C-c o", "\x03\x6F", keyboardDefinition},
+        {"C-c p", "\x03\x70", keyboardDefinition},
+        {"C-c q", "\x03\x71", keyboardDefinition},
+        {"C-c r", "\x03\x72", keyboardDefinition},
+        {"C-c s", "\x03\x73", keyboardDefinition},
+        {"C-c t", "\x03\x74", keyboardDefinition},
+        {"C-c u", "\x03\x75", keyboardDefinition},
+        {"C-c v", "\x03\x76", keyboardDefinition},
+        {"C-c w", "\x03\x77", keyboardDefinition},
+        {"C-c x", "\x03\x78", keyboardDefinition},
+        {"C-c y", "\x03\x79", keyboardDefinition},
+        {"C-c z", "\x03\x7A", keyboardDefinition},
+	
 	{"K_ERROR                  ", NULL, NULL }
 };
 

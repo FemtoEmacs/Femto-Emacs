@@ -16,9 +16,9 @@ RM      = rm
 E       =
 O       = .o
 
-OBJ     = complete$(O) commandFemto$(O) data$(O) display$(O) gap$(O) \
-             keyFemto$(O) search$(O) buffer$(O) replace$(O) window$(O) \
-             mainFemto$(O) femtolisp/interface2editor$(O) \
+OBJ     = complete$(O) command$(O) data$(O) display$(O) gap$(O) \
+             key$(O) search$(O) buffer$(O) replace$(O) window$(O) \
+             main$(O) femtolisp/interface2editor$(O) \
              femtolisp/flcall$(O)
 
 femtoEmacs$(E) : $(OBJ)
@@ -34,8 +34,8 @@ flcall$(E) : $(OBJ)
 complete$(O): complete.c header.h
 	$(CC) $(CFLAGS)  -I$(LLTDIR) -c complete.c
 
-commandFemto$(O): commandFemto.c header.h
-	$(CC) $(CFLAGS)  -I$(LLTDIR) -c commandFemto.c
+command$(O): command.c header.h
+	$(CC) $(CFLAGS)  -I$(LLTDIR) -c command.c
 
 data$(O): data.c header.h
 	$(CC) $(CFLAGS)  -I$(LLTDIR) -c data.c
@@ -46,8 +46,8 @@ display$(O): display.c header.h
 gap$(O): gap.c header.h
 	$(CC) $(CFLAGS)  -I$(LLTDIR) -c gap.c
 
-keyFemto$(O): keyFemto.c header.h
-	$(CC) $(CFLAGS)  -I$(LLTDIR) -c keyFemto.c
+key$(O): key.c header.h
+	$(CC) $(CFLAGS)  -I$(LLTDIR) -c key.c
 
 search$(O): search.c header.h
 	$(CC) $(CFLAGS)  -I$(LLTDIR) -c search.c
@@ -61,8 +61,8 @@ window$(O): window.c header.h
 buffer$(O): buffer.c header.h
 	$(CC) $(CFLAGS)  -I$(LLTDIR) -c buffer.c
 
-mainFemto$(O): mainFemto.c header.h
-	$(CC) $(CFLAGS)  -I$(LLTDIR) -c mainFemto.c
+main$(O): main.c header.h
+	$(CC) $(CFLAGS)  -I$(LLTDIR) -c main.c
 
 clean:
 	-$(RM) -f $(OBJ) femto$(E) *.c~ *.h~
