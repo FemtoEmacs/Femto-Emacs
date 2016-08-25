@@ -34,6 +34,7 @@
 #define STRBUF_L        256
 #define STRBUF_M        64
 #define STRBUF_S        16
+#define LISP_IN_OUT     2048
 #define MIN_GAP_EXPAND  512
 #define TEMPFILE        "/tmp/feXXXXXX"
 
@@ -126,6 +127,8 @@ extern char msgline[];          /* Message line input/output buffer. */
 extern char temp[];             /* Temporary buffer. */
 extern char searchtext[];
 extern char replace[];
+extern char lisp_query[];
+extern char lisp_result[];
 extern char *prog_name;         /* Name used to invoke editor. */
 extern keymap_t *key_map;       /* Command key mappings. */
 extern keymap_t keymap[];

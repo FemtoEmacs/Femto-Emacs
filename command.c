@@ -530,7 +530,6 @@ void version()
 	msg(m_version);
 }
 
-/*Ed Mort*/
 static char *wrp=
 "(trycatch (let ((b (buffer))) \
    (with-output-to b (princ %s)) \
@@ -539,44 +538,40 @@ static char *wrp=
 char *whatKey= "";
 
 /* Keyboard Definition is done by user in Lisp */
-void keyboardDefinition() {
-  char ans[400];
-  char que[400];
-  char query[400];
+void keyboardDefinition()
+{
+	char que[400];
   
-  if ((scrap == NULL) || (nscrap < 1)) {
-    sprintf(que, "(keyboard \"%s\" \"\")", 
-	  whatKey);}
-  else { char clp[200];
-    int i;
+	if ((scrap == NULL) || (nscrap < 1)) {
+		sprintf(que, "(keyboard \"%s\" \"\")", 	whatKey);
+	} else {
+		char clp[200];
+		int i;
     
-    for(i=0; i<nscrap; i++){
-      clp[i]= (char) scrap[i];}
-    clp[i]= '\0';
-    sprintf(que, "(keyboard \"%s\" \"%s\")", 
-	    whatKey, clp);}
-  sprintf(query, wrp, que);
-  callLisp(ans, query); }
+		for(i=0; i<nscrap; i++) {
+			clp[i]= (char) scrap[i];
+		}
+		clp[i]= '\0';
+		sprintf(que, "(keyboard \"%s\" \"%s\")", whatKey, clp);
+	}
+	
+	sprintf(lisp_query, wrp, que);
+	callLisp(lisp_result, lisp_query);
+}
 
-void repl() {
-  char prompt[201];
-  char ans[1000];
-  char query[1000];
-  char inpt[1000];
-  temp[0] = '\0';
-  sprintf(prompt, "> ");
-  result = getinput(prompt, (char *) temp, 1000);
-  sprintf(query, wrp, temp);
-  callLisp(ans, query);
-  sprintf(inpt, "C-o > %s", temp);
-  insert_string("\n");
-  insert_string(ans);
-  insert_string("\n"); }
+void repl()
+{
+	temp[0] = '\0';
+	result = getinput("> ", temp, 1000);
+	sprintf(lisp_query, wrp, temp);
+	callLisp(lisp_result, lisp_query);
+
+	insert_string("\n");
+	insert_string(lisp_result);
+	insert_string("\n");
+}
   
-
 void eval_block() {
-	char ans[1000];
-	char query[1000];
 	point_t temp;
   
 	if (curbp->b_paren == -1) {
@@ -598,12 +593,12 @@ void eval_block() {
 	assert(scrap != NULL);
 	remove_control_chars(scrap);
 
-	sprintf(query, wrp, scrap);
-	debug("eval_block: %s\n", query);
+	sprintf(lisp_query, wrp, scrap);
+	/* debug("eval_block: %s\n", lisp_query); */
 
-	callLisp(ans, query);
+	callLisp(lisp_result, lisp_query);
 	insert_string("\n");
-	insert_string(ans);
+	insert_string(lisp_result);
 	insert_string("\n"); 
 }
 
