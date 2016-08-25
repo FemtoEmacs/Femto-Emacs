@@ -42,7 +42,7 @@ the editor for Macistosh:
 
 You can test the editor in loco:
 
-~/Femto-Emacs/femto$ ./femto test.scm
+~/Femto-Emacs$ ./femto test.scm
 
 Of course, you may want to use femto anywhere in the directory tree.
 Here is how to achieve this goal:
