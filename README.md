@@ -10,13 +10,10 @@ http://ftp.gnu.org/gnu/ncurses/
                                                                             
 If you DON'T CARE about diacritics, you can compile ncurses as shown below:                                          
 
-~$ cd ncurses-6.0
-
-~/ncurses-6.0$ ./configure                                                                 
-
-~/ncurses-6.0$ make                                                                        
-
-~/ncurses-6.0$ sudo make install                                                           
+> ~$ cd ncurses-6.0
+> ~/ncurses-6.0$ ./configure                                                                 
+> ~/ncurses-6.0$ make                                                                        
+> ~/ncurses-6.0$ sudo make install                                                           
                                                                             
 In English, some people add marks or glyphs to certain letters. For instance,                                    
 instead of writing "facade", they write "façade". On the same token, they write                                     
