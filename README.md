@@ -36,9 +36,9 @@ archive, and copy the libncursesw.a file to /usr/local/lib/ as shown below.
 After installing libncursesw, enter the folder Femto-Emacs/femto/ and build
 the editor for Macistosh:
 
-> ~/$ cd ~/Femto-Emacs/femto/
+> ~/$ cd ~/Femto-Emacs/
 
-> ~/Femto-Emacs/femto$ make -f Makefile.macosx
+> ~/Femto-Emacs$ make -f Makefile.macosx
 
 You can test the editor in loco:
 
@@ -47,13 +47,13 @@ You can test the editor in loco:
 Of course, you may want to use femto anywhere in the directory tree.
 Here is how to achieve this goal:
 
-> ~/Femto-Emacs/femto$ sudo cp femto /usr/local/bin/
+> ~/Femto-Emacs$ sudo cp femto /usr/local/bin/
 
-> ~/Femto-Emacs/femto$ sudo cp femto.boot /usr/local/bin/
+> ~/Femto-Emacs$ sudo cp femto.boot /usr/local/bin/
 
-> ~/Femto-Emacs/femto$ cp init.lsp ~/
+> ~/Femto-Emacs$ cp init.lsp ~/
 
-> ~/Femto-Emacs/femto$ cp aliases.scm ~/
+> ~/Femto-Emacs$ cp aliases.scm ~/
 
 
 ## Linux
