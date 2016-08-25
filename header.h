@@ -294,7 +294,8 @@ extern void keyboardDefinition(void);
 extern void chkPar(void);
 extern char *whatKey;
 extern void repl(void);
-
+extern void eval_block();
+void remove_control_chars(char_t *);
 
 /* Functions to pscrap_t */
 extern void ps_push(pscrap_t *p, char_t *scrap);

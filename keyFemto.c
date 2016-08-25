@@ -91,6 +91,8 @@ keymap_t keymap[] = {
 	{"C-x C-s save-buffer      ", "\x18\x13", savebuffer },  
 	{"C-x C-w write-file       ", "\x18\x17", writefile },  /* write and prompt for name */
 	{"C-x C-c exit             ", "\x18\x03", quit_ask },
+	{"esc ] eval_block         ", "\x1B\x5D", eval_block },
+
 	{"esc esc show-version     ", "\x1B\x1B", version },
 
         {"C-c a", "\x03\x61", keyboardDefinition},

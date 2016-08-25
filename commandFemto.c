@@ -573,3 +573,47 @@ void repl() {
   insert_string(ans);
   insert_string("\n"); }
   
+
+void eval_block() {
+	char ans[1000];
+	char query[1000];
+	point_t temp;
+  
+	if (curbp->b_paren == -1) {
+		msg("No block detected");
+		return;
+	}
+
+	curbp->b_mark = curbp->b_paren;
+
+	/* if at start of block got to end of block */
+	if (curbp->b_point < curbp->b_paren) {
+		temp = curbp->b_mark;
+		curbp->b_mark =	curbp->b_point;
+		curbp->b_point = temp;
+	}
+
+	right(); /* if we have a matching brace we should always be able to move to right */
+	copy();
+	assert(scrap != NULL);
+	remove_control_chars(scrap);
+
+	sprintf(query, wrp, scrap);
+	debug("eval_block: %s\n", query);
+
+	callLisp(ans, query);
+	insert_string("\n");
+	insert_string(ans);
+	insert_string("\n"); 
+}
+
+void remove_control_chars(char_t *s)
+{
+	char_t *p = s;
+
+	while (*p != '\0') {
+		if (*p < 32)
+			*p = ' ';
+		p++;
+	}
+}
