@@ -158,7 +158,7 @@ void insert()
 }
 
 void backsp()
-{       curbp->killed= 1;
+{
 	int n = prev_utf8_char_size();
 	curbp->b_point = movegap(curbp, curbp->b_point);
 	undoset();
@@ -229,6 +229,7 @@ void readfile()
 			strncpy(curbp->b_fname, temp, NAME_MAX);
 			curbp->b_fname[NAME_MAX] = '\0'; /* truncate if required */
 		}
+		undoset();
 	}
 }
 
@@ -304,7 +305,6 @@ void toggle_overwrite_mode() {
 void killtoeol()
 {
 	/* point = start of empty line or last char in file */
-        curbp->killed= 1;
 	if (*(ptr(curbp, curbp->b_point)) == 0xa || (curbp->b_point + 1 == ((curbp->b_ebuf - curbp->b_buf) - (curbp->b_egap - curbp->b_gap))) ) {
 		delete();
 	} else {

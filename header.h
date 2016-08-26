@@ -58,13 +58,12 @@ typedef struct undo_t {
 	point_t u_point;
 	point_t u_gap;
 	point_t u_egap;
-
+	char u_flags;
 } undo_t;
 
 typedef struct buffer_t
 {
 	struct buffer_t *b_next;  /* Link to next buffer_t */
-  	int killed; 
 
 	point_t b_mark;	     	  /* the mark */
 	point_t b_point;          /* the point */

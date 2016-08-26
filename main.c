@@ -57,8 +57,9 @@ int main(int argc, char **argv)
 		fatal(f_alloc);
 
 	top();
+	undoset();
 	key_map = keymap;
-       initLisp(1, flargv);
+	initLisp(1, flargv);
 	while (!done) {
 		update_display();
 		input = getkey(key_map, &key_return);
