@@ -29,9 +29,13 @@ int main(int argc, char **argv)
 	idlok(stdscr, TRUE);
 
         start_color();
-	init_pair(1,COLOR_BLACK,COLOR_WHITE);  /* normal screen */
-	init_pair(2,COLOR_WHITE,COLOR_BLUE);   /* modeline */
-	init_pair(3, COLOR_BLACK, COLOR_CYAN); /* brace highlight */
+	init_pair(1, COLOR_WHITE, COLOR_BLACK);  /* normal screen */
+	init_pair(2, COLOR_BLACK, COLOR_WHITE);   /* modeline */
+	init_pair(3, COLOR_BLACK, COLOR_CYAN);  /* brace highlight */
+	init_pair(4, COLOR_BLUE, COLOR_BLACK);  /* keyword */
+	init_pair(5, COLOR_GREEN, COLOR_BLACK);  /* alpha */
+	init_pair(6, COLOR_MAGENTA, COLOR_BLACK);  /* digits */
+
 	bkgd((chtype) (' ' | COLOR_PAIR(1)));
 
 	if (1 < argc) {
