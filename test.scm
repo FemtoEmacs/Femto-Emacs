@@ -1,3 +1,5 @@
+
+
 (define (qua x)
   (* x x))
 
