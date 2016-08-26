@@ -89,10 +89,23 @@ point_t lncolumn(buffer_t *bp, point_t offset, int column)
 	return (offset);
 }
 
+int is_upper_or_lower(char_t c)
+{
+	return ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'));
+}
+
+int is_digit(char_t c)
+{
+        return (c >= '0' && c <= '9');
+}
+
 void display_char(buffer_t *bp, char_t *p, int keyword_char_count)
 {
 	if (keyword_char_count > 0 ) {
-		addch(*p | A_UNDERLINE);
+		attron(COLOR_PAIR(4));
+		//addch(*p | A_UNDERLINE);
+		addch(*p);
+		attron(COLOR_PAIR(1));
 	} else if ((ptr(bp, bp->b_mark) == p) && (bp->b_mark != NOMARK)) {
 		addch(*p | A_REVERSE);
 	} else if (pos(bp,p) == bp->b_point && bp->b_paren != NOPAREN) {
@@ -101,6 +114,14 @@ void display_char(buffer_t *bp, char_t *p, int keyword_char_count)
 		attron(COLOR_PAIR(1));
 	} else if (bp->b_paren != NOPAREN && pos(bp,p) == bp->b_paren) { 
 		attron(COLOR_PAIR(3));
+		addch(*p);
+		attron(COLOR_PAIR(1));
+	} else if (is_upper_or_lower(*p)) {
+		attron(COLOR_PAIR(5));
+		addch(*p);
+		attron(COLOR_PAIR(1));
+	} else if (is_digit(*p)) {
+		attron(COLOR_PAIR(6));
 		addch(*p);
 		attron(COLOR_PAIR(1));
 	} else {
@@ -125,9 +146,9 @@ void display(window_t *wp, int flag)
 	char_t *p;
 	int i, j, k, nch;
 	buffer_t *bp = wp->w_bufp;
-        int keywd_char_count = 0; /*EdMort*/
+        int keywd_char_count = 0;
 
-	setLanguage(get_file_extension(bp->b_fname)); /*EdMort*/
+	setLanguage(get_file_extension(bp->b_fname));
 
 	/* find start of screen, handle scroll up off page or top of file  */
 	/* point is always within b_page and b_epage */
@@ -154,6 +175,7 @@ void display(window_t *wp, int flag)
 	i = wp->w_top;
 	j = 0;
 	bp->b_epage = bp->b_page;
+
 	/* paint screen from top of page until we hit maxline */ 
 	while (1) {
 		/* reached point - store the cursor position */
