@@ -199,6 +199,16 @@ void gotoline()
 	}
 }
 
+void goto_line(int line)
+{ point_t p;
+  p = line_to_point(line);
+  if (p != -1) {
+		 curbp->b_point = p;
+		 msg(m_line, line);
+  } else { msg(m_lnot_found, line);}
+}
+
+
 void insertfile()
 {
 	temp[0] = '\0';
@@ -566,6 +576,8 @@ void repl()
 	sprintf(lisp_query, wrp, temp);
 	callLisp(lisp_result, lisp_query);
 
+        if (strcmp(lisp_result, "#t") == 0) {
+	return;}
 	insert_string("\n");
 	insert_string(lisp_result);
 	insert_string("\n");
