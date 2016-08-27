@@ -38,6 +38,10 @@
 #define MIN_GAP_EXPAND  512
 #define TEMPFILE        "/tmp/feXXXXXX"
 
+//#define COMMENT_COLOR_PAIR_ID 
+
+
+
 typedef char *msg_t;
 typedef unsigned char char_t;
 typedef long point_t;
