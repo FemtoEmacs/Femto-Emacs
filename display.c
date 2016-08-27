@@ -91,7 +91,9 @@ point_t lncolumn(buffer_t *bp, point_t offset, int column)
 
 int is_upper_or_lower(char_t c)
 {
-	return ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'));
+	return ( (c >= 'a' && c <= 'z') || 
+	         (c >= 'A' && c <= 'Z') ||
+	         (c == '_'));
 }
 
 int is_digit(char_t c)
