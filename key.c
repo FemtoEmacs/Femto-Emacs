@@ -45,12 +45,12 @@ keymap_t keymap[] = {
  
 	{"esc b back-word          ", "\x1B\x62", wleft },
 	{"esc f forward-word       ", "\x1B\x66", wright },
-	{"esc g gotoline           ", "\x1B\x67", gotoline },
+	{"esc g gotoline           ", "\x1B\x67", i_gotoline },
 	{"esc r query-replace      ", "\x1B\x72", query_replace },
 
 	{"esc B back-word          ", "\x1B\x42", wleft },
 	{"esc F forward-word       ", "\x1B\x46", wright },
-	{"esc G gotoline           ", "\x1B\x47", gotoline },
+	{"esc G gotoline           ", "\x1B\x47", i_gotoline },
 	{"esc R query-replace      ", "\x1B\x52", query_replace },
 
 	/* these are not standard emacs bindings but I like them on the ALT key */

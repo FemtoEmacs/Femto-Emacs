@@ -180,34 +180,31 @@ void delete()
 	}
 }
 
-void gotoline()
+void i_gotoline()
 {
 	temp[0] = '\0';
 	int line;
-	point_t p;
+
 	result = getinput(m_goto, (char*)temp, STRBUF_S);
 
 	if (temp[0] != '\0' && result) {
 		line = atoi(temp);
-		p = line_to_point(line);
-		if (p != -1) {
-			curbp->b_point = p;
-			msg(m_line, line);
-		} else {
-			msg(m_lnot_found, line);
-		}
+		goto_line(line);
 	}
 }
 
 void goto_line(int line)
-{ point_t p;
-  p = line_to_point(line);
-  if (p != -1) {
-		 curbp->b_point = p;
-		 msg(m_line, line);
-  } else { msg(m_lnot_found, line);}
+{
+	point_t p;
+	
+	p = line_to_point(line);
+	if (p != -1) {
+		curbp->b_point = p;
+		msg(m_line, line);
+	} else {
+		msg(m_lnot_found, line);
+	}
 }
-
 
 void insertfile()
 {
@@ -576,8 +573,11 @@ void repl()
 	sprintf(lisp_query, wrp, temp);
 	callLisp(lisp_result, lisp_query);
 
+	/* hide results that are just #t */
         if (strcmp(lisp_result, "#t") == 0) {
-	return;}
+		return;
+	}
+
 	insert_string("\n");
 	insert_string(lisp_result);
 	insert_string("\n");
