@@ -502,6 +502,19 @@ void match_paren_backwards(buffer_t *bp, char open_paren, char close_paren)
 	bp->b_paren = NOPAREN;
 }
 
+void i_describe_key()
+{
+	mvaddstr(MSGLINE, 0, "Describe key ");
+	clrtoeol();
+
+	input = getkey(key_map, &key_return);
+
+	if (key_return != NULL)
+		msg("%s runs the command '%s'", key_return->key_name, key_return->key_desc);
+	else
+		msg("self insert %c", input);
+}
+
 void i_shell_command()
 {
 	int result;

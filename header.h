@@ -18,7 +18,7 @@
 #undef _
 #define _(x)    x
 
-#define VERSION	 "FemtoEmacs 1.4, Public Domain, 2016"
+#define VERSION	 "FemtoEmacs 1.5, Public Domain, 2016"
 #define EXIT_OK         0               /* Success */
 #define EXIT_ERROR      1               /* Unknown error. */
 #define EXIT_USAGE      2               /* Usage */
@@ -49,8 +49,9 @@ typedef struct pscrap_t {
 			 *     pscrap_t *sstack;                        */
   
 typedef struct keymap_t {
-	char *key_bind;
-	char *lhs;              /* Left hand side invokes function or macro. */
+	char *key_name;			/* the name of the key, for exmaple 'C-x a' */
+	char *key_desc;                 /* binding description */
+	char *key_bytes;		/* the string of bytes when this key is pressed */
 	void (*func) _((void));
 } keymap_t;
 
@@ -249,6 +250,7 @@ extern void debug_stats(char *);
 extern void showpos(void);
 extern void killtoeol(void);
 extern void i_gotoline(void);
+extern void i_describe_key(void);
 extern void goto_line(int);
 extern void search(void);
 extern void query_replace(void);
