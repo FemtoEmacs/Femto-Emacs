@@ -38,9 +38,13 @@
 #define MIN_GAP_EXPAND  512
 #define TEMPFILE        "/tmp/feXXXXXX"
 
-//#define COMMENT_COLOR_PAIR_ID 
-
-
+#define ID_COLOR_SYMBOL    1
+#define ID_COLOR_MODELINE  2
+#define ID_COLOR_BRACE     3
+#define ID_COLOR_KEYWORD   4
+#define ID_COLOR_ALPHA     5
+#define ID_COLOR_DIGITS    6
+#define ID_COLOR_COMMENTS  7
 
 typedef char *msg_t;
 typedef unsigned char char_t;

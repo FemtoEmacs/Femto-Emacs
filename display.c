@@ -91,9 +91,7 @@ point_t lncolumn(buffer_t *bp, point_t offset, int column)
 
 int is_upper_or_lower(char_t c)
 {
-	return ( (c >= 'a' && c <= 'z') || 
-	         (c >= 'A' && c <= 'Z') ||
-	         (c == '_'));
+	return ( (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c == '_'));
 }
 
 int is_digit(char_t c)
@@ -108,32 +106,26 @@ extern void cmmt(char_t *p, int *c, int *lc);
 void display_char(buffer_t *bp, char_t *p, int keyword_char_count)
 {
 	if (in_comment==1 || in_line_comment== 1) {
-		addch(*p);}
-	else if ( (ptr(bp, bp->b_mark) == p) && (bp->b_mark != NOMARK)) {
-		addch(*p | A_REVERSE);}
-        else if (keyword_char_count > 0 ) {
-                attron(COLOR_PAIR(4));
-                addch(*p);
-                attron(COLOR_PAIR(1));
+		attron(COLOR_PAIR(ID_COLOR_COMMENTS));
+	} else if ( (ptr(bp, bp->b_mark) == p) && (bp->b_mark != NOMARK)) {
+		addch(*p | A_REVERSE);
+		return;
+	} else if (keyword_char_count > 0 ) {
+                attron(COLOR_PAIR(ID_COLOR_KEYWORD));
 	} else if (pos(bp,p) == bp->b_point && bp->b_paren != NOPAREN) {
-                attron(COLOR_PAIR(3));
-                addch(*p);
-                attron(COLOR_PAIR(1));
+                attron(COLOR_PAIR(ID_COLOR_BRACE));
         } else if (bp->b_paren != NOPAREN && pos(bp,p) == bp->b_paren) {
-                attron(COLOR_PAIR(3));
-                addch(*p);
-                attron(COLOR_PAIR(1));
+                attron(COLOR_PAIR(ID_COLOR_BRACE));
 	} else if (is_digit(*p)) {
-                attron(COLOR_PAIR(6));
-                addch(*p);
-                attron(COLOR_PAIR(1));
+                attron(COLOR_PAIR(ID_COLOR_DIGITS));
         } else if (is_upper_or_lower(*p)) {
-                attron(COLOR_PAIR(5));
-                addch(*p);
-                attron(COLOR_PAIR(1));
+                attron(COLOR_PAIR(ID_COLOR_ALPHA));
 	} else {
-                addch(*p);
+		attron(COLOR_PAIR(ID_COLOR_SYMBOL));
         }
+
+	addch(*p);
+	attron(COLOR_PAIR(ID_COLOR_ALPHA));
 }
 
 char *get_file_extension(char *filename)
@@ -271,7 +263,7 @@ void modeline(window_t *wp)
 	char lch, mch, och;
 
 	/* n = utf8_size(*(ptr(wp->w_bufp, wp->w_bufp->b_point))); */
-	attron(COLOR_PAIR(2));
+	attron(COLOR_PAIR(ID_COLOR_MODELINE));
 	move(wp->w_top + wp->w_rows, 0);
 	lch = (wp == curwp ? '=' : '-');
 	mch = ((wp->w_bufp->b_flags & B_MODIFIED) ? '*' : lch);
@@ -287,7 +279,7 @@ void modeline(window_t *wp)
 
 	for (i = strlen(temp) + 1; i <= COLS; i++)
 		addch(lch);
-	attron(COLOR_PAIR(1));
+	attron(COLOR_PAIR(ID_COLOR_SYMBOL));
 }
 
 void dispmsg()
