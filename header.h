@@ -36,6 +36,8 @@
 #define STRBUF_S        16
 #define LISP_IN_OUT     2048
 #define MIN_GAP_EXPAND  512
+#define FWD_SEARCH      1
+#define REV_SEARCH      2
 #define TEMPFILE        "/tmp/feXXXXXX"
 
 #define ID_COLOR_SYMBOL    1
@@ -267,6 +269,7 @@ extern point_t search_forward(char *);
 extern point_t search_backwards(char *);
 extern void update_search_prompt(char *, char *);
 extern void display_search_result(point_t, int, char *, char *);
+extern void move_to_search_result(point_t);
 extern buffer_t* find_buffer (char *, int);
 extern void buffer_init(buffer_t *);
 extern int delete_buffer(buffer_t *);
