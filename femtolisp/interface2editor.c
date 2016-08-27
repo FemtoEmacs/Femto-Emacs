@@ -242,11 +242,15 @@ int numWords[100];
 char hiLite[10][100][30];
 
 int notsep(char_t *p) {
+
+  /* what is the purpose of this check, also p is a pointer ? */
   if (p < 1) return 0;
-  char c= *p;
+
+  char_t c= *p;
   return ( (c>='a' && c <= 'z') ||
            (c >= 'A' && c <= 'Z') ||
-           (c >= '0' && c <= '9'));}
+           (c >= '0' && c <= '9'));
+}
 
 int kwrd(char_t *p) {
   int i, j;
@@ -282,7 +286,7 @@ void cmmt(char_t *p, int *c, int *lc) {
       if ((*c == 0) && (*p == '/') && (*(p+1) == '/')) *c=1;
       if ((*c == 1) && (*p == '\n')) *c=0;
       if ((*lc == 0) && (*p == '/') && (*(p+1) == '*')) *lc= 1;
-      if ((*lc == 1) && (*p == '*') && (*(p+1) == '/')) *lc= 0;
+      if ((*lc == 1) && (*(p-1) == '/') && (*(p-2) == '*')) *lc= 0;
       return;}
   }
 }
