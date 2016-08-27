@@ -54,6 +54,7 @@ static value_t insrt(value_t *args, u_int32_t nargs) {
 
 extern void left(void);
 extern void right(void);
+extern void backsp(void);
 
 void ibchar(long int n) {
   long int i;
@@ -69,17 +70,31 @@ void ifchar(long int n) {
   }
 }
 
+void ibacksp(long int n) {
+  long int i;
+  for (i=0; i < n; i++) {
+    backsp();
+  }
+}
+
 static value_t bkwrd(value_t *args, u_int32_t nargs) {
   argcount("backward", nargs, 1);
   value_t a= args[0];
   ibchar(numval(a));  /*Learn: Lisp num -> C int*/
   return FL_NIL;}
+
 int keywrdcolor = 1 ;
 
 static value_t forwrd(value_t *args, u_int32_t nargs) {
   argcount("forward", nargs, 1);
   value_t a= args[0];
   ifchar(numval(a));   /*Learn: Lisp num -> C int*/
+  return FL_NIL;}
+
+static value_t backspace(value_t *args, u_int32_t nargs) {
+  argcount("backwards-delete-char", nargs, 1);
+  value_t a= args[0];
+  ibacksp(numval(a));   /*Learn: Lisp num -> C int*/
   return FL_NIL;}
 
 extern void lnbegin (void);
@@ -99,7 +114,7 @@ static value_t lineend(value_t *args, u_int32_t nargs) {
 extern void copy(void);
 
 static value_t copy_region(value_t *args, u_int32_t nargs) {
-  argcount("copy_region", nargs, 0);
+  argcount("copy-region", nargs, 0);
   copy();
   return FL_T;}
 
@@ -107,7 +122,7 @@ static value_t copy_region(value_t *args, u_int32_t nargs) {
 extern void  delete_other_windows(void);
 
 static value_t del_other_windows(value_t *args, u_int32_t nargs) {
-  argcount("copy_region", nargs, 0);
+  argcount("delete-other-windows", nargs, 0);
   delete_other_windows();
   return FL_T;}
 
@@ -221,13 +236,9 @@ static value_t yank(value_t *args,u_int32_t nargs){
 }
 
 int nLangs= 0;
-
 int thisLanguage= -1;
-
 char LangCode[10][5];
-
 int numWords[100];
-
 char hiLite[10][100][30];
 
 
@@ -293,8 +304,10 @@ extern void iostream_init(void);
 static builtinspec_t builtin_info[] = {
 
     /*Interface to the editor*/
+
     {"insert", insrt},
-    {"backward-delete-char", bkwrd},
+    {"backward-delete-char", backspace},
+    {"backward-character", bkwrd},
     {"forward-character", forwrd},
     {"beginning-of-line", linebegin},
     {"end-of-line", lineend},

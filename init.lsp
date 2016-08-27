@@ -16,7 +16,23 @@
            (insert "<p>-")
            (insert clipboard)
            (insert "-</p>"))
+	 ( (equal? key "C-c f")
+	   (myfunc))
+         ( (equal? key "C-c m")
+	   (buffer-menu))
          (else (insert key)) ))
+
+
+;; we can redine this through lisp interaction but it will be bound to C-c f
+(define (myfunc) ())
+
+;; this is just a start
+(define (buffer-menu)
+  ((list-buffers)
+    (delete-other-windows)
+    (goto-line 3)
+    (message "buffer menu: 1,2,k,x")))
+
 
 (newlanguage ".scm")
 (keyword "define")
