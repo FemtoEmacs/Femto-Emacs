@@ -91,7 +91,9 @@ point_t lncolumn(buffer_t *bp, point_t offset, int column)
 
 int is_upper_or_lower(char_t c)
 {
-	return ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'));
+	return ( (c >= 'a' && c <= 'z') || 
+	         (c >= 'A' && c <= 'Z') ||
+	         (c == '_'));
 }
 
 int is_digit(char_t c)
@@ -99,6 +101,45 @@ int is_digit(char_t c)
         return (c >= '0' && c <= '9');
 }
 
+
+int in_comment= 0;
+int in_line_comment= 0;
+
+extern void cmmt(char_t *p, int *c, int *lc);
+
+void display_char(buffer_t *bp, char_t *p, int keyword_char_count)
+{ if (in_comment==1 || in_line_comment== 1) {
+    addch(*p);}
+  else if ( (ptr(bp, bp->b_mark) == p)
+            && (bp->b_mark != NOMARK)) {
+                      addch(*p | A_REVERSE);}
+        else if (keyword_char_count > 0 ) {
+                attron(COLOR_PAIR(4));
+                addch(*p);
+                attron(COLOR_PAIR(1));
+                } else if (pos(bp,p) == bp->b_point && bp->b_paren != NOPAREN) {
+
+                attron(COLOR_PAIR(3));
+                addch(*p);
+                attron(COLOR_PAIR(1));
+        } else if (bp->b_paren != NOPAREN && pos(bp,p) == bp->b_paren) {
+                attron(COLOR_PAIR(3));
+                addch(*p);
+                attron(COLOR_PAIR(1));
+  } else if (is_digit(*p)) {
+                attron(COLOR_PAIR(6));
+                addch(*p);
+                attron(COLOR_PAIR(1));
+        } else if (is_upper_or_lower(*p)) {
+                attron(COLOR_PAIR(5));
+                addch(*p);
+                attron(COLOR_PAIR(1));
+                } else {
+                addch(*p);
+        }
+}
+
+/*
 void display_char(buffer_t *bp, char_t *p, int keyword_char_count)
 {
 	if (keyword_char_count > 0 ) {
@@ -128,6 +169,7 @@ void display_char(buffer_t *bp, char_t *p, int keyword_char_count)
 		addch(*p);
 	}
 }
+*/
 
 char *get_file_extension(char *filename)
 {
@@ -149,7 +191,8 @@ void display(window_t *wp, int flag)
         int keywd_char_count = 0;
 
 	setLanguage(get_file_extension(bp->b_fname));
-
+        in_comment= 0;
+        in_line_comment= 0;
 	/* find start of screen, handle scroll up off page or top of file  */
 	/* point is always within b_page and b_epage */
 	if (bp->b_point < bp->b_page)
@@ -195,7 +238,7 @@ void display(window_t *wp, int flag)
 			}
 			else if (isprint(*p) || *p == '\t' || *p == '\n') {
 				j += *p == '\t' ? 8-(j&7) : 1;
-				
+	                        cmmt(p, &in_comment, &in_line_comment);			
 				if (keywd_char_count <= 0)
 					keywd_char_count = kwrd(p);
 				display_char(bp, p, keywd_char_count--);
