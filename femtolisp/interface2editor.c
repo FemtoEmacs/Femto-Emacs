@@ -241,7 +241,25 @@ char LangCode[10][5];
 int numWords[100];
 char hiLite[10][100][30];
 
+int notsep(char_t *p) {
+  if (p < 1) return 0;
+  char c= *p;
+  return ( (c>='a' && c <= 'z') ||
+           (c >= 'A' && c <= 'Z') ||
+           (c >= '0' && c <= '9'));}
 
+int kwrd(char_t *p) {
+  int i, j;
+  if (notsep(p-1)) return 0;
+  if (thisLanguage > -1) {
+    for (i=0; i < numWords[thisLanguage]; i++) {
+      for (j= 0; j <= strlen(hiLite[thisLanguage][i]); j++) {
+        if (j == strlen(hiLite[thisLanguage][i]))
+          {if (!notsep(p+j)) return j; else return 0;}
+        else if ( *(p+j) != (char_t) hiLite[thisLanguage][i][j]) break;}}}
+  return 0;}
+
+/*
 int kwrd(char_t *p) {
   int i, j;
   if (thisLanguage > -1) {
@@ -250,7 +268,24 @@ int kwrd(char_t *p) {
         if (j == strlen(hiLite[thisLanguage][i])) return j;
         else if ( *(p+j) != (char_t) hiLite[thisLanguage][i][j]) break;}}}
   return 0;}
+*/
 
+void cmmt(char_t *p, int *c, int *lc) {
+  if (thisLanguage > -1) {
+    if (strcmp(LangCode[thisLanguage], ".scm") == 0) {
+      if ((*c == 0) && (*p == ';')) *c= 1;
+      if ((*c == 1) && (*p == '\n')) *c=0;
+      if ((*lc == 0) && (*p == '#') && (*(p+1)== '|')) *lc= 1;
+      if ((*lc == 1) && (*p == '|') && (*(p+1)== '#')) *lc=0;
+      return;}
+    if (strcmp(LangCode[thisLanguage], ".c") == 0) {
+      if ((*c == 0) && (*p == '/') && (*(p+1) == '/')) *c=1;
+      if ((*c == 1) && (*p == '\n')) *c=0;
+      if ((*lc == 0) && (*p == '/') && (*(p+1) == '*')) *lc= 1;
+      if ((*lc == 1) && (*p == '*') && (*(p+1) == '/')) *lc= 0;
+      return;}
+  }
+}
 
 void setLanguage(char *extension) {
   int i;
