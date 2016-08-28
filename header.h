@@ -196,7 +196,8 @@ extern msg_t str_buffers;
 extern void fatal _((msg_t));
 extern void msg _((msg_t, ...));
 extern char *get_file_extension(char *);
-extern void display_char(buffer_t *, char_t *, int);
+extern void display_char(  buffer_t *, char_t *,
+                           int kcount, int k);
 extern void display (window_t *, int);
 extern int utf8_size(char_t);
 extern int prev_utf8_char_size(void);
@@ -304,7 +305,7 @@ extern void match_paren_backwards(buffer_t *, char, char);
 /*Ed Mort */
 extern void initLisp(int argc, char *argv[]);
 extern void callLisp(char *ans, char *inpt);
-extern int kwrd(char_t *p);
+extern int kwrd(char_t *p, int *k);
 extern void setLanguage(char* extension);
 extern void keyboardDefinition(void);
 extern void chkPar(void);

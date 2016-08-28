@@ -103,30 +103,32 @@ int in_comment= 0;
 int in_line_comment= 0;
 extern void cmmt(char_t *p, int *c, int *lc);
 
-void display_char(buffer_t *bp, char_t *p, int keyword_char_count)
+void display_char(  buffer_t *bp, char_t *p,
+                    int keyword_char_count, int tktype)
 {
-	if (in_comment==1 || in_line_comment== 1) {
-		attron(COLOR_PAIR(ID_COLOR_COMMENTS));
-	} else if ( (ptr(bp, bp->b_mark) == p) && (bp->b_mark != NOMARK)) {
-		addch(*p | A_REVERSE);
-		return;
-	} else if (keyword_char_count > 0 ) {
+        if (in_comment==1 || in_line_comment== 1) {
+                attron(COLOR_PAIR(ID_COLOR_COMMENTS));
+        } else if ( (ptr(bp, bp->b_mark) == p) && (bp->b_mark != NOMARK)) {
+                addch(*p | A_REVERSE);
+                return;
+        } else if (tktype == 1 && keyword_char_count > 0 ) {
                 attron(COLOR_PAIR(ID_COLOR_KEYWORD));
-	} else if (pos(bp,p) == bp->b_point && bp->b_paren != NOPAREN) {
+        } else if (pos(bp,p) == bp->b_point && bp->b_paren != NOPAREN) {
                 attron(COLOR_PAIR(ID_COLOR_BRACE));
         } else if (bp->b_paren != NOPAREN && pos(bp,p) == bp->b_paren) {
                 attron(COLOR_PAIR(ID_COLOR_BRACE));
-	} else if (is_digit(*p)) {
+        } else if (tktype == 2 && keyword_char_count > 0) {
                 attron(COLOR_PAIR(ID_COLOR_DIGITS));
         } else if (is_upper_or_lower(*p)) {
                 attron(COLOR_PAIR(ID_COLOR_ALPHA));
-	} else {
-		attron(COLOR_PAIR(ID_COLOR_SYMBOL));
+        } else {
+                attron(COLOR_PAIR(ID_COLOR_SYMBOL));
         }
 
-	addch(*p);
-	attron(COLOR_PAIR(ID_COLOR_ALPHA));
+        addch(*p);
+        attron(COLOR_PAIR(ID_COLOR_ALPHA));
 }
+
 
 char *get_file_extension(char *filename)
 {
@@ -146,7 +148,7 @@ void display(window_t *wp, int flag)
 	int i, j, k, nch;
 	buffer_t *bp = wp->w_bufp;
         int keywd_char_count = 0;
-
+        int token_type= 0;
 	setLanguage(get_file_extension(bp->b_fname));
         in_comment= 0;
         in_line_comment= 0;
@@ -195,10 +197,10 @@ void display(window_t *wp, int flag)
 			}
 			else if (isprint(*p) || *p == '\t' || *p == '\n') {
 				j += *p == '\t' ? 8-(j&7) : 1;
-	                        cmmt(p, &in_comment, &in_line_comment);			
-				if (keywd_char_count <= 0)
-					keywd_char_count = kwrd(p);
-				display_char(bp, p, keywd_char_count--);
+	                        cmmt(p, &in_comment, &in_line_comment);	
+	                        if (keywd_char_count <= 0)
+                                        keywd_char_count = kwrd(p, &token_type);
+                                display_char(bp, p, keywd_char_count--, token_type);
 			} else {
 				const char *ctrl = unctrl(*p);
 				j += (int) strlen(ctrl);
