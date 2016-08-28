@@ -49,6 +49,7 @@ extern point_t search_backwards(char *);
 extern void iblock(void);
 extern void split_window(void);
 extern void paste(void);
+extern void eval_block(void);
 
 /*
  * interface to editor functions of form
@@ -100,6 +101,12 @@ static value_t copy_region(value_t *args, u_int32_t nargs) {
 	return FL_T;
 }
 
+static value_t eval_blk(value_t *args, u_int32_t nargs) {
+	argcount("eval-block", nargs, 0);
+	eval_block();  
+	return FL_T;
+}
+
 static value_t del_other_windows(value_t *args, u_int32_t nargs) {
 	argcount("delete-other-windows", nargs, 0);
 	delete_other_windows();
@@ -135,7 +142,6 @@ static value_t previous_line(value_t *args, u_int32_t nargs){
 	argcount("previous-line",nargs,0);
 	up();
 	return FL_T;
-
 }
 
 static value_t set_mark (value_t *args ,u_int32_t nargs){
@@ -155,7 +161,6 @@ static value_t yank(value_t *args,u_int32_t nargs) {
 	paste();
 	return FL_T;
 }
-
 
 /*
  * interface to editor functions of form func(char *)
@@ -190,7 +195,7 @@ static value_t src_forward(value_t *args,u_int32_t nargs) {
 	char *str= cptr(a);
 	founded = search_forward(str);
 	move_to_search_result(founded);
-	return (founded == -1 ? FL_NIL : FL_T);
+	return (founded == -1 ? FL_F : FL_T);
 }
 
 static value_t src_backwards(value_t *args,u_int32_t nargs) {
@@ -273,6 +278,14 @@ void cmmt(char_t *p, int *c, int *lc) {
 		return;
 	}
 
+	if (strcmp(LangCode[thisLanguage], ".lsp") == 0) {
+		if ((*c == 0) && (*p == ';')) *c= 1;
+		if ((*c == 1) && (*p == '\n')) *c=0;
+		if ((*lc == 0) && (*p == '#') && (*(p+1)== '|')) *lc= 1;
+		if ((*lc == 1) && (*p == '|') && (*(p+1)== '#')) *lc=0;
+		return;
+	}
+
 	if (strcmp(LangCode[thisLanguage], ".c") == 0) {
 		if ((*c == 0) && (*p == '/') && (*(p+1) == '/')) *c=1;
 		if ((*c == 1) && (*p == '\n')) *c=0;
@@ -345,6 +358,7 @@ static builtinspec_t builtin_info[] = {
 	{"beginning-of-line", linebegin},
 	{"end-of-line", lineend},
 	{"copy-region", copy_region},
+	{"eval-block", eval_blk},
 	{"message", msg_lisp},
 	{"delete-other-windows", del_other_windows},
 	{"goto-line", gotoln},

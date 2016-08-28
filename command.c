@@ -598,7 +598,23 @@ void repl()
   
 void eval_block() {
 	point_t temp;
-  
+	point_t found;
+
+	char p = *ptr(curbp, curbp->b_point);
+
+	/* if not sat on ( or ) then search for an end of a block behind the cursor */
+	if (p != '(' && p != ')') {
+		found = search_backwards(")");		
+		if (found == -1) {
+			msg("No block behind cursor");
+			return;
+		} else {
+			move_to_search_result(found);
+			right();
+			match_parens();
+		}	
+	}	
+
 	if (curbp->b_paren == -1) {
 		msg("No block detected");
 		return;
