@@ -162,6 +162,21 @@ static value_t yank(value_t *args,u_int32_t nargs) {
 	return FL_T;
 }
 
+extern char *get_version_string(void);
+
+static value_t fl_get_version_string(value_t *args, u_int32_t nargs)
+{
+  argcount("get-version-string", nargs, 0);
+  return (string_from_cstr(get_version_string()));
+}
+
+extern int count_buffers (void);
+static value_t fl_count_buffers(value_t *args, u_int32_t nargs)
+{
+  argcount("get-buffer-count", nargs, 0);
+  return (mk_uint32(count_buffers()));
+}
+
 /*
  * interface to editor functions of form func(char *)
  */
@@ -217,6 +232,9 @@ int thisLanguage= -1;
 char LangCode[10][5];
 int numWords[100];
 char hiLite[10][100][30];
+char line_comment[10][8];
+char begin_comment[10][8];
+char end_comment[10][8];
 
 int notsep(char_t *p) {
 
@@ -255,66 +273,99 @@ int is_dgt(char c) {
  *
  */
 
-int kwrd(char_t *p, int *k) {
+/* seq checks wether *p points to the
+   sequence of chars given by str */
+int seq(char_t *p, char *str)
+{
+   int i;
+   for (i= 0; i < strlen(str); i++)
+   {
+     if (*(p+i) != str[i]) return 0;
+   }
+   return 1;
+}
+
+/* keywrd implements a finite automaton */
+int negative_prefix(char_t *p)
+{
+  return (*p == '-' && is_dgt(*(p + 1)));
+}
+
+int number_prefix(char_t *p, int *j)
+{
+  /* Numbers start with a digit or
+     with '-' followed by a digit */
+  if (is_dgt(*p)) { *j= *j+1; return 1;}
+  if (negative_prefix(p)) {*j= *j +2; return 2;}
+  return 0;
+}
+
+int exponent_prefix(char_t *p, int *j)
+{
+    int jvalue= *j;
+    if ( *(p+jvalue) != 'e') return 0;
+    if ( is_digit(*(p + jvalue +1)))
+      { *j= *j + 2; return 1;}
+    if ( *(p+jvalue+1) != '-') return 0;
+    if ( is_digit(*(p+jvalue+2) ))
+    {
+       *j= *j + 3;
+       return 1;
+    }
+}
+
+int kwrd(char_t *p, int *k)
+{
   int i, j;
+  /* All tokens are preceded by a separator.
+     Therefore, if there is not a separator
+     at (p - 1), tokenizer fails. */
   if (notsep(p-1)) return 0;
-  if (is_dgt(*p) || (*p == '-' && is_dgt(*(p+1)))) {
-    if (is_dgt(*p)) j = 0;
-    else j=1;
+
+  /* In a deterministic finite automaton, a given
+     prefix determines the token class.*/
+  j= 0;
+  if (number_prefix(p, &j)) {
     while  (is_dgt(*(p+j))){ j= j+1;}
     if (*(p+j) == '.') {
       j= j+1;
       while (is_dgt(*(p+j))) { j= j+1;}}
-    if (  *(p+j) == 'e'
-          && ( is_digit(*(p+j+1))
-          || ( *(p+j+1) == '-'
-               && is_digit(*(p+j+2) )) )) {
-      if (*(p+j+1) == '-') {j= j+2;}
-      else {j=j+1;}
-      while (is_dgt(*(p+j))) {j= j+1;}
+    if ( exponent_prefix(p, &j))
+    {
+      while (is_digit(*(p+j))) { j= j+1;}
     }
     if (!notsep(p+j)) { *k=2; return j;}
     *k= 0; return 0;
   }
-  if (thisLanguage > -1) {
-    for (i=0; i < numWords[thisLanguage]; i++) {
-      for (j= 0; j <= strlen(hiLite[thisLanguage][i]); j++) {
-        if (j == strlen(hiLite[thisLanguage][i]))
-          { if (!notsep(p+j)) { *k=1; return j;}
-            else {*k= 0; return 0;}}
-        else if ( *(p+j) != (char_t) hiLite[thisLanguage][i][j])
-                break;}}}
-  *k= 0; return 0;}
-
-
-void cmmt(char_t *p, int *c, int *lc) {
-
-	if (thisLanguage < 0)
-		return;
-
-	if (strcmp(LangCode[thisLanguage], ".scm") == 0) {
-		if ((*c == 0) && (*p == ';')) *c= 1;
-		if ((*c == 1) && (*p == '\n')) *c=0;
-		if ((*lc == 0) && (*p == '#') && (*(p+1)== '|')) *lc= 1;
-		if ((*lc == 1) && (*p == '|') && (*(p+1)== '#')) *lc=0;
-		return;
-	}
-
-	if (strcmp(LangCode[thisLanguage], ".lsp") == 0) {
-		if ((*c == 0) && (*p == ';')) *c= 1;
-		if ((*c == 1) && (*p == '\n')) *c=0;
-		if ((*lc == 0) && (*p == '#') && (*(p+1)== '|')) *lc= 1;
-		if ((*lc == 1) && (*p == '|') && (*(p+1)== '#')) *lc=0;
-		return;
-	}
-
-	if (strcmp(LangCode[thisLanguage], ".c") == 0) {
-		if ((*c == 0) && (*p == '/') && (*(p+1) == '/')) *c=1;
-		if ((*c == 1) && (*p == '\n')) *c=0;
-		if ((*lc == 0) && (*p == '/') && (*(p+1) == '*')) *lc= 1;
-		if ((*lc == 1) && (*(p-1) == '/') && (*(p-2) == '*')) *lc= 0;
-		return;
-	}
+  
+   /* If automaton has not number prefix,
+     it tries to recognize a keyword */
+  if (thisLanguage < 0) {*k= 0; return 0;}
+  j= 0; /* Reset j */
+  for (i=0; i < numWords[thisLanguage]; i++)
+  {
+    if (seq(p, hiLite[thisLanguage][i]))
+    {
+       *k= 1; return strlen(hiLite[thisLanguage][i]);
+    }
+  }
+  *k= 0; return 0;
+}
+  
+void cmmt(char_t *p, int *c, int *lc)
+{
+   if (thisLanguage < 0) return;
+   if ( (*lc == 0) &&
+        seq(p, line_comment[thisLanguage]))
+        *lc= 1;
+   if ( (*lc == 1) && (*p == '\n')) *lc= 0;
+   if ( (*c == 0) &&
+        seq(p, begin_comment[thisLanguage]))
+        *c= 1;
+   if ( (*c == 1) &&
+        seq(p, end_comment[thisLanguage]))
+        *c= 0;
+   return;
 }
 
 void setLanguage(char *extension)
@@ -329,20 +380,53 @@ void setLanguage(char *extension)
 }
 
 static value_t fl_newlanguage(value_t *args, u_int32_t nargs)
-{  
-	argcount("newlanguage", nargs, 1);
-	value_t a = args[0];
-	int code = nLangs;
-	char *str = cptr(a);
-	int sz= strlen(str);
-	int i;
-	for (i=0; i < sz; i++){
-		LangCode[code][i]= str[i];
-	}
-	LangCode[code][i]='\0';
-	numWords[code]= 0;
-	nLangs= nLangs+1;
-	return a;
+{
+        /* Check the number of arguments */
+  argcount("newlanguage", nargs, 4);
+        value_t a = args[0];
+        int code = nLangs;
+        char *str = cptr(a);
+        int sz= strlen(str);
+        int i;
+        for (i=0; i < sz; i++){
+                LangCode[code][i]= str[i];
+        }
+        LangCode[code][i]='\0';
+        numWords[code]= 0;
+        nLangs= nLangs+1;
+
+  /* Lisp string for line comment prefix */
+  value_t linec = args[1];
+  /* Lisp string for block comment begin */
+  value_t beginc = args[2];
+  /* Lisp string for block comment end */
+  value_t endc = args[3];
+
+  /* femtolisp has a python style macro to
+     transform lisp-type into c-pointer */
+  char *ln_cmm = cptr(linec);
+  char *begin_cmm = cptr(beginc);
+  char *end_cmm = cptr(endc);
+
+ /* Copy the strings into the comment vectors
+     to avoid the  garbage collector */
+
+  for (i=0; i < strlen(ln_cmm); i++) {
+     line_comment[code][i]= ln_cmm[i];
+  }
+  line_comment[code][i]= '\0';
+
+  for (i=0; i < strlen(begin_cmm); i++) {
+     begin_comment[code][i]= begin_cmm[i];
+  }
+  begin_comment[code][i]= '\0';
+
+  for (i=0; i < strlen(end_cmm); i++) {
+     end_comment[code][i]= end_cmm[i];
+  }
+  end_comment[code][i]= '\0';
+
+        return FL_T;
 }
 
 static value_t fl_keyword(value_t *args, u_int32_t nargs)
@@ -373,28 +457,30 @@ static builtinspec_t builtin_info[] = {
 
 	/*Interface to the editor*/
 
-	{"insert", insrt},
-	{"backward-delete-char", backspace},
-	{"backward-character", bkwrd},
-	{"forward-character", forwrd},
-	{"beginning-of-line", linebegin},
-	{"end-of-line", lineend},
-	{"copy-region", copy_region},
-	{"eval-block", eval_blk},
-	{"message", msg_lisp},
-	{"delete-other-windows", del_other_windows},
-	{"goto-line", gotoln},
-	{"kill-region",kill_region},
-	{"list-buffers",lst_buffers},
-	{"next-line",next_line},
-	{"previous-line",previous_line},
-	{"search-forward",src_forward},
-	{"search-backwards",src_backwards},
-	{"set-mark",set_mark},
-	{"split-current-window",split_current_window},
-	{"yank",yank},
-	{"keyword", fl_keyword},
-	{"newlanguage", fl_newlanguage}, 
+       {"insert", insrt},
+        {"backward-delete-char", backspace},
+        {"backward-character", bkwrd},
+        {"forward-character", forwrd},
+        {"beginning-of-line", linebegin},
+        {"end-of-line", lineend},
+        {"copy-region", copy_region},
+        {"eval-block", eval_blk},
+        {"message", msg_lisp},
+        {"delete-other-windows", del_other_windows},
+        {"goto-line", gotoln},
+        {"kill-region",kill_region},
+        {"list-buffers",lst_buffers},
+        {"next-line",next_line},
+        {"previous-line",previous_line},
+        {"search-forward",src_forward},
+        {"search-backwards",src_backwards},
+        {"set-mark",set_mark},
+        {"split-current-window",split_current_window},
+        {"yank",yank},
+  {"get-version-string", fl_get_version_string},
+  {"get-buffer-count", fl_count_buffers},
+        {"keyword", fl_keyword},
+        {"newlanguage", fl_newlanguage},
 
 	/*End Interface*/
 	{ NULL, NULL }
