@@ -235,6 +235,26 @@ int is_dgt(char c) {
            (c <= '9'));
 }
 
+/*
+ * @domus123
+ *
+ * This code may work but it is very oddly formatted and complicated it
+ * could end up being difficult to maintain.
+ *
+ * Would you mind formatting this code as per coding standard
+ *  https://users.ece.cmu.edu/~eno/coding/CCodingStandard.html
+ *  https://en.wikipedia.org/wiki/Indent_style#Variant:_1TBS_.28OTBS.29
+ *	
+ * It also needs some comments so it can be better understood.
+ * Any experienced C programmer will be freaked by code like:
+ *
+ *                break;}}}
+ *    *k= 0; return 0;}
+ *
+ * Kind regards. Hugh Barney
+ *
+ */
+
 int kwrd(char_t *p, int *k) {
   int i, j;
   if (notsep(p-1)) return 0;
