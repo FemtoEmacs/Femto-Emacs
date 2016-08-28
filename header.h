@@ -305,7 +305,7 @@ extern void match_paren_backwards(buffer_t *, char, char);
 /*Ed Mort */
 extern void initLisp(int argc, char *argv[]);
 extern void callLisp(char *ans, char *inpt);
-extern int kwrd(char_t *p);
+extern int kwrd(char_t *p, int *k);
 extern void setLanguage(char* extension);
 extern void keyboardDefinition(void);
 extern void chkPar(void);
