@@ -215,50 +215,52 @@ char hiLite[10][100][30];
 
 int notsep(char_t *p) {
 
-	/* what is the purpose of this check, also p is a pointer ? */
-	if (p < 1) return 0;
+  /* what is the purpose of this check, also p is a pointer ? */
+  if (p < 1) return 0;
 
-	char_t c= *p;
-	return ( (c>='a' && c <= 'z') ||
-		 (c >= 'A' && c <= 'Z') ||
-		 (c >= '0' && c <= '9'));
+  char_t c= *p;
+  return ( (c>='a' && c <= 'z') ||
+           (c >= 'A' && c <= 'Z') ||
+           (c >= '0' && c <= '9') ||
+           (c == '_'));
 }
 
-int kwrd(char_t *p)
-{
-	int i, j;
-	
-	if (notsep(p-1))
-		return 0;
-	
-	if (thisLanguage > -1) {
-		for (i=0; i < numWords[thisLanguage]; i++) {
-			for (j= 0; j <= strlen(hiLite[thisLanguage][i]); j++) {
-				if (j == strlen(hiLite[thisLanguage][i]))
-				{
-					if (!notsep(p+j))
-						return j;
-					else
-						return 0;
-				}
-				else if ( *(p+j) != (char_t) hiLite[thisLanguage][i][j])
-					break;
-			}
-		}
-	}
-	return 0;
+int is_dgt(char c) {
+  return ( (c >= '0') &&
+           (c <= '9'));
 }
 
-/*
-  int kwrd(char_t *p) {
+int kwrd(char_t *p, int *k) {
   int i, j;
+  if (notsep(p-1)) return 0;
+  if (is_dgt(*p) || (*p == '-' && is_dgt(*(p+1)))) {
+    if (is_dgt(*p)) j = 0;
+    else j=1;
+    while  (is_dgt(*(p+j))){ j= j+1;}
+    if (*(p+j) == '.') {
+      j= j+1;
+      while (is_dgt(*(p+j))) { j= j+1;}}
+    if (  *(p+j) == 'e'
+          && ( is_digit(*(p+j+1))
+          || ( *(p+j+1) == '-'
+               && is_digit(*(p+j+2) )) )) {
+      if (*(p+j+1) == '-') {j= j+2;}
+      else {j=j+1;}
+      while (is_dgt(*(p+j))) {j= j+1;}
+    }
+    if (!notsep(p+j)) { *k=2; return j;}
+    *k= 0; return 0;
+  }
   if (thisLanguage > -1) {
-  for (i=0; i < numWords[thisLanguage]; i++) {
-  for (j= 0; j <= strlen(hiLite[thisLanguage][i]); j++) {
-  if (j == strlen(hiLite[thisLanguage][i])) return j;
-  else if ( *(p+j) != (char_t) hiLite[thisLanguage][i][j]) break;}}}
-  return 0;}
-*/
+    for (i=0; i < numWords[thisLanguage]; i++) {
+      for (j= 0; j <= strlen(hiLite[thisLanguage][i]); j++) {
+        if (j == strlen(hiLite[thisLanguage][i]))
+          { if (!notsep(p+j)) { *k=1; return j;}
+            else {*k= 0; return 0;}}
+        else if ( *(p+j) != (char_t) hiLite[thisLanguage][i][j])
+                break;}}}
+  *k= 0; return 0;}
+
 
 void cmmt(char_t *p, int *c, int *lc) {
 
