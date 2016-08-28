@@ -63,7 +63,7 @@ int main(int argc, char **argv)
 	initLisp(1, flargv);
 	while (!done) {
 		update_display();
-		input = getkey(key_map, &key_return);
+		input = get_key(key_map, &key_return);
 
 		if (key_return != NULL) {
 			whatKey= key_return->key_name;			

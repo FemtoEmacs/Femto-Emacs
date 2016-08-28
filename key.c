@@ -108,7 +108,7 @@ keymap_t keymap[] = {
 	{"K_ERROR", "K_ERROR", NULL, NULL }
 };
 
-int getkey(keymap_t *keys, keymap_t **key_return)
+int get_key(keymap_t *keys, keymap_t **key_return)
 {
 	keymap_t *k;
 	int submatch;

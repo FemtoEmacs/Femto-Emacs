@@ -507,7 +507,7 @@ void i_describe_key()
 	mvaddstr(MSGLINE, 0, "Describe key ");
 	clrtoeol();
 
-	input = getkey(key_map, &key_return);
+	input = get_key(key_map, &key_return);
 
 	if (key_return != NULL)
 		msg("%s runs the command '%s'", key_return->key_name, key_return->key_desc);
@@ -548,6 +548,11 @@ void shell_command(char *command)
 void version()
 {
 	msg(m_version);
+}
+
+char *get_version_string() 
+{
+	return m_version;
 }
 
 static char *wrp=
