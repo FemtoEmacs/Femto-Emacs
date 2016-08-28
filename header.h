@@ -196,7 +196,8 @@ extern msg_t str_buffers;
 extern void fatal _((msg_t));
 extern void msg _((msg_t, ...));
 extern char *get_file_extension(char *);
-extern void display_char(buffer_t *, char_t *, int);
+extern void display_char(  buffer_t *, char_t *,
+                           int kcount, int k);
 extern void display (window_t *, int);
 extern int utf8_size(char_t);
 extern int prev_utf8_char_size(void);
