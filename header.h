@@ -51,13 +51,14 @@
 typedef char *msg_t;
 typedef unsigned char char_t;
 typedef long point_t;
+#define FEMTO_POINT_T      1
 
+/* stack structure for tracking scraps */
 typedef struct pscrap_t {
         char_t *scrap;
         struct pscrap_t *next;
-} pscrap_t; /* To define a stack for scraps, use pointers:  *
-			 *     pscrap_t *sstack;                        */
-  
+} pscrap_t;	
+
 typedef struct keymap_t {
 	char *key_name;			/* the name of the key, for exmaple 'C-x a' */
 	char *key_desc;                 /* binding description */
@@ -196,8 +197,7 @@ extern msg_t str_buffers;
 extern void fatal _((msg_t));
 extern void msg _((msg_t, ...));
 extern char *get_file_extension(char *);
-extern void display_char(  buffer_t *, char_t *,
-                           int kcount, int k);
+extern void display_char(buffer_t *, char_t *,int ,int);
 extern void display (window_t *, int);
 extern int utf8_size(char_t);
 extern int prev_utf8_char_size(void);
@@ -226,18 +226,12 @@ extern void backsp _((void));
 extern void block _((void));
 extern void iblock _((void));
 extern void bottom _((void));
-extern void cut _((void));
-extern void copy _((void));
 extern void copy_cut _((int));
 extern void delete _((void));
 extern void toggle_overwrite_mode(void);
 extern void down _((void));
 extern void insert _((void));
-extern void left _((void));
-extern void lnbegin _((void));
-extern void lnend _((void));
 extern void paste _((void));
-extern void insert_string(char *);
 extern void pgdown _((void));
 extern void pgup _((void));
 extern void quit _((void));
@@ -248,7 +242,6 @@ extern void readfile _((void));
 extern void insertfile _((void));
 extern void right _((void));
 extern void top _((void));
-extern void up _((void));
 extern void version _((void));
 extern char *get_version_string();
 extern void wleft _((void));
@@ -256,7 +249,6 @@ extern void wright _((void));
 extern void writefile _((void));
 extern void savebuffer _((void));
 extern void clear_buffer(void);
-extern void list_buffers(void);
 extern void debug(char *, ...);
 extern void debug_stats(char *);
 extern void showpos(void);
@@ -267,8 +259,6 @@ extern void goto_line(int);
 extern void search(void);
 extern void query_replace(void);
 extern point_t line_to_point(int);
-extern point_t search_forward(char *);
-extern point_t search_backwards(char *);
 extern void update_search_prompt(char *, char *);
 extern void display_search_result(point_t, int, char *, char *);
 extern void move_to_search_result(point_t);
@@ -286,7 +276,6 @@ extern window_t *new_window();
 extern void one_window(window_t *);
 extern void split_window();
 extern void next_window();
-extern void delete_other_windows();
 extern void free_other_windows();
 extern void update_display();
 extern void w2b(window_t *);
@@ -302,11 +291,10 @@ extern void match_parens(void);
 extern void match_paren_forwards(buffer_t *, char, char);
 extern void match_paren_backwards(buffer_t *, char, char);
 
-
-/*Ed Mort */
-extern void initLisp(int argc, char *argv[]);
-extern void callLisp(char *ans, char *inpt);
-extern int kwrd(char_t *p, int *k);
+extern void initLisp(int argc, char *[]);
+extern void callLisp(char *ans, char *);
+extern int scan_for_keywords(char_t *, int *);
+extern void scan_for_comments(char_t *, int *, int *);
 extern void setLanguage(char* extension);
 extern void keyboardDefinition(void);
 extern void chkPar(void);
@@ -315,8 +303,14 @@ extern void repl(void);
 extern void eval_block();
 void remove_control_chars(char_t *);
 
-/* Functions to pscrap_t */
+/* functions to pscrap_t */
 extern void ps_push(pscrap_t *p, char_t *scrap);
 extern void ps_pop(pscrap_t *p);
 extern char_t* ps_top(pscrap_t *st);
 extern int ps_size(pscrap_t *st);
+
+/*
+ * include public Femto interface functions definitions 
+ */
+#include "public.h"
+

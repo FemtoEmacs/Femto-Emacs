@@ -99,25 +99,23 @@ int is_digit(char_t c)
         return (c >= '0' && c <= '9');
 }
 
-int in_comment= 0;
-int in_line_comment= 0;
-extern void cmmt(char_t *p, int *c, int *lc);
+int in_block_comment = 0;
+int in_line_comment = 0;
 
-void display_char(  buffer_t *bp, char_t *p,
-                    int keyword_char_count, int tktype)
+void display_char(buffer_t *bp, char_t *p, int keyword_char_count, int token_type)
 {
-        if (in_comment==1 || in_line_comment== 1) {
+        if (in_block_comment==1 || in_line_comment== 1) {
                 attron(COLOR_PAIR(ID_COLOR_COMMENTS));
         } else if ( (ptr(bp, bp->b_mark) == p) && (bp->b_mark != NOMARK)) {
                 addch(*p | A_REVERSE);
                 return;
-        } else if (tktype == 1 && keyword_char_count > 0 ) {
+        } else if (token_type == ID_TOKEN_KEYWORD && keyword_char_count > 0 ) {
                 attron(COLOR_PAIR(ID_COLOR_KEYWORD));
         } else if (pos(bp,p) == bp->b_point && bp->b_paren != NOPAREN) {
                 attron(COLOR_PAIR(ID_COLOR_BRACE));
         } else if (bp->b_paren != NOPAREN && pos(bp,p) == bp->b_paren) {
                 attron(COLOR_PAIR(ID_COLOR_BRACE));
-        } else if (tktype == 2 && keyword_char_count > 0) {
+        } else if (token_type == ID_TOKEN_DIGITS && keyword_char_count > 0) {
                 attron(COLOR_PAIR(ID_COLOR_DIGITS));
         } else if (is_upper_or_lower(*p)) {
                 attron(COLOR_PAIR(ID_COLOR_ALPHA));
@@ -148,10 +146,12 @@ void display(window_t *wp, int flag)
 	int i, j, k, nch;
 	buffer_t *bp = wp->w_bufp;
         int keywd_char_count = 0;
-        int token_type= 0;
+        int token_type = ID_TOKEN_NONE;
+	
 	setLanguage(get_file_extension(bp->b_fname));
-        in_comment= 0;
-        in_line_comment= 0;
+        in_block_comment = 0;
+        in_line_comment = 0;
+	
 	/* find start of screen, handle scroll up off page or top of file  */
 	/* point is always within b_page and b_epage */
 	if (bp->b_point < bp->b_page)
@@ -197,9 +197,9 @@ void display(window_t *wp, int flag)
 			}
 			else if (isprint(*p) || *p == '\t' || *p == '\n') {
 				j += *p == '\t' ? 8-(j&7) : 1;
-	                        cmmt(p, &in_comment, &in_line_comment);	
+	                        scan_for_comments(p, &in_block_comment, &in_line_comment);	
 	                        if (keywd_char_count <= 0)
-                                        keywd_char_count = kwrd(p, &token_type);
+                                        keywd_char_count = scan_for_keywords(p, &token_type);
                                 display_char(bp, p, keywd_char_count--, token_type);
 			} else {
 				const char *ctrl = unctrl(*p);
