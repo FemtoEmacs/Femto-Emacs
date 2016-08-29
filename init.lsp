@@ -33,13 +33,12 @@
     (goto-line 3)
     (message "buffer menu: 1,2,k,x")))
 
-
-(newlanguage ".scm")
+(newlanguage ".scm" ";" "#|" "|#")
 (keyword "define")
 (keyword "cond")
 (keyword "else")
 
-(newlanguage ".c")
+(newlanguage ".c" "//" "/*" "*/")
 (keyword "auto")
 (keyword "break")
 (keyword "case")
