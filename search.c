@@ -5,9 +5,6 @@
 
 #include "header.h"
 
-#define FWD_SEARCH 1
-#define REV_SEARCH 2
-
 void search()
 {
 	int cpos = 0;	
@@ -60,6 +57,14 @@ void search()
 			}
 			break;
 		}
+	}
+}
+
+void move_to_search_result(point_t found)
+{
+	if (found != -1) {
+		curbp->b_point = found;
+		display(curwp, TRUE);
 	}
 }
 

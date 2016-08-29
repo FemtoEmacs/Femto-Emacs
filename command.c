@@ -158,7 +158,7 @@ void insert()
 }
 
 void backsp()
-{       curbp->killed= 1;
+{
 	int n = prev_utf8_char_size();
 	curbp->b_point = movegap(curbp, curbp->b_point);
 	undoset();
@@ -180,34 +180,31 @@ void delete()
 	}
 }
 
-void gotoline()
+void i_gotoline()
 {
 	temp[0] = '\0';
 	int line;
-	point_t p;
+
 	result = getinput(m_goto, (char*)temp, STRBUF_S);
 
 	if (temp[0] != '\0' && result) {
 		line = atoi(temp);
-		p = line_to_point(line);
-		if (p != -1) {
-			curbp->b_point = p;
-			msg(m_line, line);
-		} else {
-			msg(m_lnot_found, line);
-		}
+		goto_line(line);
 	}
 }
 
 void goto_line(int line)
-{ point_t p;
-  p = line_to_point(line);
-  if (p != -1) {
-		 curbp->b_point = p;
-		 msg(m_line, line);
-  } else { msg(m_lnot_found, line);}
+{
+	point_t p;
+	
+	p = line_to_point(line);
+	if (p != -1) {
+		curbp->b_point = p;
+		msg(m_line, line);
+	} else {
+		msg(m_lnot_found, line);
+	}
 }
-
 
 void insertfile()
 {
@@ -239,6 +236,7 @@ void readfile()
 			strncpy(curbp->b_fname, temp, NAME_MAX);
 			curbp->b_fname[NAME_MAX] = '\0'; /* truncate if required */
 		}
+		undoset();
 	}
 }
 
@@ -314,7 +312,6 @@ void toggle_overwrite_mode() {
 void killtoeol()
 {
 	/* point = start of empty line or last char in file */
-        curbp->killed= 1;
 	if (*(ptr(curbp, curbp->b_point)) == 0xa || (curbp->b_point + 1 == ((curbp->b_ebuf - curbp->b_buf) - (curbp->b_egap - curbp->b_gap))) ) {
 		delete();
 	} else {
@@ -505,6 +502,19 @@ void match_paren_backwards(buffer_t *bp, char open_paren, char close_paren)
 	bp->b_paren = NOPAREN;
 }
 
+void i_describe_key()
+{
+	mvaddstr(MSGLINE, 0, "Describe key ");
+	clrtoeol();
+
+	input = get_key(key_map, &key_return);
+
+	if (key_return != NULL)
+		msg("%s runs the command '%s'", key_return->key_name, key_return->key_desc);
+	else
+		msg("self insert %c", input);
+}
+
 void i_shell_command()
 {
 	int result;
@@ -538,6 +548,11 @@ void shell_command(char *command)
 void version()
 {
 	msg(m_version);
+}
+
+char *get_version_string() 
+{
+	return m_version;
 }
 
 static char *wrp=
@@ -576,8 +591,11 @@ void repl()
 	sprintf(lisp_query, wrp, temp);
 	callLisp(lisp_result, lisp_query);
 
+	/* hide results that are just #t */
         if (strcmp(lisp_result, "#t") == 0) {
-	return;}
+		return;
+	}
+
 	insert_string("\n");
 	insert_string(lisp_result);
 	insert_string("\n");
@@ -585,7 +603,23 @@ void repl()
   
 void eval_block() {
 	point_t temp;
-  
+	point_t found;
+
+	char p = *ptr(curbp, curbp->b_point);
+
+	/* if not sat on ( or ) then search for an end of a block behind the cursor */
+	if (p != '(' && p != ')') {
+		found = search_backwards(")");		
+		if (found == -1) {
+			msg("No block behind cursor");
+			return;
+		} else {
+			move_to_search_result(found);
+			right();
+			match_parens();
+		}	
+	}	
+
 	if (curbp->b_paren == -1) {
 		msg("No block detected");
 		return;

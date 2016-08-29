@@ -89,24 +89,46 @@ point_t lncolumn(buffer_t *bp, point_t offset, int column)
 	return (offset);
 }
 
-void display_char(buffer_t *bp, char_t *p, int keyword_char_count)
+int is_upper_or_lower(char_t c)
 {
-	if (keyword_char_count > 0 ) {
-		addch(*p | A_UNDERLINE);
-	} else if ((ptr(bp, bp->b_mark) == p) && (bp->b_mark != NOMARK)) {
-		addch(*p | A_REVERSE);
-	} else if (pos(bp,p) == bp->b_point && bp->b_paren != NOPAREN) {
-		attron(COLOR_PAIR(3));
-		addch(*p);
-		attron(COLOR_PAIR(1));
-	} else if (bp->b_paren != NOPAREN && pos(bp,p) == bp->b_paren) { 
-		attron(COLOR_PAIR(3));
-		addch(*p);
-		attron(COLOR_PAIR(1));
-	} else {
-		addch(*p);
-	}
+	return ( (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c == '_'));
 }
+
+int is_digit(char_t c)
+{
+        return (c >= '0' && c <= '9');
+}
+
+int in_comment= 0;
+int in_line_comment= 0;
+extern void cmmt(char_t *p, int *c, int *lc);
+
+void display_char(  buffer_t *bp, char_t *p,
+                    int keyword_char_count, int tktype)
+{
+        if (in_comment==1 || in_line_comment== 1) {
+                attron(COLOR_PAIR(ID_COLOR_COMMENTS));
+        } else if ( (ptr(bp, bp->b_mark) == p) && (bp->b_mark != NOMARK)) {
+                addch(*p | A_REVERSE);
+                return;
+        } else if (tktype == 1 && keyword_char_count > 0 ) {
+                attron(COLOR_PAIR(ID_COLOR_KEYWORD));
+        } else if (pos(bp,p) == bp->b_point && bp->b_paren != NOPAREN) {
+                attron(COLOR_PAIR(ID_COLOR_BRACE));
+        } else if (bp->b_paren != NOPAREN && pos(bp,p) == bp->b_paren) {
+                attron(COLOR_PAIR(ID_COLOR_BRACE));
+        } else if (tktype == 2 && keyword_char_count > 0) {
+                attron(COLOR_PAIR(ID_COLOR_DIGITS));
+        } else if (is_upper_or_lower(*p)) {
+                attron(COLOR_PAIR(ID_COLOR_ALPHA));
+        } else {
+                attron(COLOR_PAIR(ID_COLOR_SYMBOL));
+        }
+
+        addch(*p);
+        attron(COLOR_PAIR(ID_COLOR_ALPHA));
+}
+
 
 char *get_file_extension(char *filename)
 {
@@ -125,10 +147,11 @@ void display(window_t *wp, int flag)
 	char_t *p;
 	int i, j, k, nch;
 	buffer_t *bp = wp->w_bufp;
-        int keywd_char_count = 0; /*EdMort*/
-
-	setLanguage(get_file_extension(bp->b_fname)); /*EdMort*/
-
+        int keywd_char_count = 0;
+        int token_type= 0;
+	setLanguage(get_file_extension(bp->b_fname));
+        in_comment= 0;
+        in_line_comment= 0;
 	/* find start of screen, handle scroll up off page or top of file  */
 	/* point is always within b_page and b_epage */
 	if (bp->b_point < bp->b_page)
@@ -154,6 +177,7 @@ void display(window_t *wp, int flag)
 	i = wp->w_top;
 	j = 0;
 	bp->b_epage = bp->b_page;
+
 	/* paint screen from top of page until we hit maxline */ 
 	while (1) {
 		/* reached point - store the cursor position */
@@ -173,10 +197,10 @@ void display(window_t *wp, int flag)
 			}
 			else if (isprint(*p) || *p == '\t' || *p == '\n') {
 				j += *p == '\t' ? 8-(j&7) : 1;
-				
-				if (keywd_char_count <= 0)
-					keywd_char_count = kwrd(p);
-				display_char(bp, p, keywd_char_count--);
+	                        cmmt(p, &in_comment, &in_line_comment);	
+	                        if (keywd_char_count <= 0)
+                                        keywd_char_count = kwrd(p, &token_type);
+                                display_char(bp, p, keywd_char_count--, token_type);
 			} else {
 				const char *ctrl = unctrl(*p);
 				j += (int) strlen(ctrl);
@@ -241,7 +265,7 @@ void modeline(window_t *wp)
 	char lch, mch, och;
 
 	/* n = utf8_size(*(ptr(wp->w_bufp, wp->w_bufp->b_point))); */
-	attron(COLOR_PAIR(2));
+	attron(COLOR_PAIR(ID_COLOR_MODELINE));
 	move(wp->w_top + wp->w_rows, 0);
 	lch = (wp == curwp ? '=' : '-');
 	mch = ((wp->w_bufp->b_flags & B_MODIFIED) ? '*' : lch);
@@ -257,7 +281,7 @@ void modeline(window_t *wp)
 
 	for (i = strlen(temp) + 1; i <= COLS; i++)
 		addch(lch);
-	attron(COLOR_PAIR(1));
+	attron(COLOR_PAIR(ID_COLOR_SYMBOL));
 }
 
 void dispmsg()

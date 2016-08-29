@@ -183,19 +183,21 @@ void undoset()
 	curbp->b_ubuf.u_point = curbp->b_point;
 	curbp->b_ubuf.u_gap = curbp->b_gap - curbp->b_buf;
 	curbp->b_ubuf.u_egap = curbp->b_egap - curbp->b_buf;
+	curbp->b_ubuf.u_flags = curbp->b_flags;
+
 }
 
 /* Undo */
 void undo()
 {
 	undo_t tmp;
-	if (curbp->killed == 0) return;
+
 	memcpy(&tmp, &(curbp->b_ubuf), sizeof (undo_t));
 	undoset();
 	curbp->b_point = tmp.u_point;
 	curbp->b_gap = curbp->b_buf + tmp.u_gap;
 	curbp->b_egap = curbp->b_buf + tmp.u_egap;
-	curbp->b_flags |= B_MODIFIED;
+	curbp->b_flags = tmp.u_flags;
 }
 
 /* additional support funtions not in original gap.c */

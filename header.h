@@ -18,7 +18,7 @@
 #undef _
 #define _(x)    x
 
-#define VERSION	 "FemtoEmacs 1.3, Public Domain, 2016"
+#define VERSION	 "FemtoEmacs 1.5, Public Domain, 2016"
 #define EXIT_OK         0               /* Success */
 #define EXIT_ERROR      1               /* Unknown error. */
 #define EXIT_USAGE      2               /* Usage */
@@ -36,7 +36,17 @@
 #define STRBUF_S        16
 #define LISP_IN_OUT     2048
 #define MIN_GAP_EXPAND  512
+#define FWD_SEARCH      1
+#define REV_SEARCH      2
 #define TEMPFILE        "/tmp/feXXXXXX"
+
+#define ID_COLOR_SYMBOL    1
+#define ID_COLOR_MODELINE  2
+#define ID_COLOR_BRACE     3
+#define ID_COLOR_KEYWORD   4
+#define ID_COLOR_ALPHA     5
+#define ID_COLOR_DIGITS    6
+#define ID_COLOR_COMMENTS  7
 
 typedef char *msg_t;
 typedef unsigned char char_t;
@@ -49,8 +59,9 @@ typedef struct pscrap_t {
 			 *     pscrap_t *sstack;                        */
   
 typedef struct keymap_t {
-	char *key_bind;
-	char *lhs;              /* Left hand side invokes function or macro. */
+	char *key_name;			/* the name of the key, for exmaple 'C-x a' */
+	char *key_desc;                 /* binding description */
+	char *key_bytes;		/* the string of bytes when this key is pressed */
 	void (*func) _((void));
 } keymap_t;
 
@@ -58,13 +69,12 @@ typedef struct undo_t {
 	point_t u_point;
 	point_t u_gap;
 	point_t u_egap;
-
+	char u_flags;
 } undo_t;
 
 typedef struct buffer_t
 {
 	struct buffer_t *b_next;  /* Link to next buffer_t */
-  	int killed; 
 
 	point_t b_mark;	     	  /* the mark */
 	point_t b_point;          /* the point */
@@ -186,7 +196,8 @@ extern msg_t str_buffers;
 extern void fatal _((msg_t));
 extern void msg _((msg_t, ...));
 extern char *get_file_extension(char *);
-extern void display_char(buffer_t *, char_t *, int);
+extern void display_char(  buffer_t *, char_t *,
+                           int kcount, int k);
 extern void display (window_t *, int);
 extern int utf8_size(char_t);
 extern int prev_utf8_char_size(void);
@@ -199,7 +210,7 @@ extern point_t segstart (buffer_t *, point_t, point_t);
 extern point_t segnext (buffer_t *, point_t, point_t);
 extern point_t upup (buffer_t *, point_t);
 extern point_t dndn (buffer_t *, point_t);
-extern int getkey _((keymap_t *, keymap_t **));
+extern int get_key _((keymap_t *, keymap_t **));
 extern int getinput _((char *, char *, int));
 extern int growgap (buffer_t *, point_t);
 extern point_t movegap (buffer_t *, point_t);
@@ -239,6 +250,7 @@ extern void right _((void));
 extern void top _((void));
 extern void up _((void));
 extern void version _((void));
+extern char *get_version_string();
 extern void wleft _((void));
 extern void wright _((void));
 extern void writefile _((void));
@@ -249,7 +261,9 @@ extern void debug(char *, ...);
 extern void debug_stats(char *);
 extern void showpos(void);
 extern void killtoeol(void);
-extern void gotoline(void);
+extern void i_gotoline(void);
+extern void i_describe_key(void);
+extern void goto_line(int);
 extern void search(void);
 extern void query_replace(void);
 extern point_t line_to_point(int);
@@ -257,6 +271,7 @@ extern point_t search_forward(char *);
 extern point_t search_backwards(char *);
 extern void update_search_prompt(char *, char *);
 extern void display_search_result(point_t, int, char *, char *);
+extern void move_to_search_result(point_t);
 extern buffer_t* find_buffer (char *, int);
 extern void buffer_init(buffer_t *);
 extern int delete_buffer(buffer_t *);
@@ -291,7 +306,7 @@ extern void match_paren_backwards(buffer_t *, char, char);
 /*Ed Mort */
 extern void initLisp(int argc, char *argv[]);
 extern void callLisp(char *ans, char *inpt);
-extern int kwrd(char_t *p);
+extern int kwrd(char_t *p, int *k);
 extern void setLanguage(char* extension);
 extern void keyboardDefinition(void);
 extern void chkPar(void);
