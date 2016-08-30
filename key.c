@@ -108,18 +108,20 @@ keymap_t keymap[] = {
 	{"K_ERROR", "K_ERROR", NULL, NULL }
 };
 
-int get_key(keymap_t *keys, keymap_t **key_return)
+char_t *get_key(keymap_t *keys, keymap_t **key_return)
 {
 	keymap_t *k;
 	int submatch;
-	static char buffer[K_BUFFER_LENGTH];
-	static char *record = buffer;
+	static char_t buffer[K_BUFFER_LENGTH];
+	static char_t *record = buffer;
 
 	*key_return = NULL;
 
 	/* if recorded bytes remain, return next recorded byte. */
-	if (*record != '\0')
+	if (*record != '\0') {
 		*key_return = NULL;
+		return record++;
+	}
 	/* reset record buffer. */
 	record = buffer;
 
@@ -131,15 +133,15 @@ int get_key(keymap_t *keys, keymap_t **key_return)
 
 		/* if recorded bytes match any multi-byte sequence... */
 		for (k = keys, submatch = 0; k->key_bytes != NULL; ++k) {
-			char *p, *q;
+			char_t *p, *q;
 
-			for (p = buffer, q = k->key_bytes; *p == *q; ++p, ++q) {
+			for (p = buffer, q = (char_t *)k->key_bytes; *p == *q; ++p, ++q) {
 			        /* an exact match */
 				if (*q == '\0' && *p == '\0') {
 	    				record = buffer;
 					*record = '\0';
 					*key_return = k;
-					return -1;
+					return record; /* empty string */
 				}
 			}
 			/* record bytes match part of a command sequence */
@@ -150,7 +152,13 @@ int get_key(keymap_t *keys, keymap_t **key_return)
 	} while (submatch);
 	/* nothing matched, return recorded bytes. */
 	record = buffer;
-	return (*(unsigned char *)record++);
+	return (record++);
+}
+
+/* wrapper to simplify call and dependancies in the interface code */
+char *fe_get_input_key()
+{
+	return (char *)get_key(key_map, &key_return);
 }
 
 int getinput(char *prompt, char *buf, int nbuf)

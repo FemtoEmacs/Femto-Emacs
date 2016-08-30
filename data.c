@@ -9,8 +9,7 @@ int done;
 int result;
 point_t nscrap;
 char_t *scrap;
-
-int input;
+char_t *input;
 int msgflag;
 char msgline[TEMPBUF];
 char temp[TEMPBUF];

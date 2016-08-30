@@ -133,7 +133,7 @@ extern int msgflag;             /* True if msgline should be displayed. */
 extern int result;
 extern point_t nscrap;          /* Length of scrap buffer. */
 extern char_t *scrap;           /* Allocated scrap buffer. */
-extern int input;               /* Current input character. */
+extern char_t *input;
 extern char msgline[];          /* Message line input/output buffer. */
 extern char temp[];             /* Temporary buffer. */
 extern char searchtext[];
@@ -210,7 +210,8 @@ extern point_t segstart (buffer_t *, point_t, point_t);
 extern point_t segnext (buffer_t *, point_t, point_t);
 extern point_t upup (buffer_t *, point_t);
 extern point_t dndn (buffer_t *, point_t);
-extern int get_key _((keymap_t *, keymap_t **));
+extern char_t *get_key _((keymap_t *, keymap_t **));
+extern char *fe_get_input_key(void);
 extern int getinput _((char *, char *, int));
 extern int growgap (buffer_t *, point_t);
 extern point_t movegap (buffer_t *, point_t);
@@ -277,7 +278,6 @@ extern void one_window(window_t *);
 extern void split_window();
 extern void next_window();
 extern void free_other_windows();
-extern void update_display();
 extern void w2b(window_t *);
 extern void b2w(window_t *);
 extern void associate_b2w(buffer_t *, window_t *);

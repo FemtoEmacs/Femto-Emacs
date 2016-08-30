@@ -36,4 +36,6 @@ extern void paste(void);
 extern void eval_block(void);
 extern char *get_version_string(void);
 extern int count_buffers(void);
+extern void update_display(void);
+extern char *fe_get_input_key(void);
 

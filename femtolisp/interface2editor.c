@@ -132,6 +132,12 @@ static value_t split_current_window(value_t *args, u_int32_t nargs) {
 	return FL_T;
 }
 
+static value_t fe_update_display(value_t *args, u_int32_t nargs) {
+	argcount("update-display", nargs, 0);
+	update_display();
+	return FL_T;
+}
+
 static value_t yank(value_t *args, u_int32_t nargs) {
 	argcount("yank", nargs, 0);
 	paste();
@@ -141,6 +147,11 @@ static value_t yank(value_t *args, u_int32_t nargs) {
 static value_t fl_get_version_string(value_t *args, u_int32_t nargs) {
 	argcount("get-version-string", nargs, 0);
 	return (string_from_cstr(get_version_string()));
+}
+
+static value_t fl_get_key(value_t *args, u_int32_t nargs) {
+	argcount("get-key", nargs, 0);
+	return string_from_cstr(fe_get_input_key());
 }
 
 static value_t fl_count_buffers(value_t *args, u_int32_t nargs) {
@@ -431,6 +442,7 @@ static builtinspec_t builtin_info[] ={
 	{"end-of-line", lineend},
 	{"copy-region", copy_region},
 	{"eval-block", eval_blk},
+	{"get-key", fl_get_key},
 	{"message", msg_lisp},
 	{"delete-other-windows", del_other_windows},
 	{"goto-line", gotoln},
@@ -442,6 +454,7 @@ static builtinspec_t builtin_info[] ={
 	{"search-backwards", src_backwards},
 	{"set-mark", set_mark},
 	{"split-current-window", split_current_window},
+	{"update-display", fe_update_display},
 	{"yank", yank},
 	{"get-version-string", fl_get_version_string},
 	{"get-buffer-count", fl_count_buffers},

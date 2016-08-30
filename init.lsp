@@ -26,14 +26,31 @@
 ;; we can redine this through lisp interaction but it will be bound to C-c f
 (define (myfunc) ())
 
+
 ;; this is just a start
 (define (buffer-menu)
-  ((list-buffers)
-    (delete-other-windows)
-    (goto-line 3)
-    (message "buffer menu: 1,2,k,x")))
+  ( (list-buffers)
+    (message "buffer menu: 1,2,k,x")    
+    (update-display)
+    (define ky (get-key))
+    (cond  ( (equal? ky "1") 
+             (insert "you selected option 1\n"))
+           ( (equal? ky "2")
+             (insert "you selected option 2\n"))
+           ( (equal? ky "k")
+             (insert "you selected option k\n"))
+           ( (equal? ky "x")
+             (insert "you selected option x\n"))
+           (else (insert ky)))))
+
+
 
 (newlanguage ".scm" ";" "#|" "|#")
+(keyword "define")
+(keyword "cond")
+(keyword "else")
+
+(newlanguage ".lsp" ";" "#|" "|#")
 (keyword "define")
 (keyword "cond")
 (keyword "else")

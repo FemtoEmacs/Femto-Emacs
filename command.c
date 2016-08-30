@@ -146,12 +146,12 @@ void insert()
 	curbp->b_point = movegap(curbp, curbp->b_point);
 
 	/* overwrite if mid line, not EOL or EOF, CR will insert as normal */
-	if ((curbp->b_flags & B_OVERWRITE) && input != '\r' && *(ptr(curbp, curbp->b_point)) != '\n' && curbp->b_point < pos(curbp,curbp->b_ebuf) ) {
-		*(ptr(curbp, curbp->b_point)) = input;
+	if ((curbp->b_flags & B_OVERWRITE) && *input != '\r' && *(ptr(curbp, curbp->b_point)) != '\n' && curbp->b_point < pos(curbp,curbp->b_ebuf) ) {
+		*(ptr(curbp, curbp->b_point)) = *input;
 		if (curbp->b_point < pos(curbp, curbp->b_ebuf))
 			++curbp->b_point;
 	} else {
-		*curbp->b_gap++ = input == '\r' ? '\n' : input;
+		*curbp->b_gap++ = *input == '\r' ? '\n' : *input;
 		curbp->b_point = pos(curbp, curbp->b_egap);
 	}
 	curbp->b_flags |= B_MODIFIED;
@@ -512,7 +512,7 @@ void i_describe_key()
 	if (key_return != NULL)
 		msg("%s runs the command '%s'", key_return->key_name, key_return->key_desc);
 	else
-		msg("self insert %c", input);
+		msg("self insert %s", input);
 }
 
 void i_shell_command()
