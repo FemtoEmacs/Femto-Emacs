@@ -4,7 +4,7 @@
 
 CC      = cc
 CFLAGS  = -O -Wall 
-
+LLTDIR = ./femtolisp/llt
 LD      = cc
 LDFLAGS =
 LIBS    =  -framework ApplicationServices \
@@ -18,7 +18,7 @@ E       =
 O       = .o
 
 OBJ     = complete$(O) command$(O) data$(O) display$(O) gap$(O) \
-             key$(O) search$(O) buffer$(O) replace$(O) window$(O) \
+             key$(O) search$(O) buffer$(O) replace$(O) utils$(O) window$(O) \
              main$(O) femtolisp/interface2editor$(O) \
 	     femtolisp/flcall$(O)
   
@@ -64,8 +64,11 @@ window$(O): window.c header.h
 buffer$(O): buffer.c header.h
 	$(CC) $(CFLAGS) -c buffer.c
 
+utils$(O): utils.c header.h
+	$(CC) $(CFLAGS)  -I$(LLTDIR) -c utils.c
+	
 main$(O): main.c header.h
-	$(CC) $(CFLAGS) -c main.c
+	$(CC) $(CFLAGS) -I$(LLTDIR) -c main.c
 
 clean:
 	-$(RM) -f $(OBJ) femto$(E) *.c~ *.h~

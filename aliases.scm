@@ -17,6 +17,9 @@
   (let (($gensym gensym))
     (lambda ((x #f)) ($gensym))))
 
+(define-macro (do-while  c r . body)
+  `(do () ((not ,c) ,r) ,@body))
+
 (define-macro (begin0 first . rest)
   `(prog1 ,first ,@rest))
 

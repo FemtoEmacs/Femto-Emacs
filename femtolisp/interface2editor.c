@@ -20,10 +20,6 @@
 #include "../public.h"
 
 /* Interface to the editor */
-
-//typedef char *msg_t;
-//extern int msgflag;
-//extern char msgline[];
 extern int is_digit(char_t c);
 
 
@@ -31,7 +27,6 @@ extern int is_digit(char_t c);
  * interface to editor functions of form
  *     void func(void)
  */
-
 static value_t bkwrd(value_t *args, u_int32_t nargs) {
 	argcount("backward", nargs, 1);
 	value_t a = args[0];
@@ -68,6 +63,95 @@ static value_t linebegin(value_t *args, u_int32_t nargs) {
 static value_t lineend(value_t *args, u_int32_t nargs) {
 	argcount("end-of-line", nargs, 0);
 	lnend();
+	return FL_T;
+}
+
+extern int nscrap;
+extern char_t *scrap; 
+
+/*
+ * Lucas - we need to discuss.
+ * This will cause a memory leak!
+ * Hugh Barney
+ */
+
+static value_t fl_clipboard(value_t *args, u_int32_t nargs) {
+  argcount("clipboard", nargs, 0);
+  int i= 0;
+  if ((scrap == NULL) || (nscrap < 1)) {
+    char *str= malloc(1);
+    str[0] = 0;
+    return (string_from_cstr(str));
+  }
+  char *str= malloc(nscrap + 4); 
+  for(i=0; i<nscrap; i++) {
+			str[i]= (char) scrap[i];
+		}
+  str[i]= '\0';
+  return (string_from_cstr(str));
+
+}
+
+/* non formatted code ! */
+
+static value_t fl_region(value_t *args, u_int32_t nargs) {
+  argcount("region", nargs, 0);
+  int i= 0;
+  copy();
+
+  if ((scrap == NULL) || (nscrap < 1)) {
+    char *str= malloc(1);
+    str[0] = 0;
+    return (string_from_cstr(str));
+  }
+  char *str= malloc(nscrap + 4); 
+  for(i=0; i<nscrap; i++) {
+			str[i]= (char) scrap[i];
+		}
+  str[i]= '\0';
+  return (string_from_cstr(str));
+
+}
+
+
+static value_t fl_home(value_t *args, u_int32_t nargs) {
+  argcount("home", nargs, 1);
+  value_t a = args[0]; /*Learn: pick an arg */
+  char *str = cptr(a); /*Learn: string Lisp -> string C  */
+  if (str == NULL) {
+    return (string_from_cstr(getenv("HOME")));
+  }
+  char *buff= malloc(400);    //  MEMORY LEAK !!!!
+  sprintf(buff, "%s/%s", getenv("HOME"), str);
+  return (string_from_cstr(buff));
+}
+
+/*
+ * we already have kill-region()
+ */
+static value_t fl_cutregion(value_t *args, u_int32_t nargs) {
+  argcount("cutregion", nargs, 0);
+  int i= 0;
+  cut();
+
+  if ((scrap == NULL) || (nscrap < 1)) {
+    char *str= malloc(1);
+    str[0] = 0;
+    return (string_from_cstr(str));
+  }
+  char *str= malloc(nscrap + 4); 
+  for(i=0; i<nscrap; i++) {
+			str[i]= (char) scrap[i];
+		}
+  str[i]= '\0';
+  return (string_from_cstr(str));
+
+}
+
+
+static value_t copy_region(value_t *args, u_int32_t nargs) {
+	argcount("copy-region", nargs, 0);
+	copy();
 	return FL_T;
 }
 
@@ -195,19 +279,9 @@ static value_t fe_get_clipboard(value_t *args, u_int32_t nargs) {
  */
 
 static value_t msg_lisp(value_t *args, u_int32_t nargs) {
-	//int i = 0;
 	argcount("message", nargs, 1);
 	value_t a = args[0]; /*Learn: pick an arg */
 	char *str = cptr(a); /*Learn: string Lisp -> string C  */
-
-	/*
-	while (i < 80 && str[i] != 0) {
-		msgline[i] = str[i];
-		i++;
-	}
-	msgline[i] = 0;
-	msgflag = 1;
-	*/
 	msg(str);
 	return FL_T;
 }
@@ -507,6 +581,14 @@ static builtinspec_t builtin_info[] = {
 	{"beginning-of-line", linebegin},
 	{"end-of-line", lineend},
 	{"copy-region", fe_copy_region},
+
+
+	{"clipboard", fl_clipboard},
+	{"home", fl_home},
+        {"region", fl_region},
+	{"cutregion", fl_cutregion},
+
+	{"copy-region", copy_region},
 	{"eval-block", eval_blk},
 	{"get-key", fe_get_key},
 	{"message", msg_lisp},
