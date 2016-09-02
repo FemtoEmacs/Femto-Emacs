@@ -571,18 +571,7 @@ void keyboardDefinition()
 {
 	char que[400];
   
-	if ((scrap == NULL) || (nscrap < 1)) {
-		sprintf(que, "(keyboard \"%s\" \"\")", 	whatKey);
-	} else {
-		char clp[200];
-		int i;
-    
-		for(i=0; i<nscrap; i++) {
-			clp[i]= (char) scrap[i];
-		}
-		clp[i]= '\0';
-		sprintf(que, "(keyboard \"%s\" \"%s\")", whatKey, clp);
-	}
+        sprintf(que, "(keyboard \"%s\")", whatKey);
 	
 	sprintf(lisp_query, wrp, que);
 	callLisp(lisp_result, lisp_query);

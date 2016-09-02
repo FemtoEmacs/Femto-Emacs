@@ -24,5 +24,5 @@ void mk_buffer_name(char *bname, char *fname)
 
 	/* truncate if base filename is too long */
 	*(bname + STRBUF_S) = '\0';
-	debug("bname='%s'\n", bname);
+	/* debug("bname='%s'\n", bname); */
 }

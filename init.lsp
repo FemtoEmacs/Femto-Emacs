@@ -1,38 +1,70 @@
 ;; Compatibility with SICP
-(load "aliases.scm")
+(load (home "aliases.scm"))
+
+(define (read-string str)
+    (let ( (port (open-input-string str)))
+      (begin0 (read port)
+	      (close-input-port port)) ))
+
+(define (wday n)
+    (cond ( (equal? n 0) "Sunday")
+	  ( (equal? n 1) "Monday")
+	  ( (equal? n 2) "Tuesday")
+	  ( (equal? n 3) "Wednesday")
+	  ( (equal? n 4) "Thursday")
+	  ( (equal? n 5) "Friday")
+	  ( (equal? n 6) "Saturday")
+	  (else "unknown")))
+
+(define (zr ymd)
+    (let* ( (y (car ymd))
+            (m (cadr ymd))
+            (d (caddr ymd))
+            (ax (quotient (- 14 m) 12))
+	    (mm (+ m (* 12 ax) -2))
+	    (yy (- y ax))
+	    (c (- (quotient yy 100)))
+	    (ly (quotient yy 4)) )
+      (wday (mod (+ yy
+		    (quotient (- (* 13 mm) 1) 5)
+		    ly
+                    c
+		    (quotient yy 400) d) 7)) ))
 
 ;; Shortcut definitions
-(define (keyboard key clipboard) 
-   (cond ( (equal? key "C-c a") 
-           (insert "<p> </p>")
-           (backward 5))
-         ( (equal? key "C-c b")
-           (beginning-of-line) 
-           (insert "<h1> </h2>")
-           (beginning-of-line)
-           (forward 4))
-         ( (equal? key "C-c c")
-           (end-of-line)
-           (insert "<p>-")
-           (insert clipboard)
-           (insert "-</p>"))
-	 ( (equal? key "C-c f")
-	   (myfunc))
-         ( (equal? key "C-c m")
-	   (buffer-menu))
-         (else (insert key)) ))
+(define (keyboard key) 
+   (cond
+      ( (equal? key "C-c z")
+        (insert (zr (read-string (cutregion))) ))
+      ( (equal? key "C-c a") 
+        (insert "<p> </p>")
+        (backward 5))
+      ( (equal? key "C-c b")
+        (beginning-of-line) 
+        (insert "<h1> </h2>")
+        (beginning-of-line)
+        (forward 4))
+      ( (equal? key "C-c c")
+        (end-of-line)
+        (insert "<p>-")
+        (insert (clipboard))
+        (insert "-</p>"))
+      ( (equal? key "C-c f")
+	(myfunc))
+      ( (equal? key "C-c m")
+	(buffer-menu))
+      (else (insert key)) ))
 
 
 ;; we can redine this through lisp interaction but it will be bound to C-c f
 (define (myfunc) ())
 
-
 ;; this is just a start
 (define (buffer-menu)
-  ( (list-buffers)
-    (message "buffer menu: 1,2,k,x")    
-    (update-display)
-    (define ky (get-key))
+  (list-buffers)
+  (message "buffer menu: 1,2,k,x")    
+  (update-display)
+  (let ( (ky (get-key)))
     (cond  ( (equal? ky "1") 
              (insert "you selected option 1\n"))
            ( (equal? ky "2")
@@ -41,9 +73,7 @@
              (insert "you selected option k\n"))
            ( (equal? ky "x")
              (insert "you selected option x\n"))
-           (else (insert ky)))))
-
-
+           (else (insert ky))) ))
 
 (newlanguage ".scm" ";" "#|" "|#")
 (keyword "define")
