@@ -30,7 +30,7 @@ void buffer_init(buffer_t *bp)
  * structure associated with it. If the buffer is not found and the
  * "cflag" is TRUE, create it.
  */
-buffer_t* find_buffer (char *fname, int cflag)
+buffer_t *find_buffer (char *fname, int cflag)
 {
 	buffer_t *bp = NULL;
 	buffer_t *sb = NULL;
@@ -110,7 +110,14 @@ void next_buffer()
 
 char* get_buffer_name(buffer_t *bp)
 {
-	return (strlen(bp->b_fname) > 0) ? bp->b_fname : bp->b_bname;
+	assert(bp->b_bname != NULL);
+	return bp->b_bname;
+}
+
+char* get_buffer_filename(buffer_t *bp)
+{
+	assert(bp->b_fname != NULL);
+	return bp->b_fname;
 }
 
 int count_buffers()
@@ -133,6 +140,48 @@ int modified_buffers()
 			return TRUE;
 
 	return FALSE;
+}
+
+
+int delete_buffer_byname(char *bname)
+{
+	buffer_t *bp = find_buffer(bname, FALSE);
+
+	if (bp == NULL) return FALSE;
+
+	delete_buffer(bp);
+	return TRUE;
+}
+
+
+int select_buffer_byname(char *bname)
+{
+	buffer_t *bp = find_buffer(bname, FALSE);
+
+	if (bp == NULL) return FALSE;
+
+	assert(curbp != NULL);
+	disassociate_b(curwp);
+	curbp = bp;
+	associate_b2w(curbp,curwp);
+	return TRUE;
+}
+
+int save_buffer_byname(char *bname)
+{
+	buffer_t *bp = find_buffer(bname, FALSE);
+
+	if (bp == NULL) return FALSE;
+	if (bp->b_fname[0] == '\0') return FALSE;
+
+	save(bp->b_fname);
+	return TRUE;
+}
+
+char *get_current_bufname()
+{
+	assert(curbp != NULL);
+	return get_buffer_name(curbp);
 }
 
 void list_buffers()

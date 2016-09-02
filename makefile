@@ -3,7 +3,7 @@
 #
 
 CC      = cc
-CFLAGS  = -O -Wall -g
+CFLAGS  = -O -Wall
 LLTDIR 	= ./femtolisp/llt
 LD      = cc
 LDFLAGS =
@@ -25,46 +25,46 @@ femtoEmacs$(E) : $(OBJ)
 	cd femtolisp && make -f Makefile 
 	$(LD) $(LDFLAGS) $(OBJ)  $(LISPLIBS) $(LIBS) -o femto$(E)
 
-interface2editor$(E) : $(OBJ)
+interface2editor$(E) : public.h $(OBJ)
 	$(CC) $(CFLAGS)  -I$(LLTDIR) -c femtolisp/interface2editor.c
 
 flcall$(E) : $(OBJ)
 	$(CC) $(CFLAGS)  -I./femtolisp/llt  -c femtolisp/flcall.c
 
-complete$(O): complete.c header.h
+complete$(O): complete.c header.h public.h
 	$(CC) $(CFLAGS)  -I$(LLTDIR) -c complete.c
 
-command$(O): command.c header.h
+command$(O): command.c header.h public.h
 	$(CC) $(CFLAGS)  -I$(LLTDIR) -c command.c
 
-data$(O): data.c header.h
+data$(O): data.c header.h public.h
 	$(CC) $(CFLAGS)  -I$(LLTDIR) -c data.c
 
-display$(O): display.c header.h
+display$(O): display.c header.h public.h
 	$(CC) $(CFLAGS)   -I$(LLTDIR) -c display.c
 
-gap$(O): gap.c header.h
+gap$(O): gap.c header.h public.h
 	$(CC) $(CFLAGS)  -I$(LLTDIR) -c gap.c
 
-key$(O): key.c header.h
+key$(O): key.c header.h public.h
 	$(CC) $(CFLAGS)  -I$(LLTDIR) -c key.c
 
-search$(O): search.c header.h
+search$(O): search.c header.h public.h
 	$(CC) $(CFLAGS)  -I$(LLTDIR) -c search.c
 
-replace$(O): replace.c header.h
+replace$(O): replace.c header.h public.h
 	$(CC) $(CFLAGS)  -I$(LLTDIR) -c replace.c
 
-window$(O): window.c header.h
+window$(O): window.c header.h public.h
 	$(CC) $(CFLAGS)  -I$(LLTDIR) -c window.c
 
-buffer$(O): buffer.c header.h
+buffer$(O): buffer.c header.h public.h
 	$(CC) $(CFLAGS)  -I$(LLTDIR) -c buffer.c
 
-utils$(O): utils.c header.h
+utils$(O): utils.c header.h public.h
 	$(CC) $(CFLAGS)  -I$(LLTDIR) -c utils.c
 
-Main$(O): main.c header.h
+Main$(O): main.c header.h public.h
 	$(CC) $(CFLAGS)  -I$(LLTDIR) -c main.c
 
 clean:
@@ -73,5 +73,5 @@ clean:
 	cd femtolisp/llt && make clean
 
 install:
-	-$(MV) femto$(E) $(HOME)/$(HOSTNAME)/bin
+	-$(MV) femto$(E) $(HOME)/bin
 

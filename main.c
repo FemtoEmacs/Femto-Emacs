@@ -87,7 +87,7 @@ int main(int argc, char **argv)
 	return (EXIT_OK);
 }
 
-void fatal(msg_t m)
+void fatal(char *m)
 {
 	if (curscr != NULL) {
 		move(LINES-1, 0);
@@ -105,7 +105,7 @@ void fatal(msg_t m)
 	exit(EXIT_FAIL);
 }
 
-void msg(msg_t m, ...)
+void msg(char *m, ...)
 {
 	va_list args;
 	va_start(args, m);

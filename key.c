@@ -161,6 +161,20 @@ char *fe_get_input_key()
 	return (char *)get_key(key_map, &key_return);
 }
 
+/* the name of the bound function of this key */
+char *get_key_binding()
+{
+	assert(key_return != NULL);
+	return key_return->key_desc;
+}
+
+/* the name of the last key */
+char *get_key_name()
+{
+	assert(key_return != NULL);
+	return key_return->key_name;
+}
+
 int getinput(char *prompt, char *buf, int nbuf)
 {
 	int cpos = 0;

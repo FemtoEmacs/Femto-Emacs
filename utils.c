@@ -10,7 +10,7 @@
 void mk_buffer_name(char *bname, char *fname)
 {
 	char *p = fname;
-	
+
 	/* find the end of the filename */
 	while (*p != 0)
 		++p;
@@ -19,10 +19,9 @@ void mk_buffer_name(char *bname, char *fname)
 	/* FIXME might be a problem on windows seperators with this */
 	while (p != fname && p[-1] != '/')
 		--p;
-	
+
 	strncpy(bname, p, STRBUF_S);
 
 	/* truncate if base filename is too long */
 	*(bname + STRBUF_S) = '\0';
-	debug("bname='%s'\n", bname);
 }

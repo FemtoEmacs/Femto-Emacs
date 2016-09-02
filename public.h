@@ -38,4 +38,10 @@ extern char *get_version_string(void);
 extern int count_buffers(void);
 extern void update_display(void);
 extern char *fe_get_input_key(void);
-
+extern char *get_key_binding(void);
+extern char *get_key_name(void);
+extern int delete_buffer_byname(char *);
+extern int select_buffer_byname(char *);
+extern int save_buffer_byname(char *);
+extern char *get_clipboard(void);
+extern void msg(char *, ...);

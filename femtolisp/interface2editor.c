@@ -21,9 +21,9 @@
 
 /* Interface to the editor */
 
-typedef char *msg_t;
-extern int msgflag;
-extern char msgline[];
+//typedef char *msg_t;
+//extern int msgflag;
+//extern char msgline[];
 extern int is_digit(char_t c);
 
 
@@ -71,12 +71,6 @@ static value_t lineend(value_t *args, u_int32_t nargs) {
 	return FL_T;
 }
 
-static value_t copy_region(value_t *args, u_int32_t nargs) {
-	argcount("copy-region", nargs, 0);
-	copy();
-	return FL_T;
-}
-
 static value_t eval_blk(value_t *args, u_int32_t nargs) {
 	argcount("eval-block", nargs, 0);
 	eval_block();
@@ -99,6 +93,12 @@ static value_t gotoln(value_t *args, u_int32_t nargs) {
 static value_t kill_region(value_t *args, u_int32_t nargs) {
 	argcount("kill-region", nargs, 0);
 	cut();
+	return FL_T;
+}
+
+static value_t fe_copy_region(value_t *args, u_int32_t nargs) {
+	argcount("copy-region", nargs, 0);
+	copy();
 	return FL_T;
 }
 
@@ -144,38 +144,79 @@ static value_t yank(value_t *args, u_int32_t nargs) {
 	return FL_T;
 }
 
-static value_t fl_get_version_string(value_t *args, u_int32_t nargs) {
+
+/*
+ *  functions returning int
+ */
+
+static value_t fe_count_buffers(value_t *args, u_int32_t nargs) {
+	argcount("get-buffer-count", nargs, 0);
+	return (mk_uint32(count_buffers()));
+}
+
+
+/*
+ * functions returning a char *
+ */
+
+static value_t fe_get_version_string(value_t *args, u_int32_t nargs) {
 	argcount("get-version-string", nargs, 0);
 	return (string_from_cstr(get_version_string()));
 }
 
-static value_t fl_get_key(value_t *args, u_int32_t nargs) {
+static value_t fe_get_key(value_t *args, u_int32_t nargs) {
 	argcount("get-key", nargs, 0);
 	return string_from_cstr(fe_get_input_key());
 }
 
-static value_t fl_count_buffers(value_t *args, u_int32_t nargs) {
-	argcount("get-buffer-count", nargs, 0);
-	return (mk_uint32(count_buffers()));
+static value_t fe_get_key_name(value_t *args, u_int32_t nargs) {
+	argcount("get-key-name", nargs, 0);
+	return string_from_cstr(get_key_name());
 }
+
+static value_t fe_get_key_binding(value_t *args, u_int32_t nargs) {
+	argcount("get-key-binding", nargs, 0);
+	return string_from_cstr(get_key_binding());
+}
+
+static value_t fe_get_current_buffer_name(value_t *args, u_int32_t nargs) {
+	argcount("get-current-buffer-name", nargs, 0);
+	return string_from_cstr(fe_get_input_key());
+}
+
+static value_t fe_get_clipboard(value_t *args, u_int32_t nargs) {
+	argcount("get-clipboard", nargs, 0);
+	return string_from_cstr(get_clipboard());
+}
+
 
 /*
  * interface to editor functions of form func(char *)
  */
 
 static value_t msg_lisp(value_t *args, u_int32_t nargs) {
-	int i = 0;
+	//int i = 0;
 	argcount("message", nargs, 1);
 	value_t a = args[0]; /*Learn: pick an arg */
 	char *str = cptr(a); /*Learn: string Lisp -> string C  */
+
+	/*
 	while (i < 80 && str[i] != 0) {
 		msgline[i] = str[i];
 		i++;
 	}
 	msgline[i] = 0;
 	msgflag = 1;
+	*/
+	msg(str);
 	return FL_T;
 }
+
+/*
+ * interface to functions of form
+ *    int func(char *)
+ *
+ */
 
 static value_t insrt(value_t *args, u_int32_t nargs) {
 	argcount("insert", nargs, 1);
@@ -204,6 +245,31 @@ static value_t src_backwards(value_t *args, u_int32_t nargs) {
 	move_to_search_result(founded);
 	return (founded == -1 ? FL_NIL : FL_T);
 }
+
+static value_t fe_select_buffer_byname(value_t *args, u_int32_t nargs) {
+	argcount("select-buffer-by-name", nargs, 1);
+	value_t a = args[0];
+	char *str = cptr(a);
+	int result = select_buffer_byname(str);
+	return (result ? FL_T : FL_NIL);
+}
+
+static value_t fe_delete_buffer_byname(value_t *args, u_int32_t nargs) {
+	argcount("delete-buffer-by-name", nargs, 1);
+	value_t a = args[0];
+	char *str = cptr(a);
+	int result = delete_buffer_byname(str);
+	return (result ? FL_T : FL_NIL);
+}
+
+static value_t fe_save_buffer_byname(value_t *args, u_int32_t nargs) {
+	argcount("save-buffer-by-name", nargs, 1);
+	value_t a = args[0];
+	char *str = cptr(a);
+	int result = save_buffer_byname(str);
+	return (result ? FL_T : FL_NIL);
+}
+
 
 /*
  * code for syntax highlighting
@@ -362,7 +428,7 @@ void setLanguage(char *extension) {
 	}
 }
 
-static value_t fl_newlanguage(value_t *args, u_int32_t nargs) {
+static value_t fe_newlanguage(value_t *args, u_int32_t nargs) {
 	/* Check the number of arguments */
 	argcount("newlanguage", nargs, 4);
 	value_t a = args[0];
@@ -411,7 +477,7 @@ static value_t fl_newlanguage(value_t *args, u_int32_t nargs) {
 	return FL_T;
 }
 
-static value_t fl_keyword(value_t *args, u_int32_t nargs) {
+static value_t fe_keyword(value_t *args, u_int32_t nargs) {
 	argcount("keyword", nargs, 1);
 	value_t a = args[0];
 	int code = nLangs - 1;
@@ -433,33 +499,40 @@ extern void table_init(void);
 extern void iostream_init(void);
 
 /* Femto inteface bultin functions */
-static builtinspec_t builtin_info[] ={
+static builtinspec_t builtin_info[] = {
 	{"insert", insrt},
 	{"backward-delete-char", backspace},
 	{"backward-character", bkwrd},
 	{"forward-character", forwrd},
 	{"beginning-of-line", linebegin},
 	{"end-of-line", lineend},
-	{"copy-region", copy_region},
+	{"copy-region", fe_copy_region},
 	{"eval-block", eval_blk},
-	{"get-key", fl_get_key},
+	{"get-key", fe_get_key},
 	{"message", msg_lisp},
 	{"delete-other-windows", del_other_windows},
+	{"delete-buffer-by-name", fe_delete_buffer_byname},
 	{"goto-line", gotoln},
 	{"kill-region", kill_region},
 	{"list-buffers", lst_buffers},
 	{"next-line", next_line},
 	{"previous-line", previous_line},
+	{"save-buffer-by-name", fe_save_buffer_byname},
 	{"search-forward", src_forward},
 	{"search-backwards", src_backwards},
 	{"set-mark", set_mark},
+	{"select-buffer-by-name", fe_select_buffer_byname},
 	{"split-current-window", split_current_window},
 	{"update-display", fe_update_display},
 	{"yank", yank},
-	{"get-version-string", fl_get_version_string},
-	{"get-buffer-count", fl_count_buffers},
-	{"keyword", fl_keyword},
-	{"newlanguage", fl_newlanguage},
+	{"get-version-string", fe_get_version_string},
+	{"get-buffer-count", fe_count_buffers},
+	{"get-current-buffer-name", fe_get_current_buffer_name},
+	{"get-key-name", fe_get_key_name},
+	{"get-key-binding", fe_get_key_binding},
+	{"get-clipboard", fe_get_clipboard},
+	{"keyword", fe_keyword},
+	{"newlanguage", fe_newlanguage},
 
 	/*End Interface*/
 	{NULL, NULL}

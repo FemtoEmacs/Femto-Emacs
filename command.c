@@ -373,6 +373,23 @@ void copy_cut(int cut)
 	}
 }
 
+/*
+ * Return a safe copy of the scrap to Femtolisp. For now we have
+ * placed a limit on size of clipboard we will pass to Femtolisp
+ */
+char *get_clipboard()
+{
+	static char region[MAX_FL_CLIPBD];
+
+	if (nscrap > MAX_FL_CLIPBD) {
+		msg(str_clip_too_big, MAX_FL_CLIPBD);
+		return "Error";
+	}
+
+	strcpy(region, (char *)scrap);
+	return region;
+}
+
 void paste()
 {
 	insert_string((char *)scrap);
@@ -569,29 +586,28 @@ char *whatKey= "";
 /* Keyboard Definition is done by user in Lisp */
 void keyboardDefinition()
 {
-	char que[400];
+	/* the +40 allows for the size of the formatting string and key name size */
+	static char keyboard_command[MAX_FL_CLIPBD + 40];
   
 	if ((scrap == NULL) || (nscrap < 1)) {
-		sprintf(que, "(keyboard \"%s\" \"\")", 	whatKey);
+		sprintf(keyboard_command, "(keyboard \"%s\" \"\")", whatKey);
 	} else {
-		char clp[200];
-		int i;
-    
-		for(i=0; i<nscrap; i++) {
-			clp[i]= (char) scrap[i];
+		if (nscrap >= MAX_FL_CLIPBD) {
+			msg(str_clip_too_big, MAX_FL_CLIPBD);
+			return;
 		}
-		clp[i]= '\0';
-		sprintf(que, "(keyboard \"%s\" \"%s\")", whatKey, clp);
+		
+		sprintf(keyboard_command, "(keyboard \"%s\" \"%s\")", whatKey, scrap);
 	}
 	
-	sprintf(lisp_query, wrp, que);
+	sprintf(lisp_query, wrp, keyboard_command);
 	callLisp(lisp_result, lisp_query);
 }
 
 void repl()
 {
 	temp[0] = '\0';
-	result = getinput("> ", temp, 1000);
+	result = getinput("> ", temp, TEMPBUF);
 	sprintf(lisp_query, wrp, temp);
 	callLisp(lisp_result, lisp_query);
 

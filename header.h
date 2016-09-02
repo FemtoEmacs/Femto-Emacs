@@ -35,6 +35,7 @@
 #define STRBUF_M        64
 #define STRBUF_S        16
 #define LISP_IN_OUT     2048
+#define MAX_FL_CLIPBD   2048
 #define MIN_GAP_EXPAND  512
 #define FWD_SEARCH      1
 #define REV_SEARCH      2
@@ -48,7 +49,7 @@
 #define ID_COLOR_DIGITS    6
 #define ID_COLOR_COMMENTS  7
 
-typedef char *msg_t;
+//typedef char *msg_t;
 typedef unsigned char char_t;
 typedef long point_t;
 #define FEMTO_POINT_T      1
@@ -146,56 +147,57 @@ extern keymap_t keymap[];
 extern keymap_t *key_return;    /* Command key return */
 
 /* fatal() messages. */
-extern msg_t f_ok;              /* EXIT_OK */
-extern msg_t f_error;           /* EXIT_ERROR */
-extern msg_t f_usage;           /* EXIT_USAGE */
-extern msg_t f_initscr;         /* EXIT_FAILURE ... */
-extern msg_t f_alloc;
+extern char *f_ok;              /* EXIT_OK */
+extern char *f_error;           /* EXIT_ERROR */
+extern char *f_usage;           /* EXIT_USAGE */
+extern char *f_initscr;         /* EXIT_FAILURE ... */
+extern char *f_alloc;
 
 /* Messages. */
-extern msg_t m_ok;
-extern msg_t m_version;
-extern msg_t m_alloc;
-extern msg_t m_toobig;
-extern msg_t m_empty;
-extern msg_t m_stat;
-extern msg_t m_open;
-extern msg_t m_close;
-extern msg_t m_read;
-extern msg_t m_write;
-extern msg_t m_copied;
-extern msg_t m_cut;
-extern msg_t m_badname;
-extern msg_t m_saved;
-extern msg_t m_loaded;
-extern msg_t m_newfile;
-extern msg_t m_line;
-extern msg_t m_lnot_found;
-extern msg_t m_replace;
-extern msg_t m_with;
-extern msg_t m_sprompt;
-extern msg_t m_qreplace;
-extern msg_t m_rephelp;
-extern msg_t m_goto;
-extern msg_t str_mark;
-extern msg_t str_pos;
-extern msg_t str_endpos;
+extern char *m_ok;
+extern char *m_version;
+extern char *m_alloc;
+extern char *m_toobig;
+extern char *m_empty;
+extern char *m_stat;
+extern char *m_open;
+extern char *m_close;
+extern char *m_read;
+extern char *m_write;
+extern char *m_copied;
+extern char *m_cut;
+extern char *m_badname;
+extern char *m_saved;
+extern char *m_loaded;
+extern char *m_newfile;
+extern char *m_line;
+extern char *m_lnot_found;
+extern char *m_replace;
+extern char *m_with;
+extern char *m_sprompt;
+extern char *m_qreplace;
+extern char *m_rephelp;
+extern char *m_goto;
+extern char *str_mark;
+extern char *str_pos;
+extern char *str_endpos;
 
 /* Prompts */
-extern msg_t str_notsaved;
-extern msg_t str_modified_buffers;
-extern msg_t str_read;
-extern msg_t str_insert_file;
-extern msg_t str_write;
-extern msg_t str_yes;
-extern msg_t str_no;
-extern msg_t str_scratch;
-extern msg_t str_output;
-extern msg_t str_shell_cmd;
-extern msg_t str_buffers;
+extern char *str_notsaved;
+extern char *str_modified_buffers;
+extern char *str_read;
+extern char *str_insert_file;
+extern char *str_write;
+extern char *str_yes;
+extern char *str_no;
+extern char *str_scratch;
+extern char *str_output;
+extern char *str_shell_cmd;
+extern char *str_buffers;
+extern char *str_clip_too_big;
 
-extern void fatal _((msg_t));
-extern void msg _((msg_t, ...));
+
+extern void fatal _((char *));
 extern char *get_file_extension(char *);
 extern void display_char(buffer_t *, char_t *,int ,int);
 extern void display (window_t *, int);
@@ -301,8 +303,13 @@ extern void chkPar(void);
 extern char *whatKey;
 extern void repl(void);
 extern void eval_block();
-void remove_control_chars(char_t *);
-void mk_buffer_name(char *, char *);
+extern void remove_control_chars(char_t *);
+extern void mk_buffer_name(char *, char *);
+extern char *get_key_binding(void);
+extern char *get_key_name(void);
+extern int delete_buffer_byname(char *);
+extern int select_buffer_byname(char *);
+extern int save_buffer_byname(char *);
 
 
 /* functions to pscrap_t */
