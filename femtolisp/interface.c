@@ -18,18 +18,18 @@
 #include "llt/random.h"
 
 static value_t qua(value_t *args, u_int32_t nargs) {
-  argcount("quadrado", nargs, 1);
-  value_t a= args[0];
-  printf("%d\n", (int) (numval(a)*numval(a)));
-  return FL_NIL;}
+	argcount("quadrado", nargs, 1);
+	value_t a= args[0];
+	printf("%d\n", (int) (numval(a)*numval(a)));
+	return FL_NIL;}
 
 static builtinspec_t builtin_info[] = {
-  {"quadrado", qua},
-  /*End Interface*/
-  { NULL, NULL }
+	{"quadrado", qua},
+	/*End Interface*/
+	{ NULL, NULL }
 };
 
 void interface_init(void)
 {
-    assign_global_builtins(builtin_info);
+	assign_global_builtins(builtin_info);
 }

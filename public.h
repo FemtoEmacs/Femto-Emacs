@@ -46,3 +46,4 @@ extern int save_buffer_byname(char *);
 extern char *get_clipboard(void);
 extern void msg(char *, ...);
 extern char *string_trim(char *);
+extern char *get_current_bufname();

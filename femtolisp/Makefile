@@ -48,8 +48,8 @@ debug: $(DOBJS) $(LIBFILES) $(LIBTARGET).da flmain.do
 	$(CC) $(DEBUGFLAGS) $(DOBJS) flmain.do -o $(EXENAME) $(LIBS) $(LIBTARGET).da
 	make test
 
-release: $(OBJS) $(LIBFILES) $(LIBTARGET).a interface.o flmain.o
-	$(CC) $(SHIPFLAGS) $(OBJS) flmain.o interface.o \
+release: $(OBJS) $(LIBFILES) $(LIBTARGET).a flmain.o
+	$(CC) $(SHIPFLAGS) $(OBJS) flmain.o \
              -o $(EXENAME) $(LIBS) $(LIBTARGET).a
 
 clean:
