@@ -1,8 +1,13 @@
+;; FemtoEmacs init.lsp, should be placed in the users HOME directory together with "aliases.scm"
+
 ;; Compatibility with SICP
 (load (home "aliases.scm"))
 
 ;;
-;;  what does this do ?
+;; The function read-string is necessary for reading a Lisp list from a string. 
+;; When Lisp retrieves a text such as "(2016 8 31)" the text comes out as a string. 
+;; On the other hand, (read-string "(2016 8 31)" ) reads a list from this string in the 
+;; same way as it would read a list from a file.
 ;;
 (define (read-string str)
     (let ( (port (open-input-string str)))
@@ -71,16 +76,20 @@
   (update-display)
   (get-key))
 
+
+;; define syntax highlighting for scheme files
 (newlanguage ".scm" ";" "#|" "|#")
 (keyword "define")
 (keyword "cond")
 (keyword "else")
 
+;; define syntax hughlihgting for lisp files
 (newlanguage ".lsp" ";" "#|" "|#")
 (keyword "define")
 (keyword "cond")
 (keyword "else")
 
+;; define syntax hughlighting for C code
 (newlanguage ".c" "//" "/*" "*/")
 (keyword "auto")
 (keyword "break")
@@ -114,3 +123,4 @@
 (keyword "void")
 (keyword "volatile")
 (keyword "while")
+
