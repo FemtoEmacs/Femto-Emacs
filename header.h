@@ -299,6 +299,7 @@ extern int scan_for_keywords(char_t *, int *);
 extern void scan_for_comments(char_t *, int *, int *);
 extern void setLanguage(char* extension);
 extern void keyboardDefinition(void);
+extern void run_kill_hook(char *);
 extern void chkPar(void);
 extern char *whatKey;
 extern void repl(void);

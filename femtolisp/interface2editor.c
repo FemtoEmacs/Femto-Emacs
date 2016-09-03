@@ -307,6 +307,15 @@ static value_t msg_lisp(value_t *args, u_int32_t nargs) {
 	return FL_T;
 }
 
+/* log a string to debug.out  */
+static value_t fe_log_debug(value_t *args, u_int32_t nargs) {
+	argcount("log-debug", nargs, 1);
+	value_t a = args[0]; /*Learn: pick an arg */
+	char *str = cptr(a); /*Learn: string Lisp -> string C  */
+	log_debug(str);
+	return FL_T;
+}
+
 /*
  * interface to functions of form
  *    int func(char *)
@@ -612,6 +621,7 @@ static builtinspec_t builtin_info[] = {
 	{"copy-region", copy_region},
 	{"eval-block", eval_blk},
 	{"get-key", fe_get_key},
+	{"log-debug", fe_log_debug},
 	{"message", msg_lisp},
 	{"delete-other-windows", del_other_windows},
 	{"delete-buffer-by-name", fe_delete_buffer_byname},

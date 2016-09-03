@@ -66,3 +66,14 @@ char *string_trim(char *s)
 	return temp;
 }
 
+/* replace control chars with spaces in string s */
+void remove_control_chars(char_t *s)
+{
+	char_t *p = s;
+
+	while (*p != '\0') {
+		if (*p < 32)
+			*p = ' ';
+		p++;
+	}
+}

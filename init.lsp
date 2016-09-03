@@ -70,6 +70,11 @@
       (else (insert key)) ))
 
 
+;; exampl of how to use the kill-hook
+;; this could be the basis for implementing a kill-ring system using Femtolisp
+(define (kill-hook bufn)
+	(log-debug (string-append "killed region from buffer " bufn "\n")))
+
 ;; this is just a start
 (define (buffer-menu)
   (message "please use (load samples/bufmenu.scm), press key to continue")

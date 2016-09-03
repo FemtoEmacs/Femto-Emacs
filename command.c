@@ -365,6 +365,7 @@ void copy_cut(int cut)
 			block();
 			curbp->b_point = pos(curbp, curbp->b_egap); /* set point to after region */
 			curbp->b_flags |= B_MODIFIED;
+			run_kill_hook(curbp->b_bname);
 			msg(m_cut, nscrap);
 		} else {
 			block(); /* can maybe do without */
@@ -591,6 +592,19 @@ void keyboardDefinition()
 	callLisp(lisp_result, lisp_query);
 }
 
+/* Keyboard Definition is done by user in Lisp */
+void run_kill_hook(char *bufname)
+{
+	sprintf(temp, "(kill-hook \"%s\")", bufname);
+	sprintf(lisp_query, wrp, temp);
+	callLisp(lisp_result, lisp_query);
+}
+
+void log_debug(char *s)
+{
+	debug(s);
+}
+
 void repl()
 {
 	temp[0] = '\0';
@@ -653,15 +667,4 @@ void eval_block() {
 	insert_string("\n");
 	insert_string(lisp_result);
 	insert_string("\n"); 
-}
-
-void remove_control_chars(char_t *s)
-{
-	char_t *p = s;
-
-	while (*p != '\0') {
-		if (*p < 32)
-			*p = ' ';
-		p++;
-	}
 }
