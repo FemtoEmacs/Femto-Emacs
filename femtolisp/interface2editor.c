@@ -597,8 +597,8 @@ extern void iostream_init(void);
 static builtinspec_t builtin_info[] = {
 	{"insert", insrt},
 	{"backward-delete-char", backspace},
-	{"backward-character", bkwrd},
-	{"forward-character", forwrd},
+	{"backward-char", bkwrd},
+	{"forward-char", forwrd},
 	{"beginning-of-line", linebegin},
 	{"end-of-line", lineend},
 	{"copy-region", fe_copy_region},
