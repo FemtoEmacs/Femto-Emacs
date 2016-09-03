@@ -45,6 +45,7 @@ int main(int argc, char **argv)
 		/* Save filename irregardless of load() success. */
 		strncpy(curbp->b_fname, argv[1], NAME_MAX);
 		curbp->b_fname[NAME_MAX] = '\0'; /* force truncation */
+		mk_buffer_name(curbp->b_bname, curbp->b_fname);
 	} else {
 		curbp = find_buffer(str_scratch, TRUE);
 		strncpy(curbp->b_bname, str_scratch, STRBUF_S);

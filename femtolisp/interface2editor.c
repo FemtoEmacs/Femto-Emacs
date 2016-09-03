@@ -76,7 +76,7 @@ extern char_t *scrap;
  */
 
 static value_t fl_clipboard(value_t *args, u_int32_t nargs) {
-  argcount("clipboard", nargs, 0);
+  argcount("XXX-clipboard", nargs, 0);
   int i= 0;
   if ((scrap == NULL) || (nscrap < 1)) {
     char *str= malloc(1);
@@ -92,8 +92,11 @@ static value_t fl_clipboard(value_t *args, u_int32_t nargs) {
 
 }
 
-/* non formatted code ! */
-
+/*
+ * hughbarney:  Lucas this does the same thing as region
+ * so we dont need it
+ *
+ */
 static value_t fl_region(value_t *args, u_int32_t nargs) {
   argcount("region", nargs, 0);
   int i= 0;
@@ -104,7 +107,7 @@ static value_t fl_region(value_t *args, u_int32_t nargs) {
     str[0] = 0;
     return (string_from_cstr(str));
   }
-  char *str= malloc(nscrap + 4); 
+  char *str= malloc(nscrap + 4);   /* this is a memory leak !as it will never get deleted */
   for(i=0; i<nscrap; i++) {
 			str[i]= (char) scrap[i];
 		}
@@ -113,7 +116,10 @@ static value_t fl_region(value_t *args, u_int32_t nargs) {
 
 }
 
-
+/*
+ *  we should be using os.getenv() from femtolisp
+ *
+ */
 static value_t fl_home(value_t *args, u_int32_t nargs) {
   argcount("home", nargs, 1);
   value_t a = args[0]; /*Learn: pick an arg */
@@ -167,6 +173,14 @@ static value_t del_other_windows(value_t *args, u_int32_t nargs) {
 	return FL_T;
 }
 
+
+static value_t fe_split_window(value_t *args, u_int32_t nargs) {
+	argcount("split-window-below", nargs, 0);
+	split_window();
+	return FL_T;
+}
+
+
 static value_t gotoln(value_t *args, u_int32_t nargs) {
 	argcount("goto-line", nargs, 1);
 	value_t a = args[0];
@@ -207,12 +221,6 @@ static value_t previous_line(value_t *args, u_int32_t nargs) {
 static value_t set_mark(value_t *args, u_int32_t nargs) {
 	argcount("set-mark", nargs, 0);
 	iblock();
-	return FL_T;
-}
-
-static value_t split_current_window(value_t *args, u_int32_t nargs) {
-	argcount("split-current-window", nargs, 0);
-	split_window();
 	return FL_T;
 }
 
@@ -263,14 +271,27 @@ static value_t fe_get_key_binding(value_t *args, u_int32_t nargs) {
 	return string_from_cstr(get_key_binding());
 }
 
-static value_t fe_get_current_buffer_name(value_t *args, u_int32_t nargs) {
-	argcount("get-current-buffer-name", nargs, 0);
-	return string_from_cstr(fe_get_input_key());
+static value_t fe_get_buffer_name(value_t *args, u_int32_t nargs) {
+	argcount("get-buffer-name", nargs, 0);
+	return string_from_cstr(get_current_bufname());
 }
 
 static value_t fe_get_clipboard(value_t *args, u_int32_t nargs) {
 	argcount("get-clipboard", nargs, 0);
 	return string_from_cstr(get_clipboard());
+}
+
+
+/*
+ * interface to editor functions of form
+ *   char *func(char *)
+ */
+
+static value_t fe_trim(value_t *args, u_int32_t nargs) {
+	argcount("trim", nargs, 1);
+	value_t a = args[0];
+	char *str = cptr(a);
+	return string_from_cstr(string_trim(str));
 }
 
 
@@ -583,7 +604,7 @@ static builtinspec_t builtin_info[] = {
 	{"copy-region", fe_copy_region},
 
 
-	{"clipboard", fl_clipboard},
+	//{"clipboard", fl_clipboard},
 	{"home", fl_home},
         {"region", fl_region},
 	{"cutregion", fl_cutregion},
@@ -604,12 +625,13 @@ static builtinspec_t builtin_info[] = {
 	{"search-backwards", src_backwards},
 	{"set-mark", set_mark},
 	{"select-buffer-by-name", fe_select_buffer_byname},
-	{"split-current-window", split_current_window},
+	{"split-window-below", fe_split_window},
+	{"trim", fe_trim},
 	{"update-display", fe_update_display},
 	{"yank", yank},
 	{"get-version-string", fe_get_version_string},
 	{"get-buffer-count", fe_count_buffers},
-	{"get-current-buffer-name", fe_get_current_buffer_name},
+	{"get-buffer-name", fe_get_buffer_name},
 	{"get-key-name", fe_get_key_name},
 	{"get-key-binding", fe_get_key_binding},
 	{"get-clipboard", fe_get_clipboard},

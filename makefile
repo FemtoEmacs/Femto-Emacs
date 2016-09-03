@@ -3,7 +3,7 @@
 #
 
 CC      = cc
-CFLAGS  = -O -Wall
+CFLAGS  = -O -Wall -g
 LLTDIR 	= ./femtolisp/llt
 LD      = cc
 LDFLAGS =

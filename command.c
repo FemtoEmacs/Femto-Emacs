@@ -611,14 +611,14 @@ void repl()
 	sprintf(lisp_query, wrp, temp);
 	callLisp(lisp_result, lisp_query);
 
-	/* hide results that are just #t */
-        if (strcmp(lisp_result, "#t") == 0) {
-		return;
-	}
-
-	insert_string("\n");
-	insert_string(lisp_result);
-	insert_string("\n");
+	/*
+	 * send any outout to the message line.  This avoids text
+	 * being sent to the current buffer which means the file
+	 * contents could get corrupted if you are running commands
+	 * on the buffers etc.  This assumes that the output will fix
+	 * on 1 line.
+	 */
+	msg(lisp_result);
 }
   
 void eval_block() {
