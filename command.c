@@ -586,21 +586,8 @@ char *whatKey= "";
 /* Keyboard Definition is done by user in Lisp */
 void keyboardDefinition()
 {
-	/* the +40 allows for the size of the formatting string and key name size */
-	static char keyboard_command[MAX_FL_CLIPBD + 40];
-  
-	if ((scrap == NULL) || (nscrap < 1)) {
-		sprintf(keyboard_command, "(keyboard \"%s\" \"\")", whatKey);
-	} else {
-		if (nscrap >= MAX_FL_CLIPBD) {
-			msg(str_clip_too_big, MAX_FL_CLIPBD);
-			return;
-		}
-		
-		sprintf(keyboard_command, "(keyboard \"%s\" \"%s\")", whatKey, scrap);
-	}
-	
-	sprintf(lisp_query, wrp, keyboard_command);
+	sprintf(temp, "(keyboard \"%s\")", whatKey);
+	sprintf(lisp_query, wrp, temp);
 	callLisp(lisp_result, lisp_query);
 }
 

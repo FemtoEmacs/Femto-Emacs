@@ -1,12 +1,19 @@
 ;; Compatibility with SICP
 (load (home "aliases.scm"))
 
+;;
+;;  what does this do ?
+;;
 (define (read-string str)
     (let ( (port (open-input-string str)))
       (begin0 (read port)
 	      (close-input-port port)) ))
 
-(define (wday n)
+
+;;
+;; returns weekday as a string
+;;
+(define (weekday n)
     (cond ( (equal? n 0) "Sunday")
 	  ( (equal? n 1) "Monday")
 	  ( (equal? n 2) "Tuesday")
@@ -16,7 +23,10 @@
 	  ( (equal? n 6) "Saturday")
 	  (else "unknown")))
 
-(define (zr ymd)
+;;
+;; returns the day for the specific date
+;; (what-day '(2016 9 3))
+(define (what-day ymd)
     (let* ( (y (car ymd))
             (m (cadr ymd))
             (d (caddr ymd))
@@ -25,17 +35,18 @@
 	    (yy (- y ax))
 	    (c (- (quotient yy 100)))
 	    (ly (quotient yy 4)) )
-      (wday (mod (+ yy
+      (weekday (mod (+ yy
 		    (quotient (- (* 13 mm) 1) 5)
 		    ly
                     c
 		    (quotient yy 400) d) 7)) ))
 
+
 ;; Shortcut definitions
 (define (keyboard key) 
    (cond
       ( (equal? key "C-c z")
-        (insert (zr (read-string (cutregion))) ))
+        (insert (what-day (read-string (cutregion))) ))
       ( (equal? key "C-c a") 
         (insert "<p> </p>")
         (backward 5))
@@ -49,31 +60,16 @@
         (insert "<p>-")
         (insert (clipboard))
         (insert "-</p>"))
-      ( (equal? key "C-c f")
-	(myfunc))
       ( (equal? key "C-c m")
 	(buffer-menu))
       (else (insert key)) ))
 
 
-;; we can redine this through lisp interaction but it will be bound to C-c f
-(define (myfunc) ())
-
 ;; this is just a start
 (define (buffer-menu)
-  (list-buffers)
-  (message "buffer menu: 1,2,k,x")    
+  (message "please use (load samples/bufmenu.scm), press key to continue")
   (update-display)
-  (let ( (ky (get-key)))
-    (cond  ( (equal? ky "1") 
-             (insert "you selected option 1\n"))
-           ( (equal? ky "2")
-             (insert "you selected option 2\n"))
-           ( (equal? ky "k")
-             (insert "you selected option k\n"))
-           ( (equal? ky "x")
-             (insert "you selected option x\n"))
-           (else (insert ky))) ))
+  (get-key))
 
 (newlanguage ".scm" ";" "#|" "|#")
 (keyword "define")

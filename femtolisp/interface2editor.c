@@ -76,14 +76,14 @@ extern char_t *scrap;
  */
 
 static value_t fl_clipboard(value_t *args, u_int32_t nargs) {
-  argcount("XXX-clipboard", nargs, 0);
+  argcount("clipboard", nargs, 0);
   int i= 0;
   if ((scrap == NULL) || (nscrap < 1)) {
-    char *str= malloc(1);
+	  char *str= malloc(1);     /* memory leak !, how does it get freed next time ? */
     str[0] = 0;
     return (string_from_cstr(str));
   }
-  char *str= malloc(nscrap + 4); 
+  char *str= malloc(nscrap + 4); /* memory leak !, how does it get freed next time ? */
   for(i=0; i<nscrap; i++) {
 			str[i]= (char) scrap[i];
 		}
@@ -604,7 +604,7 @@ static builtinspec_t builtin_info[] = {
 	{"copy-region", fe_copy_region},
 
 
-	//{"clipboard", fl_clipboard},
+	{"clipboard", fl_clipboard},
 	{"home", fl_home},
         {"region", fl_region},
 	{"cutregion", fl_cutregion},
