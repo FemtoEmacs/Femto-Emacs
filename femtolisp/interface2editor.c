@@ -175,7 +175,7 @@ static value_t del_other_windows(value_t *args, u_int32_t nargs) {
 
 
 static value_t fe_split_window(value_t *args, u_int32_t nargs) {
-	argcount("split-window-below", nargs, 0);
+	argcount("split-window", nargs, 0);
 	split_window();
 	return FL_T;
 }
@@ -635,7 +635,7 @@ static builtinspec_t builtin_info[] = {
 	{"search-backwards", src_backwards},
 	{"set-mark", set_mark},
 	{"select-buffer-by-name", fe_select_buffer_byname},
-	{"split-window-below", fe_split_window},
+	{"split-window", fe_split_window},
 	{"trim", fe_trim},
 	{"update-display", fe_update_display},
 	{"yank", yank},
