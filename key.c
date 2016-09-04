@@ -62,7 +62,7 @@ keymap_t keymap[] = {
 	{"C-s",       "search"                , "\x13", search },
 	{"C-r",       "search"                , "\x12", search },
 	{"C-o",       "exec-lisp-command"     , "\x0F", repl },
-	{"C-x 1",     "delete-other-window"   , "\x18\x31", delete_other_windows },
+	{"C-x 1",     "delete-other-windows"  , "\x18\x31", delete_other_windows },
 	{"C-x 2",     "split-window"          , "\x18\x32", split_window },
 	{"C-x o",     "other-window"          , "\x18\x6F", next_window },
 	{"C-x @",     "shell-command"         , "\x18\x40", i_shell_command },
