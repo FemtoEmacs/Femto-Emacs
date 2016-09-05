@@ -56,7 +56,7 @@ void split_window()
 	redraw(); /* mark the lot for update */
 }
 
-void next_window() {
+void other_window() {
 	curwp->w_update = TRUE; /* make sure modeline gets updated */
 	curwp = (curwp->w_next == NULL ? wheadp : curwp->w_next);
 	curbp = curwp->w_bufp;

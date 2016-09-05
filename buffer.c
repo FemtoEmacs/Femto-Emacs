@@ -154,7 +154,7 @@ int delete_buffer_byname(char *bname)
 }
 
 
-int select_buffer_byname(char *bname)
+int select_buffer(char *bname)
 {
 	buffer_t *bp = find_buffer(bname, FALSE);
 
@@ -167,7 +167,7 @@ int select_buffer_byname(char *bname)
 	return TRUE;
 }
 
-int save_buffer_byname(char *bname)
+int save_buffer(char *bname)
 {
 	buffer_t *bp = find_buffer(bname, FALSE);
 

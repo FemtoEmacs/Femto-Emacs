@@ -173,6 +173,11 @@ static value_t del_other_windows(value_t *args, u_int32_t nargs) {
 	return FL_T;
 }
 
+static value_t fe_other_window(value_t *args, u_int32_t nargs) {
+	argcount("other-window", nargs, 0);
+	other_window();
+	return FL_T;
+}
 
 static value_t fe_split_window(value_t *args, u_int32_t nargs) {
 	argcount("split-window", nargs, 0);
@@ -350,27 +355,27 @@ static value_t src_backwards(value_t *args, u_int32_t nargs) {
 	return (founded == -1 ? FL_NIL : FL_T);
 }
 
-static value_t fe_select_buffer_byname(value_t *args, u_int32_t nargs) {
-	argcount("select-buffer-by-name", nargs, 1);
+static value_t fe_select_buffer(value_t *args, u_int32_t nargs) {
+	argcount("select-buffer", nargs, 1);
 	value_t a = args[0];
 	char *str = cptr(a);
-	int result = select_buffer_byname(str);
+	int result = select_buffer(str);
 	return (result ? FL_T : FL_NIL);
 }
 
-static value_t fe_delete_buffer_byname(value_t *args, u_int32_t nargs) {
-	argcount("delete-buffer-by-name", nargs, 1);
+static value_t fe_delete_buffer(value_t *args, u_int32_t nargs) {
+	argcount("delete-buffer", nargs, 1);
 	value_t a = args[0];
 	char *str = cptr(a);
 	int result = delete_buffer_byname(str);
 	return (result ? FL_T : FL_NIL);
 }
 
-static value_t fe_save_buffer_byname(value_t *args, u_int32_t nargs) {
-	argcount("save-buffer-by-name", nargs, 1);
+static value_t fe_save_buffer(value_t *args, u_int32_t nargs) {
+	argcount("save-buffer", nargs, 1);
 	value_t a = args[0];
 	char *str = cptr(a);
-	int result = save_buffer_byname(str);
+	int result = save_buffer(str);
 	return (result ? FL_T : FL_NIL);
 }
 
@@ -624,17 +629,18 @@ static builtinspec_t builtin_info[] = {
 	{"log-debug", fe_log_debug},
 	{"message", msg_lisp},
 	{"delete-other-windows", del_other_windows},
-	{"delete-buffer-by-name", fe_delete_buffer_byname},
+	{"delete-buffer", fe_delete_buffer},
 	{"goto-line", gotoln},
 	{"kill-region", kill_region},
 	{"list-buffers", lst_buffers},
 	{"next-line", next_line},
 	{"previous-line", previous_line},
-	{"save-buffer-by-name", fe_save_buffer_byname},
+	{"other-window", fe_other_window},
+	{"save-buffer", fe_save_buffer},
 	{"search-forward", src_forward},
 	{"search-backwards", src_backwards},
 	{"set-mark", set_mark},
-	{"select-buffer-by-name", fe_select_buffer_byname},
+	{"select-buffer", fe_select_buffer},
 	{"split-window", fe_split_window},
 	{"trim", fe_trim},
 	{"update-display", fe_update_display},

@@ -658,13 +658,14 @@ void eval_block() {
 	right(); /* if we have a matching brace we should always be able to move to right */
 	copy();
 	assert(scrap != NULL);
-	remove_control_chars(scrap);
+	//remove_control_chars(scrap);
 
 	sprintf(lisp_query, wrp, scrap);
-	/* debug("eval_block: %s\n", lisp_query); */
+	debug("eval_block: %s\n", lisp_query);
 
 	callLisp(lisp_result, lisp_query);
 	insert_string("\n");
 	insert_string(lisp_result);
 	insert_string("\n"); 
+	debug("result: %s\n", lisp_result);
 }
