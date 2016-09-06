@@ -100,7 +100,7 @@ int posix_file(char *fn)
 	return (TRUE);
 }
 
-int save(char *fn)
+int save_buffer(buffer_t *bp, char *fn)
 {
 	FILE *fp;
 	point_t length;
@@ -114,9 +114,9 @@ int save(char *fn)
 		msg(m_open, fn);
 		return (FALSE);
 	}
-	(void) movegap(curbp, (point_t) 0);
-	length = (point_t) (curbp->b_ebuf - curbp->b_egap);
-	if (fwrite(curbp->b_egap, sizeof (char), (size_t) length, fp) != length) {
+	(void) movegap(bp, (point_t) 0);
+	length = (point_t) (bp->b_ebuf - bp->b_egap);
+	if (fwrite(bp->b_egap, sizeof (char), (size_t) length, fp) != length) {
 		msg(m_write, fn);
 		return (FALSE);
 	}
@@ -124,8 +124,8 @@ int save(char *fn)
 		msg(m_close, fn);
 		return (FALSE);
 	}
-	curbp->b_flags &= ~B_MODIFIED;
-	msg(m_saved, fn, pos(curbp, curbp->b_ebuf));
+	bp->b_flags &= ~B_MODIFIED;
+	msg(m_saved, fn, pos(bp, bp->b_ebuf));
 	return (TRUE);
 }
 

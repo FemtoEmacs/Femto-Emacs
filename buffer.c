@@ -167,14 +167,15 @@ int select_buffer(char *bname)
 	return TRUE;
 }
 
-int save_buffer(char *bname)
+/* a version of save buffer specifically for calling by lisp */
+int save_buffer_byname(char *bname)
 {
 	buffer_t *bp = find_buffer(bname, FALSE);
 
 	if (bp == NULL) return FALSE;
 	if (bp->b_fname[0] == '\0') return FALSE;
 
-	save(bp->b_fname);
+	save_buffer(bp, bp->b_fname);
 	return TRUE;
 }
 

@@ -244,7 +244,7 @@ void readfile()
 void savebuffer()
 {
 	if (curbp->b_fname[0] != '\0') {
-		save(curbp->b_fname);
+		save_buffer(curbp, curbp->b_fname);
 		return;
 	} else {
 		writefile();
@@ -257,7 +257,7 @@ void writefile()
 	strncpy(temp, curbp->b_fname, NAME_MAX);
 	result = getinput(str_write, (char*)temp, NAME_MAX);
 	if (temp[0] != '\0' && result)
-		if (save(temp) == TRUE) {
+		if (save_buffer(curbp, temp) == TRUE) {
 			strncpy(curbp->b_fname, temp, NAME_MAX);
 			// FIXME - what if name already exists, in editor
 			mk_buffer_name(curbp->b_bname, curbp->b_fname);

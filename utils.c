@@ -31,8 +31,6 @@ char *string_trim(char *s)
 {
 
 	char *p = s;
-
-	debug("trim '%s'\n", s);
 	
 	if (strlen(s) == 0)
 		return s;
@@ -44,15 +42,10 @@ char *string_trim(char *s)
 	strcpy(temp, p);
 
 	p = temp;
-
-	debug("temp '%s'\n", temp);
-
 	
 	/* find the end of the string */
-	while (*p != '\0') {
-		debug("%c", *p);
+	while (*p != '\0')
 		++p;
-	}
 
 	p--; /* step back to char on the end */
 	
@@ -60,7 +53,6 @@ char *string_trim(char *s)
 	while (*p == ' ') {
 		*p = '\0';
 		--p;
-		debug("B");
 	}
 
 	return temp;

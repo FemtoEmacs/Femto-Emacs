@@ -220,7 +220,7 @@ extern point_t movegap (buffer_t *, point_t);
 extern point_t pos (buffer_t *, char_t *);
 extern char_t *ptr (buffer_t *, point_t);
 extern int posix_file _((char *));
-extern int save _((char *));
+extern int save_buffer(buffer_t *,char *);
 extern int load_file _((char *));
 extern int insert_file (char *, int);
 extern void undoset _((void));
@@ -304,12 +304,6 @@ extern void repl(void);
 extern void eval_block();
 extern void remove_control_chars(char_t *);
 extern void mk_buffer_name(char *, char *);
-extern char *get_key_binding(void);
-extern char *get_key_name(void);
-extern int delete_buffer_byname(char *);
-extern int select_buffer_byname(char *);
-extern int save_buffer_byname(char *);
-
 
 /* functions to pscrap_t */
 extern void ps_push(pscrap_t *p, char_t *scrap);

@@ -375,7 +375,7 @@ static value_t fe_save_buffer(value_t *args, u_int32_t nargs) {
 	argcount("save-buffer", nargs, 1);
 	value_t a = args[0];
 	char *str = cptr(a);
-	int result = save_buffer(str);
+	int result = save_buffer_byname(str);
 	return (result ? FL_T : FL_NIL);
 }
 
