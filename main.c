@@ -40,28 +40,26 @@ int main(int argc, char **argv)
 	bkgd((chtype) (' ' | COLOR_PAIR(ID_COLOR_ALPHA)));
 
 	if (1 < argc) {
-		curbp = find_buffer(argv[1], TRUE);
-		(void) insert_file(argv[1], FALSE);
+		char bname[STRBUF_S];
 		/* Save filename irregardless of load() success. */
-		strncpy(curbp->b_fname, argv[1], NAME_MAX);
-		curbp->b_fname[NAME_MAX] = '\0'; /* force truncation */
-		mk_buffer_name(curbp->b_bname, curbp->b_fname);
+		safe_strncpy(temp, argv[1], NAME_MAX);
+		mk_buffer_name(bname, temp);
+		curbp = find_buffer(bname, TRUE);
+		(void)insert_file(temp, FALSE);
+		strcpy(curbp->b_fname, temp);
 	} else {
 		curbp = find_buffer(str_scratch, TRUE);
-		strncpy(curbp->b_bname, str_scratch, STRBUF_S);
 	}
 
 	wheadp = curwp = new_window();
 	one_window(curwp);
 	associate_b2w(curbp, curwp);
 
-	if (!growgap(curbp, CHUNK))
-		fatal(f_alloc);
-
 	top();
 	undoset();
 	key_map = keymap;
 	initLisp(1, flargv);
+	
 	while (!done) {
 		update_display();
 		input = get_key(key_map, &key_return);

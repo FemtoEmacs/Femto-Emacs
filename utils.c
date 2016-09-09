@@ -19,10 +19,7 @@ void mk_buffer_name(char *bname, char *fname)
 	while (p != fname && p[-1] != '/' && p[-1] != '\\')
 		--p;
 
-	strncpy(bname, p, STRBUF_S);
-
-	/* truncate if base filename is too long */
-	*(bname + STRBUF_S) = '\0';
+	safe_strncpy(bname, p, STRBUF_S);
 }
 
 
@@ -68,4 +65,11 @@ void remove_control_chars(char_t *s)
 			*p = ' ';
 		p++;
 	}
+}
+
+/* a safe version of strncpy that ensure null terminate in case of overflows */
+void safe_strncpy(char *dest, char *src, int nchars)
+{
+	strncpy(dest, src, nchars);
+	*(dest + nchars) = '\0';  /* force null termination */
 }

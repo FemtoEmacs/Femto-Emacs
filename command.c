@@ -217,11 +217,13 @@ void insertfile()
 void readfile()
 {
 	buffer_t *bp;
+	char bname[STRBUF_S];
 	
 	temp[0] = '\0';
-	result = getfilename(str_read, (char*) temp, NAME_MAX);
+	result = getfilename(str_read, (char*)temp, NAME_MAX);
 	if (result) {
-		bp = find_buffer(temp, TRUE);
+		mk_buffer_name(bname, temp);
+		bp = find_buffer(bname, TRUE);
 		disassociate_b(curwp); /* we are leaving the old buffer for a new one */
 		curbp = bp;
 		associate_b2w(curbp, curwp);
@@ -230,12 +232,8 @@ void readfile()
 		if (bp != NULL && bp->b_fname[0] == '\0') {
 			if (!load_file(temp)) {
 				msg(m_newfile, temp);
-				if (!growgap(curbp, CHUNK))
-					fatal(f_alloc);
 			}
-			strncpy(curbp->b_fname, temp, NAME_MAX);
-			curbp->b_fname[NAME_MAX] = '\0'; /* truncate if required */
-			mk_buffer_name(curbp->b_bname, curbp->b_fname);
+			safe_strncpy(curbp->b_fname, temp, NAME_MAX);
 		}
 		undoset();
 	}
@@ -254,13 +252,15 @@ void savebuffer()
 
 void writefile()
 {
-	strncpy(temp, curbp->b_fname, NAME_MAX);
+	safe_strncpy(temp, curbp->b_fname, NAME_MAX);
 	result = getinput(str_write, (char*)temp, NAME_MAX);
-	if (temp[0] != '\0' && result)
+	if (temp[0] != '\0' && result) {
 		if (save_buffer(curbp, temp) == TRUE) {
-			strncpy(curbp->b_fname, temp, NAME_MAX);
+			safe_strncpy(curbp->b_fname, temp, NAME_MAX);
 			// FIXME - what if name already exists, in editor
+			// FIXME? - do we want to change the name of the buffer when we save_as ?
 			mk_buffer_name(curbp->b_bname, curbp->b_fname);
+		}
 	}
 }
 
@@ -281,14 +281,11 @@ void killbuffer()
 			return;
 	}
 
-       if (bcount == 1) {
-		/* create a scratch buffer */
+	/* create a scratch buffer */
+	if (bcount == 1) {
 		bp = find_buffer(str_scratch, TRUE);
-		strcpy(bp->b_bname, str_scratch);
-		if (!growgap(bp, MIN_GAP_EXPAND))
-			fatal(f_alloc);
+		assert(bp != NULL); /* stops the compiler complaining */
 	}
-
 
 	next_buffer();
 	assert(kill_bp != curbp);
@@ -564,7 +561,7 @@ void shell_command(char *command)
 
 	load_file(output_file);
 	msg(""); /* clear the msg line, dont display temp filename */
-	strncpy(curbp->b_bname, str_output, STRBUF_S);
+	safe_strncpy(curbp->b_bname, str_output, STRBUF_S);
 }
 
 void version()
@@ -661,11 +658,11 @@ void eval_block() {
 	//remove_control_chars(scrap);
 
 	sprintf(lisp_query, wrp, scrap);
-	debug("eval_block: %s\n", lisp_query);
+	//debug("eval_block: %s\n", lisp_query);
 
 	callLisp(lisp_result, lisp_query);
 	insert_string("\n");
 	insert_string(lisp_result);
 	insert_string("\n"); 
-	debug("result: %s\n", lisp_result);
+	//debug("result: %s\n", lisp_result);
 }

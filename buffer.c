@@ -26,18 +26,18 @@ void buffer_init(buffer_t *bp)
 }
 
 /*
- * Find a buffer, by filename. Return a pointer to the buffer_t
+ * Find a buffer, by buffer name. Return a pointer to the buffer_t
  * structure associated with it. If the buffer is not found and the
  * "cflag" is TRUE, create it.
  */
-buffer_t *find_buffer (char *fname, int cflag)
+buffer_t *find_buffer (char *bname, int cflag)
 {
 	buffer_t *bp = NULL;
 	buffer_t *sb = NULL;
 	
 	bp = bheadp;
 	while (bp != NULL) {
-		if (strcmp (fname, bp->b_fname) == 0 || strcmp(fname, bp->b_bname) == 0) {
+		if (strcmp(bname, bp->b_bname) == 0) {
 			return (bp);
 		}
 		bp = bp->b_next;
@@ -49,23 +49,28 @@ buffer_t *find_buffer (char *fname, int cflag)
 
 		buffer_init(bp);
 		assert(bp != NULL);
-		
+
 		/* find the place in the list to insert this buffer */
 		if (bheadp == NULL) {
 			bheadp = bp;
-		} else if (strcmp (bheadp->b_fname, fname) > 0) {
+		} else if (strcmp (bheadp->b_bname, bname) > 0) {
 			/* insert at the begining */
 			bp->b_next = bheadp;
 			bheadp = bp;
 		} else {
 			for (sb = bheadp; sb->b_next != NULL; sb = sb->b_next)
-				if (strcmp (sb->b_next->b_fname, fname) > 0)
+				if (strcmp (sb->b_next->b_bname, bname) > 0)
 					break;
 			
 			/* and insert it */
 			bp->b_next = sb->b_next;
 			sb->b_next = bp;
 		}
+
+		strcpy(bp->b_bname, bname);
+		/* a newly created buffer needs to have a gap otherwise it is not ready for insertion */
+		if (!growgap(bp, MIN_GAP_EXPAND))
+			msg(f_alloc);
 	}
 	return bp;
 }
@@ -142,13 +147,22 @@ int modified_buffers()
 	return FALSE;
 }
 
-
 int delete_buffer_byname(char *bname)
 {
 	buffer_t *bp = find_buffer(bname, FALSE);
-
+	int bcount = count_buffers();
+	
 	if (bp == NULL) return FALSE;
 
+	/* if last buffer, create a scratch buffer */
+	if (bcount == 1) {
+		bp = find_buffer(str_scratch, TRUE);
+	}
+
+	/* switch out of buffer if we are the current buffer */
+	if (bp == curbp)
+		next_buffer();
+	assert(bp != curbp);	
 	delete_buffer(bp);
 	return TRUE;
 }
@@ -156,11 +170,11 @@ int delete_buffer_byname(char *bname)
 
 int select_buffer(char *bname)
 {
-	buffer_t *bp = find_buffer(bname, FALSE);
+	buffer_t *bp = find_buffer(bname, TRUE);
 
-	if (bp == NULL) return FALSE;
-
+	assert(bp != NULL);
 	assert(curbp != NULL);
+	
 	disassociate_b(curwp);
 	curbp = bp;
 	associate_b2w(curbp,curwp);

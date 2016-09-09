@@ -49,7 +49,6 @@
 #define ID_COLOR_DIGITS    6
 #define ID_COLOR_COMMENTS  7
 
-//typedef char *msg_t;
 typedef unsigned char char_t;
 typedef long point_t;
 #define FEMTO_POINT_T      1
@@ -304,6 +303,7 @@ extern void repl(void);
 extern void eval_block();
 extern void remove_control_chars(char_t *);
 extern void mk_buffer_name(char *, char *);
+extern void safe_strncpy(char *, char *, int);
 
 /* functions to pscrap_t */
 extern void ps_push(pscrap_t *p, char_t *scrap);

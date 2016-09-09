@@ -364,7 +364,7 @@ static value_t fe_select_buffer(value_t *args, u_int32_t nargs) {
 }
 
 static value_t fe_delete_buffer(value_t *args, u_int32_t nargs) {
-	argcount("delete-buffer", nargs, 1);
+	argcount("kill-buffer", nargs, 1);
 	value_t a = args[0];
 	char *str = cptr(a);
 	int result = delete_buffer_byname(str);
@@ -629,7 +629,7 @@ static builtinspec_t builtin_info[] = {
 	{"log-debug", fe_log_debug},
 	{"message", msg_lisp},
 	{"delete-other-windows", del_other_windows},
-	{"delete-buffer", fe_delete_buffer},
+	{"kill-buffer", fe_delete_buffer},
 	{"goto-line", gotoln},
 	{"kill-region", kill_region},
 	{"list-buffers", lst_buffers},

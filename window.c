@@ -67,10 +67,8 @@ void other_window() {
 
 void delete_other_windows()
 {
-	if (wheadp->w_next == NULL) {
-		msg("Only 1 window");
+	if (wheadp->w_next == NULL)
 		return;
-	}
 	free_other_windows(curwp);
 }
 	
