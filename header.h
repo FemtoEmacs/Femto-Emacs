@@ -34,6 +34,7 @@
 #define STRBUF_L        256
 #define STRBUF_M        64
 #define STRBUF_S        16
+#define NBUFN           17              /* size of buffer name 16 chars + null terminator */
 #define LISP_IN_OUT     2048
 #define MAX_FL_CLIPBD   2048
 #define MIN_GAP_EXPAND  512
@@ -93,7 +94,7 @@ typedef struct buffer_t
 	int b_row;                /* cursor row */
 	int b_col;                /* cursor col */
 	char b_fname[NAME_MAX + 1]; /* filename */
-	char b_bname[STRBUF_S];   /* buffer name */
+	char b_bname[NBUFN];      /* buffer name */
 	char b_flags;             /* buffer flags */
 	undo_t b_ubuf;            /* undoset */
 } buffer_t;

@@ -40,7 +40,7 @@ int main(int argc, char **argv)
 	bkgd((chtype) (' ' | COLOR_PAIR(ID_COLOR_ALPHA)));
 
 	if (1 < argc) {
-		char bname[STRBUF_S];
+		char bname[NBUFN];
 		/* Save filename irregardless of load() success. */
 		safe_strncpy(temp, argv[1], NAME_MAX);
 		mk_buffer_name(bname, temp);

@@ -217,7 +217,7 @@ void insertfile()
 void readfile()
 {
 	buffer_t *bp;
-	char bname[STRBUF_S];
+	char bname[NBUFN];
 	
 	temp[0] = '\0';
 	result = getfilename(str_read, (char*)temp, NAME_MAX);
@@ -561,7 +561,7 @@ void shell_command(char *command)
 
 	load_file(output_file);
 	msg(""); /* clear the msg line, dont display temp filename */
-	safe_strncpy(curbp->b_bname, str_output, STRBUF_S);
+	safe_strncpy(curbp->b_bname, str_output, NBUFN);
 }
 
 void version()

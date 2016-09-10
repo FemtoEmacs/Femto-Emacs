@@ -19,7 +19,7 @@ void mk_buffer_name(char *bname, char *fname)
 	while (p != fname && p[-1] != '/' && p[-1] != '\\')
 		--p;
 
-	safe_strncpy(bname, p, STRBUF_S);
+	safe_strncpy(bname, p, NBUFN);
 }
 
 
@@ -71,5 +71,5 @@ void remove_control_chars(char_t *s)
 void safe_strncpy(char *dest, char *src, int nchars)
 {
 	strncpy(dest, src, nchars);
-	*(dest + nchars) = '\0';  /* force null termination */
+	*(dest + nchars - 1) = '\0';  /* force null termination */
 }
