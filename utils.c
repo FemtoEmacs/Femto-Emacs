@@ -1,8 +1,14 @@
 /* util.c, Femto Emacs, Hugh Barney, Public Domain, 2016 */
 
 #include <assert.h>
+#include <errno.h>
 #include <string.h>
+#include <ctype.h>
 #include "header.h"
+
+
+extern int errno;
+
 
 /*
  * Take a file name, and fabricate a buffer name.
@@ -23,36 +29,41 @@ void mk_buffer_name(char *bname, char *fname)
 }
 
 
-/* trim spaces from front and back of a string, returning a new string */
-char *string_trim(char *s)
+/*
+ * trim spaces from front and back of a string
+ * though Femtolisp has a string.trim procedure, I cant get it to work
+ * this function is only called by the femtolisp interface to the editor.
+ *
+ */
+
+char *string_trim(char *str)
 {
-
-	char *p = s;
-	
-	if (strlen(s) == 0)
-		return s;
-
-	/* find first non space */
-	while (*p == ' ')
-		++p;
-
-	strcpy(temp, p);
-
-	p = temp;
-	
-	/* find the end of the string */
-	while (*p != '\0')
-		++p;
-
-	p--; /* step back to char on the end */
-	
-	/* wind back as long there are spaces on the end */
-	while (*p == ' ') {
-		*p = '\0';
-		--p;
+	if (!str) {
+		errno = EINVAL;
+		return NULL;
 	}
 
-	return temp;
+	/* if empty string return the string, it would be fatal to traverse backwards*/
+	if (strlen(str) == 0) return str;
+	
+	char *ptr = str;
+
+	/* first first none space */
+	while (isspace(*ptr))
+		++ptr;
+
+	str = ptr;
+	
+	/* find first char before the end NULL terminator */
+	ptr = strchr (str, '\0') - 1;    
+
+	/* traverse back to first none space */
+	while (isspace(*ptr))
+		--ptr;
+
+	*++ptr = '\0';
+
+	return str;
 }
 
 /* replace control chars with spaces in string s */
