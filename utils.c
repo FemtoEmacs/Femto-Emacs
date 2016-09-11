@@ -1,8 +1,13 @@
 /* util.c, Femto Emacs, Hugh Barney, Public Domain, 2016 */
 
 #include <assert.h>
+#include <errno.h>
 #include <string.h>
 #include "header.h"
+
+
+extern int errno;
+
 
 /*
  * Take a file name, and fabricate a buffer name.
@@ -24,35 +29,26 @@ void mk_buffer_name(char *bname, char *fname)
 
 
 /* trim spaces from front and back of a string, returning a new string */
-char *string_trim(char *s)
+char *string_trim(char *str)
 {
+    if (!str) {
+        errno = EINVAL;
+	return NULL;
+    }
+    char *ptr = str;
 
-	char *p = s;
-	
-	if (strlen(s) == 0)
-		return s;
+    while (*ptr == ' ' || *ptr == '\n' || *ptr == '\t')
+        ++ptr;
 
-	/* find first non space */
-	while (*p == ' ')
-		++p;
+    str = ptr;
+    ptr = strchr (str, '\0') - 1;
 
-	strcpy(temp, p);
+    while (*ptr == ' ' || *ptr == '\n' || *ptr == '\t') {
+        --ptr;
+    }
+    *++ptr = '\0';
 
-	p = temp;
-	
-	/* find the end of the string */
-	while (*p != '\0')
-		++p;
-
-	p--; /* step back to char on the end */
-	
-	/* wind back as long there are spaces on the end */
-	while (*p == ' ') {
-		*p = '\0';
-		--p;
-	}
-
-	return temp;
+    return str;
 }
 
 /* replace control chars with spaces in string s */
