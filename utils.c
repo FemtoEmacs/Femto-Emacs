@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <string.h>
+#include <ctype.h>
 #include "header.h"
 
 
@@ -28,27 +29,41 @@ void mk_buffer_name(char *bname, char *fname)
 }
 
 
-/* trim spaces from front and back of a string, returning a new string */
+/*
+ * trim spaces from front and back of a string
+ * though Femtolisp has a string.trim procedure, I cant get it to work
+ * this function is only called by the femtolisp interface to the editor.
+ *
+ */
+
 char *string_trim(char *str)
 {
-    if (!str) {
-        errno = EINVAL;
-	return NULL;
-    }
-    char *ptr = str;
+	if (!str) {
+		errno = EINVAL;
+		return NULL;
+	}
 
-    while (*ptr == ' ' || *ptr == '\n' || *ptr == '\t')
-        ++ptr;
+	/* if empty string return the string, it would be fatal to traverse backwards*/
+	if (strlen(str) == 0) return str;
+	
+	char *ptr = str;
 
-    str = ptr;
-    ptr = strchr (str, '\0') - 1;
+	/* first first none space */
+	while (isspace(*ptr))
+		++ptr;
 
-    while (*ptr == ' ' || *ptr == '\n' || *ptr == '\t') {
-        --ptr;
-    }
-    *++ptr = '\0';
+	str = ptr;
+	
+	/* find first char before the end NULL terminator */
+	ptr = strchr (str, '\0') - 1;    
 
-    return str;
+	/* traverse back to first none space */
+	while (isspace(*ptr))
+		--ptr;
+
+	*++ptr = '\0';
+
+	return str;
 }
 
 /* replace control chars with spaces in string s */
