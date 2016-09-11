@@ -1,8 +1,7 @@
+;;
+;; calc fibonacci sequence entry
+;;
 
-
-
-(define (qua x)
-  (* x x))
 
 (define (fib n)
   (cond ((< n 2) 1)
