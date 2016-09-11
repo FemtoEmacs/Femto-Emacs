@@ -72,4 +72,4 @@ char *str_output = "*output*";
 char *str_shell_cmd = "Shell Command: ";
 char *str_buffers = "*buffers*";
 char *str_clip_too_big = "Region exceeds lisp clipboard limit of %d bytes";
-
+char *str_not_bound  = "Not bound";

@@ -181,6 +181,7 @@ extern char *m_goto;
 extern char *str_mark;
 extern char *str_pos;
 extern char *str_endpos;
+extern char *str_not_bound;
 
 /* Prompts */
 extern char *str_notsaved;
