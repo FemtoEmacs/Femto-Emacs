@@ -66,7 +66,9 @@
         (insert (clipboard))
         (insert "-</p>"))
       ( (equal? key "C-c m")
-	(buffer-menu))
+        (if (not (top-level-bound? 'bufm-stop))
+          (load (home "bufmenu.scm")))
+          (buffer-menu))
       (else (insert key)) ))
 
 
@@ -74,12 +76,6 @@
 ;; this could be the basis for implementing a kill-ring system using Femtolisp
 (define (kill-hook bufn)
 	(log-debug (string-append "killed region from buffer " bufn "\n")))
-
-;; this is just a start
-(define (buffer-menu)
-  (message "please use (load samples/bufmenu.scm), press key to continue")
-  (update-display)
-  (get-key))
 
 
 ;; define syntax highlighting for scheme files

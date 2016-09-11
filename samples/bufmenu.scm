@@ -26,14 +26,24 @@
 (define bufm-buf "")
 (define bufm-key "")
 
+;;
+;; (buffer-menu)
+;;
+;; List buffers, the starts on line 3.
+;; (get-buffer-count) will report 1 additional buffer than listed
+;; as *buffers* is hidden from the list when created
+;; loop round (with a limit of 400 operations) until bufm-stop gets set to #t
+;;
+
+
 (define (buffer-menu)
     ;(bufm-debug "buffer-menu")
+    (set! bufm-obuf (get-buffer-name))
+    (list-buffers)
     (set! bufm-line bufm-start-line)   
     (set! bufm-last-line (+ bufm-start-line (get-buffer-count)))
     (set! bufm-last-line (- bufm-last-line 2))
-    (set! bufm-obuf (get-buffer-name))
     (set! bufm-stop #f)
-    (list-buffers)
     (goto-line bufm-line)
     (delete-other-windows)
     (set! bufm-buf (bufm-get-bufn))
@@ -43,6 +53,15 @@
     (update-display))
 
 
+;;
+;; (bufm-loop-payload)
+;;
+;; executed by the above do() loop until bufm-stop is #t
+;; set the message on the input line
+;; wait for a key to be pressed and dispatch it to the 
+;; bound key or single key handlers 
+;;
+
 (define (bufm-loop-payload)
     (message "buffer menu: 1,2,s,k,x")
     (update-display)
@@ -51,6 +70,15 @@
 	 (bufm-handle-bound-key)
          (bufm-handle-single-key bufm-key)))
 
+;;
+;; (bufm-handle-bound-key)
+;;
+;; handle up / down arrow
+;; increment or decrement bufm-line appropriately
+;; check the result is not outside the lines that contain buffer names
+;; retrieve the name of the buffer into bufm-buf
+;;
+
 (define (bufm-handle-bound-key)
     ;(bufm-debug "bufm-handle-bound-key")
     (set! bufm-key (get-key-binding))
@@ -58,6 +86,16 @@
     (if (equal? bufm-key "next-line")  (set! bufm-line (+ 1 bufm-line)) )
     (set! bufm-line (bufm_check_line_limits bufm-line bufm-last-line bufm-start-line) )
     (set! bufm-buf (bufm-get-bufn)))
+
+;;
+;; (bufm-handle-single-key)
+;;
+;; 1 select the buffer as a single window
+;; 2 split selected buffer in one window with the original buffer in the other
+;; k kill the selected buffer
+;; s save the selected buffer
+;; x exit buffer-menu
+;;
 
 (define (bufm-handle-single-key k)
    ;(bufm-debug "bufm-handle-single-key")
@@ -94,7 +132,12 @@
              (set! bufm-buf (bufm-get-bufn)))))
 
 
-;; fix forward-char should be forward-character
+;;
+;; (bufm-get-bufn)
+;;
+;; retrieve the buffer name on the current line in the buffer list
+;; trim away leading and trailing spaces
+;;
 
 (define (bufm-get-bufn)
  (goto-line bufm-line)
@@ -107,10 +150,23 @@
  (beginning-of-line)
  (trim (get-clipboard)))
 
+
+;;
+;; (bufm_check_line_limits)
+;;
+;; check that v is between max and min limits
+;; return an adjusted value if necessary
+;;
+
 (define (bufm_check_line_limits v max min)
   (cond  ( (> v max) max)
          ( (> min v) min)
          ( else v)))
+
+;;
+;; procedures to assist debugging and tracing
+;; output is sent to file debug.out
+;;
 
 (define (log-var n v)
 	(log-debug (string-append n "=" v "\n")))
