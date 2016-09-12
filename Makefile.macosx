@@ -8,7 +8,7 @@ LLTDIR = ./femtolisp/llt
 LD      = cc
 LDFLAGS =
 LIBS    =  -framework ApplicationServices \
-            /usr/local/lib/libncursesw.a -ltermcap
+            /usr/local/lib/libncursesw.a -ltermcap -lm
 LISPLIBS = femtolisp/libflisp.a femtolisp/llt/libllt.a
 CP      = cp
 MV      = mv

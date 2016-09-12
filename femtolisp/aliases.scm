@@ -20,6 +20,11 @@
 (define-macro (begin0 first . rest)
   `(prog1 ,first ,@rest))
 
+(define-macro (curry fn x)
+  (let ( (g (gensym)))
+    `(lambda(,g) (,fn ,x ,g)) ))
+
+
 (define vector-ref aref)
 (define vector-set! aset!)
 (define vector-length length)
