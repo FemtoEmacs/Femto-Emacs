@@ -286,10 +286,19 @@
 (define make-table table)
 (define table-ref get)
 (define table-set! put!)
+
+(define (remNL x)
+  (if (and (string? x)
+           (> (string-length x) 0)
+           (eqv? (string-ref x (- (string-length x) 1))
+                 #\newline))
+         (substring x 0 (- (string-length x) 1)) x))
+
 (define (read-line (s *input-stream*))
   ;;(io.flush *output-stream*)
   ;;(io.discardbuffer s)
-  (io.readline s))
+  (remNL (io.readline s) ))
+
 (define (shell-command s) 1)
 (define (error-exception-message e) (cadr e))
 (define (error-exception-parameters e) (cddr e))
