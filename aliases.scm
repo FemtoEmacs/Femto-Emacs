@@ -84,8 +84,10 @@
 (define string=? eqv?)
 (define string<? <)
 (define string>? >)
-(define string<=? <=)
-(define string>=? >=)
+
+(define (string<=? x y) (or (< x y) (eqv? x y) ))
+(define (string>=? x y) (or (> x y) (eqv? x y)))
+
 (define string-copy copy)
 (define string-append string)
 (define string-length string.count)
