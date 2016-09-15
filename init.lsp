@@ -31,6 +31,8 @@
 	  ( (equal? n 6) "Saturday")
 	  (else "unknown")))
 
+
+
 ;;
 ;; returns the day for the specific date
 ;; (what-day '(2016 9 3))
@@ -49,12 +51,17 @@
                     c
 		    (quotient yy 400) d) 7)) ))
 
+;; call kill-region and return it as a string
+(define (cut-region)
+  (kill-region)
+  (get-clipboard))
+
 
 ;; Shortcut definitions
 (define (keyboard key) 
    (cond
       ( (equal? key "C-c z")
-        (insert (what-day (read-string (cutregion))) ))
+        (insert (what-day (read-string (cut-region))) ))
       ( (equal? key "C-c a") 
         (insert "<p> </p>")
         (backward-char 5))
@@ -66,7 +73,7 @@
       ( (equal? key "C-c c")
         (end-of-line)
         (insert "<p>-")
-        (insert (clipboard))
+        (insert (get-clipboard))
         (insert "-</p>"))
       ( (equal? key "C-c m")
         (if (not (top-level-bound? 'bufm-stop))
@@ -75,7 +82,7 @@
       (else (insert key)) ))
 
 
-;; exampl of how to use the kill-hook
+;; example of how to use the kill-hook
 ;; this could be the basis for implementing a kill-ring system using Femtolisp
 (define (kill-hook bufn)
 	(log-debug (string-append "killed region from buffer " bufn "\n")))

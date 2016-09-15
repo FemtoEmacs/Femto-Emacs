@@ -387,24 +387,6 @@ void set_scrap(unsigned char *ptr)
 	scrap = ptr;
 }
 
-
-/*
- * Return a safe copy of the scrap to Femtolisp. For now we have
- * placed a limit on size of clipboard we will pass to Femtolisp
- */
-char *get_clipboard()
-{
-	static char region[MAX_FL_CLIPBD];
-
-	if (nscrap > MAX_FL_CLIPBD) {
-		msg(str_clip_too_big, MAX_FL_CLIPBD);
-		return "Error";
-	}
-
-	strcpy(region, (char *)scrap);
-	return region;
-}
-
 void paste()
 {
 	insert_string((char *)scrap);

@@ -36,7 +36,7 @@
 #define STRBUF_S        16
 #define NBUFN           17              /* size of buffer name 16 chars + null terminator */
 #define LISP_IN_OUT     2048
-#define MAX_FL_CLIPBD   2048
+//#define MAX_FL_CLIPBD   2048
 #define MIN_GAP_EXPAND  512
 #define FWD_SEARCH      1
 #define REV_SEARCH      2
