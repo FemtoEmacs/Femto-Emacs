@@ -1,6 +1,9 @@
 ;; FemtoEmacs init.lsp, should be placed in the users HOME directory together with "aliases.scm"
 
 ;; Compatibility with SICP
+(define (home f)
+   (string (os.getenv "HOME") "/" f))
+
 (load (home "aliases.scm"))
 
 ;;

@@ -116,21 +116,27 @@ static value_t fl_region(value_t *args, u_int32_t nargs) {
 
 }
 
+
 /*
- *  we should be using os.getenv() from femtolisp
- *
+ * I checked with Jeff Bezanson and string_from_cstr()
+ * creates a copy of the string which will leave
+ * the malloc'd buff as a memory leak.
  */
+
+
+/*
 static value_t fl_home(value_t *args, u_int32_t nargs) {
   argcount("home", nargs, 1);
-  value_t a = args[0]; /*Learn: pick an arg */
-  char *str = cptr(a); /*Learn: string Lisp -> string C  */
+  value_t a = args[0];
+  char *str = cptr(a);
   if (str == NULL) {
     return (string_from_cstr(getenv("HOME")));
   }
-  char *buff= malloc(400);    //  MEMORY LEAK !!!!
+  char *buff= malloc(400);
   sprintf(buff, "%s/%s", getenv("HOME"), str);
   return (string_from_cstr(buff));
 }
+*/
 
 /*
  * we already have kill-region()
@@ -828,11 +834,9 @@ static builtinspec_t builtin_info[] = {
 	{"forward-char", forwrd},
 	{"beginning-of-line", linebegin},
 	{"end-of-line", lineend},
-	{"copy-region", fe_copy_region},
-
 
 	{"clipboard", fl_clipboard},
-	{"home", fl_home},
+	//{"home", fl_home},
         {"region", fl_region},
 	{"cutregion", fl_cutregion},
 
@@ -866,6 +870,8 @@ static builtinspec_t builtin_info[] = {
 	{"get-clipboard", fe_get_clipboard},
 	{"keyword", fe_keyword},
 	{"newlanguage", fe_newlanguage},
+
+  /* these should be in a seperate builtins module */
   {"expt", fl_pow},
   {"sin", fl_sin},
   {"cos", fl_cos},
