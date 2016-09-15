@@ -777,7 +777,13 @@ extern void iostream_init(void);
  *
  */
 
-/* Femto inteface bultin functions */
+/*
+ * Femto inteface bultin functions
+ *
+ * see file in docs/interface-bindings.txt for names of current and
+ * future interface names for GNU Emacs compatibility
+ */
+
 static builtinspec_t builtin_info[] = {
 	{"insert", insrt},
 	{"backward-delete-char", backspace},
