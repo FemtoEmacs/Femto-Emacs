@@ -371,6 +371,23 @@ void copy_cut(int cut)
 	}
 }
 
+unsigned char *get_scrap()
+{
+	return scrap;
+}
+
+/*
+ * set the scrap pointer, a setter for external interface code
+ * ptr must be a pointer to a malloc'd NULL terminated string
+ */
+void set_scrap(unsigned char *ptr)
+{
+	if (scrap != NULL) free(scrap);
+	assert(ptr != NULL);
+	scrap = ptr;
+}
+
+
 /*
  * Return a safe copy of the scrap to Femtolisp. For now we have
  * placed a limit on size of clipboard we will pass to Femtolisp

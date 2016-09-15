@@ -327,6 +327,37 @@ static value_t fe_log_debug(value_t *args, u_int32_t nargs) {
 	return FL_T;
 }
 
+/* set the contents of the scrap (clipboard) pointer */
+static value_t fe_set_clipboard(value_t *args, u_int32_t nargs) {
+	argcount("set-clipboard", nargs, 1);
+	value_t a = args[0];
+	char *str = cptr(a);
+
+	/*
+	 * str is a pointer to memory malloc'd and managed by femtolisp
+	 * we must make a copy of it first before setting the scrap pointer with it.
+	 * This is so that when the clipboard is next used we can safely call free()
+	 * on that pointer in the copy_cut() function, as if Femto had malloc'd
+	 * the memory as a result of calling copy_cut().
+	 *
+	 */
+
+	int len = strlen(str);
+	unsigned char *ptr = malloc(len + 1);
+	assert(ptr != NULL);
+	
+	(void)memcpy(ptr, str, len * sizeof (unsigned char));
+	*(ptr + len) = '\0';  /* everything in scrap must always be null terminated */
+
+	/*
+	 * now set the scrap pointer as if copy_cut() had been called
+	 * note that set_scrap does a free(scrap) if the old scrap is not NULL
+	 */
+	set_scrap(ptr);
+	return FL_T;
+}
+
+
 /*
  * interface to functions of form
  *    int func(char *)
@@ -868,6 +899,7 @@ static builtinspec_t builtin_info[] = {
 	{"get-key-name", fe_get_key_name},
 	{"get-key-binding", fe_get_key_binding},
 	{"get-clipboard", fe_get_clipboard},
+	{"set-clipboard", fe_set_clipboard},
 	{"keyword", fe_keyword},
 	{"newlanguage", fe_newlanguage},
 

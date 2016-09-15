@@ -49,3 +49,6 @@ extern void msg(char *, ...);
 extern char *string_trim(char *);
 extern char *get_current_bufname();
 extern void log_debug(char *);
+extern void set_scrap(unsigned char *);
+extern unsigned char *get_scrap(void);
+
