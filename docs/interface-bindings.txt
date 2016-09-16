@@ -1,0 +1,118 @@
+Status of FemtoEmacs Key Bindings
+=================================
+
+Key [E] Implemented in Editor and bound to key
+    [I] Interface to Femtolisp completed
+    [*] We should implement next
+
+This listing to be used as the guide to the names of the functions that will be added
+in order to maintain compatibility with GNU Emacs as close as possible.
+The closer we follow the GNU Emacs reference implementation the easier it will be for
+others to write extensions and to use FemtoEmacs.
+
+
+[EI] Command Name                   Binding      Description
+==== =====================          =========    ====================================================================
+
+[E ] abort-command                       ^G      Abort out of any command that is waiting for input
+[  ] add-mode                            ^XM     Add a mode to the current buffer
+[  ] apropos                             M-A     List out commands whose name contains the string specified
+[EI] backward-char                       ^B      Move one character to the left
+[E ] backward-word                       M-B     Move one word to the left
+[E ] backward-page                       M-^V    Move cursor up one page
+[EI] backward-delete-char                ^H      Delete the character to the left of the cursor
+[  ] begin-macro                         ^X(     Begin recording a keyboard macro
+[E*] beginning-of-file                   M-<     Move to the beginning of the file in the current buffer
+[EI] beginning-of-line                   ^A      Move to the beginning of the current line
+[  ] bind-to-key                         M-K     Bind a key to a function
+[E ] buffer-position                     ^X=     List the position of the cursor in the current buffer
+[  ] downcase-region                     ^X^L    Make a marked region all lower case
+[  ] upcase-region                       ^X^U    Make a marked region all upper case
+[  ] case-word-capitalize                M-C     Capitalize the following word
+[  ] downcase-word                       M-L     Lower case the following word
+[  ] upcase-word                         M-U     Upper case the following word
+[  ] clear-message-line                  (none)  Clear the command line
+[EI] copy-region                         M-W     Copy the currently marked region into the kill buffer
+[EI] delete-buffer                       ^XK     Delete the current buffer
+[  ] delete-mode                         ^X^M    Turn off a mode in the current buffer
+[ *] delete-next-character               ^D      Delete the character following the cursor
+[  ] delete-next-word                    M-D     Delete the word following the cursor
+[EI] delete-other-windows                ^X1     Make the current window cover the entire screen
+[E ] delete-previous-word                M-^H    Delete the word to the left of the cursor
+[E ] delete-window                       ^X0     Remove the current window from the screen
+[  ] describe-bindings                   (none)  Make a list of all legal commands
+[  ] describe-functions                  (none)  Make a list of all legal functions
+[  ] describe-variables                  (none)  Make a list of all environment and user variables
+[E ] describe-key                        ^X?     Describe what command is bound to a keystroke sequence
+[  ] end-macro                           ^X)     stop recording a keyboard macro
+[E*] end-of-file                         M->     Move cursor to the end of the current buffer
+[EI] end-of-line                         ^E      Move to the end of the current line
+[  ] exchange-point-and-mark             ^X^X    Move cursor to the last marked spot,
+[E ] execute-command-line                (none)  Execute a line typed on the command
+[E ] eval-block                          M-]     Evaluate block
+[E*] exit-emacs                          ^X^C    Exit EMACS. If there are unwritten,
+[  ] fill-paragraph                      M-Q     Fill the current paragraph
+[  ] filter-buffer                       ^X#     Filter the current buffer through an external filter
+[E*] find-file                           ^X^F    Find a file to edit in the current window
+[EI] forward-char                        ^F      Move cursor one character to the right
+[E ] forward-word                        M-F     Move cursor to the beginning of the next word
+[  ] forward-page                        ^V      Move the cursor down one page
+[EI] goto-line                           M-G     Goto a numbered line
+[  ] goto-matching-fence                 M-^F    Goto the matching fence
+[E ] handle-tab                          ^I      Insert a tab or set tab stops
+[  ] indent-region                       M-(     Indent the current region one tab
+[E*] insert-file                         ^X^I    insert a file at the cursor in the current file
+[EI] insert-string                       (none)  Insert a string at the cursor
+[EI] kill-buffer                         ^XK     Kill current buffer
+[EI] kill-region                         ^W      Delete the current marked region, moving
+[E ] kill-to-end-of-line                 ^K      Delete the rest of the current line
+[EI] list-buffers                        ^X^B    List all existing buffers
+[  ] name-buffer                         M-^N    Change the name of the current buffer
+[  ] narrow-to-region                    ^X<     hides all text not in the current region
+[  ] newline                             ^M      Insert a <NL> at the cursor
+[E ] next-buffer                         ^XX     Bring the next buffer in the list into the current window
+[EI] next-line                           ^N      Move the cursor down one line
+[EI] other-window                         ^XO     Move cursor to the next window
+[E*] pipe-command                        ^X@     Execute an external command and place its output in a buffer
+[EI] previous-line                       ^P      Move cursor up one line
+[  ] previous-word                       M-B     Move the cursor to the beginning of the word to the left of the cursor
+[E ] query-replace-string                M-R     Replace all of one string with another string, interactively querying the user
+[  ] quick-exit                          M-Z     Exit EMACS, writing out all changed buffers
+[  ] quote-character                     ^Q      Insert the next character literally
+[EI] update-display                      ^L      Redraw the display
+[EI] save-file                           ^X^S    Save the current buffer if it is changed
+[EI] search-forward                      ^S      Search for a string
+[EI] search-backwards                    ^R      Search backwards for a string
+[ I] select-buffer                       ^XB     Select a buffer to display in the current window
+[  ] set-fill-column                     ^XF     Set the current fill column
+[EI] set-mark                            ^SPC    Set the mark
+[EI] split-current-window                ^X2     Split the current window in two
+[* ] toggle-read-only                    ^X^Q    Toggle Read Only status of buffer
+[E ] toggle-overwrite-mode               INS     Toggle overwrite mode
+[  ] trim-region                         ^X^T    Trim any trailing white space from a region
+[E ] undo                                ^U      Undo last command
+[  ] unbind-key                          M-^K    Unbind a key from a function
+[  ] universal-argument                  ^U      Execute the following command n times
+[  ] view-file                           ^X^V    Find a file,and put it in view mode 
+[E ] write-file                          ^X^W    Write the current buffer under a new
+[EI] message                             (none)  Display a string on the command line
+[EI] yank                                ^Y      yank the kill buffer into the current
+
+
+
+Functions 
+==========
+
+get-version-string                               Returns the version string reported by M-M
+get-buffer-count
+get-buffer-name
+get-key
+get-key-name
+get-key-binding
+get-clipboard
+set-clipboard
+message
+string-trim
+keyword
+newlanguage
+log-debug
