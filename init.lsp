@@ -81,12 +81,16 @@
           (buffer-menu))
       (else (insert key)) ))
 
+;;
+;; Initialise the kill-ring to empty
+;;
+(define kill-ring ())
 
-;; example of how to use the kill-hook
-;; this could be the basis for implementing a kill-ring system using Femtolisp
+;;
+;; append to the kill-ring on every kill
+;; 
 (define (kill-hook bufn)
-	(log-debug (string-append "killed region from buffer " bufn "\n")))
-
+        (set! kill-ring (cons (get-clipboard) kill-ring)))
 
 ;; define syntax highlighting for scheme files
 (newlanguage ".scm" ";" "#|" "|#")
