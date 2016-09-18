@@ -17,10 +17,12 @@
 ;; (buffer-menu)
 ;;
 
+
 (define bufm-line 3)   
 (define bufm-start-line 3)
 (define bufm-last-line 3)
 (define bufm-max-ops 400)
+(define bufm-debugging #t)
 (define bufm-stop #f)
 (define bufm-obuf "")
 (define bufm-buf "")
@@ -37,7 +39,7 @@
 
 
 (define (buffer-menu)
-    ;(bufm-debug "buffer-menu")
+    (bufm-debug "buffer-menu")
     (set! bufm-obuf (get-buffer-name))
     (list-buffers)
     (set! bufm-line bufm-start-line)   
@@ -80,11 +82,10 @@
 ;;
 
 (define (bufm-handle-bound-key)
-    ;(bufm-debug "bufm-handle-bound-key")
+    (bufm-debug "bufm-handle-bound-key")
     (set! bufm-key (get-key-binding))
-    (if (equal? bufm-key "previous-line")  (set! bufm-line (- bufm-line 1)) )
-    (if (equal? bufm-key "next-line")  (set! bufm-line (+ 1 bufm-line)) )
-    (set! bufm-line (bufm_check_line_limits bufm-line bufm-last-line bufm-start-line) )
+    (if (equal? bufm-key "previous-line") (bufm-move-line -1))
+    (if (equal? bufm-key "next-line") (bufm-move-line 1))
     (set! bufm-buf (bufm-get-bufn)))
 
 ;;
@@ -98,7 +99,7 @@
 ;;
 
 (define (bufm-handle-single-key k)
-   ;(bufm-debug "bufm-handle-single-key")
+   (bufm-debug "bufm-handle-single-key")
    (set! bufm_count (get-buffer-count))
    (cond   ( (equal? k "x")
              (goto-line bufm-start-line)
@@ -127,7 +128,7 @@
              (list-buffers)
              (set! bufm-last-line (+ bufm-start-line (get-buffer-count)))
              (set! bufm-last-line (- bufm-last-line 2))
-             (set! bufm-line (bufm_check_line_limits bufm-line bufm-last-line bufm-start-line))
+             (bufm-move-line 0)
              (goto-line bufm-line)
              (set! bufm-buf (bufm-get-bufn)))))
 
@@ -140,28 +141,25 @@
 ;;
 
 (define (bufm-get-bufn)
- (goto-line bufm-line)
- (beginning-of-line)
- (beginning-of-line)
- (forward-char 11)
- (set-mark)
- (forward-char 17)
- (copy-region)
- (beginning-of-line)
- (trim (get-clipboard)))
+   (goto-line bufm-line)
+   (beginning-of-line)
+   (forward-char 11)
+   (set-mark)
+   (forward-char 17)
+   (copy-region)
+   (beginning-of-line)
+   (trim (get-clipboard)))
 
 
 ;;
-;; (bufm_check_line_limits)
+;; (bufm-move-line)
 ;;
-;; check that v is between max and min limits
-;; return an adjusted value if necessary
+;; increment line by n (could +1 or -1)
+;; check that bufm-line is between bufm-start-line and bufm-last-line
+;; and adjust the value if required
 ;;
-
-(define (bufm_check_line_limits v max min)
-  (cond  ( (> v max) max)
-         ( (> min v) min)
-         ( else v)))
+(define (bufm-move-line n)
+	(set! bufm-line (max bufm-start-line (min (+ bufm-line n) bufm-last-line))))
 
 ;;
 ;; procedures to assist debugging and tracing
@@ -172,11 +170,12 @@
 	(log-debug (string-append n "=" v "\n")))
 
 (define (bufm-debug msg)
-     (log-debug (string-append msg "\n"))
-     (log-var "bufm-line" bufm-line)
-     (log-var "bufm-start-line" bufm-start-line)
-     (log-var "bufm-last-line" bufm-last-line)
-     (log-var "bufm-obuf" bufm-obuf)
-     (log-var "bufm-buf" bufm-buf)
-     (log-debug "\n\n"))
-
+   (if bufm-debugging
+      (begin
+        (log-debug (string-append msg "\n"))
+        (log-var "bufm-line" bufm-line)
+        (log-var "bufm-start-line" bufm-start-line)
+        (log-var "bufm-last-line" bufm-last-line)
+        (log-var "bufm-obuf" bufm-obuf)
+        (log-var "bufm-buf" bufm-buf)
+        (log-debug "\n\n"))))

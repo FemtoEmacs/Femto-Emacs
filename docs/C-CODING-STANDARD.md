@@ -34,3 +34,6 @@ to the C code and may save you hours of debugging and looking for
 errors.
 
 
+## GENERAL PRINCIPLES
+
+Most extensions will be done in femtolisp.
