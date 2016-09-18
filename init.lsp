@@ -4,7 +4,7 @@
 (define (home f)
    (string (os.getenv "HOME") "/" f))
 
-(load (home "aliases.scm"))
+(load (home "r5rs.scm"))
 
 ;;
 ;; The function read-string is necessary for reading a Lisp list from a string. 
