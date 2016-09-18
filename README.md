@@ -60,7 +60,7 @@ tree. Here is how to achieve this goal:
 
 % cp init.lsp ~/
 
-% cp aliases.scm ~/
+% cp r5rs.scm ~/
 ```
 
 
@@ -100,7 +100,7 @@ globally available:
 You will need the lisp configuration files in your home directory:
 ```
 % cp init.lsp ~/
-% cp aliases.scm ~/
+% cp r5rs.scm ~/
 ```
 
 Hopefully, you will be able to use femto anywhere in your computer.
