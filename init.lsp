@@ -65,20 +65,34 @@
       ( (equal? key "C-c a") 
         (insert "<p> </p>")
         (backward-char 5))
+
       ( (equal? key "C-c b")
         (beginning-of-line) 
         (insert "<h1> </h2>")
         (beginning-of-line)
         (forward-char 4))
+
       ( (equal? key "C-c c")
         (end-of-line)
         (insert "<p>-")
         (insert (get-clipboard))
         (insert "-</p>"))
+
+      ( (equal? key "C-c i")
+        (if (not (top-level-bound? 'kill-ring-menu))
+          (load (home "killring.scm")))
+          (insert-kill-ring))
+
+      ( (equal? key "C-c k")
+        (if (not (top-level-bound? 'kill-ring-menu))
+          (load (home "killring.scm")))
+          (kill-ring-menu))
+
       ( (equal? key "C-c m")
         (if (not (top-level-bound? 'bufm-stop))
           (load (home "bufmenu.scm")))
           (buffer-menu))
+
       (else (insert key)) ))
 
 ;;
