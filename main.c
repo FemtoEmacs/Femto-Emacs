@@ -74,10 +74,11 @@ int main(int argc, char **argv)
 			 */
 			 
 			if (*input > 31 || *input == 0x0A || *input == 0x09)
-                          {
+			  insert();
+			/* {
                              if (*input == 154) one_window(curwp);
                              else insert();
-                          }
+			     } */
                         else
                                 msg(str_not_bound);
 		}

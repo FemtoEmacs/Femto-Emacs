@@ -307,6 +307,8 @@ extern void remove_control_chars(char_t *);
 extern void mk_buffer_name(char *, char *);
 extern void safe_strncpy(char *, char *, int);
 
+extern void resize_terminal();
+
 /* functions to pscrap_t */
 extern void ps_push(pscrap_t *p, char_t *scrap);
 extern void ps_pop(pscrap_t *p);

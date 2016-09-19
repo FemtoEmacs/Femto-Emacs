@@ -665,3 +665,9 @@ void eval_block() {
 	insert_string("\n"); 
 	//debug("result: %s\n", lisp_result);
 }
+
+void resize_terminal()
+{
+  one_window(curwp);
+}
+
