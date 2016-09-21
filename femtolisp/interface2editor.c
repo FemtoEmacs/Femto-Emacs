@@ -17,6 +17,7 @@
 #include "flisp.h"
 #include "llt/random.h"
 #include <math.h>
+#include <time.h> 
 #include "../public.h"
 
 /* Interface to the editor */
@@ -66,10 +67,100 @@ static value_t lineend(value_t *args, u_int32_t nargs) {
 	return FL_T;
 }
 
+<<<<<<< HEAD
+extern int nscrap;
+extern char_t *scrap; 
+
+/*
+ * Lucas - we need to discuss.
+ * This will cause a memory leak!
+ * Hugh Barney
+ */
+
+static value_t fl_clipboard(value_t *args, u_int32_t nargs) {
+  argcount("clipboard", nargs, 0);
+  int i= 0;
+  if ((scrap == NULL) || (nscrap < 1)) {
+	  char *str= malloc(1);     /* memory leak !, how does it get freed next time ? */
+    str[0] = 0;
+    return (string_from_cstr(str));
+  }
+  char *str= malloc(nscrap + 4); /* memory leak !, how does it get freed next time ? */
+  for(i=0; i<nscrap; i++) {
+    str[i]= (char) scrap[i];
+  }
+  str[i]= '\0';
+  return (string_from_cstr(str));
+
+}
+
+/*
+ * hughbarney:  Lucas this does the same thing as region
+ * so we dont need it
+ *
+ */
+static value_t fl_region(value_t *args, u_int32_t nargs) {
+  argcount("region", nargs, 0);
+  int i= 0;
+  copy();
+
+  if ((scrap == NULL) || (nscrap < 1)) {
+    char *str= malloc(1);
+    str[0] = 0;
+    return (string_from_cstr(str));
+  }
+  char *str= malloc(nscrap + 4);   /* this is a memory leak !as it will never get deleted */
+  for(i=0; i<nscrap; i++) {
+			str[i]= (char) scrap[i];
+		}
+  str[i]= '\0';
+  return (string_from_cstr(str));
+
+}
+
+/*
+ *  we should be using os.getenv() from femtolisp
+ *
+ */
+static value_t fl_home(value_t *args, u_int32_t nargs) {
+  argcount("home", nargs, 1);
+  value_t a = args[0]; /*Learn: pick an arg */
+  char *str = cptr(a); /*Learn: string Lisp -> string C  */
+  if (str == NULL) {
+    return (string_from_cstr(getenv("HOME")));
+  }
+  char *buff= malloc(400);    //  MEMORY LEAK !!!!
+  sprintf(buff, "%s/%s", getenv("HOME"), str);
+  return (string_from_cstr(buff));
+}
+
+/*
+ * we already have kill-region()
+ */
+static value_t fl_cutregion(value_t *args, u_int32_t nargs) {
+  argcount("cutregion", nargs, 0);
+  int i= 0;
+  cut();
+
+  if ((scrap == NULL) || (nscrap < 1)) {
+    char *str= malloc(1);
+    str[0] = 0;
+    return (string_from_cstr(str));
+  }
+  char *str= malloc(nscrap + 4); 
+  for(i=0; i<nscrap; i++) {
+			str[i]= (char) scrap[i];
+		}
+  str[i]= '\0';
+  return (string_from_cstr(str));
+
+}
+=======
 static value_t fe_get_clipboard(value_t *args, u_int32_t nargs) {
 	argcount("get-clipboard", nargs, 0);
 	static char empty_string[] = "";
 	char *ptr = (char *)get_scrap();
+>>>>>>> 9288d7a76c4f8a3342df20d95fdb2d072ef9e6eb
 
 	if (ptr == NULL) ptr = empty_string;
 
@@ -591,7 +682,33 @@ static value_t fl_pow(value_t *args, u_int32_t nargs)
 }
 
 
-static value_t fl_sin(value_t *args, u_int32_t nargs) {
+static value_t fl_localtime(value_t *args , u_int32_t nargs)
+{
+  argcount("local-time", nargs,0 ) ; /*Learn: Get 0 lisp args */
+  time_t rawtime;
+  struct tm *time_v ;
+  time(&rawtime);
+  time_v = localtime( &rawtime ); 		/* Return time value in the following format */
+  return (string_from_cstr(asctime(time_v))) ;  /* Tue Sep 20 23:32:50 2016 */
+					        
+}
+
+static value_t fl_time (value_t *args , u_int32_t nargs)
+{
+  argcount("time",nargs,0);
+  time_t rawtime;
+  struct tm *time_v ;
+  time(&rawtime);
+  time_v = localtime( &rawtime );  /* Same as fl_localtime */
+  char_t hour[50];                 /* Format know is 23:42:42 */
+  sprintf(hour,"%i:%i:%i",time_v->tm_hour, time_v->tm_min, time_v->tm_sec); 
+  return (string_from_cstr(hour)); 
+
+}
+
+
+static value_t fl_sin(value_t *args, u_int32_t nargs)
+{
   argcount("sin", nargs, 1);
   value_t a= args[0];
   double da;
@@ -785,7 +902,8 @@ extern void iostream_init(void);
  */
 
 static builtinspec_t builtin_info[] = {
-	{"insert", insrt},
+
+        {"insert", insrt},
 	{"backward-delete-char", backspace},
 	{"backward-char", bkwrd},
 	{"forward-char", forwrd},
@@ -822,6 +940,22 @@ static builtinspec_t builtin_info[] = {
 	{"set-clipboard", fe_set_clipboard},
 	{"keyword", fe_keyword},
 	{"newlanguage", fe_newlanguage},
+<<<<<<< HEAD
+	{"local-time",fl_localtime},
+	{"time",fl_time},
+	
+	{"expt", fl_pow},
+  {"sin", fl_sin},
+  {"cos", fl_cos},
+  {"tan", fl_tan},
+  {"asin", fl_asin},
+  {"acos", fl_acos},
+  {"atan", fl_atan},
+  {"exp", fl_exp},
+  {"log", fl_log},
+  {"log2", fl_log2},
+  {"log10", fl_log10},
+=======
 
 	/* these should be in a seperate builtins module */
 	{"expt", fl_pow},
@@ -835,6 +969,7 @@ static builtinspec_t builtin_info[] = {
 	{"log", fl_log},
 	{"log2", fl_log2},
 	{"log10", fl_log10},
+>>>>>>> 9288d7a76c4f8a3342df20d95fdb2d072ef9e6eb
 	/*End Interface*/
 	{NULL, NULL}
 };
