@@ -18,13 +18,17 @@
 #undef _
 #define _(x)    x
 
+typedef enum {
+        B_MODIFIED = 0x01,
+	B_OVERWRITE = 0x02,		/* overwite mode */
+	B_SPECIAL = 0x04,		/* <! For Special Buffers */
+} buffer_flags_t;
+
 #define VERSION	 "FemtoEmacs 1.5, Public Domain, 2016"
 #define EXIT_OK         0               /* Success */
 #define EXIT_ERROR      1               /* Unknown error. */
 #define EXIT_USAGE      2               /* Usage */
 #define EXIT_FAIL       3               /* Known failure. */
-#define B_MODIFIED	0x01		/* modified buffer */
-#define B_OVERWRITE	0x02		/* overwite mode */
 #define MSGLINE         (LINES-1)
 #define NOMARK          -1
 #define NOPAREN         -1
@@ -58,7 +62,7 @@ typedef long point_t;
 typedef struct pscrap_t {
         char_t *scrap;
         struct pscrap_t *next;
-} pscrap_t;	
+} pscrap_t;
 
 typedef struct keymap_t {
 	char *key_name;			/* the name of the key, for exmaple 'C-x a' */
@@ -95,7 +99,7 @@ typedef struct buffer_t
 	int b_col;                /* cursor col */
 	char b_fname[NAME_MAX + 1]; /* filename */
 	char b_bname[NBUFN];      /* buffer name */
-	char b_flags;             /* buffer flags */
+	buffer_flags_t b_flags;             /* buffer flags */
 	undo_t b_ubuf;            /* undoset */
 } buffer_t;
 
@@ -122,7 +126,7 @@ extern window_t *wheadp;
 
 /*
  * Some compilers define size_t as a unsigned 16 bit number while
- * point_t and off_t might be defined as a signed 32 bit number.  
+ * point_t and off_t might be defined as a signed 32 bit number.
  * malloc(), realloc(), fread(), and fwrite() take size_t parameters,
  * which means there will be some size limits because size_t is too
  * small of a type.
@@ -316,7 +320,6 @@ extern char_t* ps_top(pscrap_t *st);
 extern int ps_size(pscrap_t *st);
 
 /*
- * include public Femto interface functions definitions 
+ * include public Femto interface functions definitions
  */
 #include "public.h"
-
