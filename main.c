@@ -3,6 +3,9 @@
  * Derived from: Anthony's Editor January 93, (Public Domain 1991, 1993 by Anthony Howe)
  */
 
+
+#include <string.h> /* For strcpy () */
+
 #include "header.h"
 
 int main(int argc, char **argv)
@@ -10,8 +13,8 @@ int main(int argc, char **argv)
 	int i;
 	char *flargv[10];
 	flargv[0]= (char *)malloc(300);
-	flargv[1]= (char *)malloc(300);		
-	
+	flargv[1]= (char *)malloc(300);
+
 	/* Find basename. */
 	prog_name = *argv;
 	i = strlen(prog_name);
@@ -49,6 +52,8 @@ int main(int argc, char **argv)
 		strcpy(curbp->b_fname, temp);
 	} else {
 		curbp = find_buffer(str_scratch, TRUE);
+		strcpy (curbp->b_bname, "*scratch*");
+		curbp->b_flags = B_SPECIAL;
 	}
 
 	wheadp = curwp = new_window();
@@ -59,20 +64,20 @@ int main(int argc, char **argv)
 	undoset();
 	key_map = keymap;
 	initLisp(1, flargv);
-	
+
 	while (!done) {
 		update_display();
 		input = get_key(key_map, &key_return);
 
 		if (key_return != NULL) {
-			whatKey= key_return->key_name;			
+			whatKey= key_return->key_name;
 			(key_return->func)();
 		} else {
 			/*
 			 * if first char of input is a control char then
 			 * key is not bound, except TAB and NEWLINE
 			 */
-			 
+
 			if (*input > 31 || *input == 0x0A || *input == 0x09)
 			  insert();
                         else
@@ -82,7 +87,7 @@ int main(int argc, char **argv)
 		/* debug_stats("main loop:"); */
 		match_parens();
 	}
-	
+
 	if (scrap != NULL)
 		free(scrap);
 
