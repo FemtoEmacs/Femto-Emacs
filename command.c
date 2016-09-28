@@ -49,7 +49,7 @@ void quit()
 void redraw()
 {
 	window_t *wp;
-	
+
 	clear();
 	for (wp=wheadp; wp != NULL; wp = wp->w_next)
 		wp->w_update = TRUE;
@@ -59,7 +59,7 @@ void redraw()
 void left()
 {
 	int n = prev_utf8_char_size();
-	
+
 	while (0 < curbp->b_point && n-- > 0)
 		--curbp->b_point;
 }
@@ -67,7 +67,7 @@ void left()
 void right()
 {
 	int n = utf8_size(*ptr(curbp,curbp->b_point));
-	
+
 	while ((curbp->b_point < pos(curbp, curbp->b_ebuf)) && n-- > 0)
 		++curbp->b_point;
 }
@@ -154,7 +154,9 @@ void insert()
 		*curbp->b_gap++ = *input == '\r' ? '\n' : *input;
 		curbp->b_point = pos(curbp, curbp->b_egap);
 	}
-	curbp->b_flags |= B_MODIFIED;
+
+	if (!(curbp->b_flags & B_SPECIAL))
+	  curbp->b_flags |= B_MODIFIED;
 }
 
 void backsp()
@@ -164,7 +166,8 @@ void backsp()
 	undoset();
 	if (curbp->b_buf < curbp->b_gap) {
 		curbp->b_gap -= n; /* increase start of gap by size of char */
-		curbp->b_flags |= B_MODIFIED;
+		if (!(curbp->b_flags & B_SPECIAL))
+		  curbp->b_flags |= B_MODIFIED;
 	}
 	curbp->b_point = pos(curbp, curbp->b_egap);
 }
@@ -176,7 +179,8 @@ void delete()
 	if (curbp->b_egap < curbp->b_ebuf) {
 		curbp->b_egap += utf8_size(*(ptr(curbp, curbp->b_point)));
 		curbp->b_point = pos(curbp, curbp->b_egap);
-		curbp->b_flags |= B_MODIFIED;
+		if (!(curbp->b_flags & B_SPECIAL))
+		  curbp->b_flags |= B_MODIFIED;
 	}
 }
 
@@ -196,7 +200,7 @@ void i_gotoline()
 void goto_line(int line)
 {
 	point_t p;
-	
+
 	p = line_to_point(line);
 	if (p != -1) {
 		curbp->b_point = p;
@@ -218,7 +222,7 @@ void readfile()
 {
 	buffer_t *bp;
 	char bname[NBUFN];
-	
+
 	temp[0] = '\0';
 	result = getfilename(str_read, (char*)temp, NAME_MAX);
 	if (result) {
@@ -273,7 +277,7 @@ void killbuffer()
 	/* do nothing if only buffer left is the scratch buffer */
 	if (bcount == 1 && 0 == strcmp(get_buffer_name(curbp), str_scratch))
               return;
-        
+
 	if (curbp->b_flags & B_MODIFIED) {
 		mvaddstr(MSGLINE, 0, str_notsaved);
 		clrtoeol();
@@ -361,7 +365,8 @@ void copy_cut(int cut)
 			curbp->b_egap += nscrap; /* if cut expand gap down */
 			block();
 			curbp->b_point = pos(curbp, curbp->b_egap); /* set point to after region */
-			curbp->b_flags |= B_MODIFIED;
+			if (!(curbp->b_flags & B_SPECIAL))
+			  curbp->b_flags |= B_MODIFIED;
 			run_kill_hook(curbp->b_bname);
 			msg(m_cut, nscrap);
 		} else {
@@ -395,7 +400,7 @@ void paste()
 void insert_string(char *str)
 {
 	int len = (str == NULL) ? 0 : strlen(str);
-	
+
 	if (curbp->b_flags & B_OVERWRITE)
 		return;
 	if (len <= 0) {
@@ -406,7 +411,9 @@ void insert_string(char *str)
 		memcpy(curbp->b_gap, str, len * sizeof (char_t));
 		curbp->b_gap += len;
 		curbp->b_point = pos(curbp, curbp->b_egap);
-		curbp->b_flags |= B_MODIFIED;
+
+		if (!(curbp->b_flags & B_SPECIAL))
+		  curbp->b_flags |= B_MODIFIED;
 	}
 }
 
@@ -414,14 +421,14 @@ void showpos()
 {
 	int current, lastln;
 	point_t end_p = pos(curbp, curbp->b_ebuf);
-    
+
 	get_line_stats(&current, &lastln);
 
 	if (curbp->b_point == end_p) {
 		msg(str_endpos, current, lastln,
 			curbp->b_point, ((curbp->b_ebuf - curbp->b_buf) - (curbp->b_egap - curbp->b_gap)));
 	} else {
-		msg(str_pos, unctrl(*(ptr(curbp, curbp->b_point))), *(ptr(curbp, curbp->b_point)), 
+		msg(str_pos, unctrl(*(ptr(curbp, curbp->b_point))), *(ptr(curbp, curbp->b_point)),
 			current, lastln,
 			curbp->b_point, ((curbp->b_ebuf - curbp->b_buf) - (curbp->b_egap - curbp->b_gap)));
 	}
@@ -549,8 +556,8 @@ void shell_command(char *command)
 	char sys_command[255];
 	buffer_t *bp;
 	char *output_file = get_temp_file();
-	
-	sprintf(sys_command, "%s > %s 2>&1", command, output_file);	
+
+	sprintf(sys_command, "%s > %s 2>&1", command, output_file);
 	result = system(sys_command);
 
 	bp = find_buffer(str_output, TRUE);
@@ -568,7 +575,7 @@ void version()
 	msg(m_version);
 }
 
-char *get_version_string() 
+char *get_version_string()
 {
 	return m_version;
 }
@@ -617,7 +624,7 @@ void repl()
 	 */
 	msg(lisp_result);
 }
-  
+
 void eval_block() {
 	point_t temp;
 	point_t found;
@@ -626,7 +633,7 @@ void eval_block() {
 
 	/* if not sat on ( or ) then search for an end of a block behind the cursor */
 	if (p != '(' && p != ')') {
-		found = search_backwards(")");		
+		found = search_backwards(")");
 		if (found == -1) {
 			msg("No block behind cursor");
 			return;
@@ -634,8 +641,8 @@ void eval_block() {
 			move_to_search_result(found);
 			right();
 			match_parens();
-		}	
-	}	
+		}
+	}
 
 	if (curbp->b_paren == -1) {
 		msg("No block detected");
@@ -662,7 +669,7 @@ void eval_block() {
 	callLisp(lisp_result, lisp_query);
 	insert_string("\n");
 	insert_string(lisp_result);
-	insert_string("\n"); 
+	insert_string("\n");
 	//debug("result: %s\n", lisp_result);
 }
 
@@ -670,4 +677,3 @@ void resize_terminal()
 {
   one_window(curwp);
 }
-
