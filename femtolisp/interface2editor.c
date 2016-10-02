@@ -45,6 +45,42 @@ static value_t forwrd(value_t *args, u_int32_t nargs) {
 	return FL_T;
 }
 
+static value_t fe_forward_word(value_t *args, u_int32_t nargs) {
+	argcount("forward-word", nargs, 1);
+	value_t a = args[0];
+	long int n = numval(a);
+	while (n-- > 0)
+		forward_word();
+	return FL_T;
+}
+
+static value_t fe_backward_word(value_t *args, u_int32_t nargs) {
+	argcount("backward-word", nargs, 1);
+	value_t a = args[0];
+	long int n = numval(a);
+	while (n-- > 0)
+		backward_word();
+	return FL_T;
+}
+
+static value_t fe_forward_page(value_t *args, u_int32_t nargs) {
+	argcount("forward-page", nargs, 1);
+	value_t a = args[0];
+	long int n = numval(a);
+	while (n-- > 0)
+		forward_page();
+	return FL_T;
+}
+
+static value_t fe_backward_page(value_t *args, u_int32_t nargs) {
+	argcount("backward-page", nargs, 1);
+	value_t a = args[0];
+	long int n = numval(a);
+	while (n-- > 0)
+		backward_page();
+	return FL_T;
+}
+
 static value_t backspace(value_t *args, u_int32_t nargs) {
 	argcount("backwards-delete-char", nargs, 1);
 	value_t a = args[0];
@@ -63,6 +99,18 @@ static value_t linebegin(value_t *args, u_int32_t nargs) {
 static value_t lineend(value_t *args, u_int32_t nargs) {
 	argcount("end-of-line", nargs, 0);
 	lnend();
+	return FL_T;
+}
+
+static value_t fe_beginning_of_buffer(value_t *args, u_int32_t nargs) {
+	argcount("beginning-of-buffer", nargs, 0);
+	beginning_of_buffer();
+	return FL_T;
+}
+
+static value_t fe_end_of_buffer(value_t *args, u_int32_t nargs) {
+	argcount("end-of-buffer", nargs, 0);
+	end_of_buffer();
 	return FL_T;
 }
 
@@ -789,8 +837,14 @@ static builtinspec_t builtin_info[] = {
 	{"backward-delete-char", backspace},
 	{"backward-char", bkwrd},
 	{"forward-char", forwrd},
+	{"backward-word", fe_backward_word},
+	{"forward-word", fe_forward_word},
+	{"backward-page", fe_backward_page},
+	{"forward-page", fe_forward_page},
 	{"beginning-of-line", linebegin},
 	{"end-of-line", lineend},
+	{"beginning-of-buffer", fe_beginning_of_buffer},
+	{"end-of-buffer", fe_end_of_buffer},
 	{"copy-region", fe_copy_region},
 	{"eval-block", eval_blk},
 	{"get-key", fe_get_key},

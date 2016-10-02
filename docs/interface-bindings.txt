@@ -18,11 +18,11 @@ others to write extensions and to use FemtoEmacs.
 [  ] add-mode                            ^XM     Add a mode to the current buffer
 [  ] apropos                             M-A     List out commands whose name contains the string specified
 [EI] backward-char                       ^B      Move one character to the left
-[E ] backward-word                       M-B     Move one word to the left
-[E ] backward-page                       M-^V    Move cursor up one page
+[EI] backward-word                       M-B     Move one word to the left
+[EI] backward-page                       M-^V    Move cursor up one page
 [EI] backward-delete-char                ^H      Delete the character to the left of the cursor
 [  ] begin-macro                         ^X(     Begin recording a keyboard macro
-[E*] beginning-of-file                   M-<     Move to the beginning of the file in the current buffer
+[EI] beginning-of-buffer                 M-<     Move to the beginning of the file in the current buffer
 [EI] beginning-of-line                   ^A      Move to the beginning of the current line
 [  ] bind-to-key                         M-K     Bind a key to a function
 [E ] buffer-position                     ^X=     List the position of the cursor in the current buffer
@@ -45,7 +45,7 @@ others to write extensions and to use FemtoEmacs.
 [  ] describe-variables                  (none)  Make a list of all environment and user variables
 [E ] describe-key                        ^X?     Describe what command is bound to a keystroke sequence
 [  ] end-macro                           ^X)     stop recording a keyboard macro
-[E*] end-of-file                         M->     Move cursor to the end of the current buffer
+[EI] end-of-buffer                       M->     Move cursor to the end of the current buffer
 [EI] end-of-line                         ^E      Move to the end of the current line
 [  ] exchange-point-and-mark             ^X^X    Move cursor to the last marked spot,
 [E ] execute-command-line                (none)  Execute a line typed on the command
@@ -55,8 +55,8 @@ others to write extensions and to use FemtoEmacs.
 [  ] filter-buffer                       ^X#     Filter the current buffer through an external filter
 [E*] find-file                           ^X^F    Find a file to edit in the current window
 [EI] forward-char                        ^F      Move cursor one character to the right
-[E ] forward-word                        M-F     Move cursor to the beginning of the next word
-[  ] forward-page                        ^V      Move the cursor down one page
+[EI] forward-word                        M-F     Move cursor to the beginning of the next word
+[EI] forward-page                        ^V      Move the cursor down one page
 [EI] goto-line                           M-G     Goto a numbered line
 [  ] goto-matching-fence                 M-^F    Goto the matching fence
 [E ] handle-tab                          ^I      Insert a tab or set tab stops

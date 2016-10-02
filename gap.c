@@ -134,7 +134,7 @@ void clear_buffer()
 	/* reset the gap, make it the whole buffer */
 	curbp->b_gap = curbp->b_buf;
 	curbp->b_egap = curbp->b_ebuf;
-	top();
+	beginning_of_buffer();
 }
 
 int load_file(char *fn)

@@ -55,7 +55,7 @@ int main(int argc, char **argv)
 	one_window(curwp);
 	associate_b2w(curbp, curwp);
 
-	top();
+	beginning_of_buffer();
 	undoset();
 	key_map = keymap;
 	initLisp(1, flargv);

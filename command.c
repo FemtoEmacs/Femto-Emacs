@@ -5,13 +5,13 @@
 
 #include "header.h"
 
-void top()
+void beginning_of_buffer()
 {
 	curbp->b_point = 0;
 	curwp->w_point = curbp->b_point;
 }
 
-void bottom()
+void end_of_buffer()
 {
 	curbp->b_epage = curbp->b_point = pos(curbp, curbp->b_ebuf);
 	curwp->w_point = curbp->b_point;
@@ -103,7 +103,7 @@ void lnend()
 	left();
 }
 
-void wleft()
+void backward_word()
 {
 	char_t *p;
 	while (!isspace(*(p = ptr(curbp, curbp->b_point))) && curbp->b_buf < p)
@@ -112,7 +112,7 @@ void wleft()
 		--curbp->b_point;
 }
 
-void pgdown()
+void forward_page()
 {
 	curbp->b_page = curbp->b_point = upup(curbp, curbp->b_epage);
 	while (0 < curbp->b_row--)
@@ -120,7 +120,7 @@ void pgdown()
 	curbp->b_epage = pos(curbp, curbp->b_ebuf);
 }
 
-void pgup()
+void backward_page()
 {
 	int i = curwp->w_rows;
 	while (0 < --i) {
@@ -129,7 +129,7 @@ void pgup()
 	}
 }
 
-void wright()
+void forward_word()
 {
 	char_t *p;
 	while (!isspace(*(p = ptr(curbp, curbp->b_point))) && p < curbp->b_ebuf)
