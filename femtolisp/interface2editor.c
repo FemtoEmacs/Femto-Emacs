@@ -548,214 +548,214 @@ static value_t fe_keyword(value_t *args, u_int32_t nargs) {
 
 static int num2ptr(value_t a, fixnum_t *pi, numerictype_t *pt, void **pp)
 {
-    cprim_t *cp;
-    if (isfixnum(a)) {
-        *pi = numval(a);
-        *pp = pi;
-        *pt = T_FIXNUM;
-    }
-    else if (iscprim(a)) {
-        cp = (cprim_t*)ptr(a);
-        *pp = cp_data(cp);
-        *pt = cp_numtype(cp);
-    }
-    else {
-        return 0;
-    }
-    return 1;
+	cprim_t *cp;
+	if (isfixnum(a)) {
+		*pi = numval(a);
+		*pp = pi;
+		*pt = T_FIXNUM;
+	}
+	else if (iscprim(a)) {
+		cp = (cprim_t*)ptr(a);
+		*pp = cp_data(cp);
+		*pt = cp_numtype(cp);
+	}
+	else {
+		return 0;
+	}
+	return 1;
 }
 
 
 static value_t fl_pow(value_t *args, u_int32_t nargs)
 {   argcount("expt", nargs, 2);
-    value_t a= args[0];
-    value_t b= args[1];
-    double da, db;
-    int_t ai, bi;
-    numerictype_t ta, tb;
-    void *aptr, *bptr;
+	value_t a= args[0];
+	value_t b= args[1];
+	double da, db;
+	int_t ai, bi;
+	numerictype_t ta, tb;
+	void *aptr, *bptr;
 
-    if (!num2ptr(a, &ai, &ta, &aptr))
-        type_error("pow", "number", a);
-    if (!num2ptr(b, &bi, &tb, &bptr))
-        type_error("pow", "number", b);
+	if (!num2ptr(a, &ai, &ta, &aptr))
+		type_error("pow", "number", a);
+	if (!num2ptr(b, &bi, &tb, &bptr))
+		type_error("pow", "number", b);
 
-    da = conv_to_double(aptr, ta);
-    db = conv_to_double(bptr, tb);
+	da = conv_to_double(aptr, ta);
+	db = conv_to_double(bptr, tb);
 
-    da = pow( da, db);
+	da = pow( da, db);
 
-    if (ta < T_FLOAT && tb < T_FLOAT && (double)(int64_t)da == da)
-        return return_from_int64((int64_t)da);
-    return mk_double(da);
+	if (ta < T_FLOAT && tb < T_FLOAT && (double)(int64_t)da == da)
+		return return_from_int64((int64_t)da);
+	return mk_double(da);
 }
 
 
 static value_t fl_sin(value_t *args, u_int32_t nargs) {
-  argcount("sin", nargs, 1);
-  value_t a= args[0];
-  double da;
-  int_t ai;
-  numerictype_t ta;
-  void *aptr;
-  if (!num2ptr(a, &ai, &ta, &aptr))
-     type_error("sin", "number", a);
-  da= conv_to_double(aptr, ta);
-  da= sin(da);
-  if (ta < T_FLOAT && (double)(int64_t)da == da)
-     return return_from_int64((int64_t)da);
-  return (mk_double(da));
+	argcount("sin", nargs, 1);
+	value_t a= args[0];
+	double da;
+	int_t ai;
+	numerictype_t ta;
+	void *aptr;
+	if (!num2ptr(a, &ai, &ta, &aptr))
+		type_error("sin", "number", a);
+	da= conv_to_double(aptr, ta);
+	da= sin(da);
+	if (ta < T_FLOAT && (double)(int64_t)da == da)
+		return return_from_int64((int64_t)da);
+	return (mk_double(da));
 }
 
 static value_t fl_cos(value_t *args, u_int32_t nargs) {
-  argcount("cos", nargs, 1);
-  value_t a= args[0];
-  double da;
-  int_t ai;
-  numerictype_t ta;
-  void *aptr;
-  if (!num2ptr(a, &ai, &ta, &aptr))
-     type_error("cos", "number", a);
-  da= conv_to_double(aptr, ta);
-  da= cos(da);
-  if (ta < T_FLOAT && (double)(int64_t)da == da)
-     return return_from_int64((int64_t)da);
-  return (mk_double(da));
+	argcount("cos", nargs, 1);
+	value_t a= args[0];
+	double da;
+	int_t ai;
+	numerictype_t ta;
+	void *aptr;
+	if (!num2ptr(a, &ai, &ta, &aptr))
+		type_error("cos", "number", a);
+	da= conv_to_double(aptr, ta);
+	da= cos(da);
+	if (ta < T_FLOAT && (double)(int64_t)da == da)
+		return return_from_int64((int64_t)da);
+	return (mk_double(da));
 }
 
 
 static value_t fl_tan(value_t *args, u_int32_t nargs) {
-  argcount("tan", nargs, 1);
-  value_t a= args[0];
-  double da;
-  int_t ai;
-  numerictype_t ta;
-  void *aptr;
-  if (!num2ptr(a, &ai, &ta, &aptr))
-     type_error("tan", "number", a);
-  da= conv_to_double(aptr, ta);
-  da= tan(da);
-  if (ta < T_FLOAT && (double)(int64_t)da == da)
-     return return_from_int64((int64_t)da);
-  return (mk_double(da));
+	argcount("tan", nargs, 1);
+	value_t a= args[0];
+	double da;
+	int_t ai;
+	numerictype_t ta;
+	void *aptr;
+	if (!num2ptr(a, &ai, &ta, &aptr))
+		type_error("tan", "number", a);
+	da= conv_to_double(aptr, ta);
+	da= tan(da);
+	if (ta < T_FLOAT && (double)(int64_t)da == da)
+		return return_from_int64((int64_t)da);
+	return (mk_double(da));
 }
 
 
 static value_t fl_atan(value_t *args, u_int32_t nargs) {
-  argcount("atan", nargs, 1);
-  value_t a= args[0];
-  double da;
-  int_t ai;
-  numerictype_t ta;
-  void *aptr;
-  if (!num2ptr(a, &ai, &ta, &aptr))
-     type_error("atan", "number", a);
-  da= conv_to_double(aptr, ta);
-  da= atan(da);
-  if (ta < T_FLOAT && (double)(int64_t)da == da)
-     return return_from_int64((int64_t)da);
-  return (mk_double(da));
+	argcount("atan", nargs, 1);
+	value_t a= args[0];
+	double da;
+	int_t ai;
+	numerictype_t ta;
+	void *aptr;
+	if (!num2ptr(a, &ai, &ta, &aptr))
+		type_error("atan", "number", a);
+	da= conv_to_double(aptr, ta);
+	da= atan(da);
+	if (ta < T_FLOAT && (double)(int64_t)da == da)
+		return return_from_int64((int64_t)da);
+	return (mk_double(da));
 }
 
 
 static value_t fl_asin(value_t *args, u_int32_t nargs) {
-  argcount("asin", nargs, 1);
-  value_t a= args[0];
-  double da;
-  int_t ai;
-  numerictype_t ta;
-  void *aptr;
-  if (!num2ptr(a, &ai, &ta, &aptr))
-     type_error("asin", "number", a);
-  da= conv_to_double(aptr, ta);
-  da= asin(da);
-  if (ta < T_FLOAT && (double)(int64_t)da == da)
-     return return_from_int64((int64_t)da);
-  return (mk_double(da));
+	argcount("asin", nargs, 1);
+	value_t a= args[0];
+	double da;
+	int_t ai;
+	numerictype_t ta;
+	void *aptr;
+	if (!num2ptr(a, &ai, &ta, &aptr))
+		type_error("asin", "number", a);
+	da= conv_to_double(aptr, ta);
+	da= asin(da);
+	if (ta < T_FLOAT && (double)(int64_t)da == da)
+		return return_from_int64((int64_t)da);
+	return (mk_double(da));
 }
 
 static value_t fl_acos(value_t *args, u_int32_t nargs) {
-  argcount("acos", nargs, 1);
-  value_t a= args[0];
-  double da;
-  int_t ai;
-  numerictype_t ta;
-  void *aptr;
-  if (!num2ptr(a, &ai, &ta, &aptr))
-     type_error("acos", "number", a);
-  da= conv_to_double(aptr, ta);
-  da= acos(da);
-  if (ta < T_FLOAT && (double)(int64_t)da == da)
-     return return_from_int64((int64_t)da);
-  return (mk_double(da));
+	argcount("acos", nargs, 1);
+	value_t a= args[0];
+	double da;
+	int_t ai;
+	numerictype_t ta;
+	void *aptr;
+	if (!num2ptr(a, &ai, &ta, &aptr))
+		type_error("acos", "number", a);
+	da= conv_to_double(aptr, ta);
+	da= acos(da);
+	if (ta < T_FLOAT && (double)(int64_t)da == da)
+		return return_from_int64((int64_t)da);
+	return (mk_double(da));
 }
 
 
 static value_t fl_exp(value_t *args, u_int32_t nargs) {
-  argcount("exp", nargs, 1);
-  value_t a= args[0];
-  double da;
-  int_t ai;
-  numerictype_t ta;
-  void *aptr;
-  if (!num2ptr(a, &ai, &ta, &aptr))
-     type_error("exp", "number", a);
-  da= conv_to_double(aptr, ta);
-  da= exp(da);
-  if (ta < T_FLOAT && (double)(int64_t)da == da)
-     return return_from_int64((int64_t)da);
-  return (mk_double(da));
+	argcount("exp", nargs, 1);
+	value_t a= args[0];
+	double da;
+	int_t ai;
+	numerictype_t ta;
+	void *aptr;
+	if (!num2ptr(a, &ai, &ta, &aptr))
+		type_error("exp", "number", a);
+	da= conv_to_double(aptr, ta);
+	da= exp(da);
+	if (ta < T_FLOAT && (double)(int64_t)da == da)
+		return return_from_int64((int64_t)da);
+	return (mk_double(da));
 }
 
 
 static value_t fl_log(value_t *args, u_int32_t nargs) {
-  argcount("log", nargs, 1);
-  value_t a= args[0];
-  double da;
-  int_t ai;
-  numerictype_t ta;
-  void *aptr;
-  if (!num2ptr(a, &ai, &ta, &aptr))
-     type_error("log", "number", a);
-  da= conv_to_double(aptr, ta);
-  da= log(da);
-  if (ta < T_FLOAT && (double)(int64_t)da == da)
-     return return_from_int64((int64_t)da);
-  return (mk_double(da));
+	argcount("log", nargs, 1);
+	value_t a= args[0];
+	double da;
+	int_t ai;
+	numerictype_t ta;
+	void *aptr;
+	if (!num2ptr(a, &ai, &ta, &aptr))
+		type_error("log", "number", a);
+	da= conv_to_double(aptr, ta);
+	da= log(da);
+	if (ta < T_FLOAT && (double)(int64_t)da == da)
+		return return_from_int64((int64_t)da);
+	return (mk_double(da));
 }
 
 
 static value_t fl_log2(value_t *args, u_int32_t nargs) {
-  argcount("log2", nargs, 1);
-  value_t a= args[0];
-  double da;
-  int_t ai;
-  numerictype_t ta;
-  void *aptr;
-  if (!num2ptr(a, &ai, &ta, &aptr))
-     type_error("log2", "number", a);
-  da= conv_to_double(aptr, ta);
-  da= log2(da);
-  if (ta < T_FLOAT && (double)(int64_t)da == da)
-     return return_from_int64((int64_t)da);
-  return (mk_double(da));
+	argcount("log2", nargs, 1);
+	value_t a= args[0];
+	double da;
+	int_t ai;
+	numerictype_t ta;
+	void *aptr;
+	if (!num2ptr(a, &ai, &ta, &aptr))
+		type_error("log2", "number", a);
+	da= conv_to_double(aptr, ta);
+	da= log2(da);
+	if (ta < T_FLOAT && (double)(int64_t)da == da)
+		return return_from_int64((int64_t)da);
+	return (mk_double(da));
 }
 
 
 static value_t fl_log10(value_t *args, u_int32_t nargs) {
-  argcount("log10", nargs, 1);
-  value_t a= args[0];
-  double da;
-  int_t ai;
-  numerictype_t ta;
-  void *aptr;
-  if (!num2ptr(a, &ai, &ta, &aptr))
-     type_error("log10", "number", a);
-  da= conv_to_double(aptr, ta);
-  da= log10(da);
-  if (ta < T_FLOAT && (double)(int64_t)da == da)
-     return return_from_int64((int64_t)da);
-  return (mk_double(da));
+	argcount("log10", nargs, 1);
+	value_t a= args[0];
+	double da;
+	int_t ai;
+	numerictype_t ta;
+	void *aptr;
+	if (!num2ptr(a, &ai, &ta, &aptr))
+		type_error("log10", "number", a);
+	da= conv_to_double(aptr, ta);
+	da= log10(da);
+	if (ta < T_FLOAT && (double)(int64_t)da == da)
+		return return_from_int64((int64_t)da);
+	return (mk_double(da));
 }
 
 
