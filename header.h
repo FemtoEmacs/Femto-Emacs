@@ -268,6 +268,7 @@ extern int count_buffers(void);
 extern int modified_buffers(void);
 extern void killbuffer(void);
 extern char* get_buffer_name(buffer_t *);
+extern char* get_buffer_modeline_name(buffer_t *);
 extern void get_line_stats(int *, int *);
 extern void query_replace(void);
 extern window_t *new_window();

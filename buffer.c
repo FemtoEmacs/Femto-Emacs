@@ -125,6 +125,13 @@ char* get_buffer_filename(buffer_t *bp)
 	return bp->b_fname;
 }
 
+char* get_buffer_modeline_name(buffer_t *bp)
+{
+	if (bp->b_fname[0] != '\0')
+		return bp->b_fname;
+	return bp->b_bname;
+}
+
 int count_buffers()
 {
 	buffer_t* bp;
