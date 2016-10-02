@@ -588,7 +588,7 @@ void keyboardDefinition()
 	callLisp(lisp_result, lisp_query);
 }
 
-/* Keyboard Definition is done by user in Lisp */
+/* call user defined kill-hook procedure */
 void run_kill_hook(char *bufname)
 {
 	sprintf(temp, "(kill-hook \"%s\")", bufname);
@@ -668,6 +668,6 @@ void eval_block() {
 
 void resize_terminal()
 {
-  one_window(curwp);
+	one_window(curwp);
 }
 

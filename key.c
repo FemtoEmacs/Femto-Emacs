@@ -7,7 +7,7 @@
 
 /* desc, keys, func */
 keymap_t keymap[] = {
-        {"Rsz",  "resize-terminal", "\x9A", resize_terminal },
+        {"resize",    "resize-terminal"       , "\x9A", resize_terminal },
 	{"up",        "previous-line"         , "\x1B\x5B\x41", up },
 	{"down",      "next-line"             , "\x1B\x5B\x42", down },
 	{"left",      "backward-character"    , "\x1B\x5B\x44", left },

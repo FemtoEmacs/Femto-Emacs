@@ -72,11 +72,10 @@ int main(int argc, char **argv)
 			 * if first char of input is a control char then
 			 * key is not bound, except TAB and NEWLINE
 			 */
-			 
 			if (*input > 31 || *input == 0x0A || *input == 0x09)
-			  insert();
+				insert();
                         else
-			  msg(str_not_bound);
+				msg(str_not_bound);
 		}
 
 		/* debug_stats("main loop:"); */
