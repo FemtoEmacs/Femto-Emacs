@@ -282,6 +282,14 @@ static value_t fe_log_debug(value_t *args, u_int32_t nargs) {
 	return FL_T;
 }
 
+static value_t fe_log_message(value_t *args, u_int32_t nargs) {
+	argcount("log-message", nargs, 1);
+	value_t a = args[0];
+	char *str = cptr(a);
+	log_message(str);
+	return FL_T;
+}
+
 /* set the contents of the scrap (clipboard) pointer */
 static value_t fe_set_clipboard(value_t *args, u_int32_t nargs) {
 	argcount("set-clipboard", nargs, 1);
@@ -849,6 +857,7 @@ static builtinspec_t builtin_info[] = {
 	{"eval-block", eval_blk},
 	{"get-key", fe_get_key},
 	{"log-debug", fe_log_debug},
+	{"log-message", fe_log_message},
 	{"message", msg_lisp},
 	{"delete-other-windows", del_other_windows},
 	{"kill-buffer", fe_delete_buffer},

@@ -46,13 +46,18 @@ void quit()
 	done = 1;
 }
 
-void redraw()
+void mark_all_windows()
 {
 	window_t *wp;
-	
-	clear();
+
 	for (wp=wheadp; wp != NULL; wp = wp->w_next)
 		wp->w_update = TRUE;
+}
+
+void redraw()
+{	
+	clear();
+	mark_all_windows();
 	update_display();
 }
 
@@ -408,6 +413,45 @@ void insert_string(char *str)
 		curbp->b_point = pos(curbp, curbp->b_egap);
 		curbp->b_flags |= B_MODIFIED;
 	}
+}
+
+/*
+ * append a string to a buffer, note does not act on a window
+ * buffer should not be displayed when this called.
+ */
+void append_string(buffer_t *bp, char *str)
+{
+	int len = (str == NULL) ? 0 : strlen(str);
+
+	assert(bp != NULL);
+	if (len == 0) return;
+
+	/* goto end of buffer */
+	bp->b_epage = bp->b_point = pos(bp, bp->b_ebuf);
+	
+	if (len < bp->b_egap - bp->b_gap || growgap(bp, len)) {
+		bp->b_point = movegap(bp, bp->b_point);
+		undoset();
+		memcpy(bp->b_gap, str, len * sizeof (char_t));
+		bp->b_gap += len;
+		bp->b_point = pos(bp, bp->b_egap);
+		bp->b_flags |= B_MODIFIED;
+		bp->b_epage = bp->b_point = pos(bp, bp->b_ebuf); /* goto end of buffer */
+		
+		/* if window is displayed mark all windows for update */
+		if (bp->b_cnt > 0) {
+			b2w_all_windows(bp);
+			mark_all_windows();
+		}
+	}
+}
+
+void log_message(char *str)
+{
+	buffer_t *bp = find_buffer("*messages*", TRUE);
+	
+	assert(bp != NULL);
+	append_string(bp, str);	
 }
 
 void showpos()

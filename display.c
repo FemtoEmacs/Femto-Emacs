@@ -362,3 +362,19 @@ void b2w(window_t *w)
 	w->w_col = w->w_bufp->b_col;
 	w->w_bufp->b_size = (w->w_bufp->b_ebuf - w->w_bufp->b_buf) - (w->w_bufp->b_egap - w->w_bufp->b_gap);
 }
+
+/*
+ * save buffer data on all windows that reference this buffer
+ * special behaviour for where we want to see updates in real time
+ * (for example *messages* buffer)
+ */
+void b2w_all_windows(buffer_t *bp)
+{
+	window_t *wp;
+
+	for (wp=wheadp; wp != NULL; wp = wp->w_next) {
+		if (wp->w_bufp == bp) {
+			b2w(wp);
+		}
+	}
+}
