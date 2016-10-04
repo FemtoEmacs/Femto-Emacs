@@ -60,12 +60,23 @@ typedef struct pscrap_t {
         struct pscrap_t *next;
 } pscrap_t;	
 
+typedef struct string_list_t
+{
+	struct string_list_t *next;
+	char *string;
+} string_list_t;
+
 typedef struct keymap_t {
 	char *key_name;			/* the name of the key, for exmaple 'C-x a' */
 	char *key_desc;                 /* binding description */
 	char *key_bytes;		/* the string of bytes when this key is pressed */
 	void (*func) _((void));
 } keymap_t;
+
+typedef struct command_t {
+        char *name;
+	void (*func) (void);
+} command_t;
 
 typedef struct undo_t {
 	point_t u_point;
@@ -116,7 +127,7 @@ typedef struct window_t
 } window_t;
 
 extern buffer_t *curbp;			/* current buffer */
-extern buffer_t *bheadp;			/* head of list of buffers */
+extern buffer_t *bheadp;		/* head of list of buffers */
 extern window_t *curwp;
 extern window_t *wheadp;
 
@@ -145,6 +156,7 @@ extern char *prog_name;         /* Name used to invoke editor. */
 extern keymap_t *key_map;       /* Command key mappings. */
 extern keymap_t keymap[];
 extern keymap_t *key_return;    /* Command key return */
+extern command_t commands[];
 
 /* fatal() messages. */
 extern char *f_ok;              /* EXIT_OK */
@@ -198,6 +210,9 @@ extern char *str_buffers;
 extern char *str_clip_too_big;
 
 
+void free_string_list(string_list_t *);
+string_list_t *match_functions(const char *);
+void apropos_command(void);
 extern void fatal _((char *));
 extern char *get_file_extension(char *);
 extern void display_char(buffer_t *, char_t *,int ,int);
@@ -248,6 +263,7 @@ extern char *get_version_string();
 extern void writefile _((void));
 extern void savebuffer _((void));
 extern void clear_buffer(void);
+extern void zero_buffer(buffer_t *);
 extern void debug(char *, ...);
 extern void debug_stats(char *);
 extern void showpos(void);

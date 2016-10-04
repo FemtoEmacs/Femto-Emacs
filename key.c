@@ -5,6 +5,58 @@
 
 #include "header.h"
 
+/* name, function */
+command_t commands[] = {
+        {"apropos", apropos_command},
+	{"backspace", backsp},
+	{"backward-character", left},
+	{"backward-page", backward_page},
+	{"backward-word", backward_word},
+	{"beginning-of-buffer", beginning_of_buffer},
+	{"beginning-of-line", lnbegin},
+	{"copy-region", copy},
+	{"cursor-position", showpos},
+	{"delete-left", backsp},
+	{"delete-other-windows", delete_other_windows},
+	{"describe-key", i_describe_key},
+	{"end-of-buffer", end_of_buffer},
+	{"end-of-line", lnend},
+	{"eval-block", eval_block},
+	{"exec-lisp-command", repl},
+	{"exit", quit_ask},
+	{"find-file", readfile},
+	{"forward-character", right},
+	{"forward-delete-char", delete},
+	{"forward-page", forward_page},
+	{"forward-word", forward_word},
+	{"goto-line", i_gotoline},
+	{"insert-file", insertfile},
+	{"kill-buffer", killbuffer},
+	{"kill-line", killtoeol},
+	{"kill-region", cut},
+	{"list-buffers", list_buffers},
+	{"next-buffer", next_buffer},
+	{"next-line", down},
+	{"other-window", other_window},
+	{"previous-line", up},
+	{"query-replace", query_replace},
+	{"refresh", redraw},
+	{"resize-terminal", resize_terminal},
+	{"save-buffer", savebuffer},
+	{"search-backward", search},
+	{"search-forward", search},
+	{"set-mark", iblock},
+	{"shell-command", i_shell_command},
+	{"show-version", version},
+	{"split-window", split_window},
+	{"toggle-overwrite-mode", toggle_overwrite_mode},
+	{"undo", undo},
+	{"write-file", writefile},
+	{"yank", paste},
+	{NULL, NULL }
+};
+
+
 /* desc, keys, func */
 keymap_t keymap[] = {
         {"resize",    "resize-terminal"       , "\x9A", resize_terminal },
@@ -38,6 +90,7 @@ keymap_t keymap[] = {
 	{"esc end",   "end-of-buf"            , "\x1B\x1B\x4F\x46", end_of_buffer },
 	{"esc up",    "beg-of-buf"            , "\x1B\x1B\x5B\x41", beginning_of_buffer},
 	{"esc down",  "end-of-buf"            , "\x1B\x1B\x5B\x42", end_of_buffer },
+        {"esc a",     "apropos"               , "\x1B\x61", apropos_command },
 	{"esc b",     "backward-word"         , "\x1B\x62", backward_word },
 	{"esc f",     "forward-word"          , "\x1B\x66", forward_word },
 	{"esc g",     "gotoline"              , "\x1B\x67", i_gotoline },

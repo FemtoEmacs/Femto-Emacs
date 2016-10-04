@@ -18,7 +18,7 @@ E       =
 O       = .o
 
 OBJ     = complete$(O) command$(O) data$(O) display$(O) gap$(O) \
-             key$(O) search$(O) buffer$(O) replace$(O) utils$(O) window$(O) \
+             key$(O) search$(O) buffer$(O) replace$(O) utils$(O) window$(O) funcmap(O) \
              main$(O) femtolisp/interface2editor$(O) \
 	     femtolisp/flcall$(O)
   
@@ -28,45 +28,48 @@ femtoEmacs$(E) : $(OBJ)
 	     $(LD) $(LDFLAGS) -o femto$(E) $(OBJ) $(LIBS) \
              libflisp.a libllt.a
 	
-interface2editor$(E) : $(OBJ)
+interface2editor$(E) : public.h $(OBJ)
 	$(CC) $(CFLAGS) -c femtolisp/interface2editor.c
 
 flcall$(E) : $(OBJ)
 	$(CC) $(CFLAGS) -c femtolisp/flcall.c
 
-complete$(O): complete.c header.h
+complete$(O): complete.c header.h public.h
 	$(CC) $(CFLAGS) -c complete.c
 
-command$(O): command.c header.h
+command$(O): command.c header.h public.h
 	$(CC) $(CFLAGS) -c command.c
 
-data$(O): data.c header.h
+data$(O): data.c header.h public.h
 	$(CC) $(CFLAGS) -c data.c
 
-display$(O): display.c header.h
+display$(O): display.c header.h public.h
 	$(CC) $(CFLAGS) -c display.c
 
-gap$(O): gap.c header.h
+gap$(O): gap.c header.h public.h
 	$(CC) $(CFLAGS) -c gap.c
 
-key$(O): key.c header.h
+key$(O): key.c header.h public.h
 	$(CC) $(CFLAGS) -c key.c
 
-search$(O): search.c header.h
+search$(O): search.c header.h public.h
 	$(CC) $(CFLAGS) -c search.c
 
-replace$(O): replace.c header.h
+replace$(O): replace.c header.h public.h
 	$(CC) $(CFLAGS) -c replace.c
 
-window$(O): window.c header.h
+window$(O): window.c header.h public.h
 	$(CC) $(CFLAGS) -c window.c
 
-buffer$(O): buffer.c header.h
+buffer$(O): buffer.c header.h public.h
 	$(CC) $(CFLAGS) -c buffer.c
 
-utils$(O): utils.c header.h
+utils$(O): utils.c header.h public.h
 	$(CC) $(CFLAGS)  -I$(LLTDIR) -c utils.c
-	
+
+funcmap$(O): funcmap.c header.h public.h
+	$(CC) $(CFLAGS)  -I$(LLTDIR) -c funcmap.c
+
 main$(O): main.c header.h
 	$(CC) $(CFLAGS) -I$(LLTDIR) -c main.c
 

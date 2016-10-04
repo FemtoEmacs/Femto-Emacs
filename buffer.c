@@ -25,6 +25,14 @@ void buffer_init(buffer_t *bp)
 	bp->b_fname[0] = '\0';
 }
 
+void zero_buffer(buffer_t *bp)
+{
+	/* reset the gap, make it the whole buffer */
+	bp->b_gap = bp->b_buf;
+	bp->b_egap = bp->b_ebuf;
+	bp->b_point = 0; /* goto start of buffer */
+}
+
 /*
  * Find a buffer, by buffer name. Return a pointer to the buffer_t
  * structure associated with it. If the buffer is not found and the

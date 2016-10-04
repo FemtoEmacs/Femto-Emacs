@@ -131,9 +131,7 @@ int save_buffer(buffer_t *bp, char *fn)
 
 void clear_buffer()
 {
-	/* reset the gap, make it the whole buffer */
-	curbp->b_gap = curbp->b_buf;
-	curbp->b_egap = curbp->b_ebuf;
+	zero_buffer(curbp);
 	beginning_of_buffer();
 }
 

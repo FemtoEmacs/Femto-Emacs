@@ -55,7 +55,7 @@ void mark_all_windows()
 }
 
 void redraw()
-{	
+{
 	clear();
 	mark_all_windows();
 	update_display();
@@ -416,8 +416,7 @@ void insert_string(char *str)
 }
 
 /*
- * append a string to a buffer, note does not act on a window
- * buffer should not be displayed when this called.
+ * append a string to the end of a buffer
  */
 void append_string(buffer_t *bp, char *str)
 {
@@ -449,7 +448,6 @@ void append_string(buffer_t *bp, char *str)
 void log_message(char *str)
 {
 	buffer_t *bp = find_buffer("*messages*", TRUE);
-	
 	assert(bp != NULL);
 	append_string(bp, str);	
 }

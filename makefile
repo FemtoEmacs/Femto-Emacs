@@ -17,7 +17,7 @@ E       =
 O       = .o
 
 OBJ     = complete$(O) command$(O) data$(O) display$(O) gap$(O) \
-             key$(O) search$(O) buffer$(O) replace$(O) utils$(O) window$(O) \
+             key$(O) search$(O) buffer$(O) replace$(O) utils$(O) window$(O) funcmap$(O)\
              main$(O) femtolisp/interface2editor$(O) \
              femtolisp/flcall$(O)
 
@@ -63,6 +63,9 @@ buffer$(O): buffer.c header.h public.h
 
 utils$(O): utils.c header.h public.h
 	$(CC) $(CFLAGS)  -I$(LLTDIR) -c utils.c
+
+funcmap$(O): funcmap.c header.h public.h
+	$(CC) $(CFLAGS)  -I$(LLTDIR) -c funcmap.c
 
 Main$(O): main.c header.h public.h
 	$(CC) $(CFLAGS)  -I$(LLTDIR) -c main.c
