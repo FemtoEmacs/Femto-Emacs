@@ -87,6 +87,28 @@ void free_other_windows(window_t *winp)
 	wheadp = curwp = winp;
 	one_window(winp);
 }
+	
+window_t *find_window(char *bname)
+{
+	window_t *wp;
+
+	for (wp = wheadp; wp != NULL; wp = wp->w_next)
+		if (strcmp(wp->w_bufp->b_bname, bname) == 0)
+			return wp;
+
+	return NULL;
+}
+
+int count_windows()
+{
+	window_t* wp;
+	int i;
+
+	for (i=0, wp=wheadp; wp != NULL; wp = wp->w_next)
+		i++;
+
+	return i;
+}
 
 void associate_b2w(buffer_t *bp, window_t *wp) {
 	assert(bp != NULL);

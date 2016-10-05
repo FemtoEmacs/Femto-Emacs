@@ -68,7 +68,7 @@ typedef struct string_list_t
 
 typedef struct keymap_t {
 	char *key_name;			/* the name of the key, for exmaple 'C-x a' */
-	char *key_desc;                 /* binding description */
+	char *key_desc;                 /* name of bound function */
 	char *key_bytes;		/* the string of bytes when this key is pressed */
 	void (*func) _((void));
 } keymap_t;
@@ -209,10 +209,10 @@ extern char *str_shell_cmd;
 extern char *str_buffers;
 extern char *str_clip_too_big;
 
-
-void free_string_list(string_list_t *);
-string_list_t *match_functions(const char *);
-void apropos_command(void);
+extern void free_string_list(string_list_t *);
+extern string_list_t *match_functions(const char *);
+extern void apropos_command(void);
+extern void list_bindings(void);
 extern void fatal _((char *));
 extern char *get_file_extension(char *);
 extern void display_char(buffer_t *, char_t *,int ,int);
@@ -282,6 +282,7 @@ extern void buffer_init(buffer_t *);
 extern int delete_buffer(buffer_t *);
 extern void next_buffer(void);
 extern int count_buffers(void);
+extern int count_windows(void);
 extern int modified_buffers(void);
 extern void killbuffer(void);
 extern char* get_buffer_name(buffer_t *);
@@ -289,6 +290,7 @@ extern char* get_buffer_modeline_name(buffer_t *);
 extern void get_line_stats(int *, int *);
 extern void query_replace(void);
 extern window_t *new_window();
+extern window_t *find_window(char *);
 extern void one_window(window_t *);
 extern void free_other_windows();
 extern void w2b(window_t *);

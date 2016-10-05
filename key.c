@@ -34,6 +34,7 @@ command_t commands[] = {
 	{"kill-buffer", killbuffer},
 	{"kill-line", killtoeol},
 	{"kill-region", cut},
+	{"list-bindings", list_bindings},
 	{"list-buffers", list_buffers},
 	{"next-buffer", next_buffer},
 	{"next-line", down},
@@ -72,10 +73,10 @@ keymap_t keymap[] = {
 	{"C-f",       "forward-character"     , "\x06", right },
 	{"C-n",       "next-line"             , "\x0E", down },
 	{"C-p",       "previous-line"         , "\x10", up },
-	{"C-d",       "forward-delete-char  " , "\x04", delete },
+	{"C-d",       "forward-delete-char"   , "\x04", delete },
 	{"INS",       "toggle-overwrite-mode" , "\x1B\x5B\x32\x7E", toggle_overwrite_mode }, /* Ins key */
-	{"DEL",       "forward-delete-char  " , "\x1B\x5B\x33\x7E", delete }, /* Del key */
-	{"backspace", "delete-left"           , "\x7f", backsp },
+	{"DEL",       "forward-delete-char"   , "\x1B\x5B\x33\x7E", delete }, /* Del key */
+	{"backspace", "backspace"             , "\x7f", backsp },
 	{"C-h",       "backspace"             , "\x08", backsp },
 	{"C-l",       "refresh"               , "\x0C", redraw },
 	{"C-u",       "undo"                  , "\x15", undo },
@@ -84,37 +85,38 @@ keymap_t keymap[] = {
 	{"C-v",       "forward-page"          , "\x16", forward_page },
 	{"PgUp",      "backward-page"         , "\x1B\x5B\x35\x7E", backward_page }, /* PgUp key */
 	{"PgDn",      "forward-page"          , "\x1B\x5B\x36\x7E", forward_page }, /* PgDn key */
-	{"esc <",     "beg-of-buf"            , "\x1B\x3C", beginning_of_buffer},
-	{"esc >",     "end-of-buf"            , "\x1B\x3E", end_of_buffer },
-	{"esc home",  "beg-of-buf"            , "\x1B\x1B\x4F\x48", beginning_of_buffer},
-	{"esc end",   "end-of-buf"            , "\x1B\x1B\x4F\x46", end_of_buffer },
-	{"esc up",    "beg-of-buf"            , "\x1B\x1B\x5B\x41", beginning_of_buffer},
-	{"esc down",  "end-of-buf"            , "\x1B\x1B\x5B\x42", end_of_buffer },
+	{"esc <",     "beginning-of-buffer"   , "\x1B\x3C", beginning_of_buffer},
+	{"esc >",     "end-of-buffer"         , "\x1B\x3E", end_of_buffer },
+	{"esc home",  "beginning-of-buffer"   , "\x1B\x1B\x4F\x48", beginning_of_buffer},
+	{"esc end",   "end-of-buffer"         , "\x1B\x1B\x4F\x46", end_of_buffer },
+	{"esc up",    "beginning-of-buffer"   , "\x1B\x1B\x5B\x41", beginning_of_buffer},
+	{"esc down",  "end-of-buffer"         , "\x1B\x1B\x5B\x42", end_of_buffer },
         {"esc a",     "apropos"               , "\x1B\x61", apropos_command },
 	{"esc b",     "backward-word"         , "\x1B\x62", backward_word },
 	{"esc f",     "forward-word"          , "\x1B\x66", forward_word },
-	{"esc g",     "gotoline"              , "\x1B\x67", i_gotoline },
+	{"esc g",     "goto-line"             , "\x1B\x67", i_gotoline },
 	{"esc r",     "query-replace"         , "\x1B\x72", query_replace },
 	{"esc B",     "backward-word"         , "\x1B\x42", backward_word },
 	{"esc F",     "forward-word"          , "\x1B\x46", forward_word },
-	{"esc G",     "gotoline"              , "\x1B\x47", i_gotoline },
+	{"esc G",     "goto-line"             , "\x1B\x47", i_gotoline },
 	{"esc R",     "query-replace"         , "\x1B\x52", query_replace },
-	{"esc c",     "copy"                  , "\x1B\x63", copy },      /* useful as an ALT key */
-	{"esc d",     "killtoeol"             , "\x1B\x64", killtoeol }, /* useful as an ALT key */
-	{"esc i",     "paste"                 , "\x1B\x69", paste }, /* useful as an ALT key */
-	{"esc k",     "killtoeol"             , "\x1B\x6B", killtoeol },/* useful as an ALT key */
-	{"esc m",     "set-mark"              , "\x1B\x6D", iblock },   /* useful as an ALT key */
-	{"esc n",     "next-buffer"           , "\x1B\x6E", next_buffer },   /* useful as an ALT key */
+	{"esc c",     "copy-region"           , "\x1B\x63", copy },                   /* useful as an ALT key */
+	{"esc d",     "kill-line"             , "\x1B\x64", killtoeol },              /* useful as an ALT key */
+	{"esc i",     "yank"                  , "\x1B\x69", paste },                  /* useful as an ALT key */
+	{"esc k",     "kill-line"             , "\x1B\x6B", killtoeol },              /* useful as an ALT key */
+	{"esc l",     "list-bindings"         , "\x1B\x6C", list_bindings },          /* temp binding */
+	{"esc m",     "set-mark"              , "\x1B\x6D", iblock },                 /* useful as an ALT key */
+	{"esc n",     "next-buffer"           , "\x1B\x6E", next_buffer },            /* useful as an ALT key */
 	{"esc o",     "delete-other-windows"  , "\x1B\x6F", delete_other_windows },   /* useful as an ALT key */
-	{"C-space",   "set-mark"              , "\x00", iblock },  /* ctrl-space */
-	{"esc @",     "set-mark"              , "\x1B\x40", iblock },  /* esc-@ */
+	{"C-space",   "set-mark"              , "\x00", iblock },                     /* ctrl-space */
+	{"esc @",     "set-mark"              , "\x1B\x40", iblock },                 /* esc-@ */
 	{"C-w",       "kill-region"           , "\x17", cut},
 	{"C-y",       "yank"                  , "\x19", paste},
 	{"esc w",     "copy-region"           , "\x1B\x77", copy},
 	{"esc W",     "copy-region"           , "\x1B\x57", copy},
-	{"C-k",       "kill-to-eol"           , "\x0B", killtoeol },
-	{"C-s",       "search"                , "\x13", search },
-	{"C-r",       "search"                , "\x12", search },
+	{"C-k",       "kill-line"             , "\x0B", killtoeol },
+	{"C-s",       "search-forward"        , "\x13", search },
+	{"C-r",       "search-backward"       , "\x12", search },
 	{"C-o",       "exec-lisp-command"     , "\x0F", repl },
 	{"C-x 1",     "delete-other-windows"  , "\x18\x31", delete_other_windows },
 	{"C-x 2",     "split-window"          , "\x18\x32", split_window },
@@ -159,7 +161,7 @@ keymap_t keymap[] = {
         {"C-c x",     "user-defined-function" , "\x03\x78", keyboardDefinition },
         {"C-c y",     "user-defined-function" , "\x03\x79", keyboardDefinition },
         {"C-c z",     "user-defined-function" , "\x03\x7A", keyboardDefinition },
-	{"K_ERROR", "K_ERROR", NULL, NULL }
+	{NULL, NULL, NULL, NULL }
 };
 
 char_t *get_key(keymap_t *keys, keymap_t **key_return)
