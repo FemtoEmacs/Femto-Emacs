@@ -18,7 +18,7 @@ E       =
 O       = .o
 
 OBJ     = complete$(O) command$(O) data$(O) display$(O) gap$(O) \
-             key$(O) search$(O) buffer$(O) replace$(O) utils$(O) window$(O) funcmap(O) \
+             key$(O) search$(O) buffer$(O) replace$(O) utils$(O) window$(O) funcmap$(O) \
              main$(O) femtolisp/interface2editor$(O) \
 	     femtolisp/flcall$(O)
   
