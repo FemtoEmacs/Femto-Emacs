@@ -16,6 +16,7 @@ window_t* new_window()
 	wp->w_top = 0;	
 	wp->w_rows = 0;	
 	wp->w_update = FALSE;
+	wp->w_temp = FALSE;
 	sprintf(wp->w_name, "W%d", ++win_cnt);
 	return wp;
 }
@@ -27,19 +28,26 @@ void one_window(window_t *wp)
 	wp->w_next = NULL;
 }
 
-void split_window()
+void split_window() 
+{
+	(void)split_window_temp(FALSE);	
+}
+
+window_t *split_window_temp(int temp_flag)
 {
 	window_t *wp, *wp2;
 	int ntru, ntrl;
 
 	if (curwp->w_rows < 3) {
 		msg("Cannot split a %d line window", curwp->w_rows);
-		return;
+		return NULL;
 	}
 	
 	wp = new_window();	
 	associate_b2w(curwp->w_bufp,wp);
 	b2w(wp); /* inherit buffer settings */
+
+	wp->w_temp = temp_flag;
   
 	ntru = (curwp->w_rows - 1) / 2; /* Upper size */
 	ntrl = (curwp->w_rows - 1) - ntru; /* Lower size */
@@ -54,6 +62,7 @@ void split_window()
 	curwp->w_next = wp;
 	wp->w_next = wp2;
 	redraw(); /* mark the lot for update */
+	return wp;
 }
 
 void other_window() {
@@ -97,6 +106,40 @@ window_t *find_window(char *bname)
 			return wp;
 
 	return NULL;
+}
+
+/*
+ * Popup a window with buffer bname inside it
+ * If such a window already exists do nothing
+ * If there are no other windows split the screen and select the other window
+ * if the screen is already split select the next window from the top that is not
+ * the current buffer.
+ */
+window_t *popup_window(char *bname, int temp_flag)
+{
+	window_t *wp;
+
+	wp = find_window(bname);
+
+	/* if already displayed do nothing */
+	if (wp != NULL)
+		return wp;
+
+	if (count_windows() == 1) {
+		wp = split_window_temp(temp_flag);
+	} else {
+
+		/* find first window from the top that is not the current buffer */
+		for (wp = wheadp; wp != NULL; wp = wp->w_next)
+			if (wp != curwp)
+				break;
+
+		assert(wp != NULL);
+	}	
+
+	select_buffer(bname);
+	other_window();
+	return wp;
 }
 
 int count_windows()

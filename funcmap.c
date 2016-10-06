@@ -66,21 +66,6 @@ void check_maps()
 	}
 }
 
-void popup_window(char *bname)
-{
-	/* if already displayed do nothing */
-	if (find_window(bname) != NULL)
-		return;
-
-	if (count_windows() != 2) {
-		delete_other_windows();
-		split_window();
-	}
-
-	select_buffer(bname);
-	other_window();
-}
-
 void apropos_command()
 {
 	buffer_t *bp;
@@ -121,7 +106,7 @@ void apropos_command()
 		append_string(bp, apropos);
 	}
 
-	popup_window("*help*");
+	(void)popup_window("*help*", FALSE);
 }
 
 void list_bindings()
@@ -139,5 +124,5 @@ void list_bindings()
 		append_string(bp, binding);
 	}
 
-	popup_window("*help*");
+	(void)popup_window("*help*", FALSE);
 }

@@ -123,6 +123,7 @@ typedef struct window_t
 	int w_row;          /* cursor row */
 	int w_col;          /* cursor col */
 	int w_update;
+	int w_temp;         /* is a temp window */
 	char w_name[STRBUF_S];
 } window_t;
 
@@ -290,7 +291,9 @@ extern char* get_buffer_modeline_name(buffer_t *);
 extern void get_line_stats(int *, int *);
 extern void query_replace(void);
 extern window_t *new_window();
+extern window_t *split_window_temp(int);
 extern window_t *find_window(char *);
+extern window_t *popup_window(char *, int);
 extern void one_window(window_t *);
 extern void free_other_windows();
 extern void w2b(window_t *);
