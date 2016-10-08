@@ -270,7 +270,7 @@ void killbuffer()
 	/* do nothing if only buffer left is the scratch buffer */
 	if (bcount == 1 && 0 == strcmp(get_buffer_name(curbp), str_scratch))
               return;
-        
+	 
 	if (curbp->b_flags & B_MODIFIED) {
 		mvaddstr(MSGLINE, 0, str_notsaved);
 		clrtoeol();
@@ -338,14 +338,16 @@ void copy_cut(int cut)
 		scrap = NULL;
 	}
 	if (curbp->b_point < curbp->b_mark) {
-		/* point above marker: move gap under point, region = marker - point */
-		p = ptr(curbp, curbp->b_point);
+		/* point above mark: move gap under point, region = mark - point */
 		(void) movegap(curbp, curbp->b_point);
+		/* moving the gap can impact the pointer so sure get the pointer after the move */
+		p = ptr(curbp, curbp->b_point);
 		nscrap = curbp->b_mark - curbp->b_point;
 	} else {
-		/* if point below marker: move gap under marker, region = point - marker */
-		p = ptr(curbp, curbp->b_mark);
+		/* if point below mark: move gap under mark, region = point - mark */
 		(void) movegap(curbp, curbp->b_mark);
+		/* moving the gap can impact the pointer so sure get the pointer after the move */
+		p = ptr(curbp, curbp->b_mark);
 		nscrap = curbp->b_point - curbp->b_mark;
 	}
 	if ((scrap = (char_t*) malloc(nscrap + 1)) == NULL) {
