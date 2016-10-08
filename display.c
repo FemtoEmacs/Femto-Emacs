@@ -147,11 +147,11 @@ void display(window_t *wp, int flag)
 	buffer_t *bp = wp->w_bufp;
         int keywd_char_count = 0;
         int token_type = ID_TOKEN_NONE;
-	
+
 	setLanguage(get_file_extension(bp->b_fname));
         in_block_comment = 0;
         in_line_comment = 0;
-	
+
 	/* find start of screen, handle scroll up off page or top of file  */
 	/* point is always within b_page and b_epage */
 	if (bp->b_point < bp->b_page)
@@ -178,7 +178,7 @@ void display(window_t *wp, int flag)
 	j = 0;
 	bp->b_epage = bp->b_page;
 
-	/* paint screen from top of page until we hit maxline */ 
+	/* paint screen from top of page until we hit maxline */
 	while (1) {
 		/* reached point - store the cursor position */
 		if (bp->b_point == bp->b_epage) {
@@ -197,7 +197,7 @@ void display(window_t *wp, int flag)
 			}
 			else if (isprint(*p) || *p == '\t' || *p == '\n') {
 				j += *p == '\t' ? 8-(j&7) : 1;
-	                        scan_for_comments(p, &in_block_comment, &in_line_comment);	
+	                        scan_for_comments(p, &in_block_comment, &in_line_comment);
 	                        if (keywd_char_count <= 0)
                                         keywd_char_count = scan_for_keywords(p, &token_type);
                                 display_char(bp, p, keywd_char_count--, token_type);
@@ -251,11 +251,11 @@ void display_utf8(buffer_t *bp, char_t c, int n)
 {
 	char sbuf[6];
 	int i = 0;
-	
+
 	for (i=0; i<n; i++) {
 		sbuf[i] = *ptr(bp, bp->b_epage + i);
 	}
-	sbuf[n] = '\0';	
+	sbuf[n] = '\0';
 	addstr(sbuf);
 }
 
@@ -275,7 +275,7 @@ void modeline(window_t *wp)
 	/* sprintf(temp, "%c%c%c Femto: %c%c %s %s  T%dR%d Pt%ld Pg%ld Pe%ld r%dc%d B%d",  lch,och,mch,lch,lch, wp->w_name, get_buffer_modeline_name(wp->w_bufp), wp->w_top, wp->w_rows, wp->w_point, wp->w_bufp->b_page, wp->w_bufp->b_epage, wp->w_bufp->b_row, wp->w_bufp->b_col, wp->w_bufp->b_cnt); */
 
 	/* sprintf(temp, "%c%c%c Femto: %c%c %s %s  T%dR%d Pt%ld Pg%ld Pe%ld r%dc%d B%d N%d",  lch,och,mch,lch,lch, wp->w_name, get_buffer_modeline_name(wp->w_bufp), wp->w_top, wp->w_rows, wp->w_point, wp->w_bufp->b_page, wp->w_bufp->b_epage, wp->w_bufp->b_row, wp->w_bufp->b_col, wp->w_bufp->b_cnt, n); */
-	
+
 	sprintf(temp, "%c%c%c Femto: %c%c %s",  lch,och,mch,lch,lch, get_buffer_modeline_name(wp->w_bufp));
 	addstr(temp);
 
@@ -304,13 +304,13 @@ void display_prompt_and_response(char *prompt, char *response)
 }
 
 void update_display()
-{   
+{
 	window_t *wp;
 	buffer_t *bp;
 
 	bp = curwp->w_bufp;
 	bp->b_cpoint = bp->b_point; /* cpoint only ever set here */
-	
+
 	/* only one window */
 	if (wheadp->w_next == NULL) {
 		display(curwp, TRUE);
@@ -320,7 +320,7 @@ void update_display()
 	}
 
 	display(curwp, FALSE); /* this is key, we must call our win first to get accurate page and epage etc */
-	
+
 	/* never curwp,  but same buffer in different window or update flag set*/
 	for (wp=wheadp; wp != NULL; wp = wp->w_next) {
 		if (wp != curwp && (wp->w_bufp == bp || wp->w_update)) {
@@ -344,7 +344,7 @@ void w2b(window_t *w)
 	w->w_bufp->b_epage = w->w_epage;
 	w->w_bufp->b_row = w->w_row;
 	w->w_bufp->b_col = w->w_col;
-	
+
 	/* fixup pointers in other windows of the same buffer, if size of edit text changed */
 	if (w->w_bufp->b_point > w->w_bufp->b_cpoint) {
 		w->w_bufp->b_point += (w->w_bufp->b_size - w->w_bufp->b_psize);

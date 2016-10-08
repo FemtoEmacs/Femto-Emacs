@@ -16,7 +16,7 @@ int getfilename(char *prompt, char *buf, int nbuf)
 		if (!didtry)
 			nskip = -1;
 		didtry = 0;
-		display_prompt_and_response(prompt, buf);		
+		display_prompt_and_response(prompt, buf);
 		c = getch(); /* get a character from the user */
 
 		switch(c) {
@@ -34,7 +34,7 @@ int getfilename(char *prompt, char *buf, int nbuf)
 				continue;
 			buf[--cpos] = '\0';
 			break;
-			
+
 		case  0x15: /* C-u kill */
 			cpos = 0;
 			buf[0] = '\0';
@@ -71,7 +71,7 @@ int getfilename(char *prompt, char *buf, int nbuf)
 				fp = fopen(output_file, "r");
 				nskip = 0;
 			}
-			
+
 			/* skip to start of next filename in the list */
 			c = ' ';
 			for (n = nskip; n > 0; n--)
@@ -87,12 +87,12 @@ int getfilename(char *prompt, char *buf, int nbuf)
 			while ((c = getc(fp)) != EOF && c != '\n' && c != ' ' && c != '*')
 				if (cpos < nbuf - 1)
 					buf[cpos++] = c;
-			
+
 			buf[cpos] = '\0';
 			rewind(fp);
 			unlink(output_file);
 			break;
-			
+
 		default:
 			if (cpos < nbuf - 1) {
 				  buf[cpos++] = c;

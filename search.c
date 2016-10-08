@@ -7,7 +7,7 @@
 
 void search()
 {
-	int cpos = 0;	
+	int cpos = 0;
 	int c;
 	point_t o_point = curbp->b_point;
 	point_t found;
@@ -40,7 +40,7 @@ void search()
 			found = search_backwards(searchtext);
 			display_search_result(found, REV_SEARCH, m_sprompt, searchtext);
 			break;
-			
+
 		case 0x7f: /* del, erase */
 		case 0x08: /* backspace */
 			if (cpos == 0)
@@ -49,7 +49,7 @@ void search()
 			display_prompt_and_response(m_sprompt, searchtext);
 			break;
 
-		default:	
+		default:
 			if (cpos < STRBUF_M - 1) {
 				searchtext[cpos++] = c;
 				searchtext[cpos] = '\0';
@@ -105,14 +105,14 @@ point_t search_backwards(char *stext)
 {
 	point_t p,pp;
 	char* s;
-	
+
 	if (0 == strlen(stext))
 		return curbp->b_point;
 
 	for (p=curbp->b_point; p > 0; p--) {
 		for (s=stext, pp=p; *s == *(ptr(curbp, pp)) && *s != '\0' && pp > 0; s++, pp++)
 			;
-		
+
 		if (*s == '\0') {
 			if (p > 0)
 				p--;

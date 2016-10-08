@@ -13,7 +13,7 @@ void buffer_init(buffer_t *bp)
 	bp->b_page = 0;
 	bp->b_epage = 0;
 	bp->b_size = 0;
-	bp->b_psize = 0;	
+	bp->b_psize = 0;
 	bp->b_flags = 0;
 	bp->b_cnt = 0;
 	bp->b_buf = NULL;
@@ -42,7 +42,7 @@ buffer_t *find_buffer (char *bname, int cflag)
 {
 	buffer_t *bp = NULL;
 	buffer_t *sb = NULL;
-	
+
 	bp = bheadp;
 	while (bp != NULL) {
 		if (strcmp(bname, bp->b_bname) == 0) {
@@ -69,7 +69,7 @@ buffer_t *find_buffer (char *bname, int cflag)
 			for (sb = bheadp; sb->b_next != NULL; sb = sb->b_next)
 				if (strcmp (sb->b_next->b_bname, bname) > 0)
 					break;
-			
+
 			/* and insert it */
 			bp->b_next = sb->b_next;
 			sb->b_next = bp;
@@ -94,7 +94,7 @@ int delete_buffer (buffer_t *bp)
 
 	/* we must have switched to a different buffer first */
 	assert(bp != curbp);
-	
+
 	/* if buffer is the head buffer */
 	if (bp == bheadp) {
 		bheadp = bp->b_next;
@@ -116,7 +116,7 @@ void next_buffer()
 {
 	assert(curbp != NULL);
 	assert(bheadp != NULL);
-	disassociate_b(curwp);	
+	disassociate_b(curwp);
 	curbp = (curbp->b_next != NULL ? curbp->b_next : bheadp);
 	associate_b2w(curbp,curwp);
 }
@@ -166,7 +166,7 @@ int delete_buffer_byname(char *bname)
 {
 	buffer_t *bp = find_buffer(bname, FALSE);
 	int bcount = count_buffers();
-	
+
 	if (bp == NULL) return FALSE;
 
 	/* if last buffer, create a scratch buffer */
@@ -177,7 +177,7 @@ int delete_buffer_byname(char *bname)
 	/* switch out of buffer if we are the current buffer */
 	if (bp == curbp)
 		next_buffer();
-	assert(bp != curbp);	
+	assert(bp != curbp);
 	delete_buffer(bp);
 	return TRUE;
 }
@@ -189,7 +189,7 @@ int select_buffer(char *bname)
 
 	assert(bp != NULL);
 	assert(curbp != NULL);
-	
+
 	disassociate_b(curwp);
 	curbp = bp;
 	associate_b2w(curbp,curwp);
@@ -222,7 +222,7 @@ void list_buffers()
 	char blank[] = " ";
 	char *bn;
 	char *fn;
-	
+
 	list_bp = find_buffer(str_buffers, TRUE);
 	strcpy(list_bp->b_bname, str_buffers);
 
@@ -234,7 +234,7 @@ void list_buffers()
 	/*             12 1234567 12345678901234567 */
 	insert_string("CO    Size Buffer           File\n");
 	insert_string("-- ------- ------           ----\n");
-		
+
 	bp = bheadp;
 	while (bp != NULL) {
 		if (bp != list_bp) {

@@ -45,7 +45,7 @@ char *string_trim(char *str)
 
 	/* if empty string return the string, it would be fatal to traverse backwards*/
 	if (strlen(str) == 0) return str;
-	
+
 	char *ptr = str;
 
 	/* first first none space */
@@ -53,9 +53,9 @@ char *string_trim(char *str)
 		++ptr;
 
 	str = ptr;
-	
+
 	/* find first char before the end NULL terminator */
-	ptr = strchr (str, '\0') - 1;    
+	ptr = strchr (str, '\0') - 1;
 
 	/* traverse back to first none space */
 	while (isspace(*ptr))
