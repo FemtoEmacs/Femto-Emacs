@@ -16,7 +16,7 @@ others to write extensions and to use FemtoEmacs.
 
 [E ] abort-command                       ^G      Abort out of any command that is waiting for input
 [  ] add-mode                            ^XM     Add a mode to the current buffer
-[  ] apropos                             M-A     List out commands whose name contains the string specified
+[E ] apropos                             M-A     List out commands whose name contains the string specified
 [EI] backward-char                       ^B      Move one character to the left
 [EI] backward-word                       M-B     Move one word to the left
 [EI] backward-page                       M-^V    Move cursor up one page
@@ -26,29 +26,28 @@ others to write extensions and to use FemtoEmacs.
 [EI] beginning-of-line                   ^A      Move to the beginning of the current line
 [  ] bind-to-key                         M-K     Bind a key to a function
 [E ] buffer-position                     ^X=     List the position of the cursor in the current buffer
-[  ] downcase-region                     ^X^L    Make a marked region all lower case
-[  ] upcase-region                       ^X^U    Make a marked region all upper case
+[EI] downcase-region                     ^X^L    Make a marked region all lower case
+[EI] upcase-region                       ^X^U    Make a marked region all upper case
 [  ] case-word-capitalize                M-C     Capitalize the following word
 [  ] downcase-word                       M-L     Lower case the following word
 [  ] upcase-word                         M-U     Upper case the following word
-[  ] clear-message-line                  (none)  Clear the command line
+[EI] clear-message-line                  (none)  Clear the command line
 [EI] copy-region                         M-W     Copy the currently marked region into the kill buffer
 [EI] delete-buffer                       ^XK     Delete the current buffer
 [  ] delete-mode                         ^X^M    Turn off a mode in the current buffer
-[ *] delete-next-character               ^D      Delete the character following the cursor
+[E ] delete-next-character               ^D      Delete the character following the cursor
 [  ] delete-next-word                    M-D     Delete the word following the cursor
 [EI] delete-other-windows                ^X1     Make the current window cover the entire screen
 [E ] delete-previous-word                M-^H    Delete the word to the left of the cursor
 [E ] delete-window                       ^X0     Remove the current window from the screen
-[  ] describe-bindings                   (none)  Make a list of all legal commands
+[E ] list-bindings                       (none)  Make a list of all legal commands
 [  ] describe-functions                  (none)  Make a list of all legal functions
-[  ] describe-variables                  (none)  Make a list of all environment and user variables
 [E ] describe-key                        ^X?     Describe what command is bound to a keystroke sequence
 [  ] end-macro                           ^X)     stop recording a keyboard macro
 [EI] end-of-buffer                       M->     Move cursor to the end of the current buffer
 [EI] end-of-line                         ^E      Move to the end of the current line
 [  ] exchange-point-and-mark             ^X^X    Move cursor to the last marked spot,
-[E ] execute-command-line                (none)  Execute a line typed on the command
+[E ] execute-command                     M-x     Execute a line typed on the command
 [E ] eval-block                          M-]     Evaluate block
 [E*] exit-emacs                          ^X^C    Exit EMACS. If there are unwritten,
 [  ] fill-paragraph                      M-Q     Fill the current paragraph
@@ -77,7 +76,6 @@ others to write extensions and to use FemtoEmacs.
 [EI] previous-line                       ^P      Move cursor up one line
 [  ] previous-word                       M-B     Move the cursor to the beginning of the word to the left of the cursor
 [E ] query-replace-string                M-R     Replace all of one string with another string, interactively querying the user
-[  ] quick-exit                          M-Z     Exit EMACS, writing out all changed buffers
 [  ] quote-character                     ^Q      Insert the next character literally
 [EI] update-display                      ^L      Redraw the display
 [EI] save-file                           ^X^S    Save the current buffer if it is changed

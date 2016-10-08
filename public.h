@@ -51,6 +51,7 @@ extern int delete_buffer_byname(char *);
 extern int select_buffer(char *);
 extern int save_buffer_byname(char *);
 extern void msg(char *, ...);
+extern void clear_message_line(void);
 extern char *string_trim(char *);
 extern char *get_current_bufname();
 extern void log_debug(char *);

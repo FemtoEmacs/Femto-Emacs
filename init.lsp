@@ -56,6 +56,17 @@
   (kill-region)
   (get-clipboard))
 
+(define (upcase-region)
+   (kill-region)
+   (set-clipboard (string.map char.upcase (get-clipboard)))
+   (yank)
+   (clear-message-line))
+
+(define (downcase-region)
+   (kill-region)
+   (set-clipboard (string.map char.downcase (get-clipboard)))
+   (yank)
+   (clear-message-line))
 
 ;; Shortcut definitions
 (define (keyboard key) 
@@ -92,6 +103,12 @@
         (if (not (top-level-bound? 'bufm-stop))
           (load (home "bufmenu.scm")))
           (buffer-menu))
+
+      ( (equal? key "C-x C-u")
+          (upcase-region))
+
+      ( (equal? key "C-x C-l")
+          (downcase-region))
 
       (else (insert key)) ))
 

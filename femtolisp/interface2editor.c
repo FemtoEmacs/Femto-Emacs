@@ -114,6 +114,12 @@ static value_t fe_end_of_buffer(value_t *args, u_int32_t nargs) {
 	return FL_T;
 }
 
+static value_t fe_clr_msg_line(value_t *args, u_int32_t nargs) {
+	argcount("clear-message-line", nargs, 0);
+	clear_message_line();
+	return FL_T;
+}
+
 static value_t fe_get_clipboard(value_t *args, u_int32_t nargs) {
 	argcount("get-clipboard", nargs, 0);
 	static char empty_string[] = "";
@@ -854,6 +860,7 @@ static builtinspec_t builtin_info[] = {
 	{"beginning-of-buffer", fe_beginning_of_buffer},
 	{"end-of-buffer", fe_end_of_buffer},
 	{"copy-region", fe_copy_region},
+	{"clear-message-line", fe_clr_msg_line},
 	{"eval-block", eval_blk},
 	{"get-key", fe_get_key},
 	{"log-debug", fe_log_debug},

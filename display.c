@@ -294,6 +294,14 @@ void dispmsg()
 	clrtoeol();
 }
 
+void clear_message_line()
+{
+	ZERO_STRING(msgline);
+	msgflag = FALSE;
+	move(MSGLINE, 0);
+	clrtoeol();
+}
+
 void display_prompt_and_response(char *prompt, char *response)
 {
 	mvaddstr(MSGLINE, 0, prompt);

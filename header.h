@@ -36,7 +36,6 @@
 #define STRBUF_S        16
 #define NBUFN           17              /* size of buffer name 16 chars + null terminator */
 #define LISP_IN_OUT     2048
-//#define MAX_FL_CLIPBD   2048
 #define MIN_GAP_EXPAND  512
 #define FWD_SEARCH      1
 #define REV_SEARCH      2
@@ -49,6 +48,8 @@
 #define ID_COLOR_ALPHA     5
 #define ID_COLOR_DIGITS    6
 #define ID_COLOR_COMMENTS  7
+
+#define ZERO_STRING(X) X[0]='\0';
 
 typedef unsigned char char_t;
 typedef long point_t;
