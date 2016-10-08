@@ -289,15 +289,20 @@ void killbuffer()
 	delete_buffer(kill_bp);
 }
 
-void iblock()
+void i_set_mark()
 {
-	block();
+	set_mark();
 	msg(str_mark);
 }
 
-void block()
+void set_mark()
 {
-	curbp->b_mark = curbp->b_mark == NOMARK ? curbp->b_point : NOMARK;
+	curbp->b_mark = curbp->b_point;
+}
+
+void unmark()
+{
+	curbp->b_mark = NOMARK;
 }
 
 void toggle_overwrite_mode() {
@@ -319,11 +324,27 @@ void killtoeol()
 	}
 }
 
+int i_check_region()
+{
+	if (curbp->b_mark == NOMARK) {
+		msg(m_nomark);
+		return FALSE;
+	}
+
+	if (curbp->b_point == curbp->b_mark) {
+		msg(m_noregion);
+		return FALSE;
+	}
+	return TRUE;
+}
+
 void copy() {
+	if (i_check_region() == FALSE) return;
 	copy_cut(FALSE);
 }
 
 void cut() {
+	if (i_check_region() == FALSE) return;
 	copy_cut(TRUE);
 }
 
@@ -358,15 +379,14 @@ void copy_cut(int cut)
 		*(scrap + nscrap) = '\0';  /* null terminate for insert_string */
 		if (cut) {
 			curbp->b_egap += nscrap; /* if cut expand gap down */
-			block();
 			curbp->b_point = pos(curbp, curbp->b_egap); /* set point to after region */
 			curbp->b_flags |= B_MODIFIED;
 			run_kill_hook(curbp->b_bname);
 			msg(m_cut, nscrap);
 		} else {
-			block(); /* can maybe do without */
 			msg(m_copied, nscrap);
 		}
+		unmark();
 	}
 }
 

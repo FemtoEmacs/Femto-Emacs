@@ -37,7 +37,7 @@ extern void up(void);
 extern point_t search_forward(char *);
 extern void move_to_search_result(point_t);
 extern point_t search_backwards(char *);
-extern void iblock(void);
+extern void i_set_mark(void);
 extern void split_window(void);
 extern void paste(void);
 extern void eval_block(void);

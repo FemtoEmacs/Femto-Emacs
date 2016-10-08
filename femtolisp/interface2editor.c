@@ -191,7 +191,7 @@ static value_t previous_line(value_t *args, u_int32_t nargs) {
 
 static value_t set_mark(value_t *args, u_int32_t nargs) {
 	argcount("set-mark", nargs, 0);
-	iblock();
+        i_set_mark();
 	return FL_T;
 }
 
