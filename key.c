@@ -83,8 +83,8 @@ keymap_t keymap[] = {
 	{"esc v",     "backward-page"         , "\x1B\x76", backward_page },
 	{"esc V",     "backward-page"         , "\x1B\x56", backward_page },
 	{"C-v",       "forward-page"          , "\x16", forward_page },
-	{"PgUp",      "backward-page"         , "\x1B\x5B\x35\x7E", backward_page }, /* PgUp key */
-	{"PgDn",      "forward-page"          , "\x1B\x5B\x36\x7E", forward_page }, /* PgDn key */
+	{"PgUp",      "backward-page"         , "\x1B\x5B\x35\x7E", backward_page },
+	{"PgDn",      "forward-page"          , "\x1B\x5B\x36\x7E", forward_page },
 	{"esc <",     "beginning-of-buffer"   , "\x1B\x3C", beginning_of_buffer},
 	{"esc >",     "end-of-buffer"         , "\x1B\x3E", end_of_buffer },
 	{"esc home",  "beginning-of-buffer"   , "\x1B\x1B\x4F\x48", beginning_of_buffer},
@@ -100,16 +100,17 @@ keymap_t keymap[] = {
 	{"esc F",     "forward-word"          , "\x1B\x46", forward_word },
 	{"esc G",     "goto-line"             , "\x1B\x47", i_gotoline },
 	{"esc R",     "query-replace"         , "\x1B\x52", query_replace },
-	{"esc c",     "copy-region"           , "\x1B\x63", copy },                   /* useful as an ALT key */
-	{"esc d",     "kill-line"             , "\x1B\x64", killtoeol },              /* useful as an ALT key */
-	{"esc i",     "yank"                  , "\x1B\x69", paste },                  /* useful as an ALT key */
-	{"esc k",     "kill-line"             , "\x1B\x6B", killtoeol },              /* useful as an ALT key */
-	{"esc l",     "list-bindings"         , "\x1B\x6C", list_bindings },          /* temp binding */
-	{"esc m",     "set-mark"              , "\x1B\x6D", iblock },                 /* useful as an ALT key */
-	{"esc n",     "next-buffer"           , "\x1B\x6E", next_buffer },            /* useful as an ALT key */
-	{"esc o",     "delete-other-windows"  , "\x1B\x6F", delete_other_windows },   /* useful as an ALT key */
-	{"C-space",   "set-mark"              , "\x00", iblock },                     /* ctrl-space */
-	{"esc @",     "set-mark"              , "\x1B\x40", iblock },                 /* esc-@ */
+	{"esc c",     "copy-region"           , "\x1B\x63", copy },
+	{"esc d",     "kill-line"             , "\x1B\x64", killtoeol },
+	{"esc i",     "yank"                  , "\x1B\x69", paste },
+	{"esc k",     "kill-region"           , "\x1B\x6B", cut },
+	{"esc l",     "list-bindings"         , "\x1B\x6C", list_bindings },
+	{"esc m",     "set-mark"              , "\x1B\x6D", iblock },
+	{"esc n",     "next-buffer"           , "\x1B\x6E", next_buffer },
+	{"esc o",     "delete-other-windows"  , "\x1B\x6F", delete_other_windows },
+	{"esc x",     "execute-command"       , "\x1B\x78", execute_command },
+	{"C-space",   "set-mark"              , "\x00", iblock },
+	{"esc @",     "set-mark"              , "\x1B\x40", iblock },
 	{"C-w",       "kill-region"           , "\x17", cut},
 	{"C-y",       "yank"                  , "\x19", paste},
 	{"esc w",     "copy-region"           , "\x1B\x77", copy},
@@ -130,8 +131,8 @@ keymap_t keymap[] = {
 	{"C-x n",     "next-buffer"           , "\x18\x6E", next_buffer },
 	{"C-x C-b",   "list-buffers"          , "\x18\x02", list_buffers },
 	{"C-x C-f",   "find-file"             , "\x18\x06", readfile },
-	{"C-x C-s",   "save-buffer"           , "\x18\x13", savebuffer },  
-	{"C-x C-w",   "write-file"            , "\x18\x17", writefile },  /* write and prompt for name */
+	{"C-x C-s",   "save-buffer"           , "\x18\x13", savebuffer },
+	{"C-x C-w",   "write-file"            , "\x18\x17", writefile },
 	{"C-x C-c",   "exit"                  , "\x18\x03", quit_ask },
 	{"esc ]",     "eval-block"            , "\x1B\x5D", eval_block },
 	{"esc esc",   "show-version"          , "\x1B\x1B", version },
@@ -235,7 +236,7 @@ int getinput(char *prompt, char *buf, int nbuf)
 {
 	int cpos = 0;
 	int c;
-	int start_col = strlen(prompt); 
+	int start_col = strlen(prompt);
 
 	mvaddstr(MSGLINE, 0, prompt);
 	clrtoeol();
@@ -266,14 +267,14 @@ int getinput(char *prompt, char *buf, int nbuf)
 		case 0x08: /* backspace */
 			if (cpos == 0)
 				continue;
-			
+
 			move(MSGLINE, start_col + cpos - 1);
 			addch(' ');
 			move(MSGLINE, start_col + cpos - 1);
 			buf[--cpos] = '\0';
 			break;
 
-		default:	
+		default:
 			if (cpos < nbuf -1) {
 				addch(c);
 				buf[cpos++] = c;

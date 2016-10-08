@@ -7,16 +7,16 @@ int win_cnt = 0;
 window_t* new_window()
 {
 	window_t *wp = (window_t *)malloc(sizeof(window_t));
-	
-	assert(wp != NULL); /* call fatal instead XXX */
+
+	assert(wp != NULL);
 	wp->w_next = NULL;
 	wp->w_bufp = NULL;
+	wp->w_hijack = NULL;
 	wp->w_point = 0;
 	wp->w_mark = NOMARK;
-	wp->w_top = 0;	
-	wp->w_rows = 0;	
+	wp->w_top = 0;
+	wp->w_rows = 0;
 	wp->w_update = FALSE;
-	wp->w_temp = FALSE;
 	sprintf(wp->w_name, "W%d", ++win_cnt);
 	return wp;
 }
@@ -28,12 +28,13 @@ void one_window(window_t *wp)
 	wp->w_next = NULL;
 }
 
-void split_window() 
+void split_window()
 {
-	(void)split_window_temp(FALSE);	
+	(void)split_current_window();
 }
 
-window_t *split_window_temp(int temp_flag)
+/* always returns the previous current window pointer */
+window_t *split_current_window()
 {
 	window_t *wp, *wp2;
 	int ntru, ntrl;
@@ -42,13 +43,11 @@ window_t *split_window_temp(int temp_flag)
 		msg("Cannot split a %d line window", curwp->w_rows);
 		return NULL;
 	}
-	
-	wp = new_window();	
+
+	wp = new_window();
 	associate_b2w(curwp->w_bufp,wp);
 	b2w(wp); /* inherit buffer settings */
 
-	wp->w_temp = temp_flag;
-  
 	ntru = (curwp->w_rows - 1) / 2; /* Upper size */
 	ntrl = (curwp->w_rows - 1) - ntru; /* Lower size */
 
@@ -62,14 +61,14 @@ window_t *split_window_temp(int temp_flag)
 	curwp->w_next = wp;
 	wp->w_next = wp2;
 	redraw(); /* mark the lot for update */
-	return wp;
+	return curwp;
 }
 
 void other_window() {
 	curwp->w_update = TRUE; /* make sure modeline gets updated */
 	curwp = (curwp->w_next == NULL ? wheadp : curwp->w_next);
 	curbp = curwp->w_bufp;
-	
+
 	if (curbp->b_cnt > 1)
 		w2b(curwp); /* push win vars to buffer */
 }
@@ -80,7 +79,7 @@ void delete_other_windows()
 		return;
 	free_other_windows(curwp);
 }
-	
+
 void free_other_windows(window_t *winp)
 {
 	window_t *wp, *next;
@@ -92,11 +91,11 @@ void free_other_windows(window_t *winp)
 			free(wp);
 		}
 	}
-	
+
 	wheadp = curwp = winp;
 	one_window(winp);
 }
-	
+
 window_t *find_window(char *bname)
 {
 	window_t *wp;
@@ -115,9 +114,11 @@ window_t *find_window(char *bname)
  * if the screen is already split select the next window from the top that is not
  * the current buffer.
  */
-window_t *popup_window(char *bname, int temp_flag)
+
+window_t *popup_window(char *bname)
 {
 	window_t *wp;
+	buffer_t *bp;
 
 	wp = find_window(bname);
 
@@ -125,8 +126,15 @@ window_t *popup_window(char *bname, int temp_flag)
 	if (wp != NULL)
 		return wp;
 
+	bp = find_buffer(bname, FALSE);
+	assert(bp != NULL);
+
 	if (count_windows() == 1) {
-		wp = split_window_temp(temp_flag);
+		/* returns the top window pointer */
+		wp = split_current_window();
+		disassociate_b(wp);
+		associate_b2w(bp,wp);
+		other_window();
 	} else {
 
 		/* find first window from the top that is not the current buffer */
@@ -135,11 +143,20 @@ window_t *popup_window(char *bname, int temp_flag)
 				break;
 
 		assert(wp != NULL);
-	}	
+		assert(wp->w_hijack == NULL);
+		hijack_window(wp, bp);
+	}
 
-	select_buffer(bname);
-	other_window();
+	wp->w_update = TRUE;
 	return wp;
+}
+
+void mark_all_windows()
+{
+	window_t *wp;
+
+	for (wp=wheadp; wp != NULL; wp = wp->w_next)
+		wp->w_update = TRUE;
 }
 
 int count_windows()
@@ -153,15 +170,50 @@ int count_windows()
 	return i;
 }
 
-void associate_b2w(buffer_t *bp, window_t *wp) {
+/*
+ * allows a pop up window to highjack an already displayed window
+ * the w_hijack member holds the previously associated buffer.
+ */
+void hijack_window(window_t *wp, buffer_t *bp)
+{
+	assert(bp != NULL);
+	assert(wp != NULL);
+	assert(wp->w_hijack == NULL);
+	wp->w_hijack = wp->w_bufp;
+
+	disassociate_b(wp);
+	associate_b2w(bp,wp);
+	wp->w_update = TRUE;
+}
+
+void restore_hijacked_window(window_t *wp)
+{
+	assert(wp != NULL);
+	if (wp->w_hijack == NULL) return;
+
+	disassociate_b(wp);
+	associate_b2w(wp->w_hijack, wp);
+	wp->w_hijack = NULL;
+	wp->w_update = TRUE;
+}
+
+void associate_b2w(buffer_t *bp, window_t *wp)
+{
 	assert(bp != NULL);
 	assert(wp != NULL);
 	wp->w_bufp = bp;
 	bp->b_cnt++;
 }
 
-void disassociate_b(window_t *wp) {
+/*
+ * this decrements the window association count on the buffer
+ * the window should either be deleted OR associated with a new buffer.
+ *
+ */
+void disassociate_b(window_t *wp)
+{
 	assert(wp != NULL);
 	assert(wp->w_bufp != NULL);
 	wp->w_bufp->b_cnt--;
 }
+

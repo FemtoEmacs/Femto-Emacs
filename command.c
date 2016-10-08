@@ -46,14 +46,6 @@ void quit()
 	done = 1;
 }
 
-void mark_all_windows()
-{
-	window_t *wp;
-
-	for (wp=wheadp; wp != NULL; wp = wp->w_next)
-		wp->w_update = TRUE;
-}
-
 void redraw()
 {
 	clear();

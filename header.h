@@ -114,16 +114,16 @@ typedef struct window_t
 {
 	struct window_t *w_next;   /* Next window */
 	struct buffer_t *w_bufp;   /* Buffer displayed in window */
+	struct buffer_t *w_hijack; /* holds the buffer association for a hijacked window */
 	point_t w_point;
 	point_t w_mark;
 	point_t w_page;
 	point_t w_epage;
-	char w_top;	        /* Origin 0 top row of window */
+	char w_top;	    /* origin 0 top row of window */
 	char w_rows;        /* no. of rows of text in window */
 	int w_row;          /* cursor row */
 	int w_col;          /* cursor col */
 	int w_update;
-	int w_temp;         /* is a temp window */
 	char w_name[STRBUF_S];
 } window_t;
 
@@ -195,6 +195,11 @@ extern char *str_mark;
 extern char *str_pos;
 extern char *str_endpos;
 extern char *str_not_bound;
+extern char *str_help_buf;
+extern char *str_completions;
+extern char *str_apropos;
+extern char *str_exec_command;
+
 
 /* Prompts */
 extern char *str_notsaved;
@@ -291,9 +296,9 @@ extern char* get_buffer_modeline_name(buffer_t *);
 extern void get_line_stats(int *, int *);
 extern void query_replace(void);
 extern window_t *new_window();
-extern window_t *split_window_temp(int);
+extern window_t *split_current_window(void);
 extern window_t *find_window(char *);
-extern window_t *popup_window(char *, int);
+extern window_t *popup_window(char *);
 extern void one_window(window_t *);
 extern void free_other_windows();
 extern void w2b(window_t *);
@@ -302,6 +307,8 @@ extern void b2w_all_windows(buffer_t *);
 extern void mark_all_windows(void);
 extern void associate_b2w(buffer_t *, window_t *);
 extern void disassociate_b(window_t *);
+extern void hijack_window(window_t *, buffer_t *);
+extern void restore_hijacked_window(window_t *);
 extern int getfilename(char *, char *, int);
 extern void display_prompt_and_response(char *, char *);
 extern void shell_command(char *);
@@ -322,10 +329,14 @@ extern void chkPar(void);
 extern char *whatKey;
 extern void repl(void);
 extern void eval_block();
+extern void execute_command();
 extern void remove_control_chars(char_t *);
 extern void mk_buffer_name(char *, char *);
 extern void safe_strncpy(char *, char *, int);
 extern void resize_terminal();
+extern int match_string_position(string_list_t *, int);
+extern int shortest_string_len(string_list_t *);
+extern char *shortest_common_string(string_list_t *);
 
 /* functions to pscrap_t */
 extern void ps_push(pscrap_t *p, char_t *scrap);
