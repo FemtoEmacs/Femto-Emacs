@@ -2,6 +2,7 @@
 ;; Basic kill-ring menu
 ;; Hugh Barney September 2016
 ;;
+;; In order to enable kill ring, copy this file to your home folder
 ;; when invoked write a 1 line summary of each region in the kill-ring
 ;; and enabled the user to copy a selected block back to the clipboard
 ;;
@@ -31,7 +32,7 @@
     (goto-line kr-line)
     (set! kr-start-line 1)
     (set! kr-last-line (length kill-ring))
-    (goto-line kr-start-line)
+    ;; (goto-line kr-start-line)
     (delete-other-windows)
     (kr-show-options)
     (do ((i 1 (1+ i)))
@@ -60,7 +61,8 @@
              (delete-other-windows)
              (set! kr-stop #t))
            ( (equal? k "c")
-             (set-clipboard (list-ref kill-ring kr-line))
+	     (when (>= (length kill-ring) 0)
+                   (set-clipboard (list-ref kill-ring (- kr-line 1)) ))
              (message (string-append "item " kr-line " copied to clipboard"))
              (update-display))))
 
