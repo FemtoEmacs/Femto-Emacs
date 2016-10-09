@@ -401,11 +401,16 @@ char end_comment[10][8];
 
 int notsep(char_t *p) {
 
-	/* what is the purpose of this check, also p is a pointer ? */
-	if (p < 1)
-		return 0;
+	/* p is a pointer not an offset so checking less than 1 does not work */
+	//if (p < 1)
+	//	return 0;
 
-	char_t c = *p;
+
+	/*
+	 * there is a clash of typedefs with char_t in FemtoEmacs and femtolisp
+	 * hence casting to char for this check to avoid a warning
+	 */
+	char c = (char)*p;
 	return ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
 		(c >= '0' && c <= '9') || (c == '_'));
 }

@@ -31,6 +31,14 @@ void zero_buffer(buffer_t *bp)
 	bp->b_gap = bp->b_buf;
 	bp->b_egap = bp->b_ebuf;
 	bp->b_point = 0; /* goto start of buffer */
+	bp->b_mark = NOMARK;
+}
+
+int buffer_is_empty(buffer_t *bp)
+{
+	if (bp->b_gap == bp->b_buf && bp->b_egap == bp->b_ebuf)
+		return 1;
+	return 0;
 }
 
 /*

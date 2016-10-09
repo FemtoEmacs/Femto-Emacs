@@ -302,6 +302,7 @@ void set_mark()
 
 void unmark()
 {
+	assert(curbp != NULL);
 	curbp->b_mark = NOMARK;
 }
 
@@ -502,7 +503,13 @@ char* get_temp_file()
 
 void match_parens()
 {
+	assert(curwp != NULL);
 	buffer_t *bp = curwp->w_bufp;
+	assert(bp != NULL);
+
+	if (buffer_is_empty(bp))
+		return;
+
 	char p = *ptr(bp, bp->b_point);
 
 	switch(p) {

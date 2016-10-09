@@ -18,7 +18,7 @@
 #undef _
 #define _(x)    x
 
-#define VERSION	 "FemtoEmacs 1.5, Public Domain, 2016"
+#define VERSION	 "FemtoEmacs 1.6, Public Domain, 2016"
 #define EXIT_OK         0               /* Success */
 #define EXIT_ERROR      1               /* Unknown error. */
 #define EXIT_USAGE      2               /* Usage */
@@ -89,7 +89,6 @@ typedef struct undo_t {
 typedef struct buffer_t
 {
 	struct buffer_t *b_next;  /* Link to next buffer_t */
-
 	point_t b_mark;	     	  /* the mark */
 	point_t b_point;          /* the point */
 	point_t b_paren;          /* matching paren to the point */
@@ -274,6 +273,7 @@ extern void writefile _((void));
 extern void savebuffer _((void));
 extern void clear_buffer(void);
 extern void zero_buffer(buffer_t *);
+extern int buffer_is_empty(buffer_t *);
 extern void debug(char *, ...);
 extern void debug_stats(char *);
 extern void showpos(void);
