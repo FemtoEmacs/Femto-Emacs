@@ -18,7 +18,7 @@
 #undef _
 #define _(x)    x
 
-#define VERSION	 "FemtoEmacs 1.6, Public Domain, 2016"
+#define VERSION	 "FemtoEmacs 1.7, Public Domain, 2016"
 #define EXIT_OK         0               /* Success */
 #define EXIT_ERROR      1               /* Unknown error. */
 #define EXIT_USAGE      2               /* Usage */
@@ -321,9 +321,10 @@ extern char* get_temp_file(void);
 extern void match_parens(void);
 extern void match_paren_forwards(buffer_t *, char, char);
 extern void match_paren_backwards(buffer_t *, char, char);
-
 extern void initLisp(int argc, char *[]);
-extern void callLisp(char *ans, char *);
+extern void callLisp(char *, char *);
+extern char *callLisp2(char *);
+
 extern int scan_for_keywords(char_t *, int *);
 extern void scan_for_comments(char_t *, int *, int *);
 extern void setLanguage(char* extension);

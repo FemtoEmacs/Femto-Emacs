@@ -1,5 +1,8 @@
 #Femto Emacs Change Log
 
+## Femto 1.7 9 Oct 2016
+* Potential fix for segmentation fault when calling (environment) within FemtoEmacs
+
 ## Femto 1.6 8 Oct 2016
 * Added apropos Esc-a
 * Execute-command Esc-x (with command completion)

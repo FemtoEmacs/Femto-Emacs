@@ -656,7 +656,8 @@ void run_kill_hook(char *bufname)
 {
 	sprintf(temp, "(kill-hook \"%s\")", bufname);
 	sprintf(lisp_query, wrp, temp);
-	callLisp(lisp_result, lisp_query);
+	//callLisp(lisp_result, lisp_query);
+	(void)callLisp2(lisp_query);
 }
 
 void log_debug(char *s)
@@ -722,11 +723,16 @@ void eval_block() {
 	sprintf(lisp_query, wrp, scrap);
 	//debug("eval_block: %s\n", lisp_query);
 
-	callLisp(lisp_result, lisp_query);
+	//callLisp(lisp_result, lisp_query);
+ 	char *s = callLisp2(lisp_query);
+
 	insert_string("\n");
-	insert_string(lisp_result);
+	insert_string(s);
 	insert_string("\n");
 	//debug("result: %s\n", lisp_result);
+
+	/* later we will avoid using mark/point to grab the block */
+	clear_message_line();
 }
 
 void resize_terminal()
