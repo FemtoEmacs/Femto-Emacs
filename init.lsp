@@ -1,5 +1,8 @@
-;; FemtoEmacs init.lsp, should be placed in the users HOME directory together with "aliases.scm"
-
+;; FemtoEmacs init.lsp, should be placed in the users HOME directory together with "r5rs.scm"
+;; For now other examples of extensions from the samples directory should be placed
+;; in the HOME directory. For example killring.scm and buffmenu.scm
+;;
+;;
 ;; Compatibility with SICP
 (define (home f)
    (string (os.getenv "HOME") "/" f))
@@ -56,12 +59,14 @@
   (kill-region)
   (get-clipboard))
 
+;; bound to C-x C-u
 (define (upcase-region)
    (kill-region)
    (set-clipboard (string.map char.upcase (get-clipboard)))
    (yank)
    (clear-message-line))
 
+;; bound to C-x C-l
 (define (downcase-region)
    (kill-region)
    (set-clipboard (string.map char.downcase (get-clipboard)))
