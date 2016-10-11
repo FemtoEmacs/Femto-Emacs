@@ -13,7 +13,7 @@ enum {
 // an ordinary symbol character unless it's the first character.
 static inline int symchar(char c)
 {
-    static char *special = "()[]'\";`,\\| \f\n\r\t\v";
+    static char *special = "()[]{}'\";`,\\| \f\n\r\t\v";
     return !strchr(special, c);
 }
 
@@ -184,10 +184,10 @@ static u_int32_t peek(void)
         return toktype;
     c = nextchar();
     if (ios_eof(F)) return TOK_NONE;
-    if (c == '(') {
+    if ((c == '(') || (c == '{')) {
         toktype = TOK_OPEN;
     }
-    else if (c == ')') {
+    else if ((c == ')') || (c == '}') ) {
         toktype = TOK_CLOSE;
     }
     else if (c == '[') {
@@ -603,7 +603,7 @@ static value_t do_read_sexpr(value_t label)
             return FL_F;
         // constructor notation
         c = nextchar();
-        if (c != '(') {
+        if ((c != '(') && (c != '{') ) {
             take();
             lerrorf(ParseError, "read: expected argument list for %s",
                     symbol_name(tokval));
