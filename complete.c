@@ -11,7 +11,8 @@ int getfilename(char *prompt, char *buf, int nbuf)
 	char sys_command[255];
 	char *output_file = get_temp_file();
 	FILE *fp = NULL;
-
+	ZERO_STRING(buf);
+	
 	for (;;) {
 		if (!didtry)
 			nskip = -1;

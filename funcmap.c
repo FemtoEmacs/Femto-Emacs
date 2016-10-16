@@ -156,10 +156,8 @@ void apropos_command()
 	char bindlist[40];
 	char apropos[STRBUF_M];
 
-	temp[0] = '\0';
-	result = getinput(str_apropos, (char*)temp, STRBUF_M);
-
-	if (temp[0] == '\0' || !result) return;
+	if (0 == getinput(str_apropos, (char*)temp, STRBUF_M, F_CLEAR))
+		return;
 
 	bp = find_buffer(str_help_buf, TRUE);
 	assert(bp != NULL);

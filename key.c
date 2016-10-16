@@ -234,7 +234,7 @@ char *get_key_name()
 	return key_return->key_name;
 }
 
-int getinput(char *prompt, char *buf, int nbuf)
+int getinput(char *prompt, char *buf, int nbuf, int flag)
 {
 	int cpos = 0;
 	int c;
@@ -242,6 +242,8 @@ int getinput(char *prompt, char *buf, int nbuf)
 
 	mvaddstr(MSGLINE, 0, prompt);
 	clrtoeol();
+
+	if (flag == F_CLEAR) buf[0] = '\0';
 
 	/* if we have a default value print it and go to end of it */
 	if (buf[0] != '\0') {

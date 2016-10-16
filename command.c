@@ -179,12 +179,9 @@ void delete()
 
 void i_gotoline()
 {
-	temp[0] = '\0';
 	int line;
 
-	result = getinput(m_goto, (char*)temp, STRBUF_S);
-
-	if (temp[0] != '\0' && result) {
+	if (getinput(m_goto, (char*)temp, STRBUF_S, F_CLEAR)) {
 		line = atoi(temp);
 		goto_line(line);
 	}
@@ -205,10 +202,8 @@ void goto_line(int line)
 
 void insertfile()
 {
-	temp[0] = '\0';
-	result = getinput(str_insert_file, (char*) temp, NAME_MAX);
-	if (temp[0] != '\0' && result)
-		(void) insert_file(temp, TRUE);
+	if (getfilename(str_insert_file, (char*) temp, NAME_MAX))
+		(void)insert_file(temp, TRUE);
 }
 
 void readfile()
@@ -216,9 +211,7 @@ void readfile()
 	buffer_t *bp;
 	char bname[NBUFN];
 
-	temp[0] = '\0';
-	result = getfilename(str_read, (char*)temp, NAME_MAX);
-	if (result) {
+	if (getfilename(str_read, (char*)temp, NAME_MAX)) {
 		mk_buffer_name(bname, temp);
 		bp = find_buffer(bname, TRUE);
 		disassociate_b(curwp); /* we are leaving the old buffer for a new one */
@@ -250,8 +243,7 @@ void savebuffer()
 void writefile()
 {
 	safe_strncpy(temp, curbp->b_fname, NAME_MAX);
-	result = getinput(str_write, (char*)temp, NAME_MAX);
-	if (temp[0] != '\0' && result) {
+	if (getinput(str_write, (char*)temp, NAME_MAX, F_NONE)) {
 		if (save_buffer(curbp, temp) == TRUE) {
 			safe_strncpy(curbp->b_fname, temp, NAME_MAX);
 			// FIXME - what if name already exists, in editor
@@ -598,12 +590,7 @@ void i_describe_key()
 
 void i_shell_command()
 {
-	int result;
-
-	temp[0] = '\0';
-	result = getinput(str_shell_cmd, (char*)temp, NAME_MAX);
-
-	if (temp[0] != '\0' && result)
+	if (getinput(str_shell_cmd, (char*)temp, NAME_MAX, F_CLEAR))
 		shell_command(temp);
 }
 
@@ -614,7 +601,9 @@ void shell_command(char *command)
 	char *output_file = get_temp_file();
 
 	sprintf(sys_command, "%s > %s 2>&1", command, output_file);
-	result = system(sys_command);
+
+	if (0 != system(sys_command))
+		return;
 
 	bp = find_buffer(str_output, TRUE);
 	disassociate_b(curwp); /* we are leaving the old buffer for a new one */
@@ -665,21 +654,21 @@ void log_debug(char *s)
 	debug(s);
 }
 
+
+/*
+ * send any outout to the message line.  This avoids text
+ * being sent to the current buffer which means the file
+ * contents could get corrupted if you are running commands
+ * on the buffers etc.  This assumes that the output will fix
+ * on 1 line.
+ */
 void repl()
 {
-	temp[0] = '\0';
-	result = getinput("> ", temp, TEMPBUF);
-	sprintf(lisp_query, wrp, temp);
-	callLisp(lisp_result, lisp_query);
-
-	/*
-	 * send any outout to the message line.  This avoids text
-	 * being sent to the current buffer which means the file
-	 * contents could get corrupted if you are running commands
-	 * on the buffers etc.  This assumes that the output will fix
-	 * on 1 line.
-	 */
-	msg(lisp_result);
+	if (getinput("> ", temp, TEMPBUF, F_CLEAR)) {
+		sprintf(lisp_query, wrp, temp);
+		callLisp(lisp_result, lisp_query);
+		msg(lisp_result);
+	}
 }
 
 void eval_block() {

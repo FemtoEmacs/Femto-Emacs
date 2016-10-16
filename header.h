@@ -40,6 +40,8 @@
 #define FWD_SEARCH      1
 #define REV_SEARCH      2
 #define TEMPFILE        "/tmp/feXXXXXX"
+#define F_NONE          0
+#define F_CLEAR         1
 
 #define ID_COLOR_SYMBOL    1
 #define ID_COLOR_MODELINE  2
@@ -143,7 +145,6 @@ extern window_t *wheadp;
 
 extern int done;                /* Quit flag. */
 extern int msgflag;             /* True if msgline should be displayed. */
-extern int result;
 extern point_t nscrap;          /* Length of scrap buffer. */
 extern char_t *scrap;           /* Allocated scrap buffer. */
 extern char_t *input;
@@ -238,7 +239,7 @@ extern point_t upup (buffer_t *, point_t);
 extern point_t dndn (buffer_t *, point_t);
 extern char_t *get_key _((keymap_t *, keymap_t **));
 extern char *fe_get_input_key(void);
-extern int getinput _((char *, char *, int));
+extern int getinput _((char *, char *, int, int));
 extern int growgap (buffer_t *, point_t);
 extern point_t movegap (buffer_t *, point_t);
 extern point_t pos (buffer_t *, char_t *);
