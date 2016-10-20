@@ -3,7 +3,7 @@
 
 #will move Femto and femto.boot to /local/bin
 #init.lst and r5rs to home
-#Temporary soluction .
+#Temporary solution .
 
 
 chmod 777 femto 
