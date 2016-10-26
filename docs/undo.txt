@@ -1,0 +1,153 @@
+UNLIMITED UNDO
+==============
+
+"To every action there is an equal and opposite reaction"
+   Newtons 3rd law.
+
+To enable the new unlimited undo functionality it is first necessary to enable
+the global undo mode by adding the following command to init.lsp.
+
+  (add-mode-global "undo") 
+
+When undo mode is enable any non special buffers (buffers that dont start with *
+as the first character of the buffer name) will have undo mode enabled when
+the buffer is first created.
+
+C-u will activate the undo command.  As long as the user types C-u the next
+undo in the list will be visited and the undo action taken.
+
+When undo mode is not active the old undo behaviour will be invoked when C-u is
+pressed.  This will only undo or redo the last command.  The old undo
+behaviour will be removed at some later date once the new unlimited-undo code
+has had time to bed in and gain exposure to a wider set of users.
+
+
+MONITORING UNDO MEMORY
+======================
+
+As unlimited undo contains the entire change history of the buffer,
+(for the period of the edit session), it can result in almost as much
+memory being allocated for the undo steps as the buffer itself.  There are
+two hidden (and non bound) commands that can be used to monitor how much
+memory is being used by undo.
+
+ Esc-x list-undo        ;; will show a report of all the undo structures for the current buffer
+
+Num Type   Point     Size String
+--- ------ --------- ---- ----------------------------------------
+001 INSERT       213   33 g
+002 BACKSP       212   33 f
+003 INSERT      3431   53 rney, 26 October 2016
+004 BACKSP      3410   34 nt
+
+
+The size is the total number of bytes used by the undo structure plus the size of the
+allocated u_string member.  The Undos are numbered 1-N with 1 being the latest undo 
+recorded.  The string is a 40 byte summary of the undo BUT with any control chars
+replaced with spaces.
+
+
+ Esc-x list-stats-undo  ;; shows a report of how much is used across ALL buffers
+
+Buffer            Num      Size
+---------------- ---- ---------
+*completions*       0         0
+undo.txt          245     13161
+
+  Num is the number of undos recorded for that buffer
+  Size is the total size of all undo records for that buffer
+
+
+
+HOW UNDO WORKS
+==============
+A limited set of functions are paired together that are mutual and exact opposites.
+
+ BACKSPACE undoes INSERT and vice-versa
+ KILL-REGION undoes YANK and vice-versa
+ DELETE undoes INSERT-AT and vice-versa
+
+It is important that each of the above functions do not result in calls to
+each other and they must not be paired to another function other than its pair.
+
+As edits take place the calling function registers an undo record
+by calling add_undo(). All the calls to add_undo are in command.c
+
+To save memory consecutive single character inserts, backspace or deletes are
+accumulated onto the previous undo structure of the same function type.
+
+When Undo is invoked the paired function is called with the correct point location
+having been setup.   The paired function will itself result in a new undo record
+being added to the tail of the undo list.  This means that a single sequential
+list of undo structures is maintained that contained the entire history of
+all tracked changes to the buffer.
+
+
+
+ISSUES THAT WIL BE FIXED LATER
+(please dont report these)
+==============================
+replaces are not yet supported
+not yet handling utf8 chars that are inserted or backspaced
+not yet handling some of the special cases that exist in overwrite mode
+
+
+REPORTING PROBLEMS WITH UNDO
+============================
+
+Hopefully I have caught most of the problems during testing.
+I have been mostly using FemtoEmacs to develop undo.c so it has
+had a lot of use during development.
+
+The most likely failures will be assertion failure.
+Please work out the exact shortest steps to hit the assertion failure.
+For example (1 insert, followed by a cut) was one example that
+reproduced a defect during development.  There is no point reporting
+an assertion failure if you cant give me the steps to reproduce it.
+
+If you experience a core dump then it would be useful for you to 
+send me a backtrace so I can see the call sequence prior to the failure.
+Instructions for doing this are below.
+
+Enjoy, Hugh Barney, 26 October 2016
+
+
+
+INSTRUCTIONS - HOW TO DEBUG SEGFAULTS
+=====================================
+1) add -g option onto CFLAGS in the makefile.
+2) do a make clean and a make
+3) At the shell point make sure core dumps are enabled.
+4) ulimit -c unlimited    ##  this allows core files to be written to disk
+5) run the programme and get the SEGFAULT
+6) check that a file called core now exists.  If not check out how to enable CORE dumps on a MAC
+7) run the gdb debugger
+
+$ gdb ./femto ./core
+GNU gdb (Ubuntu 7.7-0ubuntu3) 7.7
+Copyright (C) 2014 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.  Type "show copying"
+and "show warranty" for details.
+This GDB was configured as "x86_64-linux-gnu".
+Type "show configuration" for configuration details.
+For bug reporting instructions, please see:
+<http://www.gnu.org/software/gdb/bugs/>.
+Find the GDB manual and other documentation resources online at:
+<http://www.gnu.org/software/gdb/documentation/>.
+For help, type "help".
+Type "apropos word" to search for commands related to "word"...
+Reading symbols from ./femto...done.
+[New LWP 14290]
+Core was generated by `./femto gg'.
+Program terminated with signal SIGSEGV, Segmentation fault.
+#0  delete_buffer (bp=bp@entry=0x0) at buffer.c:93    <<<<<   THIS GIVES A GOOD CLUE OF WHERE THINGS WENT WRONG
+93                      sb->b_next = bp->b_next;
+(gdb) bt     <<<  REQUEST A BACKTRACE - IT SHOWS THE LIST OF FUNCTIONS CALLED PRIOR TO THINGS GOING WRONG.
+#0  delete_buffer (bp=bp@entry=0x0) at buffer.c:93
+#1  0x00000000004023fd in killbuffer () at command.c:281
+#2  0x000000000040505a in main (argc=2, argv=0x7ffe249d76b8) at main.c:60
+(gdb) quit
+
+

@@ -135,45 +135,106 @@ void forward_word()
 		++curbp->b_point;
 }
 
+/* standard insert at the keyboard */
 void insert()
 {
 	assert(curbp->b_gap <= curbp->b_egap);
+
 	if (curbp->b_gap == curbp->b_egap && !growgap(curbp, CHUNK))
 		return;
 	curbp->b_point = movegap(curbp, curbp->b_point);
+
 
 	/* overwrite if mid line, not EOL or EOF, CR will insert as normal */
 	if ((curbp->b_flags & B_OVERWRITE) && *input != '\r' && *(ptr(curbp, curbp->b_point)) != '\n' && curbp->b_point < pos(curbp,curbp->b_ebuf) ) {
 		*(ptr(curbp, curbp->b_point)) = *input;
 		if (curbp->b_point < pos(curbp, curbp->b_ebuf))
 			++curbp->b_point;
+		/* FIXME - overwite mode not handled properly for undo yet */
 	} else {
 		*curbp->b_gap++ = *input == '\r' ? '\n' : *input;
 		curbp->b_point = pos(curbp, curbp->b_egap);
+		/* the point is set so that and undo will backspace over the char */
+		add_undo(curbp, UNDO_T_INSERT, curbp->b_point, *input, NULL);
 	}
-	curbp->b_flags |= B_MODIFIED;
+	add_mode(curbp, B_MODIFIED);
+}
+
+/*
+ * A special insert used as the undo of delete char (C-d or DEL)
+ * this is where the char is inserted at the point and the cursor
+ * is NOT moved on 1 char.  This MUST be a seperate function so that
+ *   INSERT + BACKSPACE are matching undo pairs
+ *   INSERT_AT + DELETE are matching undo pairs
+ * Note: This function is only ever called by execute_undo to undo a DEL.
+ */
+void insert_at()
+{
+	assert(curbp->b_gap <= curbp->b_egap);
+
+	if (curbp->b_gap == curbp->b_egap && !growgap(curbp, CHUNK))
+		return;
+	curbp->b_point = movegap(curbp, curbp->b_point);
+
+
+	/* overwrite if mid line, not EOL or EOF, CR will insert as normal */
+	if ((curbp->b_flags & B_OVERWRITE) && *input != '\r' && *(ptr(curbp, curbp->b_point)) != '\n' && curbp->b_point < pos(curbp,curbp->b_ebuf) ) {
+		*(ptr(curbp, curbp->b_point)) = *input;
+		if (curbp->b_point < pos(curbp, curbp->b_ebuf))
+			++curbp->b_point;
+		/* FIXME - overwite mode not handled properly for undo yet */
+	} else {
+		*curbp->b_gap++ = *input == '\r' ? '\n' : *input;
+		curbp->b_point = pos(curbp, curbp->b_egap);
+		curbp->b_point--; /* move point back to where it was before, should always be safe */
+		/* the point is set so that and undo will DELETE the char */
+		add_undo(curbp, UNDO_T_INSAT, curbp->b_point, *input, NULL);
+	}
+
+	add_mode(curbp, B_MODIFIED);
 }
 
 void backsp()
 {
+	char_t the_char[7]; /* the deleted char, allow 6 unsigned chars plus a null */
 	int n = prev_utf8_char_size();
+
 	curbp->b_point = movegap(curbp, curbp->b_point);
 	undoset();
-	if (curbp->b_buf < curbp->b_gap) {
+
+	if (curbp->b_buf < (curbp->b_gap - (n -1)) ) {
 		curbp->b_gap -= n; /* increase start of gap by size of char */
-		curbp->b_flags |= B_MODIFIED;
+		add_mode(curbp, B_MODIFIED);
+
+		/* record the backspaced chars in the undo structure */
+		memcpy(the_char, curbp->b_gap, n);
+		the_char[n] = '\0'; /* null terminate, the backspaced char(s) */
+		curbp->b_point = pos(curbp, curbp->b_egap);
+		//debug("point after bs = %ld\n", curbp->b_point);
+		add_undo(curbp, UNDO_T_BACKSPACE, curbp->b_point, 0, the_char);
 	}
+
 	curbp->b_point = pos(curbp, curbp->b_egap);
 }
 
 void delete()
 {
+	char_t the_char[7]; /* the deleted char, allow 6 unsigned chars plus a null */
+	int n;
+
 	curbp->b_point = movegap(curbp, curbp->b_point);
 	undoset();
+	n = utf8_size(*(ptr(curbp, curbp->b_point)));
+
 	if (curbp->b_egap < curbp->b_ebuf) {
-		curbp->b_egap += utf8_size(*(ptr(curbp, curbp->b_point)));
+		/* record the deleted chars in the undo structure */
+		memcpy(the_char, curbp->b_egap, n);
+		the_char[n] = '\0'; /* null terminate, the deleted char(s) */
+		//debug("deleted = '%s'\n", the_char);
+		curbp->b_egap += n;
 		curbp->b_point = pos(curbp, curbp->b_egap);
-		curbp->b_flags |= B_MODIFIED;
+		add_mode(curbp, B_MODIFIED);
+		add_undo(curbp, UNDO_T_DELETE, curbp->b_point, 0, the_char);
 	}
 }
 
@@ -289,7 +350,7 @@ void i_set_mark()
 
 void set_mark()
 {
-	curbp->b_mark = curbp->b_point;
+	curbp->b_mark = (curbp->b_mark == curbp->b_point ? NOMARK : curbp->b_point);
 }
 
 void unmark()
@@ -351,6 +412,7 @@ void copy_cut(int cut)
 		free(scrap);
 		scrap = NULL;
 	}
+
 	if (curbp->b_point < curbp->b_mark) {
 		/* point above mark: move gap under point, region = mark - point */
 		(void) movegap(curbp, curbp->b_point);
@@ -371,9 +433,11 @@ void copy_cut(int cut)
 		(void) memcpy(scrap, p, nscrap * sizeof (char_t));
 		*(scrap + nscrap) = '\0';  /* null terminate for insert_string */
 		if (cut) {
+			//debug("CUT: pt=%ld nscrap=%d\n", curbp->b_point, nscrap);
+			add_undo(curbp, UNDO_T_KILL, (curbp->b_point < curbp->b_mark ? curbp->b_point : curbp->b_mark), '\0', scrap);
 			curbp->b_egap += nscrap; /* if cut expand gap down */
 			curbp->b_point = pos(curbp, curbp->b_egap); /* set point to after region */
-			curbp->b_flags |= B_MODIFIED;
+			add_mode(curbp, B_MODIFIED);
 			run_kill_hook(curbp->b_bname);
 			msg(m_cut, nscrap);
 		} else {
@@ -415,10 +479,12 @@ void insert_string(char *str)
 	} else if (len < curbp->b_egap - curbp->b_gap || growgap(curbp, len)) {
 		curbp->b_point = movegap(curbp, curbp->b_point);
 		undoset();
+		//debug("INS STR: pt=%ld len=%d\n", curbp->b_point, strlen((char *)str));
+		add_undo(curbp, UNDO_T_YANK, curbp->b_point, '\0', (char_t *)str);
 		memcpy(curbp->b_gap, str, len * sizeof (char_t));
 		curbp->b_gap += len;
 		curbp->b_point = pos(curbp, curbp->b_egap);
-		curbp->b_flags |= B_MODIFIED;
+		add_mode(curbp, B_MODIFIED);
 	}
 }
 
@@ -441,7 +507,7 @@ void append_string(buffer_t *bp, char *str)
 		memcpy(bp->b_gap, str, len * sizeof (char_t));
 		bp->b_gap += len;
 		bp->b_point = pos(bp, bp->b_egap);
-		bp->b_flags |= B_MODIFIED;
+		add_mode(curbp, B_MODIFIED);
 		bp->b_epage = bp->b_point = pos(bp, bp->b_ebuf); /* goto end of buffer */
 
 		/* if window is displayed mark all windows for update */
@@ -450,6 +516,18 @@ void append_string(buffer_t *bp, char *str)
 			mark_all_windows();
 		}
 	}
+}
+
+void log_debug_message(char *format, ...)
+{
+	char buffer[256];
+	va_list args;
+
+	va_start(args, format);
+	vsprintf(buffer, format, args);
+	va_end(args);
+
+	log_message(buffer);
 }
 
 void log_message(char *str)
@@ -613,6 +691,15 @@ void shell_command(char *command)
 	load_file(output_file);
 	msg(""); /* clear the msg line, dont display temp filename */
 	safe_strncpy(curbp->b_bname, str_output, NBUFN);
+}
+
+int add_mode_global(char *mode_name)
+{
+	if (0 == strcmp(mode_name, "undo")) {
+		global_undo_mode = 1;
+		return 1;
+	}
+	return 0;
 }
 
 void version()

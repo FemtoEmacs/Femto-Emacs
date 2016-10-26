@@ -94,7 +94,7 @@ void query_replace(void)
 		/* now just overwrite the chars at point in the buffer */
 		l_point = curbp->b_point;
 		memcpy(ptr(curbp, curbp->b_point), replace, rlen * sizeof (char_t));
-		curbp->b_flags |= B_MODIFIED;
+		add_mode(curbp, B_MODIFIED);
 		curbp->b_point = found - (slen - rlen); /* end of replcement */
 		numsub++;
 	}

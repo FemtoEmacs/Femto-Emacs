@@ -279,6 +279,15 @@ static value_t msg_lisp(value_t *args, u_int32_t nargs) {
 	return FL_T;
 }
 
+static value_t fe_add_mode_global(value_t *args, u_int32_t nargs) {
+	argcount("add-mode-global", nargs, 1);
+	value_t a = args[0];
+	char *str = cptr(a);
+	int result = add_mode_global(str);
+	return (result == 1 ? FL_T : FL_F);
+}
+
+
 /* log a string to debug.out  */
 static value_t fe_log_debug(value_t *args, u_int32_t nargs) {
 	argcount("log-debug", nargs, 1);
@@ -852,6 +861,7 @@ extern void iostream_init(void);
  */
 
 static builtinspec_t builtin_info[] = {
+	{"add-mode-global", fe_add_mode_global},
 	{"insert", insrt},
 	{"backward-delete-char", backspace},
 	{"backward-char", bkwrd},

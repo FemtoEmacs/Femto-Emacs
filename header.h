@@ -18,13 +18,11 @@
 #undef _
 #define _(x)    x
 
-#define VERSION	 "FemtoEmacs 1.7, Public Domain, 2016"
+#define VERSION	 "FemtoEmacs 1.8, Public Domain, 2016"
 #define EXIT_OK         0               /* Success */
 #define EXIT_ERROR      1               /* Unknown error. */
 #define EXIT_USAGE      2               /* Usage */
 #define EXIT_FAIL       3               /* Known failure. */
-#define B_MODIFIED	0x01		/* modified buffer */
-#define B_OVERWRITE	0x02		/* overwite mode */
 #define MSGLINE         (LINES-1)
 #define NOMARK          -1
 #define NOPAREN         -1
@@ -51,17 +49,35 @@
 #define ID_COLOR_DIGITS    6
 #define ID_COLOR_COMMENTS  7
 
+/* undo types, in matched pairs */
+#define UNDO_T_NONE        0
+#define UNDO_T_INSERT      1
+#define UNDO_T_BACKSPACE   2
+#define UNDO_T_KILL        3
+#define UNDO_T_YANK        4
+#define UNDO_T_DELETE      5
+#define UNDO_T_INSAT       6
+
+#define STR_T_INSERT       "INSERT"
+#define STR_T_BACKSP       "BACKSP"
+#define STR_T_KILL         "KILL  "
+#define STR_T_YANK         "YANK  "
+#define STR_T_DELETE       "DELETE"
+#define STR_T_INSAT        "INSAT "
+#define STR_T_NONE         "NONE  "
+
 #define ZERO_STRING(X) X[0]='\0';
 
 typedef unsigned char char_t;
 typedef long point_t;
 #define FEMTO_POINT_T      1
 
-/* stack structure for tracking scraps */
-typedef struct pscrap_t {
-        char_t *scrap;
-        struct pscrap_t *next;
-} pscrap_t;	
+typedef enum {
+	B_MODIFIED = 0x01,
+	B_OVERWRITE = 0x02,		/* overwite mode */
+	B_SPECIAL = 0x04,		/* is a special buffer name of form '*name*' */
+	B_UNDO = 0x08,                  /* undo mode */
+} buffer_flags_t;
 
 typedef struct string_list_t
 {
@@ -81,12 +97,24 @@ typedef struct command_t {
 	void (*func) (void);
 } command_t;
 
+/* old undo structure will be deprecated soon */
 typedef struct undo_t {
 	point_t u_point;
 	point_t u_gap;
 	point_t u_egap;
 	char u_flags;
 } undo_t;
+
+/*
+ * This structure supports the unlimited undo feature
+ * Its members must be kept to a minimum as each instance takes up to 32 bytes
+ */
+typedef struct undo_tt {
+	point_t  u_point;
+	char_t  *u_string;
+	char_t   u_type;
+	struct undo_tt *u_prev;
+} undo_tt;
 
 typedef struct buffer_t
 {
@@ -108,8 +136,10 @@ typedef struct buffer_t
 	int b_col;                /* cursor col */
 	char b_fname[NAME_MAX + 1]; /* filename */
 	char b_bname[NBUFN];      /* buffer name */
-	char b_flags;             /* buffer flags */
+	buffer_flags_t b_flags;   /* buffer flags */
 	undo_t b_ubuf;            /* undoset */
+	undo_tt *b_utail;         /* recent end of undo list */
+	int b_ucnt;               /* count of how many chars to undo on current undo */
 } buffer_t;
 
 typedef struct window_t
@@ -145,6 +175,7 @@ extern window_t *wheadp;
 
 extern int done;                /* Quit flag. */
 extern int msgflag;             /* True if msgline should be displayed. */
+extern int global_undo_mode;    /* True if we are undo mode is allowed by default */
 extern point_t nscrap;          /* Length of scrap buffer. */
 extern char_t *scrap;           /* Allocated scrap buffer. */
 extern char_t *input;
@@ -260,6 +291,7 @@ extern void delete _((void));
 extern void toggle_overwrite_mode(void);
 extern void down _((void));
 extern void insert _((void));
+extern void insert_at(void);
 extern void paste _((void));
 extern void quit _((void));
 extern int yesno _((int));
@@ -276,6 +308,7 @@ extern void clear_buffer(void);
 extern void zero_buffer(buffer_t *);
 extern int buffer_is_empty(buffer_t *);
 extern void debug(char *, ...);
+extern void log_debug_message(char *, ...);
 extern void debug_stats(char *);
 extern void showpos(void);
 extern void killtoeol(void);
@@ -289,6 +322,8 @@ extern void update_search_prompt(char *, char *);
 extern void display_search_result(point_t, int, char *, char *);
 extern void move_to_search_result(point_t);
 extern buffer_t* find_buffer (char *, int);
+extern void add_mode(buffer_t *, buffer_flags_t);
+extern void delete_mode(buffer_t *, buffer_flags_t);
 extern void buffer_init(buffer_t *);
 extern int delete_buffer(buffer_t *);
 extern void next_buffer(void);
@@ -343,15 +378,22 @@ extern void resize_terminal();
 extern int match_string_position(string_list_t *, int);
 extern int shortest_string_len(string_list_t *);
 extern char *shortest_common_string(string_list_t *);
-
-/* functions to pscrap_t */
-extern void ps_push(pscrap_t *p, char_t *scrap);
-extern void ps_pop(pscrap_t *p);
-extern char_t* ps_top(pscrap_t *st);
-extern int ps_size(pscrap_t *st);
+extern undo_tt *new_undo();
+extern void add_undo(buffer_t *, char, point_t, char_t c, char_t *);
+extern void free_undos(undo_tt *);
+extern void list_undos(void);
+extern void dump_undos(buffer_t *);
+extern int count_undos(buffer_t *);
+extern int get_total_undo_size(buffer_t *);
+extern int get_undo_size(undo_tt *);
+extern void list_undo_stats();
+extern void append_undo_char(undo_tt *, char);
+extern void append_undo_string(undo_tt *, char_t *);
+extern void undo_command(void);
+extern undo_tt *execute_undo(undo_tt *);
+extern int get_undo_again(void);
 
 /*
  * include public Femto interface functions definitions 
  */
 #include "public.h"
-

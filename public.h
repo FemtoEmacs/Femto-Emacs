@@ -58,3 +58,4 @@ extern void log_debug(char *);
 extern void set_scrap(unsigned char *);
 extern unsigned char *get_scrap(void);
 extern void log_message(char *);
+extern int add_mode_global(char *);

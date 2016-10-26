@@ -7,6 +7,7 @@
 
 int done;
 int result;
+int global_undo_mode = 0;
 point_t nscrap;
 char_t *scrap;
 char_t *input;

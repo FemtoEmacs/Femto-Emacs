@@ -124,7 +124,8 @@ int save_buffer(buffer_t *bp, char *fn)
 		msg(m_close, fn);
 		return (FALSE);
 	}
-	bp->b_flags &= ~B_MODIFIED;
+	delete_mode(bp, B_MODIFIED);
+	//bp->b_flags &= ~B_MODIFIED;
 	msg(m_saved, fn, pos(bp, bp->b_ebuf));
 	return (TRUE);
 }
@@ -175,7 +176,7 @@ int insert_file(char *fn, int modflag)
 	return (TRUE);
 }
 
-/* Record a new undo location */
+/* Record a new undo location, deprecated ! */
 void undoset()
 {
 	curbp->b_ubuf.u_point = curbp->b_point;
@@ -185,7 +186,7 @@ void undoset()
 
 }
 
-/* Undo */
+/* Undo, deprecated, soon to be removed */
 void undo()
 {
 	undo_t tmp;

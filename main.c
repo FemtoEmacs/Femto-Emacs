@@ -19,6 +19,9 @@ int main(int argc, char **argv)
 		--i;
 	prog_name += i+1;
 
+	/* we need to load up lisp early as it has an impact on mode settings for buffers */
+	initLisp(1, flargv);
+
 	setlocale(LC_ALL, ""); /* required for 3,4 byte UTF8 chars */
 
 	if (initscr() == NULL)
@@ -58,7 +61,7 @@ int main(int argc, char **argv)
 	beginning_of_buffer();
 	undoset();
 	key_map = keymap;
-	initLisp(1, flargv);
+
 
 	while (!done) {
 		update_display();

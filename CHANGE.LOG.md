@@ -1,5 +1,9 @@
 #Femto Emacs Change Log
 
+## Femto 1.8 23 Oct 2016
+* Added unlimited undo (supports Insert, Backspace, Yank, Kill-Region, Delete), see docs/undo.txt for details
+* Added special buffer mode for buffers that have names starting with * (Thanks to chigoncalves)
+
 ## Femto 1.7 9 Oct 2016
 * Potential fix for segmentation fault when calling (environment) within FemtoEmacs
 

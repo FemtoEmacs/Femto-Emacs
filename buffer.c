@@ -23,6 +23,8 @@ void buffer_init(buffer_t *bp)
 	bp->b_next = NULL;
 	bp->b_bname[0] = '\0';
 	bp->b_fname[0] = '\0';
+	bp->b_utail = NULL;
+	bp->b_ucnt = -1;
 }
 
 void zero_buffer(buffer_t *bp)
@@ -69,7 +71,7 @@ buffer_t *find_buffer (char *bname, int cflag)
 		/* find the place in the list to insert this buffer */
 		if (bheadp == NULL) {
 			bheadp = bp;
-		} else if (strcmp (bheadp->b_bname, bname) > 0) {
+		} else if (strcmp(bheadp->b_bname, bname) > 0) {
 			/* insert at the begining */
 			bp->b_next = bheadp;
 			bheadp = bp;
@@ -83,7 +85,12 @@ buffer_t *find_buffer (char *bname, int cflag)
 			sb->b_next = bp;
 		}
 
-		strcpy(bp->b_bname, bname);
+		safe_strncpy(bp->b_bname, bname, NBUFN);
+		if (bp->b_bname[0] == '*')
+			add_mode(bp, B_SPECIAL); /* special buffers start with * in the name */
+		else if (global_undo_mode)
+			add_mode(bp, B_UNDO);
+
 		/* a newly created buffer needs to have a gap otherwise it is not ready for insertion */
 		if (!growgap(bp, MIN_GAP_EXPAND))
 			msg(f_alloc);
@@ -91,12 +98,26 @@ buffer_t *find_buffer (char *bname, int cflag)
 	return bp;
 }
 
+void add_mode(buffer_t *bp, buffer_flags_t mode)
+{
+	/* we dont allow undo mode for special buffers */
+	if ( mode == B_UNDO && (bp->b_flags & B_SPECIAL))
+		return;
+
+	bp->b_flags |= mode;
+}
+
+void delete_mode(buffer_t *bp, buffer_flags_t mode)
+{
+	bp->b_flags &= ~mode;
+}
+
 /*
  * Unlink from the list of buffers
  * Free the memory associated with the buffer
  * assumes that buffer has been saved if modified
  */
-int delete_buffer (buffer_t *bp)
+int delete_buffer(buffer_t *bp)
 {
 	buffer_t *sb = NULL;
 
@@ -115,6 +136,7 @@ int delete_buffer (buffer_t *bp)
 	}
 
 	/* now we can delete */
+	free_undos(bp->b_utail);
 	free(bp->b_buf);
 	free(bp);
 	return TRUE;
@@ -164,7 +186,7 @@ int modified_buffers()
 	buffer_t* bp;
 
 	for (bp=bheadp; bp != NULL; bp = bp->b_next)
-		if (bp->b_flags & B_MODIFIED)
+		if (!(bp->b_flags & B_SPECIAL) && bp->b_flags & B_MODIFIED)
 			return TRUE;
 
 	return FALSE;
@@ -232,7 +254,6 @@ void list_buffers()
 	char *fn;
 
 	list_bp = find_buffer(str_buffers, TRUE);
-	strcpy(list_bp->b_bname, str_buffers);
 
 	disassociate_b(curwp); /* we are leaving the old buffer for a new one */
 	curbp = list_bp;
@@ -255,6 +276,4 @@ void list_buffers()
 		}
 		bp = bp->b_next;
 	}
-
-	curbp->b_flags &= ~B_MODIFIED; /* set as not modified so that we dont get prompted to save */
 }

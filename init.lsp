@@ -3,11 +3,21 @@
 ;; in the HOME directory. For example killring.scm and buffmenu.scm
 ;;
 ;;
+
 ;; Compatibility with SICP
 (define (home f)
    (string (os.getenv "HOME") "/" f))
 
 (load (home "r5rs.scm"))
+
+;;
+;; comment the line below to disable unlimited undo mode
+;;
+;; activate unlimited undo for non-special buffers
+;; not advisable on systems with low memory footprint as the undo history
+;; needs to be stored in memory for each buffer that is modified.
+;;
+(add-mode-global "undo")
 
 ;;
 ;; The function read-string is necessary for reading a Lisp list from a string. 
