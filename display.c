@@ -263,6 +263,7 @@ void modeline(window_t *wp)
 {
 	int i;
 	char lch, mch, och;
+	static char modeline_buf[256];
 
 	/* n = utf8_size(*(ptr(wp->w_bufp, wp->w_bufp->b_point))); */
 	attron(COLOR_PAIR(ID_COLOR_MODELINE));
@@ -272,14 +273,14 @@ void modeline(window_t *wp)
 	och = ((wp->w_bufp->b_flags & B_OVERWRITE) ? 'O' : lch);
 
 	/* debug version */
-	/* sprintf(temp, "%c%c%c Femto: %c%c %s %s  T%dR%d Pt%ld Pg%ld Pe%ld r%dc%d B%d",  lch,och,mch,lch,lch, wp->w_name, get_buffer_modeline_name(wp->w_bufp), wp->w_top, wp->w_rows, wp->w_point, wp->w_bufp->b_page, wp->w_bufp->b_epage, wp->w_bufp->b_row, wp->w_bufp->b_col, wp->w_bufp->b_cnt); */
+	/* sprintf(modeline_buf, "%c%c%c Femto: %c%c %s %s  T%dR%d Pt%ld Pg%ld Pe%ld r%dc%d B%d",  lch,och,mch,lch,lch, wp->w_name, get_buffer_modeline_name(wp->w_bufp), wp->w_top, wp->w_rows, wp->w_point, wp->w_bufp->b_page, wp->w_bufp->b_epage, wp->w_bufp->b_row, wp->w_bufp->b_col, wp->w_bufp->b_cnt); */
 
-	/* sprintf(temp, "%c%c%c Femto: %c%c %s %s  T%dR%d Pt%ld Pg%ld Pe%ld r%dc%d B%d N%d",  lch,och,mch,lch,lch, wp->w_name, get_buffer_modeline_name(wp->w_bufp), wp->w_top, wp->w_rows, wp->w_point, wp->w_bufp->b_page, wp->w_bufp->b_epage, wp->w_bufp->b_row, wp->w_bufp->b_col, wp->w_bufp->b_cnt, n); */
+	/* sprintf(modeline_buf, "%c%c%c Femto: %c%c %s %s  T%dR%d Pt%ld Pg%ld Pe%ld r%dc%d B%d N%d",  lch,och,mch,lch,lch, wp->w_name, get_buffer_modeline_name(wp->w_bufp), wp->w_top, wp->w_rows, wp->w_point, wp->w_bufp->b_page, wp->w_bufp->b_epage, wp->w_bufp->b_row, wp->w_bufp->b_col, wp->w_bufp->b_cnt, n); */
 
-	sprintf(temp, "%c%c%c Femto: %c%c %s",  lch,och,mch,lch,lch, get_buffer_modeline_name(wp->w_bufp));
-	addstr(temp);
+	sprintf(modeline_buf, "%c%c%c Femto: %c%c %s",  lch,och,mch,lch,lch, get_buffer_modeline_name(wp->w_bufp));
+	addstr(modeline_buf);
 
-	for (i = strlen(temp) + 1; i <= COLS; i++)
+	for (i = strlen(modeline_buf) + 1; i <= COLS; i++)
 		addch(lch);
 	attron(COLOR_PAIR(ID_COLOR_SYMBOL));
 }

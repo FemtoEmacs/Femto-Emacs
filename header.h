@@ -177,11 +177,10 @@ extern point_t nscrap;          /* Length of scrap buffer. */
 extern char_t *scrap;           /* Allocated scrap buffer. */
 extern char_t *input;
 extern char msgline[];          /* Message line input/output buffer. */
-extern char temp[];             /* Temporary buffer. */
+extern char response_buf[];     /* Temporary buffer. */
 extern char searchtext[];
 extern char replace[];
 extern char lisp_query[];
-extern char lisp_result[];
 extern char *prog_name;         /* Name used to invoke editor. */
 extern keymap_t *key_map;       /* Command key mappings. */
 extern keymap_t keymap[];
@@ -354,9 +353,8 @@ extern char* get_temp_file(void);
 extern void match_parens(void);
 extern void match_paren_forwards(buffer_t *, char, char);
 extern void match_paren_backwards(buffer_t *, char, char);
-extern void initLisp(int argc, char *[]);
-extern void callLisp(char *, char *);
-extern char *callLisp2(char *);
+extern int init_lisp(int);
+extern char *call_lisp(char *);
 
 extern int scan_for_keywords(char_t *, int *);
 extern void scan_for_comments(char_t *, int *, int *);

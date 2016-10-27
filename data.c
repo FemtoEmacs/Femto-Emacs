@@ -13,11 +13,10 @@ char_t *scrap;
 char_t *input;
 int msgflag;
 char msgline[TEMPBUF];
-char temp[TEMPBUF];
+char response_buf[TEMPBUF];
 char searchtext[STRBUF_M];
 char replace[STRBUF_M];
 char *prog_name;
-char lisp_result[LISP_IN_OUT];
 char lisp_query[LISP_IN_OUT];
 
 keymap_t *key_return;

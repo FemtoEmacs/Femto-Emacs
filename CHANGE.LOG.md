@@ -2,6 +2,13 @@
 
 ## Femto 1.8.1 27 Oct 2016
 * removed _(x) macro from header.h
+* changed C-o to Esc-; for repl(), frees up Control-O for other editor commands.
+* cleaned up call_lisp code in flcall.c
+* cleaned up main code that calls init_lisp(), pass size of heap in KB into init_lisp().
+* removed double wrapping of lisp commands with the (let ((b buffer)) expression
+* changed repl() so that output more than 60 chars is sent to a *lisp_output* buffer that pops up
+* changed killbuffer so it does not ask to kill a special buffer (even if modified)
+* renamed temp to response_buf and ensured we only use it for getting response at the command line
 
 ## Femto 1.8 26 Oct 2016
 * Added unlimited undo (supports Insert, Backspace, Yank, Kill-Region, Delete), see docs/undo.txt for details

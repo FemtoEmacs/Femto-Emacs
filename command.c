@@ -242,8 +242,8 @@ void i_gotoline()
 {
 	int line;
 
-	if (getinput(m_goto, (char*)temp, STRBUF_S, F_CLEAR)) {
-		line = atoi(temp);
+	if (getinput(m_goto, (char*)response_buf, STRBUF_S, F_CLEAR)) {
+		line = atoi(response_buf);
 		goto_line(line);
 	}
 }
@@ -263,8 +263,8 @@ void goto_line(int line)
 
 void insertfile()
 {
-	if (getfilename(str_insert_file, (char*) temp, NAME_MAX))
-		(void)insert_file(temp, TRUE);
+	if (getfilename(str_insert_file, (char*) response_buf, NAME_MAX))
+		(void)insert_file(response_buf, TRUE);
 }
 
 void readfile()
@@ -272,8 +272,8 @@ void readfile()
 	buffer_t *bp;
 	char bname[NBUFN];
 
-	if (getfilename(str_read, (char*)temp, NAME_MAX)) {
-		mk_buffer_name(bname, temp);
+	if (getfilename(str_read, (char*)response_buf, NAME_MAX)) {
+		mk_buffer_name(bname, response_buf);
 		bp = find_buffer(bname, TRUE);
 		disassociate_b(curwp); /* we are leaving the old buffer for a new one */
 		curbp = bp;
@@ -281,10 +281,10 @@ void readfile()
 
 		/* load the file if not already loaded */
 		if (bp != NULL && bp->b_fname[0] == '\0') {
-			if (!load_file(temp)) {
-				msg(m_newfile, temp);
+			if (!load_file(response_buf)) {
+				msg(m_newfile, response_buf);
 			}
-			safe_strncpy(curbp->b_fname, temp, NAME_MAX);
+			safe_strncpy(curbp->b_fname, response_buf, NAME_MAX);
 		}
 		undoset();
 	}
@@ -303,10 +303,10 @@ void savebuffer()
 
 void writefile()
 {
-	safe_strncpy(temp, curbp->b_fname, NAME_MAX);
-	if (getinput(str_write, (char*)temp, NAME_MAX, F_NONE)) {
-		if (save_buffer(curbp, temp) == TRUE) {
-			safe_strncpy(curbp->b_fname, temp, NAME_MAX);
+	safe_strncpy(response_buf, curbp->b_fname, NAME_MAX);
+	if (getinput(str_write, (char*)response_buf, NAME_MAX, F_NONE)) {
+		if (save_buffer(curbp, response_buf) == TRUE) {
+			safe_strncpy(curbp->b_fname, response_buf, NAME_MAX);
 			// FIXME - what if name already exists, in editor
 			// FIXME? - do we want to change the name of the buffer when we save_as ?
 			mk_buffer_name(curbp->b_bname, curbp->b_fname);
@@ -324,7 +324,7 @@ void killbuffer()
 	if (bcount == 1 && 0 == strcmp(get_buffer_name(curbp), str_scratch))
               return;
 
-	if (curbp->b_flags & B_MODIFIED) {
+	if (!(curbp->b_flags & B_SPECIAL) && curbp->b_flags & B_MODIFIED) {
 		mvaddstr(MSGLINE, 0, str_notsaved);
 		clrtoeol();
 		if (!yesno(FALSE))
@@ -668,8 +668,8 @@ void i_describe_key()
 
 void i_shell_command()
 {
-	if (getinput(str_shell_cmd, (char*)temp, NAME_MAX, F_CLEAR))
-		shell_command(temp);
+	if (getinput(str_shell_cmd, (char*)response_buf, NAME_MAX, F_CLEAR))
+		shell_command(response_buf);
 }
 
 void shell_command(char *command)
@@ -712,28 +712,29 @@ char *get_version_string()
 	return m_version;
 }
 
+/*
 static char *wrp=
 "(trycatch (let ((b (buffer))) \
    (with-output-to b (princ %s)) \
    (io.tostring! b)) (lambda(x) x ))";
+*/
 
 char *whatKey= "";
 
 /* Keyboard Definition is done by user in Lisp */
 void keyboardDefinition()
 {
-	sprintf(temp, "(keyboard \"%s\")", whatKey);
-	sprintf(lisp_query, wrp, temp);
-	callLisp(lisp_result, lisp_query);
+	char key_cmd[80];
+	sprintf(key_cmd, "(keyboard \"%s\")", whatKey);
+	(void)call_lisp(key_cmd);
 }
 
 /* call user defined kill-hook procedure */
 void run_kill_hook(char *bufname)
 {
-	sprintf(temp, "(kill-hook \"%s\")", bufname);
-	sprintf(lisp_query, wrp, temp);
-	//callLisp(lisp_result, lisp_query);
-	(void)callLisp2(lisp_query);
+	char cmd[80];
+	sprintf(cmd, "(kill-hook \"%s\")", bufname);
+	(void)call_lisp(cmd);
 }
 
 void log_debug(char *s)
@@ -743,21 +744,38 @@ void log_debug(char *s)
 
 
 /*
+ * execute a lisp command type in atthe command prompt >
  * send any outout to the message line.  This avoids text
  * being sent to the current buffer which means the file
  * contents could get corrupted if you are running commands
- * on the buffers etc.  This assumes that the output will fix
- * on 1 line.
+ * on the buffers etc.
+ * 
+ * If the output is too big for the message line then send it to
+ * a temp buffer called *list_output* and popup the window
+ *
  */
 void repl()
 {
-	if (getinput("> ", temp, TEMPBUF, F_CLEAR)) {
-		sprintf(lisp_query, wrp, temp);
-		callLisp(lisp_result, lisp_query);
-		msg(lisp_result);
+	char *output;
+	buffer_t *bp;
+
+	if (getinput("> ", lisp_query, TEMPBUF, F_CLEAR)) {
+		output = call_lisp(lisp_query);
+
+		if (strlen(output) < 60) {
+			msg(output);
+		} else {
+			bp = find_buffer("*lisp_output*", TRUE);
+			append_string(bp, output);
+			(void)popup_window(bp->b_bname);
+		}
 	}
 }
 
+/*
+ * evaluate a block of lisp code encased between a start ( and end )
+ *
+ */
 void eval_block() {
 	point_t temp;
 	point_t found;
@@ -784,7 +802,7 @@ void eval_block() {
 
 	curbp->b_mark = curbp->b_paren;
 
-	/* if at start of block got to end of block */
+	/* if at start of block goto the end of block */
 	if (curbp->b_point < curbp->b_paren) {
 		temp = curbp->b_mark;
 		curbp->b_mark =	curbp->b_point;
@@ -794,18 +812,11 @@ void eval_block() {
 	right(); /* if we have a matching brace we should always be able to move to right */
 	copy();
 	assert(scrap != NULL);
-	//remove_control_chars(scrap);
-
-	sprintf(lisp_query, wrp, scrap);
-	//debug("eval_block: %s\n", lisp_query);
-
-	//callLisp(lisp_result, lisp_query);
- 	char *s = callLisp2(lisp_query);
+ 	char *output = call_lisp((char *)scrap);
 
 	insert_string("\n");
-	insert_string(s);
+	insert_string(output);
 	insert_string("\n");
-	//debug("result: %s\n", lisp_result);
 
 	/* later we will avoid using mark/point to grab the block */
 	clear_message_line();

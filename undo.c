@@ -364,6 +364,7 @@ void dump_undos(buffer_t *bp)
 	int count = 0;
 	int size = 0;
 	char_t line[41];
+	char report_line[90];
 	undo_tt *prev;
 	buffer_t *list_bp = find_buffer("*undos*", TRUE);
 
@@ -383,8 +384,8 @@ void dump_undos(buffer_t *bp)
 		size = get_undo_size(prev);
 		safe_strncpy((char *)line, (char *)str, 40);
 		remove_control_chars(line);
-		sprintf(temp, "%03d %6s %9ld %4d %s\n",  ++count, get_undo_type_name(prev), prev->u_point, size, line);
-		insert_string(temp);
+		sprintf(report_line, "%03d %6s %9ld %4d %s\n",  ++count, get_undo_type_name(prev), prev->u_point, size, line);
+		insert_string(report_line);
 		prev = prev->u_prev;
 	}
 }
@@ -395,6 +396,7 @@ void list_undo_stats()
 	buffer_t *bp;
 	buffer_t *list_bp;
 	char blank[] = " ";
+	char report_line[90];
 	char *bn;
 	int count;
 	int size;
@@ -417,8 +419,8 @@ void list_undo_stats()
 			count = count_undos(bp);
 			size = get_total_undo_size(bp);
 
-			sprintf(temp, "%-16s %4d %9d\n",  bn, count, size);
-			insert_string(temp);
+			sprintf(report_line, "%-16s %4d %9d\n",  bn, count, size);
+			insert_string(report_line);
 		}
 		bp = bp->b_next;
 	}

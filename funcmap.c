@@ -156,7 +156,7 @@ void apropos_command()
 	char bindlist[40];
 	char apropos[STRBUF_M];
 
-	if (0 == getinput(str_apropos, (char*)temp, STRBUF_M, F_CLEAR))
+	if (0 == getinput(str_apropos, response_buf, STRBUF_M, F_CLEAR))
 		return;
 
 	bp = find_buffer(str_help_buf, TRUE);
@@ -164,7 +164,7 @@ void apropos_command()
 	zero_buffer(bp);
 
 	for (fn = commands; fn->name != NULL; fn++) {
-		if (strstr(fn->name, temp) == NULL)
+		if (strstr(fn->name, response_buf) == NULL)
 			continue;
 
 		bindlist[0] = '\0';

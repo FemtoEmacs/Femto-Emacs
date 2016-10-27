@@ -250,6 +250,7 @@ void list_buffers()
 	buffer_t *list_bp;
 	char mod_ch, over_ch;
 	char blank[] = " ";
+	static char report_line[NAME_MAX + 40];
 	char *bn;
 	char *fn;
 
@@ -271,8 +272,8 @@ void list_buffers()
 			over_ch = ((bp->b_flags & B_OVERWRITE) ? 'O' : ' ');
 			bn = (bp->b_bname[0] != '\0' ? bp->b_bname : blank);
 			fn = (bp->b_fname[0] != '\0' ? bp->b_fname : blank);
-			sprintf(temp, "%c%c %7d %-16s %s\n",  mod_ch, over_ch, bp->b_size, bn, fn);
-			insert_string(temp);
+			sprintf(report_line, "%c%c %7d %-16s %s\n",  mod_ch, over_ch, bp->b_size, bn, fn);
+			insert_string(report_line);
 		}
 		bp = bp->b_next;
 	}

@@ -8,9 +8,6 @@
 int main(int argc, char **argv)
 {
 	int i;
-	char *flargv[10];
-	flargv[0]= (char *)malloc(300);
-	flargv[1]= (char *)malloc(300);
 
 	/* Find basename. */
 	prog_name = *argv;
@@ -20,7 +17,7 @@ int main(int argc, char **argv)
 	prog_name += i+1;
 
 	/* we need to load up lisp early as it has an impact on mode settings for buffers */
-	initLisp(1, flargv);
+	init_lisp(512); /* with 512k heap */
 
 	setlocale(LC_ALL, ""); /* required for 3,4 byte UTF8 chars */
 
@@ -44,12 +41,13 @@ int main(int argc, char **argv)
 
 	if (1 < argc) {
 		char bname[NBUFN];
+		char fname[NAME_MAX + 1];
 		/* Save filename irregardless of load() success. */
-		safe_strncpy(temp, argv[1], NAME_MAX);
-		mk_buffer_name(bname, temp);
+		safe_strncpy(fname, argv[1], NAME_MAX);
+		mk_buffer_name(bname, fname);
 		curbp = find_buffer(bname, TRUE);
-		(void)insert_file(temp, FALSE);
-		strcpy(curbp->b_fname, temp);
+		(void)insert_file(fname, FALSE);
+		strcpy(curbp->b_fname, fname);
 	} else {
 		curbp = find_buffer(str_scratch, TRUE);
 	}
