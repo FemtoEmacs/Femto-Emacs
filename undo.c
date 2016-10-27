@@ -273,6 +273,19 @@ void append_undo_string(undo_tt *up, char_t *str)
 	up->u_string[newlen - 1] = '\0';
 }
 
+void discard_undo_history()
+{
+	discard_buffer_undo_history(curbp);
+}
+
+void discard_buffer_undo_history(buffer_t *bp)
+{
+	assert(bp != NULL);
+	if (bp->b_utail == NULL) return;
+	free_undos(bp->b_utail);
+	bp->b_utail = NULL;
+}
+
 /* free all the undos linked to this undo */
 void free_undos(undo_tt *up)
 {

@@ -120,6 +120,12 @@ static value_t fe_clr_msg_line(value_t *args, u_int32_t nargs) {
 	return FL_T;
 }
 
+static value_t fe_discard_undo_history(value_t *args, u_int32_t nargs) {
+	argcount("discard_undo_history", nargs, 0);
+	discard_undo_history();
+	return FL_T;
+}
+
 static value_t fe_get_clipboard(value_t *args, u_int32_t nargs) {
 	argcount("get-clipboard", nargs, 0);
 	static char empty_string[] = "";
@@ -876,6 +882,7 @@ static builtinspec_t builtin_info[] = {
 	{"end-of-buffer", fe_end_of_buffer},
 	{"copy-region", fe_copy_region},
 	{"clear-message-line", fe_clr_msg_line},
+	{"discard-undo-history", fe_discard_undo_history},
 	{"eval-block", eval_blk},
 	{"get-key", fe_get_key},
 	{"log-debug", fe_log_debug},

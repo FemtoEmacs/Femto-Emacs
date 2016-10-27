@@ -20,6 +20,7 @@ command_t commands[] = {
 	{"delete-left", backsp},
 	{"delete-other-windows", delete_other_windows},
 	{"describe-key", i_describe_key},
+	{"discard-undo-history", discard_undo_history},
 	{"end-of-buffer", end_of_buffer},
 	{"end-of-line", lnend},
 	{"eval-block", eval_block},

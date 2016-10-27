@@ -1,5 +1,8 @@
 #Femto Emacs Change Log
 
+## Femto 1.9 27 Oct 2016
+* added discard-undo-history command and lisp interface
+
 ## Femto 1.8.1 27 Oct 2016
 * removed _(x) macro from header.h
 * changed C-o to Esc-; for repl(), frees up Control-O for other editor commands.

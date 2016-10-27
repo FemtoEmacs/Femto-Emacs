@@ -15,7 +15,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define VERSION	 "FemtoEmacs 1.8.1, Public Domain, 2016"
+#define VERSION	 "FemtoEmacs 1.9, Public Domain, 2016"
 #define EXIT_OK         0               /* Success */
 #define EXIT_ERROR      1               /* Unknown error. */
 #define EXIT_USAGE      2               /* Usage */
@@ -387,6 +387,8 @@ extern void append_undo_string(undo_tt *, char_t *);
 extern void undo_command(void);
 extern undo_tt *execute_undo(undo_tt *);
 extern int get_undo_again(void);
+extern void discard_undo_history(void);
+extern void discard_buffer_undo_history(buffer_t *);
 
 /*
  * include public Femto interface functions definitions 
