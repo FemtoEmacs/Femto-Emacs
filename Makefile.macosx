@@ -72,7 +72,7 @@ funcmap$(O): funcmap.c header.h public.h
 	$(CC) $(CFLAGS)  -I$(LLTDIR) -c funcmap.c
 	
 undo$(O): undo.c header.h public.h
-        $(CC) $(CFLAGS)  -I$(LLTDIR) -c undo.c
+	$(CC) $(CFLAGS)  -I$(LLTDIR) -c undo.c
 	
 main$(O): main.c header.h
 	$(CC) $(CFLAGS) -I$(LLTDIR) -c main.c
