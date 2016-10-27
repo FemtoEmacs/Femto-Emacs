@@ -15,10 +15,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#undef _
-#define _(x)    x
-
-#define VERSION	 "FemtoEmacs 1.8, Public Domain, 2016"
+#define VERSION	 "FemtoEmacs 1.8.1, Public Domain, 2016"
 #define EXIT_OK         0               /* Success */
 #define EXIT_ERROR      1               /* Unknown error. */
 #define EXIT_USAGE      2               /* Usage */
@@ -89,12 +86,12 @@ typedef struct keymap_t {
 	char *key_name;			/* the name of the key, for exmaple 'C-x a' */
 	char *key_desc;                 /* name of bound function */
 	char *key_bytes;		/* the string of bytes when this key is pressed */
-	void (*func) _((void));
+	void (*func)(void);
 } keymap_t;
 
 typedef struct command_t {
         char *name;
-	void (*func) (void);
+	void (*func)(void);
 } command_t;
 
 /* old undo structure will be deprecated soon */
@@ -253,57 +250,57 @@ extern void free_string_list(string_list_t *);
 extern string_list_t *match_functions(const char *);
 extern void apropos_command(void);
 extern void list_bindings(void);
-extern void fatal _((char *));
+extern void fatal(char *);
 extern char *get_file_extension(char *);
 extern void display_char(buffer_t *, char_t *,int ,int);
-extern void display (window_t *, int);
+extern void display(window_t *, int);
 extern int utf8_size(char_t);
 extern int prev_utf8_char_size(void);
 extern void display_utf8(buffer_t *, char_t, int);
 extern void dispmsg(void);
 extern void modeline(window_t *);
-extern point_t lnstart (buffer_t *, point_t);
-extern point_t lncolumn (buffer_t *, point_t, int);
-extern point_t segstart (buffer_t *, point_t, point_t);
-extern point_t segnext (buffer_t *, point_t, point_t);
-extern point_t upup (buffer_t *, point_t);
-extern point_t dndn (buffer_t *, point_t);
-extern char_t *get_key _((keymap_t *, keymap_t **));
+extern point_t lnstart(buffer_t *, point_t);
+extern point_t lncolumn(buffer_t *, point_t, int);
+extern point_t segstart(buffer_t *, point_t, point_t);
+extern point_t segnext(buffer_t *, point_t, point_t);
+extern point_t upup(buffer_t *, point_t);
+extern point_t dndn(buffer_t *, point_t);
+extern char_t *get_key(keymap_t *, keymap_t **);
 extern char *fe_get_input_key(void);
-extern int getinput _((char *, char *, int, int));
-extern int growgap (buffer_t *, point_t);
-extern point_t movegap (buffer_t *, point_t);
-extern point_t pos (buffer_t *, char_t *);
-extern char_t *ptr (buffer_t *, point_t);
-extern int posix_file _((char *));
+extern int getinput(char *, char *, int, int);
+extern int growgap(buffer_t *, point_t);
+extern point_t movegap(buffer_t *, point_t);
+extern point_t pos(buffer_t *, char_t *);
+extern char_t *ptr(buffer_t *, point_t);
+extern int posix_file(char *);
 extern int save_buffer(buffer_t *,char *);
-extern int load_file _((char *));
-extern int insert_file (char *, int);
+extern int load_file(char *);
+extern int insert_file(char *, int);
 extern void append_string(buffer_t *, char *);
-extern void undoset _((void));
-extern void undo _((void));
-extern void backsp _((void));
+extern void undoset(void);
+extern void undo(void);
+extern void backsp(void);
 extern void set_mark(void);
 extern void unmark(void);
 extern int check_region(void);
-extern void copy_cut _((int));
-extern void delete _((void));
+extern void copy_cut(int);
+extern void delete(void);
 extern void toggle_overwrite_mode(void);
-extern void down _((void));
-extern void insert _((void));
+extern void down(void);
+extern void insert(void);
 extern void insert_at(void);
-extern void paste _((void));
-extern void quit _((void));
-extern int yesno _((int));
-extern void quit_ask _((void));
-extern void redraw _((void));
-extern void readfile _((void));
-extern void insertfile _((void));
-extern void right _((void));
-extern void version _((void));
+extern void paste(void);
+extern void quit(void);
+extern int yesno(int);
+extern void quit_ask(void);
+extern void redraw(void);
+extern void readfile(void);
+extern void insertfile(void);
+extern void right(void);
+extern void version(void);
 extern char *get_version_string();
-extern void writefile _((void));
-extern void savebuffer _((void));
+extern void writefile(void);
+extern void savebuffer(void);
 extern void clear_buffer(void);
 extern void zero_buffer(buffer_t *);
 extern int buffer_is_empty(buffer_t *);
@@ -321,7 +318,7 @@ extern point_t line_to_point(int);
 extern void update_search_prompt(char *, char *);
 extern void display_search_result(point_t, int, char *, char *);
 extern void move_to_search_result(point_t);
-extern buffer_t* find_buffer (char *, int);
+extern buffer_t* find_buffer(char *, int);
 extern void add_mode(buffer_t *, buffer_flags_t);
 extern void delete_mode(buffer_t *, buffer_flags_t);
 extern void buffer_init(buffer_t *);

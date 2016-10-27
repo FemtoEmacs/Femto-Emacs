@@ -1,6 +1,9 @@
 #Femto Emacs Change Log
 
-## Femto 1.8 23 Oct 2016
+## Femto 1.8.1 27 Oct 2016
+* removed _(x) macro from header.h
+
+## Femto 1.8 26 Oct 2016
 * Added unlimited undo (supports Insert, Backspace, Yank, Kill-Region, Delete), see docs/undo.txt for details
 * Added special buffer mode for buffers that have names starting with * (Thanks to chigoncalves)
 
