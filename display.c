@@ -104,8 +104,10 @@ int in_line_comment = 0;
 
 void display_char(buffer_t *bp, char_t *p, int keyword_char_count, int token_type)
 {
-        if (in_block_comment==1 || in_line_comment== 1) {
+	if (in_line_comment== 1) {
                 attron(COLOR_PAIR(ID_COLOR_COMMENTS));
+        } else if (in_block_comment==1) {
+             attron(COLOR_PAIR(ID_COLOR_BLOCK));
         } else if ( (ptr(bp, bp->b_mark) == p) && (bp->b_mark != NOMARK)) {
                 addch(*p | A_REVERSE);
                 return;
