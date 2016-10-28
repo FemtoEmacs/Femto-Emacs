@@ -212,7 +212,7 @@ void display(window_t *wp, int flag)
 			}
 			else if (isprint(*p) || *p == '\t' || *p == '\n') {
 				j += *p == '\t' ? 8-(j&7) : 1;
-	                        scan_for_comments(p, &in_block_comment, &in_line_comment);
+	                        scan_for_comments(p, &in_block_comment, &endcmt, &in_line_comment);
 				
 			     if (!in_block_comment && *p=='"') {
                                if (in_string==1) {in_string=0;}
