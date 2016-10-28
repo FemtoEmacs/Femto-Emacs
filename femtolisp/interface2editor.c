@@ -539,7 +539,7 @@ int scan_for_keywords(char_t *p, int *token_type) {
 /*
  * check for comments based on previous status of comments
  */
-void scan_for_comments(char_t *p, int *blk_comment, int *ln_comment) {
+void scan_for_comments(char_t *p, int *blk_comment, int *endcmt, int *ln_comment) {
 	if (thisLanguage < 0)
 		return;
 	if ((*ln_comment == 0) && seq(p, line_comment[thisLanguage]))
@@ -549,7 +549,8 @@ void scan_for_comments(char_t *p, int *blk_comment, int *ln_comment) {
 	if ((*blk_comment== 0) && seq(p, begin_comment[thisLanguage]))
 		*blk_comment= 1;
 	if ((*blk_comment== 1) && seq(p, end_comment[thisLanguage]))
-		*blk_comment= 0;
+	{  *endcmt= strlen(end_comment[thisLanguage]);
+                   *blk_comment= 0;}
 	return;
 }
 
