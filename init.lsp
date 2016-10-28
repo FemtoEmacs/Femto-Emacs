@@ -194,6 +194,8 @@
 (keyword "\\section")
 (keyword "\\paragraph")
 (keyword "\\documentclass")
+(keyword "\\label")
+(keyword "\\ref")
 
 (newlanguage ".ml" "//" "(*" "*)")
 (keyword "let")
