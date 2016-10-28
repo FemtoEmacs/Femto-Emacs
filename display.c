@@ -101,10 +101,14 @@ int is_digit(char_t c)
 
 int in_block_comment = 0;
 int in_line_comment = 0;
+int in_string= 0;
+int endcmt= 0;
 
 void display_char(buffer_t *bp, char_t *p, int keyword_char_count, int token_type)
 {
-	if (in_line_comment== 1) {
+  if (in_string==1) {
+      attron(COLOR_PAIR(ID_COLOR_DIGITS));
+        } else if (in_line_comment== 1) {
                 attron(COLOR_PAIR(ID_COLOR_COMMENTS));
         } else if (in_block_comment==1) {
              attron(COLOR_PAIR(ID_COLOR_BLOCK));
@@ -124,7 +128,14 @@ void display_char(buffer_t *bp, char_t *p, int keyword_char_count, int token_typ
         } else {
                 attron(COLOR_PAIR(ID_COLOR_SYMBOL));
         }
-
+	
+   if (endcmt > 0) {
+          attron(COLOR_PAIR(ID_COLOR_BLOCK));
+          endcmt= endcmt-1;
+        } else if ( !in_block_comment && in_string==0 && *p=='"') {
+                   attron(COLOR_PAIR(ID_COLOR_DIGITS));
+                }
+	
         addch(*p);
         attron(COLOR_PAIR(ID_COLOR_ALPHA));
 }
@@ -153,7 +164,9 @@ void display(window_t *wp, int flag)
 	setLanguage(get_file_extension(bp->b_fname));
         in_block_comment = 0;
         in_line_comment = 0;
-
+        in_string= 0;
+        endcmt= 0;
+	
 	/* find start of screen, handle scroll up off page or top of file  */
 	/* point is always within b_page and b_epage */
 	if (bp->b_point < bp->b_page)
@@ -200,6 +213,11 @@ void display(window_t *wp, int flag)
 			else if (isprint(*p) || *p == '\t' || *p == '\n') {
 				j += *p == '\t' ? 8-(j&7) : 1;
 	                        scan_for_comments(p, &in_block_comment, &in_line_comment);
+				
+			     if (!in_block_comment && *p=='"') {
+                               if (in_string==1) {in_string=0;}
+                               else {in_string= 1;}
+                             }
 	                        if (keywd_char_count <= 0)
                                         keywd_char_count = scan_for_keywords(p, &token_type);
                                 display_char(bp, p, keywd_char_count--, token_type);
