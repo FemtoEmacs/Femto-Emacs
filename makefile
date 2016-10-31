@@ -15,6 +15,7 @@ RM      = rm
 
 E       =
 O       = .o
+B       = .boot
 
 OBJ     = complete$(O) command$(O) data$(O) display$(O) gap$(O) \
              key$(O) search$(O) buffer$(O) replace$(O) utils$(O) window$(O) funcmap$(O) undo$(O)\

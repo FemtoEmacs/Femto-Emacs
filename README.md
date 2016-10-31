@@ -42,26 +42,15 @@ and build the editor for Macistosh:
 ```
 % cd ~/Femto-Emacs/
 % make -f Makefile.macosx
+% sudo make -f Makefile.macosx install
 ```
 
 You can test the editor in loco:
 
 ```
-% ./femto test.scm
+% femto test.scm
 ```
 
-Of course, you may want to use **femto** anywhere in the directory
-tree. Here is how to achieve this goal:
-
-```
-% sudo cp femto /usr/local/bin/
-
-% sudo cp femto.boot /usr/local/bin/
-
-% cp init.lsp ~/
-
-% cp r5rs.scm ~/
-```
 
 
 ## Linux
@@ -81,26 +70,13 @@ After installing `ncursesw`, you can make the editor:
 ```
 % cd ~/Femto-Emacs/
 % make
+% sudo make install 
 ```
 
 Test the editor in loco:
 
 ```
-% ./femto test.scm
-```
-
-Then, copy `femto` binary to `/usr/local/bin` in order to make it
-globally available:
-
-```
-% sudo cp femto /usr/local/bin/
-% sudo cp femto.boot /usr/local/bin/
-```
-
-You will need the lisp configuration files in your home directory:
-```
-% cp init.lsp ~/
-% cp r5rs.scm ~/
+% femto test.scm
 ```
 
 Hopefully, you will be able to use femto anywhere in your computer.
