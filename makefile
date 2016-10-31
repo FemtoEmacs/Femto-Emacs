@@ -79,5 +79,10 @@ clean:
 	cd femtolisp/llt && make clean
 
 install:
-	-$(MV) femto$(E) $(HOME)/bin
+	-$(CP) femto$(E) /usr/local/bin/
+	-$(CP) femto$(B) /usr/local/bin/
+	-$(CP) r5rs.scm $(HOME)
+	-$(CP) init.lsp $(HOME)
+	-$(CP) samples/bufmenu.scm $(HOME)
+	-$(CP) samples/killring.scm $(HOME)
 

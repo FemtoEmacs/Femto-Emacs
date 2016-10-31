@@ -1,6 +1,6 @@
 /*
- * Interface functions for femtoLisp to FemtoEmacs
- */
+* Interface functions for femtoLisp to FemtoEmacs
+*/
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -435,9 +435,11 @@ int notsep(char_t *p) {
 int seq(char_t *p, char *str) {
 	int i;
 	for (i = 0; i < strlen(str); i++) {
-		if (*(p + i) != str[i])
+	  if (*(p + i) != str[i] )
 			return 0;
 	}
+	if (notsep (p + i))
+	  return 0;
 	return 1;
 }
 

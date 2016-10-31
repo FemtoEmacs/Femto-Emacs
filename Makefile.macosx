@@ -16,12 +16,13 @@ RM      = rm
 
 E       =
 O       = .o
+B       = .boot
 
 OBJ     = complete$(O) command$(O) data$(O) display$(O) gap$(O) \
              key$(O) search$(O) buffer$(O) replace$(O) utils$(O) \
 	     window$(O) funcmap$(O) undo$(O) \
              main$(O) femtolisp/interface2editor$(O) \
-	     femtolisp/flcall$(O)
+	     femtolisp/flcall$(O) 
   
 femtoEmacs$(E) : $(OBJ) 
 	cd femtolisp && make -f Makefile.osx && \
@@ -79,7 +80,11 @@ main$(O): main.c header.h
 
 clean:
 	-$(RM) -f $(OBJ) femto$(E) *.c~ *.h~
-
+	
 install:
-	-$(MV) femto$(E) $(HOME)/$(HOSTNAME)/bin
-
+	-$(CP) femto$(E) /usr/local/bin/
+	-$(CP) femto$(B) /usr/local/bin/
+	-$(CP) r5rs.scm $(HOME)
+	-$(CP) init.lsp $(HOME)
+	-$(CP) samples/bufmenu.scm $(HOME)
+	-$(CP) samples/killring.scm $(HOME)
