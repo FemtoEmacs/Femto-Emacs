@@ -19,7 +19,8 @@ int main(int argc, char **argv)
 	/* we need to load up lisp early as it has an impact on mode settings for buffers */
 	init_lisp(512); /* with 512k heap */
 
-	setlocale(LC_ALL, ""); /* required for 3,4 byte UTF8 chars */
+	/* setlocale(LC_ALL, "") */;
+	/* required for 3,4 byte UTF8 chars */
 
 	if (initscr() == NULL)
 		fatal(f_initscr);
