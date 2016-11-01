@@ -114,3 +114,5 @@ string-trim
 keyword
 newlanguage
 log-debug
+add-mode-global
+
