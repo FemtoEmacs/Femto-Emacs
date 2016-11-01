@@ -16,6 +16,7 @@ int main(int argc, char **argv)
 		--i;
 	prog_name += i+1;
 
+	setlocale(LC_ALL, "") ;
 	/* we need to load up lisp early as it has an impact on mode settings for buffers */
 	init_lisp(512); /* with 512k heap */
 
