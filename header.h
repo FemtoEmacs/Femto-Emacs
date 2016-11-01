@@ -388,7 +388,6 @@ extern void append_undo_string(undo_tt *, char_t *);
 extern void undo_command(void);
 extern undo_tt *execute_undo(undo_tt *);
 extern int get_undo_again(void);
-extern void discard_undo_history(void);
 extern void discard_buffer_undo_history(buffer_t *);
 
 /*
