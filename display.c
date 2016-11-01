@@ -123,7 +123,8 @@ void display_char(buffer_t *bp, char_t *p, int keyword_char_count, int token_typ
                 attron(COLOR_PAIR(ID_COLOR_BRACE));
         } else if (token_type == ID_TOKEN_DIGITS && keyword_char_count > 0) {
                 attron(COLOR_PAIR(ID_COLOR_DIGITS));
-        } else if (is_upper_or_lower(*p)) {
+        } else if (is_upper_or_lower(*p)  ||
+                    is_digit(*p)) {
                 attron(COLOR_PAIR(ID_COLOR_ALPHA));
         } else {
                 attron(COLOR_PAIR(ID_COLOR_SYMBOL));
