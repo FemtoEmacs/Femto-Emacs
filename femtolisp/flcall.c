@@ -105,9 +105,7 @@ int init_lisp(int nheap_k)
 
 		value_t f = fl_file(&args[0], 2);
 		fl_free_gc_handles(2);
-
-		if (fl_load_system_image(f))
-			return 1;
+		fl_load_system_image(f);
 
 		interface_init();
 		(void)fl_applyn(1, symbol_value(symbol("__start")));
@@ -121,7 +119,7 @@ int init_lisp(int nheap_k)
 		ios_puts("fatal error:\n", ios_stderr);
 		fl_print(ios_stderr, fl_lasterror);
 		ios_putc('\n', ios_stderr);
-		return 1;
+		exit(1);
 	} 
   
 	return 0;
