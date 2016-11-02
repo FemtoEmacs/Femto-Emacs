@@ -46,6 +46,7 @@
 #define ID_COLOR_DIGITS    6
 #define ID_COLOR_COMMENTS  7
 #define ID_COLOR_BLOCK     8
+#define ID_COLOR_STRING    9
 
 /* undo types, in matched pairs */
 #define UNDO_T_NONE        0

@@ -116,7 +116,7 @@ int charquote(char_t a, char_t c, char_t b )
 void display_char(buffer_t *bp, char_t *p, int keyword_char_count, int token_type)
 {
 	if (in_string==1) {
-		attron(COLOR_PAIR(ID_COLOR_DIGITS));
+		attron(COLOR_PAIR(ID_COLOR_STRING));
         } else if (in_line_comment== 1) {
                 attron(COLOR_PAIR(ID_COLOR_COMMENTS));
         } else if (in_block_comment==1) {
@@ -132,20 +132,22 @@ void display_char(buffer_t *bp, char_t *p, int keyword_char_count, int token_typ
                 attron(COLOR_PAIR(ID_COLOR_BRACE));
         } else if ( token_type == ID_TOKEN_DIGITS && keyword_char_count > 0) {
 		attron(COLOR_PAIR(ID_COLOR_DIGITS));
-        } else {
+        } else if (is_upper_or_lower(*p)) {
                 attron(COLOR_PAIR(ID_COLOR_ALPHA));
-	}
+        } else {
+                attron(COLOR_PAIR(ID_COLOR_SYMBOL));
+        }
 
 	if (endcmt > 0) {
 		attron(COLOR_PAIR(ID_COLOR_BLOCK));
 		endcmt= endcmt-1;
-        } else if ( !in_block_comment && in_string == 0 && *p=='"' && (!charquote(*(p-1), *p, *(p+1)))) {
-		attron(COLOR_PAIR(ID_COLOR_DIGITS));
+        } else if (!in_block_comment && in_string == 0 && *p=='"' && (!charquote(*(p-1), *p, *(p+1)))) {
+		attron(COLOR_PAIR(ID_COLOR_STRING));
 	}
         addch(*p);
 	
 	if (in_string == 1)
-		attron(COLOR_PAIR(ID_COLOR_DIGITS));
+		attron(COLOR_PAIR(ID_COLOR_STRING));
         else
 		attron(COLOR_PAIR(ID_COLOR_ALPHA));
 }

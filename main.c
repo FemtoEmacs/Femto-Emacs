@@ -37,6 +37,8 @@ int main(int argc, char **argv)
 	init_pair(ID_COLOR_DIGITS, COLOR_YELLOW, COLOR_BLACK);    /* digits */
 	init_pair(ID_COLOR_COMMENTS, COLOR_GREEN, COLOR_BLACK);   /* comments */
         init_pair(ID_COLOR_BLOCK, COLOR_GREEN, COLOR_BLACK);
+        init_pair(ID_COLOR_STRING, A_BOLD | COLOR_YELLOW, COLOR_BLACK);
+
 	
 	bkgd((chtype) (' ' | COLOR_PAIR(ID_COLOR_ALPHA)));
 

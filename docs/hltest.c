@@ -9,7 +9,7 @@
 
 /*This is a block comment as well*/
 
-//setThis();  //commented out code  /* a comment in a line comment */
+//setThis();  //commented out code /* a comment in a line comment "XXX" */
 
 //example keyword
 void func();
@@ -28,8 +28,8 @@ s="\"";  //should work
 
 int x = 1234567;
 
-s= "symbols inside a string !£$%^&**()_+={}[]:;@'~#<,>;//.?/\\|";
-xx="digits inside a string 0123456789 should show in the string color";
+s="symbols inside a string !£$%^&**()_+={}[]:;@'~#<,>;//.?/\\|";
+x="digits inside a string 0123456789 should show in the string color";
 
 s="£";
 s=":";
