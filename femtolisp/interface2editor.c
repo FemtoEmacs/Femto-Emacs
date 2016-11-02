@@ -432,13 +432,13 @@ int notsep(char_t *p) {
 
 
 /* seq checks wether *p points to the sequence of chars given by str */
-int seq(char_t *p, char *str) {
+int seq(char_t *p, char *str, int kwd) {
 	int i;
 	for (i = 0; i < strlen(str); i++) {
 	  if (*(p + i) != str[i] )
 			return 0;
 	}
-	if (notsep (p + i))
+	if (kwd && (notsep (p + i))) 
 	  return 0;
 	return 1;
 }
@@ -529,7 +529,7 @@ int scan_for_keywords(char_t *p, int *token_type) {
 	
 	j = 0; /* Reset j */
 	for (i = 0; i < numWords[thisLanguage]; i++) {
-		if (seq(p, hiLite[thisLanguage][i])) {
+		if (seq(p, hiLite[thisLanguage][i], 1)) {
 			*token_type = ID_TOKEN_KEYWORD;
 			return strlen(hiLite[thisLanguage][i]);
 		}
@@ -544,13 +544,13 @@ int scan_for_keywords(char_t *p, int *token_type) {
 void scan_for_comments(char_t *p, int *blk_comment, int *endcmt, int *ln_comment) {
 	if (thisLanguage < 0)
 		return;
-	if ((*ln_comment == 0) && seq(p, line_comment[thisLanguage]))
+	if ((*ln_comment == 0) && seq(p, line_comment[thisLanguage], 0))
 		*ln_comment = 1;
 	if ((*ln_comment == 1) && (*p == '\n'))
 		*ln_comment = 0;
-	if ((*blk_comment== 0) && seq(p, begin_comment[thisLanguage]))
+	if ((*blk_comment== 0) && seq(p, begin_comment[thisLanguage], 0))
 		*blk_comment= 1;
-	if ((*blk_comment== 1) && seq(p, end_comment[thisLanguage]))
+	if ((*blk_comment== 1) && seq(p, end_comment[thisLanguage], 0))
 	{  *endcmt= strlen(end_comment[thisLanguage]);
                    *blk_comment= 0;}
 	return;
