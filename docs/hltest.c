@@ -9,14 +9,14 @@
 
 /*This is a block comment as well*/
 
-//setThis();  //commented out code
+//setThis();  //commented out code  /* a comment in a line comment */
 
 //example keyword
 void func();
 char s[] = "a string";
 char c;
 
-ptr->m_fish = 0.0;
+ptr->m_fish[3] = 0.0;
 
 //1234567890
 
@@ -33,4 +33,3 @@ xx="digits inside a string 0123456789 should show in the string color";
 
 s="£";
 s=":";
-

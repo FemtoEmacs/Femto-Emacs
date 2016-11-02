@@ -100,7 +100,7 @@ int is_digit(char_t c)
 }
 
 int escapequote(char_t a, char_t c) {
-  return ( (a == 92) && (c == '"'));
+	return ( (a == 92) && (c == '"'));
 }
 
 int in_block_comment = 0;
@@ -110,46 +110,46 @@ int endcmt= 0;
 
 int charquote(char_t a, char_t c, char_t b )
 {
-  return ( (in_string == 0) &&  (c == '"') && (a == 39) && (b == 39));
+	return ( (in_string == 0) &&  (c == '"') && (a == 39) && (b == 39));
 }
 
 void display_char(buffer_t *bp, char_t *p, int keyword_char_count, int token_type)
 {
-  if (in_string==1) {
-      attron(COLOR_PAIR(ID_COLOR_DIGITS));
+	if (in_string==1) {
+		attron(COLOR_PAIR(ID_COLOR_DIGITS));
         } else if (in_line_comment== 1) {
                 attron(COLOR_PAIR(ID_COLOR_COMMENTS));
         } else if (in_block_comment==1) {
-             attron(COLOR_PAIR(ID_COLOR_BLOCK));
+		attron(COLOR_PAIR(ID_COLOR_BLOCK));
         } else if ( (ptr(bp, bp->b_mark) == p) && (bp->b_mark != NOMARK)) {
                 addch(*p | A_REVERSE);
                 return;
-        } else if ( token_type == ID_TOKEN_KEYWORD  &&
-                    keyword_char_count > 0 ) {
+        } else if ( token_type == ID_TOKEN_KEYWORD  && keyword_char_count > 0 ) {
                 attron(COLOR_PAIR(ID_COLOR_KEYWORD));
         } else if (pos(bp,p) == bp->b_point && bp->b_paren != NOPAREN) {
                 attron(COLOR_PAIR(ID_COLOR_BRACE));
         } else if (bp->b_paren != NOPAREN && pos(bp,p) == bp->b_paren) {
                 attron(COLOR_PAIR(ID_COLOR_BRACE));
-        } else if ( token_type == ID_TOKEN_DIGITS &&
-                    keyword_char_count > 0) {
-                  attron(COLOR_PAIR(ID_COLOR_DIGITS));
+        } else if ( token_type == ID_TOKEN_DIGITS && keyword_char_count > 0) {
+		attron(COLOR_PAIR(ID_COLOR_DIGITS));
         } else {
-                attron(COLOR_PAIR(ID_COLOR_ALPHA));}
+                attron(COLOR_PAIR(ID_COLOR_ALPHA));
+	}
 
-   if (endcmt > 0) {
-          attron(COLOR_PAIR(ID_COLOR_BLOCK));
-          endcmt= endcmt-1;
-        } else if ( !in_block_comment   && in_string==0
-                    && *p=='"' &&
-                    (!charquote(*(p-1), *p, *(p+1)))){
-                   attron(COLOR_PAIR(ID_COLOR_DIGITS));
-                }
+	if (endcmt > 0) {
+		attron(COLOR_PAIR(ID_COLOR_BLOCK));
+		endcmt= endcmt-1;
+        } else if ( !in_block_comment && in_string == 0 && *p=='"' && (!charquote(*(p-1), *p, *(p+1)))) {
+		attron(COLOR_PAIR(ID_COLOR_DIGITS));
+	}
         addch(*p);
 	
-	if (in_string == 1) attron(COLOR_PAIR(ID_COLOR_DIGITS));
-        else attron(COLOR_PAIR(ID_COLOR_ALPHA));
+	if (in_string == 1)
+		attron(COLOR_PAIR(ID_COLOR_DIGITS));
+        else
+		attron(COLOR_PAIR(ID_COLOR_ALPHA));
 }
+
 /*
 void display_char(buffer_t *bp, char_t *p, int keyword_char_count, int token_type)
 {
@@ -255,21 +255,16 @@ void display(window_t *wp, int flag)
 		if (*p != '\r') {
 			nch = utf8_size(*p);
 			if ( nch > 1) {
-				j++;
-				
+				j++;				
 				display_utf8(bp, *p, nch);
-			}
-			else if (isprint(*p) || *p == '\t' || *p == '\n') {
+			} else if (isprint(*p) || *p == '\t' || *p == '\n') {
 				j += *p == '\t' ? 8-(j&7) : 1;
 	                        scan_for_comments(p, &in_block_comment, &endcmt, &in_line_comment);
 				
-			     if (  !in_block_comment && *p=='"' &&
-                                   !charquote(*(p-1), *p, *(p+1)) &&
-                                   !escapequote(*(p-1), *p)) {
-                                 if (in_string==1) {in_string=0;}
-                                 else {in_string= 1;}
-                             }
-	                        if (keywd_char_count <= 0)
+				if (!in_block_comment && *p == '"' && !charquote(*(p-1), *p, *(p+1)) && !escapequote(*(p-1), *p))
+					in_string = (in_string == 1 ? 0 : 1);
+
+				if (keywd_char_count <= 0)
                                         keywd_char_count = scan_for_keywords(p, &token_type);
                                 display_char(bp, p, keywd_char_count--, token_type);
 			} else {
