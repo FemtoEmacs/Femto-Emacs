@@ -103,15 +103,15 @@ int escapequote(char_t a, char_t c) {
   return ( (a == 92) && (c == '"'));
 }
 
-int charquote(char_t a, char_t c, char_t b )
-{
-  return ( (c == '"') && (a == 39) && (b == 39));
-}
-
 int in_block_comment = 0;
 int in_line_comment = 0;
 int in_string= 0;
 int endcmt= 0;
+
+int charquote(char_t a, char_t c, char_t b )
+{
+  return ( (in_string == 0) &&  (c == '"') && (a == 39) && (b == 39));
+}
 
 void display_char(buffer_t *bp, char_t *p, int keyword_char_count, int token_type)
 {
