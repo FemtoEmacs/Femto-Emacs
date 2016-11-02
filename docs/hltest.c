@@ -7,6 +7,8 @@
  *
  */
 
+/*This is a block comment as well*/
+
 //setThis();  //commented out code
 
 //example keyword
