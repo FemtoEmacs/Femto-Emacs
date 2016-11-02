@@ -146,7 +146,9 @@ void display_char(buffer_t *bp, char_t *p, int keyword_char_count, int token_typ
                    attron(COLOR_PAIR(ID_COLOR_DIGITS));
                 }
         addch(*p);
-        attron(COLOR_PAIR(ID_COLOR_ALPHA));
+	
+	if (in_string == 1) attron(COLOR_PAIR(ID_COLOR_DIGITS));
+        else attron(COLOR_PAIR(ID_COLOR_ALPHA));
 }
 /*
 void display_char(buffer_t *bp, char_t *p, int keyword_char_count, int token_type)
@@ -255,9 +257,6 @@ void display(window_t *wp, int flag)
 			if ( nch > 1) {
 				j++;
 				
-				if (in_string == 1) {
-                                    attron(COLOR_PAIR(ID_COLOR_DIGITS));}
-                                else {attron(COLOR_PAIR(ID_COLOR_ALPHA));}
 				display_utf8(bp, *p, nch);
 			}
 			else if (isprint(*p) || *p == '\t' || *p == '\n') {
