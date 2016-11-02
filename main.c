@@ -35,9 +35,9 @@ int main(int argc, char **argv)
 	init_pair(ID_COLOR_KEYWORD, COLOR_MAGENTA, COLOR_BLACK);  /* keyword */
 	init_pair(ID_COLOR_ALPHA, COLOR_CYAN, COLOR_BLACK);       /* alpha */
 	init_pair(ID_COLOR_DIGITS, COLOR_YELLOW, COLOR_BLACK);    /* digits */
-	init_pair(ID_COLOR_COMMENTS, COLOR_GREEN, COLOR_BLACK);   /* comments */
-        init_pair(ID_COLOR_BLOCK, COLOR_GREEN, COLOR_BLACK);
-        init_pair(ID_COLOR_STRING, A_BOLD | COLOR_YELLOW, COLOR_BLACK);
+	init_pair(ID_COLOR_COMMENTS, COLOR_GREEN, COLOR_BLACK);   /* line comments */
+        init_pair(ID_COLOR_BLOCK, COLOR_GREEN, COLOR_BLACK);      /* block comments */
+        init_pair(ID_COLOR_STRING, COLOR_YELLOW, COLOR_BLACK);    /* strings */
 
 	
 	bkgd((chtype) (' ' | COLOR_PAIR(ID_COLOR_ALPHA)));
