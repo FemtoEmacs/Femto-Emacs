@@ -152,44 +152,6 @@ void display_char(buffer_t *bp, char_t *p, int keyword_char_count, int token_typ
 		attron(COLOR_PAIR(ID_COLOR_ALPHA));
 }
 
-/*
-void display_char(buffer_t *bp, char_t *p, int keyword_char_count, int token_type)
-{
-  if (in_string==1) {
-      attron(COLOR_PAIR(ID_COLOR_DIGITS));
-        } else if (in_line_comment== 1) {
-                attron(COLOR_PAIR(ID_COLOR_COMMENTS));
-        } else if (in_block_comment==1) {
-             attron(COLOR_PAIR(ID_COLOR_BLOCK));
-        } else if ( (ptr(bp, bp->b_mark) == p) && (bp->b_mark != NOMARK)) {
-                addch(*p | A_REVERSE);
-                return;
-        } else if (token_type == ID_TOKEN_KEYWORD && keyword_char_count > 0 ) {
-                attron(COLOR_PAIR(ID_COLOR_KEYWORD));
-        } else if (pos(bp,p) == bp->b_point && bp->b_paren != NOPAREN) {
-                attron(COLOR_PAIR(ID_COLOR_BRACE));
-        } else if (bp->b_paren != NOPAREN && pos(bp,p) == bp->b_paren) {
-                attron(COLOR_PAIR(ID_COLOR_BRACE));
-        } else if (token_type == ID_TOKEN_DIGITS && keyword_char_count > 0) {
-                attron(COLOR_PAIR(ID_COLOR_DIGITS));
-        } else if (is_upper_or_lower(*p)  ||
-                    is_digit(*p)) {
-                attron(COLOR_PAIR(ID_COLOR_ALPHA));
-        } else {
-                attron(COLOR_PAIR(ID_COLOR_SYMBOL));
-        }
-	
-   if (endcmt > 0) {
-          attron(COLOR_PAIR(ID_COLOR_BLOCK));
-          endcmt= endcmt-1;
-        } else if ( !in_block_comment && in_string==0 && *p=='"') {
-                   attron(COLOR_PAIR(ID_COLOR_DIGITS));
-                }
-	
-        addch(*p);
-        attron(COLOR_PAIR(ID_COLOR_ALPHA));
-}
-*/
 
 char *get_file_extension(char *filename)
 {
@@ -261,7 +223,8 @@ void display(window_t *wp, int flag)
 				display_utf8(bp, *p, nch);
 			} else if (isprint(*p) || *p == '\t' || *p == '\n') {
 				j += *p == '\t' ? 8-(j&7) : 1;
-	                        scan_for_comments(p, &in_block_comment, &endcmt, &in_line_comment);
+				if (in_string== 0)
+	                            scan_for_comments(p, &in_block_comment, &endcmt, &in_line_comment);
 				
 				if (!in_block_comment && *p == '"' && !charquote(*(p-1), *p, *(p+1)) && !escapequote(*(p-1), *p))
 					in_string = (in_string == 1 ? 0 : 1);
