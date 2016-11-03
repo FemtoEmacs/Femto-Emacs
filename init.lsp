@@ -204,6 +204,9 @@
 (keyword "void")
 (keyword "volatile")
 (keyword "while")
+(keyword "#include")
+(keyword "#define")
+
 
 (newlanguage ".tex" "%" "{" "}")
 (keyword "\\begin")
