@@ -150,6 +150,26 @@
 (keyword "cond")
 (keyword "else")
 
+(newlanguage ".lisp" ";" "#|" "|#")
+(keyword "defun")
+(keyword "defmacro")
+(keyword "defparameter")
+(keyword "defvar")
+(keyword "let")
+(keyword "let*")
+(keyword "loop")
+(keyword "for")
+(keyword "do")
+(keyword "dolist")
+(Keyword "eq")
+(Keyword "equal")
+(keyword "eql")
+(keyword "and")
+(keyword "or")
+(keyword "car")
+(keyword "cdr")
+
+
 ;; define syntax hughlighting for C code
 (newlanguage ".c" "//" "/*" "*/")
 (keyword "auto")
