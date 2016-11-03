@@ -407,7 +407,7 @@ static value_t fe_save_buffer(value_t *args, u_int32_t nargs) {
 
 int nLangs = 0;
 int thisLanguage = -1;
-char LangCode[10][9];
+char LangCode[20][9];
 int numWords[100];
 char hiLite[20][100][30];
 char line_comment[20][8];
