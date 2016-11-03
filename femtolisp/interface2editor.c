@@ -407,12 +407,12 @@ static value_t fe_save_buffer(value_t *args, u_int32_t nargs) {
 
 int nLangs = 0;
 int thisLanguage = -1;
-char LangCode[10][5];
+char LangCode[10][9];
 int numWords[100];
-char hiLite[10][100][30];
-char line_comment[10][8];
-char begin_comment[10][8];
-char end_comment[10][8];
+char hiLite[20][100][30];
+char line_comment[20][8];
+char begin_comment[20][8];
+char end_comment[20][8];
 
 int notsep(char_t *p) {
 
