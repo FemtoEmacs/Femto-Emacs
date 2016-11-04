@@ -106,6 +106,7 @@ int escapequote(char_t a, char_t c) {
 int in_block_comment = 0;
 int in_line_comment = 0;
 int in_string= 0;
+int begincmt= 0;
 int endcmt= 0;
 
 int charquote(char_t a, char_t c, char_t b )
@@ -140,7 +141,8 @@ void display_char(buffer_t *bp, char_t *p, int keyword_char_count, int token_typ
 
 	if (endcmt > 0) {
 		attron(COLOR_PAIR(ID_COLOR_BLOCK));
-		endcmt= endcmt-1;
+		if (begincmt > 0) { begincmt= begincmt-1;}
+                else { endcmt= endcmt-1;}
         } else if (!in_block_comment && in_string == 0 && *p=='"' && (!charquote(*(p-1), *p, *(p+1)))) {
 		attron(COLOR_PAIR(ID_COLOR_STRING));
 	}
@@ -177,6 +179,7 @@ void display(window_t *wp, int flag)
         in_block_comment = 0;
         in_line_comment = 0;
         in_string= 0;
+        begincmt=0;
         endcmt= 0;
 	
 	/* find start of screen, handle scroll up off page or top of file  */
@@ -224,7 +227,8 @@ void display(window_t *wp, int flag)
 			} else if (isprint(*p) || *p == '\t' || *p == '\n') {
 				j += *p == '\t' ? 8-(j&7) : 1;
 				if (in_string== 0)
-	                            scan_for_comments(p, &in_block_comment, &endcmt, &in_line_comment);
+	                            scan_for_comments(p, &in_block_comment,
+                                      &begincmt, &endcmt, &in_line_comment);
 				
 				if (!in_block_comment && *p == '"' && !charquote(*(p-1), *p, *(p+1)) && !escapequote(*(p-1), *p))
 					in_string = (in_string == 1 ? 0 : 1);
