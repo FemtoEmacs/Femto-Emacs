@@ -587,7 +587,8 @@ void setLanguage(char *extension, int *isPython) {
 			thisLanguage = i;
 		}
 	}
-  if (strcmp(extension, ".py") == 0) *isPython = 1;
+  if ( (strcmp(extension, ".py") == 0) ||
+       (strcmp(extension, ".rb") == 0) ) *isPython = 1;
   else *isPython = 0;
 }
 

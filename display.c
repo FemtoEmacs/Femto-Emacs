@@ -157,7 +157,9 @@ void display_char(buffer_t *bp, char_t *p, int keyword_char_count, int token_typ
 	
 	if (in_string == 1)
 		attron(COLOR_PAIR(ID_COLOR_STRING));
-        else
+  else if (in_line_comment || in_block_comment) 
+     attron(COLOR_PAIR(ID_COLOR_COMMENTS));
+  else
 		attron(COLOR_PAIR(ID_COLOR_ALPHA));
 }
 
@@ -325,6 +327,7 @@ void display_utf8(buffer_t *bp, char_t c, int n)
 		sbuf[i] = *ptr(bp, bp->b_epage + i);
 	}
 	sbuf[n] = '\0';
+
 	addstr(sbuf);
 }
 
