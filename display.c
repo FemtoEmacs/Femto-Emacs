@@ -108,6 +108,8 @@ int in_line_comment = 0;
 int in_string= 0;
 int begincmt= 0;
 int endcmt= 0;
+int isPython= 0;
+int startStr= 34;
 
 int charquote(char_t a, char_t c, char_t b )
 {
@@ -139,13 +141,18 @@ void display_char(buffer_t *bp, char_t *p, int keyword_char_count, int token_typ
                 attron(COLOR_PAIR(ID_COLOR_SYMBOL));
         }
 
-	if (endcmt > 0) {
-		attron(COLOR_PAIR(ID_COLOR_BLOCK));
-		if (begincmt > 0) { begincmt= begincmt-1;}
-                else { endcmt= endcmt-1;}
-        } else if (!in_block_comment && in_string == 0 && *p=='"' && (!charquote(*(p-1), *p, *(p+1)))) {
-		attron(COLOR_PAIR(ID_COLOR_STRING));
-	}
+  if (begincmt > 0) {
+     begincmt = begincmt-1;
+     attron(COLOR_PAIR(ID_COLOR_BLOCK));
+	} else if (endcmt > 0) {
+		        attron(COLOR_PAIR(ID_COLOR_BLOCK));
+	          endcmt= endcmt-1;
+        } else if (!in_block_comment && in_string == 0 &&
+                    *p== startStr && 
+                    (!charquote(*(p-1), *p, *(p+1)))) {
+                    startStr= 34;
+		                attron(COLOR_PAIR(ID_COLOR_STRING));
+	              }
         addch(*p);
 	
 	if (in_string == 1)
@@ -167,6 +174,13 @@ char *get_file_extension(char *filename)
 	return exts;
 }
 
+int start_string(char_t c) {
+  if ((isPython == 1) && c == 39) {
+     return 1;
+  } else if (c == 34) {return 1;
+  } else {return 0;}
+}
+
 void display(window_t *wp, int flag)
 {
 	char_t *p;
@@ -174,8 +188,8 @@ void display(window_t *wp, int flag)
 	buffer_t *bp = wp->w_bufp;
         int keywd_char_count = 0;
         int token_type = ID_TOKEN_NONE;
-
-	setLanguage(get_file_extension(bp->b_fname));
+  isPython= 0;
+	setLanguage(get_file_extension(bp->b_fname), &isPython);
         in_block_comment = 0;
         in_line_comment = 0;
         in_string= 0;
@@ -226,12 +240,32 @@ void display(window_t *wp, int flag)
 				display_utf8(bp, *p, nch);
 			} else if (isprint(*p) || *p == '\t' || *p == '\n') {
 				j += *p == '\t' ? 8-(j&7) : 1;
-				if (in_string== 0)
-	                            scan_for_comments(p, &in_block_comment,
-                                      &begincmt, &endcmt, &in_line_comment);
-				
-				if (!in_block_comment && *p == '"' && !charquote(*(p-1), *p, *(p+1)) && !escapequote(*(p-1), *p))
-					in_string = (in_string == 1 ? 0 : 1);
+				if ( in_string== 0 &&
+              in_line_comment == 0 &&
+              in_block_comment == 0)
+	              scan_for_block_comments(p, &in_block_comment,
+                                           &begincmt);
+	      if ( in_string== 0 && begincmt == 0 && 
+              in_block_comment == 1)
+	              scan_for_end_comments(p, &in_block_comment,
+                                         &endcmt);
+			  if ( in_string== 0 &&
+             in_block_comment == 0 && in_line_comment== 0)
+	              scan_for_line_comments(p, &in_line_comment);
+        if (in_string== 0 &&
+            in_line_comment== 1)
+             scan_for_end_line_comments(p, &in_line_comment);
+ 			
+				if (!in_block_comment && 
+             endcmt == 0 && start_string(*p) && 
+              !charquote(*(p-1), *p, *(p+1)) && 
+              !escapequote(*(p-1), *p)) {
+					  if (in_string == 1 && *p == startStr) in_string = 0;  
+            else if (in_string == 0) { 
+                      in_string= 1;
+                      startStr= *p; 
+                 }
+         }
 
 				if (keywd_char_count <= 0)
                                         keywd_char_count = scan_for_keywords(p, &token_type);

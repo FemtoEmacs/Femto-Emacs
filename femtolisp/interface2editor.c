@@ -541,23 +541,45 @@ int scan_for_keywords(char_t *p, int *token_type) {
 /*
  * check for comments based on previous status of comments
  */
-void scan_for_comments(char_t *p, int *blk_comment, int *begincmt, int *endcmt, int *ln_comment) {
+void scan_for_block_comments(char_t *p, int *comment, int *begincmt) {
+	if (thisLanguage < 0)
+		return;
+	if ((*comment== 0) && seq(p, begin_comment[thisLanguage], 0))
+		{ *begincmt =strlen(begin_comment[thisLanguage])-1;
+                  *comment= 1;}
+	return;
+}
+
+void scan_for_line_comments(char_t *p, int *ln_comment) {
 	if (thisLanguage < 0)
 		return;
 	if ((*ln_comment == 0) && seq(p, line_comment[thisLanguage], 0))
 		*ln_comment = 1;
 	if ((*ln_comment == 1) && (*p == '\n'))
 		*ln_comment = 0;
-	if ((*blk_comment== 0) && seq(p, begin_comment[thisLanguage], 0))
-		{ *begincmt =strlen(begin_comment[thisLanguage]);
-                  *blk_comment= 1;}
+	return;
+}
+
+void scan_for_end_line_comments(char_t *p, int *ln_comment) {
+	if (thisLanguage < 0)
+		return;
+	if ((*ln_comment == 1) && (*p == '\n'))
+		*ln_comment = 0;
+	return;
+}
+
+
+void scan_for_end_comments(char_t *p, int *blk_comment,  int *endcmt) {
+	if (thisLanguage < 0) return;
 	if ((*blk_comment== 1) && seq(p, end_comment[thisLanguage], 0))
 	{  *endcmt= strlen(end_comment[thisLanguage]);
                    *blk_comment= 0;}
 	return;
 }
 
-void setLanguage(char *extension) {
+
+
+void setLanguage(char *extension, int *isPython) {
 	int i;
 	thisLanguage = -1;
 	for (i = 0; i < nLangs; i++) {
@@ -565,6 +587,8 @@ void setLanguage(char *extension) {
 			thisLanguage = i;
 		}
 	}
+  if (strcmp(extension, ".py") == 0) *isPython = 1;
+  else *isPython = 0;
 }
 
 static value_t fe_newlanguage(value_t *args, u_int32_t nargs) {
