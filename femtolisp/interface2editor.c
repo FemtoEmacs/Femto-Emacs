@@ -897,7 +897,7 @@ extern void iostream_init(void);
 static builtinspec_t builtin_info[] = {
 	{"add-mode-global", fe_add_mode_global},
 	{"insert", insrt},
-	{"backward-delete-char", backspace},
+	{"backwards-delete-char", backspace},
 	{"backward-char", bkwrd},
 	{"forward-char", forwrd},
 	{"backward-word", fe_backward_word},

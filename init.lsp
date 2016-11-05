@@ -44,8 +44,6 @@
 	  ( (equal? n 6) "Saturday")
 	  (else "unknown")))
 
-
-
 ;;
 ;; returns the day for the specific date
 ;; (what-day '(2016 9 3))
@@ -91,7 +89,10 @@
       ( (equal? key "C-c a") 
         (insert "<p> </p>")
         (backward-char 5))
-
+      ( (equal? key "C-t")
+	(insert "  "))
+      ( (equal? key "C-o")
+        (backwards-delete-char 2))
       ( (equal? key "C-c b")
         (beginning-of-line) 
         (insert "<h1> </h2>")

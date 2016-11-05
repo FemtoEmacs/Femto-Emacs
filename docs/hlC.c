@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-//line comment
+//line "comment" works.
 
 /*
  * block comment

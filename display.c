@@ -147,7 +147,7 @@ void display_char(buffer_t *bp, char_t *p, int keyword_char_count, int token_typ
 	} else if (endcmt > 0) {
 		        attron(COLOR_PAIR(ID_COLOR_BLOCK));
 	          endcmt= endcmt-1;
-        } else if (!in_block_comment && in_string == 0 &&
+        } else if (!in_block_comment && !in_line_comment && in_string == 0 &&
                     *p== startStr && 
                     (!charquote(*(p-1), *p, *(p+1)))) {
                     startStr= 34;
@@ -256,7 +256,7 @@ void display(window_t *wp, int flag)
             in_line_comment== 1)
              scan_for_end_line_comments(p, &in_line_comment);
  			
-				if (!in_block_comment && 
+				if (!in_block_comment && in_line_comment == 0 &&
              endcmt == 0 && start_string(*p) && 
               !charquote(*(p-1), *p, *(p+1)) && 
               !escapequote(*(p-1), *p)) {
