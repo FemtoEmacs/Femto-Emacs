@@ -42,7 +42,7 @@ data$(O): data.c header.h public.h
 	$(CC) $(CFLAGS)  -I$(LLTDIR) -c data.c
 
 display$(O): display.c header.h public.h
-	$(CC) $(CFLAGS)   -I$(LLTDIR) -c display.c
+	$(CC) $(CFLAGS)  -I$(LLTDIR) -c display.c
 
 gap$(O): gap.c header.h public.h
 	$(CC) $(CFLAGS)  -I$(LLTDIR) -c gap.c

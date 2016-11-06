@@ -1,5 +1,10 @@
 #Femto Emacs Change Log
 
+## Femto 1.10 6 Nov 2016
+* fixed UTF8 char handling in undo for INSERT, BACKSPACE, DEL, INSERT_AT
+* fixed DEL, INSERT_AT now working properly at all.
+* python support for syntax highlighting
+
 ## Femto 1.9 27 Oct 2016
 * added discard-undo-history command and lisp interface
 

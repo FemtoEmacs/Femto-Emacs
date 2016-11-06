@@ -70,12 +70,24 @@ void right()
 }
 
 /* look back 2,3,4 chars and determine utf8 size otherwise default to 1 byte */
+/*
 int prev_utf8_char_size()
 {
 	int n;
 	for (n=2;n<5;n++)
 		if (0 < curbp->b_point - n && (utf8_size(*(ptr(curbp, curbp->b_point - n))) == n))
 			return n;
+	return 1;
+}
+*/
+
+int prev_utf8_char_size()
+{
+	int n;
+	for (n=2;n<5;n++)
+		if (-1 < curbp->b_point - n && (utf8_size(*(ptr(curbp, curbp->b_point - n))) == n))
+			return n;
+
 	return 1;
 }
 
@@ -138,6 +150,7 @@ void forward_word()
 /* standard insert at the keyboard */
 void insert()
 {
+	char_t the_char[2]; /* the inserted char plus a null */
 	assert(curbp->b_gap <= curbp->b_egap);
 
 	if (curbp->b_gap == curbp->b_egap && !growgap(curbp, CHUNK))
@@ -152,10 +165,12 @@ void insert()
 			++curbp->b_point;
 		/* FIXME - overwite mode not handled properly for undo yet */
 	} else {
-		*curbp->b_gap++ = *input == '\r' ? '\n' : *input;
+		the_char[0] = *input == '\r' ? '\n' : *input;
+		the_char[1] = '\0'; /* null terminate */
+		*curbp->b_gap++ = the_char[0]; 
 		curbp->b_point = pos(curbp, curbp->b_egap);
 		/* the point is set so that and undo will backspace over the char */
-		add_undo(curbp, UNDO_T_INSERT, curbp->b_point, *input, NULL);
+		add_undo(curbp, UNDO_T_INSERT, curbp->b_point, the_char);
 	}
 	add_mode(curbp, B_MODIFIED);
 }
@@ -170,6 +185,7 @@ void insert()
  */
 void insert_at()
 {
+	char_t the_char[2]; /* the inserted char plus a null */
 	assert(curbp->b_gap <= curbp->b_egap);
 
 	if (curbp->b_gap == curbp->b_egap && !growgap(curbp, CHUNK))
@@ -184,11 +200,13 @@ void insert_at()
 			++curbp->b_point;
 		/* FIXME - overwite mode not handled properly for undo yet */
 	} else {
-		*curbp->b_gap++ = *input == '\r' ? '\n' : *input;
+		the_char[0] = *input == '\r' ? '\n' : *input;
+		the_char[1] = '\0'; /* null terminate */
+		*curbp->b_gap++ = the_char[0];
 		curbp->b_point = pos(curbp, curbp->b_egap);
 		curbp->b_point--; /* move point back to where it was before, should always be safe */
 		/* the point is set so that and undo will DELETE the char */
-		add_undo(curbp, UNDO_T_INSAT, curbp->b_point, *input, NULL);
+		add_undo(curbp, UNDO_T_INSAT, curbp->b_point, the_char);
 	}
 
 	add_mode(curbp, B_MODIFIED);
@@ -202,7 +220,7 @@ void backsp()
 	curbp->b_point = movegap(curbp, curbp->b_point);
 	undoset();
 
-	if (curbp->b_buf < (curbp->b_gap - (n -1)) ) {
+	if (curbp->b_buf < (curbp->b_gap - (n - 1)) ) {
 		curbp->b_gap -= n; /* increase start of gap by size of char */
 		add_mode(curbp, B_MODIFIED);
 
@@ -211,7 +229,7 @@ void backsp()
 		the_char[n] = '\0'; /* null terminate, the backspaced char(s) */
 		curbp->b_point = pos(curbp, curbp->b_egap);
 		//debug("point after bs = %ld\n", curbp->b_point);
-		add_undo(curbp, UNDO_T_BACKSPACE, curbp->b_point, 0, the_char);
+		add_undo(curbp, UNDO_T_BACKSPACE, curbp->b_point, the_char);
 	}
 
 	curbp->b_point = pos(curbp, curbp->b_egap);
@@ -234,7 +252,7 @@ void delete()
 		curbp->b_egap += n;
 		curbp->b_point = pos(curbp, curbp->b_egap);
 		add_mode(curbp, B_MODIFIED);
-		add_undo(curbp, UNDO_T_DELETE, curbp->b_point, 0, the_char);
+		add_undo(curbp, UNDO_T_DELETE, curbp->b_point, the_char);
 	}
 }
 
@@ -434,7 +452,7 @@ void copy_cut(int cut)
 		*(scrap + nscrap) = '\0';  /* null terminate for insert_string */
 		if (cut) {
 			//debug("CUT: pt=%ld nscrap=%d\n", curbp->b_point, nscrap);
-			add_undo(curbp, UNDO_T_KILL, (curbp->b_point < curbp->b_mark ? curbp->b_point : curbp->b_mark), '\0', scrap);
+			add_undo(curbp, UNDO_T_KILL, (curbp->b_point < curbp->b_mark ? curbp->b_point : curbp->b_mark), scrap);
 			curbp->b_egap += nscrap; /* if cut expand gap down */
 			curbp->b_point = pos(curbp, curbp->b_egap); /* set point to after region */
 			add_mode(curbp, B_MODIFIED);
@@ -480,7 +498,7 @@ void insert_string(char *str)
 		curbp->b_point = movegap(curbp, curbp->b_point);
 		undoset();
 		//debug("INS STR: pt=%ld len=%d\n", curbp->b_point, strlen((char *)str));
-		add_undo(curbp, UNDO_T_YANK, curbp->b_point, '\0', (char_t *)str);
+		add_undo(curbp, UNDO_T_YANK, curbp->b_point, (char_t *)str);
 		memcpy(curbp->b_gap, str, len * sizeof (char_t));
 		curbp->b_gap += len;
 		curbp->b_point = pos(curbp, curbp->b_egap);

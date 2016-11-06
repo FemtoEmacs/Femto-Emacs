@@ -20,11 +20,10 @@ undo_tt *new_undo()
  * called by specific functions to register details so that they can be reversed
  * later by calling the equal and opposite function.
  */
-void add_undo(buffer_t *bp, char type, point_t p, u_char c, char_t *str)
+void add_undo(buffer_t *bp, char type, point_t p, char_t *str)
 {
+	int len = 1;
 	assert(bp != NULL);
-
-	//debug_stats("add_undo");
 
 	/* do nothing if undo mode is not active for this buffer */
 	if (!(bp->b_flags & B_UNDO))
@@ -33,30 +32,36 @@ void add_undo(buffer_t *bp, char type, point_t p, u_char c, char_t *str)
 	assert(bp->b_gap <= bp->b_egap);
 	assert(bp->b_buf <= bp->b_gap);
 	assert(bp->b_egap <= bp->b_ebuf);
+	assert(str != NULL);
+	len = strlen((char *)str);
 
 	/* handle insert, accumulate inserts as long as they are next to the last insert */
 	if (bp->b_utail != NULL && bp->b_utail->u_type == type && type == UNDO_T_INSERT && (bp->b_utail->u_point + 1) == p) {
 
 		bp->b_utail->u_point = p; /* update it */
-		append_undo_char(bp->b_utail, c);
+		append_undo_string(bp->b_utail, str);
+		//debug_undo("ADD-i", bp->b_utail, bp);
 
 	/* handle backspace, accumulate backspaces as long as they are next to the last backspace */
-	} else if (bp->b_utail != NULL && bp->b_utail->u_type == type && type == UNDO_T_BACKSPACE && (bp->b_utail->u_point - 1) == p) {
+	} else if (bp->b_utail != NULL && bp->b_utail->u_type == type && type == UNDO_T_BACKSPACE && (bp->b_utail->u_point - len) == p) {
 
 		bp->b_utail->u_point = p; /* update it */
 		append_undo_string(bp->b_utail, str);
+		//debug_undo("ADD-bs", bp->b_utail, bp);
 
 	/* handle delete-char, accumulate deletes as long as they are at the point of the last delete */
 	} else if (bp->b_utail != NULL && bp->b_utail->u_type == type && type == UNDO_T_DELETE && (bp->b_utail->u_point) == p) {
 
 		bp->b_utail->u_point = p; /* update it */
 		append_undo_string(bp->b_utail, str);
+		//debug_undo("ADD-del", bp->b_utail, bp);
 
 	/* handle insert_at(), accumulate insert_at()s as long as they are next to the last insert_at() */
 	} else if (bp->b_utail != NULL && bp->b_utail->u_type == type && type == UNDO_T_INSAT && (bp->b_utail->u_point) == p) {
 
 		bp->b_utail->u_point = p; /* update it */
-		append_undo_char(bp->b_utail, c);
+		append_undo_string(bp->b_utail, str);
+		//debug_undo("ADD-at", bp->b_utail, bp);
 
 	} else {
 		undo_tt *up = new_undo();
@@ -67,57 +72,21 @@ void add_undo(buffer_t *bp, char type, point_t p, u_char c, char_t *str)
 		up->u_type = type;
 		up->u_point = p;
 
-		if (str != NULL) {
-			up->u_string = (char_t *)strdup((char *)str);
-		} else {
-			append_undo_char(up, c);
-		}
+		up->u_string = (char_t *)strdup((char *)str);
+		//debug_undo("ADD-new", up, bp);
 	}
 }
 
-/* the undo command called by the keyboard binding C-u */
-void undo_command()
-{
-	int continue_undo = 1;
-	undo_tt *up = curbp->b_utail;
-	curbp->b_ucnt = -1;
-
-	/* do old style undo if we have not enabled global_undo_mode in init.lsp */
-	if (global_undo_mode == 0) {
-		undo();
-		return;
-	}
-
-	if (up == NULL) {
-		msg("No undo recorded for this buffer");
-		return;
-	}
-
-	while (continue_undo) {
-		assert(curbp->b_gap <= curbp->b_egap);
-		assert(curbp->b_buf <= curbp->b_gap);
-		assert(curbp->b_egap <= curbp->b_ebuf);
-
-		up = execute_undo(up);
-		assert(curbp->b_gap <= curbp->b_egap);
-		assert(curbp->b_buf <= curbp->b_gap);
-		assert(curbp->b_egap <= curbp->b_ebuf);
-
-		redraw();
-		if (up == NULL) {
-			msg("Out of Undo");
-			curbp->b_ucnt = -1;
-			return;
-		}
-		continue_undo = get_undo_again();
-	}
-
-	curbp->b_ucnt = -1;
-}
-
+/*
+ * this is where the actual undo work takes place
+ *
+ */
 undo_tt *execute_undo(undo_tt *up)
 {
 	int len;
+	int sz;
+	int i;
+	int before, after;
 	char_t the_char[7]; /* the deleted char, allow 6 unsigned chars plus a null */
 
 	assert(up != NULL);
@@ -127,45 +96,89 @@ undo_tt *execute_undo(undo_tt *up)
 
 	if (curbp->b_ucnt == -1) curbp->b_ucnt = len;
 
+	//debug_undo("EXEC", up, curbp);
+
 	switch(up->u_type) {
 	case UNDO_T_INSERT:
-		//debug("EU: INS1: upt=%ld len=%d ucnt=%d\n", up->u_point, len, curbp->b_ucnt);
 		curbp->b_point = up->u_point - (len - curbp->b_ucnt);
+		before = curbp->b_point;
 		backsp();
-		if (--curbp->b_ucnt > 0)
+		after = curbp->b_point;
+		/*
+		 * we could have backspaced over a multibyte UTF8 char so we need
+		 * to calculate the delta based on point which is set inside the backspace
+		 * function.
+		 */
+		sz = before - after;
+		curbp->b_ucnt -= sz;
+		assert(sz > 0 && sz < 5); /* should be between 1 and 4 */
+		if (curbp->b_ucnt > 0)
 			return up; /* more left to undo on this undo string */
 	        break;
 
 	case UNDO_T_BACKSPACE:
-		curbp->b_point = up->u_point + (len - curbp->b_ucnt);
 		/* load up insert with char at u_string[b_ucnt-1] */
-		/* FIXME not UTF8 safe yet */
-		the_char[0] = up->u_string[curbp->b_ucnt - 1];
-		the_char[1] = '\0';
-		input = the_char;
-		insert();
-		if (--curbp->b_ucnt > 0)
+		curbp->b_point = up->u_point + (len - curbp->b_ucnt);
+		sz = get_buf_utf8_size(up->u_string, curbp->b_ucnt - 1);
+		assert(sz > 0 && sz < 5); /* should be between 1 and 4 */
+
+		/* inserting back, highest byte first, for UTF8 char (as if entered at the keyboard) */
+		for (i = 0; i < sz; i++) {
+			the_char[0] = up->u_string[curbp->b_ucnt - sz + i];
+			the_char[1] = '\0';
+			input = the_char;
+			insert();
+		}
+		curbp->b_ucnt -= sz;
+		if (curbp->b_ucnt > 0)
 			return up; /* more left to undo on this undo string */
 	        break;
+
 
 	case UNDO_T_DELETE:
-		curbp->b_point = up->u_point + (len - curbp->b_ucnt);
 		/* load up insert_at() with char at u_string[b_ucnt-1] */
-		/* FIXME not UTF8 safe yet */
-		the_char[0] = up->u_string[curbp->b_ucnt - 1];
-		the_char[1] = '\0';
-		input = the_char;
-		insert_at();
-		if (--curbp->b_ucnt > 0)
+		curbp->b_point = up->u_point; /* point should always be the same */
+		sz = get_buf_utf8_size(up->u_string, curbp->b_ucnt - 1);
+		assert(sz > 0 && sz < 5); /* should be between 1 and 4 */
+		//debug("DEL: sz=%d\n", sz);
+
+		/*
+		 * As we are using insert_at we must insert lowest byte first
+		 * (the opposite of insert) for a multibyte UTF8 char.
+		 * This has a strange effect on the list-undos report as the
+		 * bytes are backwards and so dont get recognised as the UTF8 chars they represent
+		 */
+		for (i = 1; i <= sz; i++) {
+			the_char[0] = up->u_string[curbp->b_ucnt - i];
+			the_char[1] = '\0';
+			input = the_char;
+			insert_at();
+		}
+
+		curbp->b_ucnt -= sz;
+		assert(curbp->b_ucnt > -1);
+		if (curbp->b_ucnt > 0)
 			return up; /* more left to undo on this undo string */
 	        break;
 
-	/* opposite of a delete-char (DEL) is an insert_at() */
 	case UNDO_T_INSAT:
-		//debug("EU: INSAT: upt=%ld len=%d ucnt=%d\n", up->u_point, len, curbp->b_ucnt);
-		curbp->b_point = up->u_point - (len - curbp->b_ucnt);
+		curbp->b_point = up->u_point; /* point should always be the same */
+		before = document_size(curbp);
 		delete();
-		if (--curbp->b_ucnt > 0)
+		/*
+		 * we could have deleted a multibyte UTF8 char so we need to calculate the delta.
+		 * this can not be done using b_point as it does not changes for DEL and INSAT.
+		 * hence why we use document_size() to get the before and after sizes.
+		 */
+		after = document_size(curbp);
+		assert(before > after);
+		sz = before - after;
+		assert(sz > 0 && sz < 5); /* should be between 1 and 4 */
+		curbp->b_ucnt -= sz;
+		assert(curbp->b_ucnt > -1);
+		//debug("IAT: sz=%d\n", sz);
+
+		if (curbp->b_ucnt > 0)
 			return up; /* more left to undo on this undo string */
 	        break;
 
@@ -187,6 +200,49 @@ undo_tt *execute_undo(undo_tt *up)
 	return up->u_prev;
 }
 
+
+
+/* the undo command called by the keyboard binding C-u */
+void undo_command()
+{
+	int continue_undo = 1;
+	undo_tt *up = curbp->b_utail;
+	curbp->b_ucnt = -1;
+
+	/* do old style undo if we have not enabled global_undo_mode in init.lsp */
+	if (global_undo_mode == 0) {
+		undo();
+		return;
+	}
+
+	if (up == NULL) {
+		msg("No undo recorded for this buffer");
+		return;
+	}
+
+	while (continue_undo) {
+		//debug("\n========UNDO=======\n");
+		assert(curbp->b_gap <= curbp->b_egap);
+		assert(curbp->b_buf <= curbp->b_gap);
+		assert(curbp->b_egap <= curbp->b_ebuf);
+
+		up = execute_undo(up);
+		assert(curbp->b_gap <= curbp->b_egap);
+		assert(curbp->b_buf <= curbp->b_gap);
+		assert(curbp->b_egap <= curbp->b_ebuf);
+
+		redraw();
+		if (up == NULL) {
+			msg("Out of Undo");
+			//debug("\n====OUT OF UNDO====\n");
+			curbp->b_ucnt = -1;
+			return;
+		}
+		continue_undo = get_undo_again();
+	}
+
+	curbp->b_ucnt = -1;
+}
 
 /*
  * wait for next key, if undo return TRUE
@@ -217,39 +273,7 @@ int get_undo_again()
 	return FALSE;
 }
 
-#define UNDO_CHAR_EXPAND 16
-
-void append_undo_char(undo_tt *up, char c)
-{
-	char_t *newbuf;
-	int newlen, buflen;
-
-	if (up->u_string == NULL) {
-		up->u_string = (char_t*)malloc((size_t)UNDO_CHAR_EXPAND + 1);
-		up->u_string[0] = c;
-		up->u_string[1] = '\0';
-		return;
-	}
-
-	buflen = strlen((char *)up->u_string);
-
-	if (0 == (buflen % UNDO_CHAR_EXPAND)) {
-
-		newlen = buflen + UNDO_CHAR_EXPAND + 1;
-		newbuf = (char_t*)realloc(up->u_string, (size_t) newlen);
-		up->u_string = newbuf;
-	}
-
-	up->u_string[buflen] = c;
-	up->u_string[buflen + 1] = '\0';
-}
-
-/*
- * append a string the undo string
- * this could be quite wasteful if str is just a char
- * as realloc is called each time.
- *
- */
+/* append a string to the undo structure member u_string */
 void append_undo_string(undo_tt *up, char_t *str)
 {
 	char_t *newbuf;
@@ -271,6 +295,24 @@ void append_undo_string(undo_tt *up, char_t *str)
 	up->u_string = newbuf;
 	memcpy((up->u_string + buflen), str, len);
 	up->u_string[newlen - 1] = '\0';
+}
+
+
+/*
+ * look back 1,2,3 chars in buf, starting at position pos
+ * and determine utf8 size otherwise default to 1 byte
+ *
+ * if ptr points to buf[1] and buf[0] shows that it is a 2 byte UTF8 return 2
+ * if ptr points to buf[2] and buf[0] shows that it is a 3 byte UTF8 return 3 etc
+ *
+ */
+int get_buf_utf8_size(char_t *buf, int pos)
+{
+	int n;
+	for (n=1;n<4;n++)
+		if (-1 < pos - n && (utf8_size(buf[pos - n])) == n + 1)
+			return (n + 1);
+	return 1;
 }
 
 void discard_undo_history()
@@ -340,6 +382,25 @@ int get_undo_size(undo_tt *up)
 	if (up->u_string != NULL) return ((int)sizeof(undo_tt) + strlen((char *)up->u_string));
 	return (int)sizeof(undo_tt);
 
+}
+
+void debug_undo(char *msg, undo_tt *up, buffer_t *bp) {
+	int len = 0;
+	char str[41];
+
+	if (up->u_string != NULL) {
+		/*
+		 * make a summary of the string, we do not want
+		 * to cause a SEGFAULT by overrunning the debug buffer 
+		 */
+		len = strlen((char *)up->u_string);
+		safe_strncpy((char *)str, (char *)up->u_string, 40);
+	} else {
+		strcpy(str,"");
+	}
+
+	debug("%s: typ=%s pt=%ld str='%s' len=%d ucnt=%d\n", 
+		msg, get_undo_type_name(up), up->u_point, str, len, bp->b_ucnt);
 }
 
 /* translate the type into a string for the list-undos command */

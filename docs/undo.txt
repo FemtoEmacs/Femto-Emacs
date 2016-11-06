@@ -57,6 +57,9 @@ undo.txt          245     13161
   Num is the number of undos recorded for that buffer
   Size is the total size of all undo records for that buffer
 
+ Esc-x discard-undo-history  ;; throws away all the undo history 
+                             ;; and will start accumulating it again
+                             ;; when changes start being made
 
 
 HOW UNDO WORKS
@@ -87,9 +90,14 @@ all tracked changes to the buffer.
 ISSUES THAT WIL BE FIXED LATER
 (please dont report these)
 ==============================
-replaces are not yet supported
-not yet handling utf8 chars that are inserted or backspaced
-not yet handling some of the special cases that exist in overwrite mode
+WARNING ! Replaces are not yet supported  
+  If you need to do replaces you should save the file first
+  Re-open the file and then do the replace, save the file.
+  Or you should use ESC-x discard-undo-history
+  This will avoid having an invalid UNDO history when you have done a replace
+
+Not yet handling utf8 chars that are inserted or backspaced  (fixed in 1.10)
+Not yet handling some of the special cases that exist in overwrite mode
 
 
 REPORTING PROBLEMS WITH UNDO
@@ -150,4 +158,83 @@ Program terminated with signal SIGSEGV, Segmentation fault.
 #2  0x000000000040505a in main (argc=2, argv=0x7ffe249d76b8) at main.c:60
 (gdb) quit
 
+
+Reference Run of List-Undos 5 Nov 2016
+======================================
+The report below shows the effect of editing and undoing 
+using the DEL key (CTRL+D) and then an UNDO.
+You should start at the bottom and work up for the full story
+The latest undo is at the top.
+
+Notice that the INSAT lines for UTF8 chars for
+undo 008 and 009 appear corrupt.
+THIS IS NOT A BUG.  What is happening here
+is that the UTF8 char sequence was inserted using insert_at() in reverse order in order
+to ensure that when the undo was completed they are in the correct order in the file.
+This means that they no longer appear as printable chars in the report below.
+
+
+Num Type   Point     Size String
+--- ------ --------- ---- ----------------------------------------
+001 DELETE      6377   33 T
+002 INSAT       6377   41 kciuQ ehT
+003 INSERT      6497   45 azy 7998êçà0
+004 BACKSP      6432   36 HSIF
+005 INSAT       6390   36  xoF
+006 INSAT       6398   38  spmuJ
+007 INSERT      6398   40 ¬¢56‚Ç¨ 
+008 INSAT       6446   40  ¨Ç‚65¢¬
+009 INSAT       6404   41 0àçê8997
+010 DELETE      6404   41 7998êçà0
+011 DELETE      6446   40 ¬¢56‚Ç¨ 
+012 BACKSP      6390   40  ‚Ç¨65¬¢
+013 DELETE      6398   38 Jumps 
+014 DELETE      6390   36 Fox 
+015 INSERT      6436   36 FISH
+016 BACKSP      6484   45 0êçà8997 yza
+017 DELETE      6377   41 The Quick
+
+## a second instance where a new file was openned and
+## the 2 lines were pasted in first
+
+Num Type   Point     Size String
+--- ------ --------- ---- ----------------------------------------
+001 KILL           0  664 Test Steps ---------- ## TEST START 1:h
+002 INSAT         38   41  kciuQ eh
+003 INSERT       157   45 azy 7998êçà0
+004 BACKSP        94   37  HSIF
+005 INSAT         50   36  xoF
+006 INSAT         58   38  spmuJ
+007 INSERT        58   40 ¬¢56‚Ç¨ 
+008 INSAT        107   40  ¨Ç‚65¢¬
+009 INSAT         64   41 0àçê8997
+010 DELETE        64   41 7998êçà0
+011 DELETE       107   40 ¬¢56‚Ç¨ 
+012 BACKSP        50   40  ‚Ç¨65¬¢
+013 DELETE        58   38 Jumps 
+014 DELETE        50   36 Fox 
+015 INSERT        99   37 FISH 
+016 BACKSP       144   45 0êçà8997 yza
+017 DELETE        38   41 he Quick 
+018 YANK           0  664 Test Steps ---------- ## TEST START 1:h
+
+
+Test Steps
+----------
+## TEST START
+1:he Quick 12$34 Brown Fox ¬¢56‚Ç¨ Jumps over the lazy 7998êçà0
+2:The Quick 12$34 Brown Fox ¬¢56‚Ç¨ Jumps over the lazy 7998êçà0
+## TEST END
+
+
+Start on line 1: and CTRL+D delete the words The and Quick
+Now drop to line 2: and CTRL+E to end of line
+Backspace up to the l of lazy.
+Now CTRL+A and type FISH
+Now Move up 1 line and CTRL+D Fox, move to Jumps and CTRL+D that word
+Now backspace across the ¬¢56‚Ç¨ UTF8 chars.
+Go to line 2 and CTRL+D all of ¬¢56‚Ç¨
+Go to line 1, CTRL+E to EOL, arrow right to the start of 7998êçà0
+Now CTRL+D all of 7998êçà0
+No do CTRL+U until it says 'Out of Undo'
 

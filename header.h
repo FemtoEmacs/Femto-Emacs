@@ -15,7 +15,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define VERSION	 "FemtoEmacs 1.9, Public Domain, 2016"
+#define VERSION	 "FemtoEmacs 1.10, Public Domain, 2016"
 #define EXIT_OK         0               /* Success */
 #define EXIT_ERROR      1               /* Unknown error. */
 #define EXIT_USAGE      2               /* Usage */
@@ -304,6 +304,7 @@ extern void writefile(void);
 extern void savebuffer(void);
 extern void clear_buffer(void);
 extern void zero_buffer(buffer_t *);
+extern point_t document_size(buffer_t *);
 extern int buffer_is_empty(buffer_t *);
 extern void debug(char *, ...);
 extern void log_debug_message(char *, ...);
@@ -379,7 +380,7 @@ extern int match_string_position(string_list_t *, int);
 extern int shortest_string_len(string_list_t *);
 extern char *shortest_common_string(string_list_t *);
 extern undo_tt *new_undo();
-extern void add_undo(buffer_t *, char, point_t, char_t c, char_t *);
+extern void add_undo(buffer_t *, char, point_t, char_t *);
 extern void free_undos(undo_tt *);
 extern void list_undos(void);
 extern void dump_undos(buffer_t *);
@@ -392,7 +393,10 @@ extern void append_undo_string(undo_tt *, char_t *);
 extern void undo_command(void);
 extern undo_tt *execute_undo(undo_tt *);
 extern int get_undo_again(void);
+extern char *get_undo_type_name(undo_tt *);
 extern void discard_buffer_undo_history(buffer_t *);
+extern int get_buf_utf8_size(char_t *, int);
+extern void debug_undo(char *, undo_tt *, buffer_t *);
 
 /*
  * include public Femto interface functions definitions 

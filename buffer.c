@@ -36,6 +36,12 @@ void zero_buffer(buffer_t *bp)
 	bp->b_mark = NOMARK;
 }
 
+/* get the size of the document in the buffer */
+point_t document_size(buffer_t *bp)
+{
+	return (bp->b_ebuf - bp->b_buf) - (bp->b_egap - bp->b_gap);
+}
+
 int buffer_is_empty(buffer_t *bp)
 {
 	if (bp->b_gap == bp->b_buf && bp->b_egap == bp->b_ebuf)

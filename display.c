@@ -304,14 +304,22 @@ void display(window_t *wp, int flag)
 	wp->w_update = FALSE;
 }
 
-/* work out number of bytes based on first byte */
+/*
+ * work out number of bytes based on first byte 
+ *
+ * 1 byte utf8 starts 0xxxxxxx  00 - 7F : 000 - 127
+ * 2 byte utf8 starts 110xxxxx  C0 - DF : 192 - 223
+ * 3 byte utf8 starts 1110xxxx  E0 - EF : 224 - 239
+ * 4 byte utf8 starts 11110xxx  F0 - F7 : 240 - 247
+ *
+ */
 int utf8_size(char_t c)
 {
 	if (c >= 192 && c < 224) {
 		return 2; // 2 top bits set mean 2 byte utf8 char
 	} else if (c >= 224 && c < 240) {
 		return 3; // 3 top bits set mean 3 byte utf8 char
-	} else if (c >= 240) {
+	} else if (c >= 240 && c < 248) {
 		return 4; // 4 top bits set mean 4 byte utf8 char
 	}
 
@@ -327,7 +335,6 @@ void display_utf8(buffer_t *bp, char_t c, int n)
 		sbuf[i] = *ptr(bp, bp->b_epage + i);
 	}
 	sbuf[n] = '\0';
-
 	addstr(sbuf);
 }
 
