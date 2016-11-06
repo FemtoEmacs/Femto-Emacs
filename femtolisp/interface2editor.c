@@ -277,6 +277,14 @@ static value_t fe_trim(value_t *args, u_int32_t nargs) {
  * interface to editor functions of form func(char *)
  */
 
+static value_t fe_shell_command(value_t *args, u_int32_t nargs) {
+	argcount("shell-command", nargs, 1);
+	value_t a = args[0];
+	char *str = cptr(a);
+	shell_command(str);
+	return FL_T;
+}
+
 static value_t msg_lisp(value_t *args, u_int32_t nargs) {
 	argcount("message", nargs, 1);
 	value_t a = args[0]; /*Learn: pick an arg */
@@ -929,6 +937,7 @@ static builtinspec_t builtin_info[] = {
 	{"search-forward", src_forward},
 	{"search-backwards", src_backwards},
 	{"set-mark", set_mark},
+	{"shell-command", fe_shell_command},
 	{"select-buffer", fe_select_buffer},
 	{"split-window", fe_split_window},
 	{"trim", fe_trim},

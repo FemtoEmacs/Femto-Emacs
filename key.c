@@ -86,6 +86,7 @@ keymap_t keymap[] = {
 	{"C-x 1",     "delete-other-windows"  , "\x18\x31", delete_other_windows },
 	{"C-x 2",     "split-window"          , "\x18\x32", split_window },
 	{"C-x C-b",   "list-buffers"          , "\x18\x02", list_buffers },
+	{"C-x C-d",   "user-defined-function" , "\x18\x04", keyboardDefinition },
 	{"C-x C-c",   "exit"                  , "\x18\x03", quit_ask },
 	{"C-x C-f",   "find-file"             , "\x18\x06", readfile },
 	{"C-x C-l",   "user-defined-function" , "\x18\x0C", keyboardDefinition },

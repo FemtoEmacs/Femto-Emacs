@@ -1,15 +1,14 @@
 #include <stdio.h>
 
 //line "comment" works.
+// line comment with block comment /* XXX */
+// line comment with string "jjjjjj"
+/* block comment with string "gghjhjj"  SHOULD ALL BE GREEN*/
 
 /*
  * block comment
  *
  */
-
-/*This is a block comment as well*/
-
-//setThis();  //commented out code /* a comment in a line comment "XXX" */
 
 //example keyword
 void func();

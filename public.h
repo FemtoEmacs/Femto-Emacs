@@ -60,3 +60,4 @@ extern unsigned char *get_scrap(void);
 extern void log_message(char *);
 extern int add_mode_global(char *);
 extern void discard_undo_history(void);
+extern void shell_command(char *);

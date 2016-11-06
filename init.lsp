@@ -115,6 +115,11 @@
           (load (home "killring.scm")))
           (kill-ring-menu))
 
+      ( (equal? key "C-x C-d")
+        (if (not (top-level-bound? 'dired))
+          (load (home "dired.scm")))
+          (dired))
+
       ( (equal? key "C-c m")
         (if (not (top-level-bound? 'bufm-stop))
           (load (home "bufmenu.scm")))

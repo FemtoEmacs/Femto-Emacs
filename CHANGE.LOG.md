@@ -4,6 +4,7 @@
 * fixed UTF8 char handling in undo for INSERT, BACKSPACE, DEL, INSERT_AT
 * fixed DEL, INSERT_AT now working properly at all.
 * python support for syntax highlighting
+* added C-x C-d start of Dired functionality
 
 ## Femto 1.9 27 Oct 2016
 * added discard-undo-history command and lisp interface

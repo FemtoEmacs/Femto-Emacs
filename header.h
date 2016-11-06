@@ -15,7 +15,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define VERSION	 "FemtoEmacs 1.10, Public Domain, 2016"
+#define VERSION	 "FemtoEmacs 1.11, Public Domain, 2016"
 #define EXIT_OK         0               /* Success */
 #define EXIT_ERROR      1               /* Unknown error. */
 #define EXIT_USAGE      2               /* Usage */
@@ -350,7 +350,6 @@ extern void hijack_window(window_t *, buffer_t *);
 extern void restore_hijacked_window(window_t *);
 extern int getfilename(char *, char *, int);
 extern void display_prompt_and_response(char *, char *);
-extern void shell_command(char *);
 extern void i_shell_command(void);
 extern char* get_temp_file(void);
 extern void match_parens(void);

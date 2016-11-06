@@ -174,6 +174,16 @@ to ensure that when the undo was completed they are in the correct order in the 
 This means that they no longer appear as printable chars in the report below.
 
 
+(Potential Fix)
+This is a cosmetic issue in a debug function.
+However when time allows it could be eliminted by editing the code in
+command.c: insert_at() so that it takes an argument of char_t *
+Then all of the UTF8 can be passed in one go, inserted in one go
+and then the call to add_undo() can pass the char_t * back in one go
+as well.   As insert_at() is only used by undo this approach will work.
+This would take 2-4hrs including testing.
+
+
 Num Type   Point     Size String
 --- ------ --------- ---- ----------------------------------------
 001 DELETE      6377   33 T
