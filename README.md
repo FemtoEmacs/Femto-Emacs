@@ -51,6 +51,13 @@ You can test the editor in loco:
 % femto test.scm
 ```
 
+You can remove Femto-Emacs from your system with the following command:
+
+```
+% sudo sh uninstall.sh
+```
+
+
 
 
 ## Linux
@@ -78,6 +85,13 @@ Test the editor in loco:
 ```
 % femto test.scm
 ```
+
+You can remove Femto-Emacs from your system with the following command:
+
+```
+% sudo sh uninstall.sh
+```
+
 
 Hopefully, you will be able to use femto anywhere in your computer.
 You will notice that it will pop up much faster than emacs.
