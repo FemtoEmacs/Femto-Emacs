@@ -61,6 +61,7 @@ int main(int argc, char **argv)
 
 	beginning_of_buffer();
 	undoset();
+	call_lisp("(show-startup-message)");
 	key_map = keymap;
 
 

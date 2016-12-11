@@ -144,6 +144,29 @@
 (define (kill-hook bufn)
         (set! kill-ring (cons (get-clipboard) kill-ring)))
 
+
+(define (show-startup-message)
+  (if (string=? "*scratch*" (get-buffer-name))
+    (begin 
+      (insert "\n\n\n")
+      (insert "                  _______  _______ .___  ___. .___________.  ______          \n")
+      (insert "                 |   ____||   ____||   \\/   | |           | /  __  \\         \n")
+      (insert "                 |  |__   |  |__   |  \\  /  | `---|  |----`|  |  |  |        \n")
+      (insert "                 |   __|  |   __|  |  |\\/|  |     |  |     |  |  |  |        \n")
+      (insert "                 |  |     |  |____ |  |  |  |     |  |     |  `--'  |        \n")
+      (insert "                 |__|     |_______||__|  |__|     |__|      \\______/         \n")
+      (insert "                                                                             \n")
+      (insert "                  _______ .___  ___.      ___       ______     _______.      \n")
+      (insert "                 |   ____||   \\/   |     /   \\     /      |   /       |      \n")
+      (insert "                 |  |__   |  \\  /  |    /  ^  \\   |  ,----'  |   (----`      \n")
+      (insert "                 |   __|  |  |\\/|  |   /  /_\\  \\  |  |        \\   \\          \n")
+      (insert "                 |  |____ |  |  |  |  /  _____  \\ |  `----.----)   |         \n")
+      (insert "                 |_______||__|  |__| /__/     \\__\\ \\______|_______/          \n\n")
+      (insert "                 ")
+      (insert (get-version-string))
+      (insert "\n\n\n"))))
+
+
 ;; define syntax highlighting for scheme files
 (newlanguage ".scm" ";" "#|" "|#")
 (keyword "define")
