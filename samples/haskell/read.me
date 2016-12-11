@@ -1,0 +1,65 @@
+Here is how to use femtoemacs from ghci:
+
+~/Femto-Emacs/haskell$ ls
+Doc.hs haskellEd.hs hello.hs
+~/Femto-Emacs/haskell$ ghci -v0
+Prelude> :set editor femto
+Prelude> :edit hello.hs
+Prelude> :load hello.hs
+*Main> :main Ed Mort
+Hello, Ed Mort
+*Main> _
+
+Since femtoemacs has a short startup time
+and is easy to install, you will find it
+ ghci friendlier than emacs or yi.  
+
+Here is a small text editor written in
+Haskell that you can use to test
+femtoemacs. In order to compile the
+haskell editor, you will need to
+download the ansi-terminal library from
+
+https://hackage.haskell.org/package/ansi-terminal
+
+Compile the library with:
+
+sudo cabal install
+
+Here is how to compile the mini-editor:
+
+ghc haskellEd.hs -o hx
+
+The mini editor is a friendly version of ed.
+Therefore, you will use ed commands to edit
+ text. Start the editor with the test file:
+
+$ ./hx hello.hs
+
+The command  g 3 puts the cursor on line 3.
+The command  a inserts text after the cursor.
+The command i inserts text before the cursor.
+The command e edits the cursor line.
+
+When you enter the insertion mode with the
+a-command or the i-command, you can exit the
+insertion mode by typing a point (full stop),
+exactly like the ed line editor.
+
+To exit the line editor, type 
+
+q fname.txt
+
+where fname.txt is the name of the file
+where you want to store your work. If
+you want to discard the whole thing,
+type q garbage.txt and erase garbage.txt
+with rm garbage.txt
+
+Of course, you should not use the 
+haskellEd.hs line editor, since femtoemacs
+has a very short startup time and is
+almost as powerful than emacs. Besides
+this, since you know haskell, you will
+learn femtolisp easily.
+
