@@ -19,6 +19,42 @@
 ;;
 (add-mode-global "undo")
 
+;; start with an empty user defined keymap
+;; this is a list of pairs in the form 
+;;   key-name function
+(define keymap ())
+
+;; extend the keymap by creating a new pair
+;; and cons-ing it onto the keymap list
+(define (global-set-key ky fn)
+  (set! keymap (cons (cons ky fn) keymap)))
+
+;; for convenience
+(define first car)
+(define rest cdr)
+
+;; the user keymap interpretter, match the key, call the function
+(define (exec_key k map)
+  (cond
+    ( (eqv? () map)
+       (message "key not bound"))
+    ( (string=? k (first (first map)))
+       ((rest (first map))))
+    ( else
+       (exec_key k (rest map)))))
+
+;; called by the C code
+(define (keyboard key)
+  (exec_key key keymap))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; some user functions
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
 ;;
 ;; The function read-string is necessary for reading a Lisp list from a string. 
 ;; When Lisp retrieves a text such as "(2016 8 31)" the text comes out as a string. 
@@ -29,6 +65,7 @@
     (let ( (port (open-input-string str)))
       (begin0 (read port)
 	      (close-input-port port)) ))
+
 
 
 ;;
@@ -62,6 +99,38 @@
                     c
 		    (quotient yy 400) d) 7)) ))
 
+
+;; C-c a
+(define (html-p)
+  (insert "<p> </p>")
+  (backward-char 5))
+
+;; C-c b
+(define (html-h1)
+  (beginning-of-line) 
+  (insert "<h1> </h1>")
+  (beginning-of-line)
+  (forward-char 4))
+
+;; C-c c
+(define (html-pp)
+  (end-of-line)
+  (insert "<p>-")
+  (insert (get-clipboard))
+  (insert "-</p>"))
+
+;; C-c z
+(define (insert-day)
+  (insert (what-day (read-string (cut-region)))))
+
+;; C-t
+(define (indent-two)
+  (insert "  "))
+
+;; C-o
+(define (deindent-two)
+  (backwards-delete-char 2))
+
 ;; call kill-region and return it as a string
 (define (cut-region)
   (kill-region)
@@ -81,57 +150,51 @@
    (yank)
    (clear-message-line))
 
-;; Shortcut definitions
-(define (keyboard key) 
-   (cond
-      ( (equal? key "C-c z")
-        (insert (what-day (read-string (cut-region))) ))
-      ( (equal? key "C-c a") 
-        (insert "<p> </p>")
-        (backward-char 5))
-      ( (equal? key "C-t")
-	(insert "  "))
-      ( (equal? key "C-o")
-        (backwards-delete-char 2))
-      ( (equal? key "C-c b")
-        (beginning-of-line) 
-        (insert "<h1> </h2>")
-        (beginning-of-line)
-        (forward-char 4))
+;; bind later C-x C-b
+(define (invoke-buffer-menu)
+  (if (not (top-level-bound? 'bufm-stop)) (load (home "bufmenu.scm")))
+  (buffer-menu))
 
-      ( (equal? key "C-c c")
-        (end-of-line)
-        (insert "<p>-")
-        (insert (get-clipboard))
-        (insert "-</p>"))
+;; bind later C-c i
+(define (invoke-insert-kill-ring)
+  (if (not (top-level-bound? 'kill-ring-menu)) (load (home "killring.scm")))
+  (insert-kill-ring))
 
-      ( (equal? key "C-c i")
-        (if (not (top-level-bound? 'kill-ring-menu))
-          (load (home "killring.scm")))
-          (insert-kill-ring))
+;; bind later C-c k
+(define (invoke-kill-ring-menu)
+  (if (not (top-level-bound? 'kill-ring-menu)) (load (home "killring.scm")))
+  (kill-ring-menu))
 
-      ( (equal? key "C-c k")
-        (if (not (top-level-bound? 'kill-ring-menu))
-          (load (home "killring.scm")))
-          (kill-ring-menu))
+;; bind later C-x C-d
+(define (invoke-dired)
+  (if (not (top-level-bound? 'dired)) (load (home "dired.scm")))
+  (dired))
 
-      ( (equal? key "C-x C-d")
-        (if (not (top-level-bound? 'dired))
-          (load (home "dired.scm")))
-          (dired))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; Our user definable key-bindings, the actual key names must have been defined
+;; in key.c. In the future we will add the ability to create new key names for
+;; binding. 
+;;
+;; A list of available keys can be found using
+;;   Esc-x list-bindings
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-      ( (equal? key "C-c m")
-        (if (not (top-level-bound? 'bufm-stop))
-          (load (home "bufmenu.scm")))
-          (buffer-menu))
+(global-set-key "C-x C-b" invoke-buffer-menu)
+(global-set-key "C-x C-d" invoke-dired)
+(global-set-key "C-x C-u" upcase-region)
+(global-set-key "C-x C-l" downcase-region)
 
-      ( (equal? key "C-x C-u")
-          (upcase-region))
+(global-set-key "C-c a" html-p)
+(global-set-key "C-c b" html-h1)
+(global-set-key "C-c c" html-pp)
+(global-set-key "C-c i" invoke-insert-kill-ring)
+(global-set-key "C-c k" invoke-kill-ring-menu)
+(global-set-key "C-c z" insert-day)
 
-      ( (equal? key "C-x C-l")
-          (downcase-region))
-
-      (else (insert key)) ))
+(global-set-key "C-o" deindent-two)
+(global-set-key "C-t" indent-two)
 
 ;;
 ;; Initialise the kill-ring to empty
@@ -140,9 +203,10 @@
 
 ;;
 ;; append to the kill-ring on every kill
+;; NOTE: commented out now that we have unlimited undo
 ;; 
-(define (kill-hook bufn)
-        (set! kill-ring (cons (get-clipboard) kill-ring)))
+;;(define (kill-hook bufn)
+;;        (set! kill-ring (cons (get-clipboard) kill-ring)))
 
 
 (define (show-startup-message)
@@ -166,6 +230,13 @@
       (insert (get-version-string))
       (insert "\n\n\n"))))
 
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; Programming Language keywords for syntax highlighting
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; define syntax highlighting for scheme files
 (newlanguage ".scm" ";" "#|" "|#")
@@ -201,7 +272,7 @@
 (keyword "cond")
 (keyword "if")
 
-;; define syntax hughlighting for C code
+;; define syntax hi-lighting for C code
 (newlanguage ".c" "//" "/*" "*/")
 (keyword "auto")
 (keyword "break")

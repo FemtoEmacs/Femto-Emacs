@@ -1,5 +1,9 @@
 #Femto Emacs Change Log
 
+## Femto 1.11 18 Dec 2016
+* Modified init.lsp so that keys are bound using 'global-set-key' and there is an interpretter loop
+* added additional entries for C-x C-char user-defined-function
+
 ## Femto 1.10 6 Nov 2016
 * fixed UTF8 char handling in undo for INSERT, BACKSPACE, DEL, INSERT_AT
 * fixed DEL, INSERT_AT now working properly at all.
