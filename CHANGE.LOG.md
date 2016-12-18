@@ -1,5 +1,8 @@
 #Femto Emacs Change Log
 
+## Femto 1.12 18 Dec 2016
+* Fixed annoyance. Changed searchtext so that is reset to blank when search is started.
+
 ## Femto 1.11 18 Dec 2016
 * Modified init.lsp so that keys are bound using 'global-set-key' and there is an interpretter loop
 * added additional entries for C-x C-char user-defined-function

@@ -12,6 +12,7 @@ void search()
 	point_t o_point = curbp->b_point;
 	point_t found;
 
+	searchtext[0] = '\0';
 	display_prompt_and_response(m_sprompt, searchtext);
 	cpos = strlen(searchtext);
 
