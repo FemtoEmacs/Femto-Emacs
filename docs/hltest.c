@@ -1,9 +1,42 @@
+/*
+ * block comment
+ * "double quoted string'
+ * 'single quoted string'
+ * 1234567890
+ * adbcedf ABCXYZ
+ * !"£$%^&*()_=+{}[]:;@'~#<>,.?/
+ *    //  line comment inside a block comment
+ * \'  \"  \* *\/
+ */
+
 #include <stdio.h>
 
-//line "comment" works.
-// line comment with block comment /* XXX */
-// line comment with string "jjjjjj"
-/* block comment with string "gghjhjj"  SHOULD ALL BE GREEN*/
+// /* block comment after a line comment */
+// "double quoted string'
+// 'single quoted string'
+// 1234567890
+// adbcedf ABCXYZ
+// !"£$%^&*()_=+{}[]:;@'~#<>,.?/
+//     //  line comment inside a block comment
+//  \'  \"  \* *\/
+// 
+
+s1 = "/*";
+s2 = "*/";
+s3 = "\\";
+s4 = "
+A multiline string
+second line of multiline string
+// third line of multiline string - starts with line comment
+/* fourth line starts with a block comment
+  */
+all lines should rendered in the string color
+";
+
+
+
+/* "string" */
+/* 'string' */
 
 /*
  * block comment
@@ -32,3 +65,5 @@ x="digits inside a string 0123456789 should show in the string color";
 
 s="£";
 s=":";
+
+/* */
