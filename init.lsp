@@ -170,6 +170,46 @@
   (if (not (top-level-bound? 'dired)) (load (home "dired.scm")))
   (dired))
 
+;;;;;;; C-x C-g
+(define grep-search-string "")
+(define grep-filespec "*.c *.h")
+(define grep-command-prefix "grep -ni ")
+(define grep-buffer "*grep*")
+(define grep-line 0)
+(define grep-file-to-load "")
+(define grep-line-to-goto 0)
+
+(define (grep-command)
+  (kill-buffer grep-buffer)
+  (set! grep-line 0)
+  (set! grep-file-to-load "")
+  (set! grep-line-to-goto 0)
+  (set! grep-search-string (prompt "grep search for : " ""))
+  (set! grep-filespec (prompt "search in files : " grep-filespec))
+  (shell-command (string-append grep-command-prefix "\"" grep-search-string "\" " grep-filespec))
+  (select-buffer "*output*")
+  (rename-buffer "*grep*")
+  (update-display))
+
+(define (next-grep)
+  (select-buffer "*grep*")
+  (set! grep-line (+ 1 grep-line))
+  (goto-line grep-line)
+  (beginning-of-line)
+  (set-mark)
+  (search-forward ":")
+  (backward-char 1)
+  (copy-region)
+  (set! grep-file-to-load (get-clipboard))
+  (forward-char 1)
+  (set-mark)
+  (search-forward ":")
+  (backward-char 1)
+  (copy-region)
+  (set! grep-line-to-goto (string->number (get-clipboard)))
+  (find-file grep-file-to-load)
+  (goto-line grep-line-to-goto))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; Our user definable key-bindings, the actual key names must have been defined
@@ -185,6 +225,8 @@
 (global-set-key "C-x C-d" invoke-dired)
 (global-set-key "C-x C-u" upcase-region)
 (global-set-key "C-x C-l" downcase-region)
+(global-set-key "C-x C-g" grep-command)
+(global-set-key "C-x !" next-grep)
 
 (global-set-key "C-c a" html-p)
 (global-set-key "C-c b" html-h1)

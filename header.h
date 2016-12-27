@@ -15,7 +15,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define VERSION	 "FemtoEmacs 1.12, Public Domain, 2016"
+#define VERSION	 "FemtoEmacs 1.13, Public Domain, 2016"
 #define EXIT_OK         0               /* Success */
 #define EXIT_ERROR      1               /* Unknown error. */
 #define EXIT_USAGE      2               /* Usage */
@@ -35,8 +35,6 @@
 #define FWD_SEARCH      1
 #define REV_SEARCH      2
 #define TEMPFILE        "/tmp/feXXXXXX"
-#define F_NONE          0
-#define F_CLEAR         1
 
 #define ID_COLOR_SYMBOL    1
 #define ID_COLOR_MODELINE  2
@@ -268,7 +266,6 @@ extern point_t upup(buffer_t *, point_t);
 extern point_t dndn(buffer_t *, point_t);
 extern char_t *get_key(keymap_t *, keymap_t **);
 extern char *fe_get_input_key(void);
-extern int getinput(char *, char *, int, int);
 extern int growgap(buffer_t *, point_t);
 extern point_t movegap(buffer_t *, point_t);
 extern point_t pos(buffer_t *, char_t *);
@@ -295,7 +292,7 @@ extern void quit(void);
 extern int yesno(int);
 extern void quit_ask(void);
 extern void redraw(void);
-extern void readfile(void);
+extern void i_readfile(void);
 extern void insertfile(void);
 extern void right(void);
 extern void version(void);
@@ -321,6 +318,7 @@ extern void update_search_prompt(char *, char *);
 extern void display_search_result(point_t, int, char *, char *);
 extern void move_to_search_result(point_t);
 extern buffer_t* find_buffer(char *, int);
+extern buffer_t *find_buffer_by_fname(char *);
 extern void add_mode(buffer_t *, buffer_flags_t);
 extern void delete_mode(buffer_t *, buffer_flags_t);
 extern void buffer_init(buffer_t *);
@@ -372,7 +370,8 @@ extern void repl(void);
 extern void eval_block();
 extern void execute_command();
 extern void remove_control_chars(char_t *);
-extern void mk_buffer_name(char *, char *);
+extern void make_buffer_name(char *, char *);
+extern void make_buffer_name_uniq(char *);
 extern void safe_strncpy(char *, char *, int);
 extern void resize_terminal();
 extern int match_string_position(string_list_t *, int);

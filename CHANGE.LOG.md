@@ -1,5 +1,10 @@
 #Femto Emacs Change Log
 
+## Femto 1.13 27 Dec 2016
+* Fixed bug where could not open multiple files of same name but with different filepaths
+* added (rename-buffer) and (find-file) commands
+* added grep-command extension C-x C-g to search files, C-x ! to visit next find. (see init.lsp)
+
 ## Femto 1.12 18 Dec 2016
 * Fixed annoyance. Changed searchtext so that is reset to blank when search is started.
 

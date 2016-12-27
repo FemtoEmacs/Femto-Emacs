@@ -285,27 +285,30 @@ void insertfile()
 		(void)insert_file(response_buf, TRUE);
 }
 
-void readfile()
+void i_readfile()
 {
-	buffer_t *bp;
-	char bname[NBUFN];
+	if (FALSE == getfilename(str_read, (char*)response_buf, NAME_MAX))
+		return;
 
-	if (getfilename(str_read, (char*)response_buf, NAME_MAX)) {
-		mk_buffer_name(bname, response_buf);
-		bp = find_buffer(bname, TRUE);
-		disassociate_b(curwp); /* we are leaving the old buffer for a new one */
-		curbp = bp;
-		associate_b2w(curbp, curwp);
+	readfile(response_buf);
+}
 
-		/* load the file if not already loaded */
-		if (bp != NULL && bp->b_fname[0] == '\0') {
-			if (!load_file(response_buf)) {
-				msg(m_newfile, response_buf);
-			}
-			safe_strncpy(curbp->b_fname, response_buf, NAME_MAX);
+void readfile(char *fname)
+{
+	buffer_t *bp = find_buffer_by_fname(fname);
+	disassociate_b(curwp); /* we are leaving the old buffer for a new one */
+	curbp = bp;
+	associate_b2w(curbp, curwp);
+
+	/* load the file if not already loaded */
+	if (bp != NULL && bp->b_fname[0] == '\0') {
+		if (!load_file(fname)) {
+			msg(m_newfile, fname);
 		}
-		undoset();
+		safe_strncpy(curbp->b_fname, fname, NAME_MAX);
 	}
+	
+	undoset();
 }
 
 void savebuffer()
@@ -319,6 +322,17 @@ void savebuffer()
 	refresh();
 }
 
+char *rename_current_buffer(char *bname)
+{
+	char bufn[NBUFN];
+
+	strcpy(bufn, bname);
+	make_buffer_name_uniq(bufn);
+	strcpy(curbp->b_bname, bufn);
+
+	return curbp->b_bname;
+}
+
 void writefile()
 {
 	safe_strncpy(response_buf, curbp->b_fname, NAME_MAX);
@@ -327,7 +341,7 @@ void writefile()
 			safe_strncpy(curbp->b_fname, response_buf, NAME_MAX);
 			// FIXME - what if name already exists, in editor
 			// FIXME? - do we want to change the name of the buffer when we save_as ?
-			mk_buffer_name(curbp->b_bname, curbp->b_fname);
+			make_buffer_name(curbp->b_bname, curbp->b_fname);
 		}
 	}
 }
@@ -697,6 +711,7 @@ void shell_command(char *command)
 	char *output_file = get_temp_file();
 
 	sprintf(sys_command, "%s > %s 2>&1", command, output_file);
+	//debug("sys_command: '%s'\n", sys_command);
 
 	if (0 != system(sys_command))
 		return;

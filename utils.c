@@ -13,7 +13,7 @@ extern int errno;
 /*
  * Take a file name, and fabricate a buffer name.
  */
-void mk_buffer_name(char *bname, char *fname)
+void make_buffer_name(char *bname, char *fname)
 {
 	char *p = fname;
 
@@ -28,6 +28,29 @@ void mk_buffer_name(char *bname, char *fname)
 	safe_strncpy(bname, p, NBUFN);
 }
 
+void make_buffer_name_uniq(char *bname)
+{
+	int num = 0;
+	char basen[NBUFN];
+	char bufn[NBUFN];
+
+	if (NULL == find_buffer(bname, FALSE))
+		return;
+
+	strcpy(basen, bname);
+	basen[14] = '\0';
+	basen[15] = '\0';
+
+	while(TRUE) {
+		sprintf(bufn, "%s%d", basen, num++);
+		
+		if (NULL == find_buffer(bufn, FALSE)) {
+			strcpy(bname, bufn);
+			return;
+		}
+		assert(num < 100); /* fail after 100 */
+	}
+}
 
 /*
  * trim spaces from front and back of a string

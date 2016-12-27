@@ -22,7 +22,7 @@
 (define bufm-start-line 3)
 (define bufm-last-line 3)
 (define bufm-max-ops 400)
-(define bufm-debugging #t)
+(define bufm-debugging #f)
 (define bufm-stop #f)
 (define bufm-obuf "")
 (define bufm-buf "")

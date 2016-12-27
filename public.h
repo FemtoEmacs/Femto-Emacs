@@ -10,6 +10,9 @@
 #define ID_TOKEN_QUOTED    4
 #define ID_TOKEN_ALPHA     5
 
+#define F_NONE          0
+#define F_CLEAR         1
+
 #ifndef FEMTO_POINT_T
 typedef long point_t;
 #endif
@@ -61,3 +64,6 @@ extern void log_message(char *);
 extern int add_mode_global(char *);
 extern void discard_undo_history(void);
 extern void shell_command(char *);
+extern int getinput(char *, char *, int, int);
+extern char *rename_current_buffer(char *);
+extern void readfile(char *);

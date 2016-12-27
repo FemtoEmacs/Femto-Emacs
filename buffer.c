@@ -104,6 +104,26 @@ buffer_t *find_buffer (char *bname, int cflag)
 	return bp;
 }
 
+/*
+ * Given a file name, either find the buffer it uses, or create a new
+ * empty buffer to put it in.
+ */
+buffer_t *find_buffer_by_fname(char *fname)
+{
+	buffer_t *bp;
+	char	 bname[NBUFN];
+
+	bp = bheadp;
+	for (bp = bheadp; bp != NULL; bp = bp->b_next)
+		if (strcmp(fname, bp->b_fname) == 0)
+			return (bp);
+
+	make_buffer_name(bname, fname);
+	make_buffer_name_uniq(bname);
+	bp = find_buffer(bname, TRUE);
+	return (bp);
+}
+
 void add_mode(buffer_t *bp, buffer_flags_t mode)
 {
 	/* we dont allow undo mode for special buffers */

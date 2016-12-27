@@ -28,7 +28,7 @@ extern int is_digit(char_t c);
  *     void func(void)
  */
 static value_t bkwrd(value_t *args, u_int32_t nargs) {
-	argcount("backward", nargs, 1);
+	argcount("backward-char", nargs, 1);
 	value_t a = args[0];
 	long int n = numval(a); /*Learn: Lisp num -> C int*/
 	while (n-- > 0)
@@ -37,7 +37,7 @@ static value_t bkwrd(value_t *args, u_int32_t nargs) {
 }
 
 static value_t forwrd(value_t *args, u_int32_t nargs) {
-	argcount("forward", nargs, 1);
+	argcount("forward-char", nargs, 1);
 	value_t a = args[0];
 	long int n = numval(a); /*Learn: Lisp num -> C int*/
 	while (n-- > 0)
@@ -301,6 +301,22 @@ static value_t fe_add_mode_global(value_t *args, u_int32_t nargs) {
 	return (result == 1 ? FL_T : FL_F);
 }
 
+static value_t fe_prompt(value_t *args, u_int32_t nargs) {
+	argcount("prompt", nargs, 2);
+
+	value_t a = args[0];
+	char *prompt = cptr(a); 
+
+	value_t b = args[1];
+	char *resp = cptr(b);
+
+	char response[81];
+	strncpy(response, resp, 80);
+	response[80] = '\0';
+
+	getinput(prompt, response, 80, F_NONE);
+	return string_from_cstr(response);
+}
 
 /* log a string to debug.out  */
 static value_t fe_log_debug(value_t *args, u_int32_t nargs) {
@@ -408,6 +424,21 @@ static value_t fe_save_buffer(value_t *args, u_int32_t nargs) {
 	return (result ? FL_T : FL_NIL);
 }
 
+static value_t fe_find_file(value_t *args, u_int32_t nargs) {
+	argcount("find-file", nargs, 1);
+	value_t a = args[0];
+	char *str = cptr(a);
+	readfile(str);
+	return FL_T;
+}
+
+static value_t fe_rename_buffer(value_t *args, u_int32_t nargs) {
+	argcount("rename-buffer", nargs, 1);
+	value_t a = args[0];
+	char *str = cptr(a);
+	rename_current_buffer(str);
+	return string_from_cstr(get_current_bufname());
+}
 
 /*
  * code for syntax highlighting
@@ -921,6 +952,7 @@ static builtinspec_t builtin_info[] = {
 	{"clear-message-line", fe_clr_msg_line},
 	{"discard-undo-history", fe_discard_undo_history},
 	{"eval-block", eval_blk},
+	{"find-file", fe_find_file},
 	{"get-key", fe_get_key},
 	{"log-debug", fe_log_debug},
 	{"log-message", fe_log_message},
@@ -933,6 +965,8 @@ static builtinspec_t builtin_info[] = {
 	{"next-line", next_line},
 	{"previous-line", previous_line},
 	{"other-window", fe_other_window},
+	{"prompt", fe_prompt},
+	{"rename-buffer", fe_rename_buffer},
 	{"save-buffer", fe_save_buffer},
 	{"search-forward", src_forward},
 	{"search-backwards", src_backwards},
