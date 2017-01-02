@@ -1,3 +1,5 @@
+[![Join the chat at https://gitter.im/FemtoLisp/flisp](https://badges.gitter.im/FemtoLisp/flisp.svg)](https://gitter.im/FemtoLisp/flisp)
+
 # Femto-Emacs
 Tiny emacs clone that can be configured with femtolisp
 
