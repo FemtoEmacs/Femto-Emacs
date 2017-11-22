@@ -1396,8 +1396,13 @@ static value_t apply_cl(uint32_t nargs)
             NEXT_OP;
         OP(OP_NEG)
         do_neg:
-            if (isfixnum(Stack[SP-1]))
-                Stack[SP-1] = fixnum(-numval(Stack[SP-1]));
+            if (isfixnum(Stack[SP-1])) {
+                s = fixnum(-numval(Stack[SP-1]));
+                if (__unlikely(s == Stack[SP-1]))
+                  Stack[SP-1] = mk_long(-numval(Stack[SP-1])); // negate overflows
+                else
+                  Stack[SP-1] = s;
+            }
             else
                 Stack[SP-1] = fl_neg(Stack[SP-1]);
             NEXT_OP;
@@ -1786,7 +1791,7 @@ static value_t apply_cl(uint32_t nargs)
             i = GET_INT32(ip); ip+=4;
             n = GET_INT32(ip); ip+=4;
             s = GET_INT32(ip); ip+=4;
-            nargs = process_keys(v, i, n, abs(s)-(i+n), bp, nargs, s<0);
+            nargs = process_keys(v, i, n, labs(s)-(i+n), bp, nargs, s<0);
             NEXT_OP;
 
 #ifndef USE_COMPUTED_GOTO

@@ -65,6 +65,9 @@
 (assert (> (- #int32(0x80000000)) 0))
 (assert (< (- #uint64(0x8000000000000000)) 0))
 (assert (> (- #int64(0x8000000000000000)) 0))
+; fixnum versions
+(assert (= (- -536870912) 536870912))
+(assert (= (- -2305843009213693952) 2305843009213693952))
 
 (assert (not (equal? #int64(0x8000000000000000) #uint64(0x8000000000000000))))
 (assert (equal? (+ #int64(0x4000000000000000) #int64(0x4000000000000000))
@@ -75,6 +78,7 @@
 (assert (equal? (uint64 (double -123)) #uint64(0xffffffffffffff85)))
 
 (assert (equal? (string 'sym #byte(65) #wchar(945) "blah") "symA\u03B1blah"))
+(assert (= (length (string #\x0)) 1))
 
 (assert (> 9223372036854775808 9223372036854775807))
 
@@ -91,6 +95,14 @@
 (assert (equal? (< 3 +nan.0) (> +nan.0 (double 3))))
 (assert (equal? (> 3 +nan.0) (> (double 3) +nan.0)))
 (assert (not (>= +nan.0 +nan.0)))
+
+; comparing strings
+(assert (< "a" "b"))
+(assert (> "b" "a"))
+(assert (not (< "a" "a")))
+(assert (<= "a" "a"))
+(assert (>= "a" "a"))
+(assert (>= "ab" "aa"))
 
 ; -0.0 etc.
 (assert (not (equal? 0.0 0)))
@@ -271,6 +283,14 @@
 
 (assert (not (equal? (hash (iota 41))
 		     (hash (iota 42)))))
+
+(if (top-level-bound? 'time.fromstring)
+    (assert (let ((ts (time.string (time.now))))
+                (eqv? ts (time.string (time.fromstring ts))))))
+
+(assert (equal? 0.0 (+ 0.0 0))) ; tests that + no longer does inexact->exact
+
+(assert (equal? 1.0 (* 1.0 1))) ; tests that * no longer does inexact->exact
 
 (princ "all tests pass\n")
 #t
