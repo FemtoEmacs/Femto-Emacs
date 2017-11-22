@@ -1,3 +1,5 @@
+[![Join the chat at https://gitter.im/FemtoLisp/flisp](https://badges.gitter.im/FemtoLisp/flisp.svg)](https://gitter.im/FemtoLisp/flisp)
+
 ## ...a purely symbolic gesture...
 
 This project began with an attempt to write the fastest lisp interpreter I could in under 1000 lines of C. It snowballed from there as I kept trying to see if I could add powerful features with minimal code. At the same time I assembled a library of some of my favorite C code (by myself and others) to use as a base for a standard library. This includes `ios`, a replacement for parts of C's stdio that adds more flexible features.
@@ -20,7 +22,7 @@ Before you say "oh no, another lisp", consider the following: femtolisp is about
   * compacting GC
   * and...
 
-...it is fast, ranking among the fastest non-native-compiled Scheme implementations. It achieves this level of speed even though many primitives (like `map`) are written in the language instead of C. femtolisp uses a bytecode compiler and VM, with the compiler written in femtolisp. Bytecode is first-class, can be printed and read, and is "human readable" (the representation is a string of normal low-ASCII characters).
+...it is fast, ranking among the fastest non-native-compiled Scheme implementations. It achieves this level of speed even though many primitives (e.g. `filter` and `for-each`) are written in the language instead of C. femtolisp uses a bytecode compiler and VM, with the compiler written in femtolisp. Bytecode is first-class, can be printed and read, and is "human readable" (the representation is a string of normal low-ASCII characters).
 
 femtolisp is a simple, elegant Scheme dialect. It is a lisp-1 with lexical scope. The core is 12 builtin special forms and 33 builtin functions.
 

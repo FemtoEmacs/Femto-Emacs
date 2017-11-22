@@ -4,8 +4,6 @@
 #include "llt.h"
 #include "flisp.h"
 
-extern void interface_init(void);
-
 static value_t argv_list(int argc, char *argv[])
 {
     int i;

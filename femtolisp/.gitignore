@@ -1,0 +1,8 @@
+/*.o
+/*.do
+/*.a
+/*.da
+/flisp
+/llt/*.o
+/llt/*.a
+/flisp.boot.bak

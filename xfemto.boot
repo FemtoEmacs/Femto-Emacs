@@ -31,23 +31,26 @@
 		      #fn("9000s0c0|v2;" [#.vector])
 		      #fn("7000r2|}[;" [])
 		      #fn("8000r3|}g2\\;" [])]
-	  *interactive* #f *syntax-environment*
-	  #table(with-bindings #fn(">000s1c0qc1c2|32c1e3|32c1c4|3243;" [#fn("B000r3c0c1L1c2c3g2|33L1c4c2c5|}3331c6c0c7L1c4\x7f3132c0c7L1c4c2c8|g2333132L3L144;" [#fn(nconc)
-  let #fn(map) #.list #fn(copy-list) #fn("8000r2c0|}L3;" [set!]) unwind-protect
-  begin #fn("8000r2c0|}L3;" [set!])]) #fn(map) #.car cadr #fn("6000r1c040;" [#fn(gensym)])])  letrec #fn("?000s1c0c0c1L1c2c3|32L1c2c4|32c5}3134L1c2c6|3242;" [#fn(nconc)
+	  *interactive* #t *syntax-environment*
+	  #table(letrec #fn("?000s1c0c0c1L1c2c3|32L1c2c4|32c5}3134L1c2c6|3242;" [#fn(nconc)
   lambda #fn(map) #.car #fn("9000r1c0c1L1c2|3142;" [#fn(nconc) set! #fn(copy-list)])
-  #fn(copy-list) #fn("6000r1e040;" [void])])  assert #fn("<000r1c0|]c1c2c3|L2L2L2L4;" [if
-  raise quote assert-failed])  do #fn("A000s2c0qc130}Mc2c3|32c2e4|32c2c5|3245;" [#fn("B000r5c0|c1g2c2}c3c4L1c5\x7fN3132c3c4L1c5i0231c3|L1g432L133L4L3L2L1c3|L1g332L3;" [letrec
-  lambda if #fn(nconc) begin #fn(copy-list)])
-  #fn(gensym) #fn(map) #.car cadr #fn("7000r1e0|31F680e1|41;|M;" [cddr caddr])])  quasiquote #fn("8000r1e0|`42;" [bq-process])  when #fn("<000s1c0|c1}K^L4;" [if
-  begin])  with-input-from #fn("=000s1c0c1L1c2|L2L1L1c3}3143;" [#fn(nconc)
-								with-bindings
-								*input-stream*
-								#fn(copy-list)])  unwind-protect #fn("8000r2c0qc130c13042;" [#fn("@000r2c0}c1_\x7fL3L2L1c2c3~c1|L1c4}L1c5|L2L3L3L3}L1L3L3;" [let
+  #fn(copy-list) #fn("6000r1e040;" [void])])  quasiquote #fn("8000r1e0|`42;" [bq-process])  when #fn("<000s1c0|c1}K^L4;" [if
+  begin])  unwind-protect #fn("8000r2c0qc130c13042;" [#fn("@000r2c0}c1_\x7fL3L2L1c2c3~c1|L1c4}L1c5|L2L3L3L3}L1L3L3;" [let
   lambda prog1 trycatch begin raise]) #fn(gensym)])  dotimes #fn(";000s1c0q|M|\x8442;" [#fn("=000r2c0`c1}aL3c2c3L1|L1L1c4\x7f3133L4;" [for
   - #fn(nconc) lambda #fn(copy-list)])])  define-macro #fn("?000s1c0c1|ML2c2c3L1|NL1c4}3133L3;" [set-syntax!
   quote #fn(nconc) lambda #fn(copy-list)])  receive #fn("@000s2c0c1_}L3c2c1L1|L1c3g23133L3;" [call-with-values
-  lambda #fn(nconc) #fn(copy-list)])  unless #fn("=000s1c0|^c1}KL4;" [if begin])  let #fn(":000s1c0q^41;" [#fn("<000r1~C6D0~m02\x7fMo002\x7fNo01530]2c0qc1c2L1c3c4~32L1c5\x7f3133c3c6~3242;" [#fn("8000r2~6@0c0~|L2L1~L3530|}K;" [letrec])
+  lambda #fn(nconc) #fn(copy-list)])  unless #fn("=000s1c0|^c1}KL4;" [if begin])  let* #fn("A000s1|?6E0c0c1L1_L1c2}3133L1;c0c1L1e3|31L1L1c2|NF6H0c0c4L1|NL1c2}3133L1530}3133e5|31L2;" [#fn(nconc)
+  lambda #fn(copy-list) caar let* cadar])  case #fn(":000s1c0q]41;" [#fn("7000r1c0m02c1qc23041;" [#fn("9000r2}c0\x8250c0;}\x8540^;}C6=0c1|e2}31L3;}?6=0c3|e2}31L3;}N\x85>0c3|e2}M31L3;e4c5}326=0c6|c7}L2L3;c8|c7}L2L3;" [else
+  eq? quote-value eqv? every #.symbol? memq quote memv] vals->cond)
+  #fn("<000r1c0|i10L2L1c1c2L1c3c4qi113232L3;" [let #fn(nconc) cond #fn(map)
+					       #fn("8000r1i10~|M32|NK;" [])])
+  #fn(gensym)])])  catch #fn("7000r2c0qc13041;" [#fn("@000r1c0\x7fc1|L1c2c3c4|L2c5c6|L2c7c8L2L3c5c9|L2~L3L4c:|L2c;|L2L4L3L3;" [trycatch
+  lambda if and pair? eq car quote thrown-value cadr caddr raise])
+						 #fn(gensym)])  assert #fn("<000r1c0|]c1c2c3|L2L2L2L4;" [if
+  raise quote assert-failed])  do #fn("A000s2c0qc130}Mc2c3|32c2e4|32c2c5|3245;" [#fn("B000r5c0|c1g2c2}c3c4L1c5\x7fN3132c3c4L1c5i0231c3|L1g432L133L4L3L2L1c3|L1g332L3;" [letrec
+  lambda if #fn(nconc) begin #fn(copy-list)])
+  #fn(gensym) #fn(map) #.car cadr #fn("7000r1e0|31F680e1|41;|M;" [cddr caddr])])  with-input-from #fn("=000s1c0c1L1c2|L2L1L1c3}3143;" [#fn(nconc)
+  with-bindings *input-stream* #fn(copy-list)])  let #fn(":000s1c0q^41;" [#fn("<000r1~C6D0~m02\x7fMo002\x7fNo01530]2c0qc1c2L1c3c4~32L1c5\x7f3133c3c6~3242;" [#fn("8000r2~6@0c0~|L2L1~L3530|}K;" [letrec])
   #fn(nconc) lambda #fn(map) #fn("6000r1|F650|M;|;" [])
   #fn(copy-list) #fn("6000r1|F650|\x84;e040;" [void])])])  cond #fn("9000s0c0q]41;" [#fn("7000r1c0qm02|~41;" [#fn("7000r1|?640^;c0q|M41;" [#fn(":000r1|Mc0<17702|M]<6@0|N\x8550|M;c1|NK;|N\x85@0c2|Mi10~N31L3;|\x84c3\x82W0e4e5|31316A0c6qe7e5|313141;c8qc93041;c:|Mc1|NKi10~N31L4;" [else
   begin or => 1arg-lambda? caddr #fn("=000r1c0|~ML2L1c1|c2e3e4~3131Ki20i10N31L4L3;" [let
@@ -55,21 +58,16 @@
   if caddr]) #fn(gensym) if])] cond-clauses->if)])])  throw #fn(":000r2c0c1c2c3L2|}L4L2;" [raise
   list quote thrown-value])  time #fn("7000r1c0qc13041;" [#fn(">000r1c0|c1L1L2L1c2~c3c4c5c1L1|L3c6L4L3L3;" [let
   time.now prog1 princ "Elapsed time: " - " seconds\n"])
-							  #fn(gensym)])  let* #fn("A000s1|?6E0c0c1L1_L1c2}3133L1;c0c1L1e3|31L1L1c2|NF6H0c0c4L1|NL1c2}3133L1530}3133e5|31L2;" [#fn(nconc)
-  lambda #fn(copy-list) caar let* cadar])  case #fn(":000s1c0q]41;" [#fn("7000r1c0m02c1qc23041;" [#fn("9000r2}c0\x8250c0;}\x8540^;}C6=0c1|e2}31L3;}?6=0c3|e2}31L3;}N\x85>0c3|e2}M31L3;e4c5}326=0c6|c7}L2L3;c8|c7}L2L3;" [else
-  eq? quote-value eqv? every #.symbol? memq quote memv] vals->cond)
-  #fn("<000r1c0|i10L2L1c1c2L1c3c4qi113232L3;" [let #fn(nconc) cond #fn(map)
-					       #fn("8000r1i10~|M32|NK;" [])])
-  #fn(gensym)])])  with-output-to #fn("=000s1c0c1L1c2|L2L1L1c3}3143;" [#fn(nconc)
-  with-bindings *output-stream* #fn(copy-list)])  catch #fn("7000r2c0qc13041;" [#fn("@000r1c0\x7fc1|L1c2c3c4|L2c5c6|L2c7c8L2L3c5c9|L2~L3L4c:|L2c;|L2L4L3L3;" [trycatch
-  lambda if and pair? eq car quote thrown-value cadr caddr raise])
-  #fn(gensym)]))
-	  *whitespace* "\t\n\v\f\r \u0085  ᠎           \u2028\u2029  　" 1+
+							  #fn(gensym)])  with-output-to #fn("=000s1c0c1L1c2|L2L1L1c3}3143;" [#fn(nconc)
+  with-bindings *output-stream* #fn(copy-list)])  with-bindings #fn(">000s1c0qc1c2|32c1e3|32c1c4|3243;" [#fn("B000r3c0c1L1c2c3g2|33L1c4c2c5|}3331c6c0c7L1c4\x7f3132c0c7L1c4c2c8|g2333132L3L144;" [#fn(nconc)
+  let #fn(map) #.list #fn(copy-list) #fn("8000r2c0|}L3;" [set!]) unwind-protect
+  begin #fn("8000r2c0|}L3;" [set!])]) #fn(map) #.car cadr #fn("6000r1c040;" [#fn(gensym)])]))
+	  *whitespace* "\t\n\v\f\r \u0085  \u180e               　" 1+
 	  #fn("7000r1|aw;" [] 1+) 1- #fn("7000r1|ax;" [] 1-) 1arg-lambda?
 	  #fn("8000r1|F16T02|Mc0<16J02|NF16B02|\x84F16:02e1|\x84a42;" [lambda
   length=] 1arg-lambda?)
-	  <= #fn("7000r2|}X17602|}W;" [] <=) >
-	  #fn("7000r2}|X;" [] >) >= #fn("7000r2}|X17602|}W;" [] >=)
+	  <= #fn("7000r2}|X17B02e0|3116802e0}31@;" [nan?] <=) >
+	  #fn("7000r2}|X;" [] >) >= #fn("7000r2|}X17B02e0|3116802e0}31@;" [nan?] >=)
 	  Instructions #table(not 16  vargc 67  load1 49  = 39  setc.l 64  sub2 72  brne.l 83  largc 74  brnn 85  loadc.l 58  loadi8 50  < 40  nop 0  set-cdr! 32  loada 55  bound? 21  / 37  neg 73  brn.l 88  lvargc 75  brt 7  trycatch 68  null? 17  load0 48  jmp.l 8  loadv 51  seta 61  keyargs 91  * 36  function? 26  builtin? 23  aref 43  optargs 89  vector? 24  loadt 45  brf 6  symbol? 19  cdr 30  for 69  loadc00 78  pop 2  pair? 22  cadr 84  closure 65  loadf 46  compare 41  loadv.l 52  setg.l 60  brn 87  eqv? 13  aset! 44  eq? 12  atom? 15  boolean? 18  brt.l 10  tapply 70  dummy_nil 94  loada0 76  brbound 90  list 28  dup 1  apply 33  loadc 57  loadc01 79  dummy_t 92  setg 59  loada1 77  tcall.l 81  jmp 5  fixnum? 25  cons 27  loadg.l 54  tcall 4  call 3  - 35  brf.l 9  + 34  dummy_f 93  add2 71  seta.l 62  loadnil 47  brnn.l 86  setc 63  set-car! 31  vector 42  loadg 53  loada.l 56  argc 66  div0 38  ret 11  number? 20  equal? 14  car 29  call.l 80  brne 82)
 	  __init_globals #fn("7000r0e0c1<17B02e0c2<17802e0c3<6>0c4k52c6k75;0c8k52c9k72e:k;2e<k=2e>k?;" [*os-name*
   win32 win64 windows "\\" *directory-separator* "\r\n" *linefeed* "/" "\n"
@@ -77,10 +75,9 @@
 	  __script #fn("7000r1c0qc1t;" [#fn("7000r0e0~41;" [load])
 					#fn("7000r1e0|312c1a41;" [top-level-exception-handler
 								  #fn(exit)])] __script)
-	  __start #fn("8000r1e0302|NF6D0|Nk12^k22e3|\x84315E0|k12]k22e4e5312e6302c7`41;" [__init_globals
-  *argv* *interactive* __script princ *banner* repl #fn(exit)] __start)
-	  abs #fn("7000r1|`X650|y;|;" [] abs) any
-	  #fn("8000r2}F16D02|}M3117:02e0|}N42;" [any] any) arg-counts #table(#.equal? 2  #.atom? 1  #.set-cdr! 2  #.symbol? 1  #.car 1  #.eq? 2  #.aref 2  #.boolean? 1  #.not 1  #.null? 1  #.eqv? 2  #.number? 1  #.pair? 1  #.builtin? 1  #.aset! 3  #.div0 2  #.= 2  #.bound? 1  #.compare 2  #.vector? 1  #.cdr 1  #.set-car! 2  #.< 2  #.fixnum? 1  #.cons 2)
+	  __start #fn("6000r1e040;" [__init_globals] __start) abs
+	  #fn("7000r1|`X650|y;|;" [] abs) any #fn("8000r2}F16D02|}M3117:02e0|}N42;" [any] any)
+	  arg-counts #table(#.equal? 2  #.atom? 1  #.set-cdr! 2  #.symbol? 1  #.car 1  #.eq? 2  #.aref 2  #.boolean? 1  #.not 1  #.null? 1  #.eqv? 2  #.number? 1  #.pair? 1  #.builtin? 1  #.aset! 3  #.div0 2  #.= 2  #.bound? 1  #.compare 2  #.vector? 1  #.cdr 1  #.set-car! 2  #.< 2  #.fixnum? 1  #.cons 2)
 	  argc-error #fn("<000r2e0c1|c2}}aW670c3540c445;" [error "compile error: "
 							   " expects " " argument."
 							   " arguments."] argc-error)
@@ -157,7 +154,7 @@
   largc lvargc vargc argc compile-in ret values #fn(function) encode-byte-code
   bcode:code const-to-idx-vec]) filter keyword-arg?])
   #fn(length)]) #fn(length)]) make-code-emitter lastcdr lambda-vars filter #.pair?
-  lambda])] #0=[#:g714 ()])
+  lambda])] #0=[#:g715 ()])
 	  compile-for #fn(":000r5e0g4316X0e1|}^g2342e1|}^g3342e1|}^g4342e2|c342;e4c541;" [1arg-lambda?
   compile-in emit for error "for: third form must be a 1-argument lambda"] compile-for)
 	  compile-if #fn("<000r4c0qe1|31e1|31g3\x84e2g331e3g331F6;0e4g331560e53045;" [#fn(";000r5g2]\x82>0e0~\x7fi02g344;g2^\x82>0e0~\x7fi02g444;e0~\x7f^g2342e1~c2|332e0~\x7fi02g3342i026<0e1~c3325:0e1~c4}332e5~|322e0~\x7fi02g4342e5~}42;" [compile-in
@@ -342,8 +339,10 @@
 	  #fn("8000r2}?640^;}M|=640};e0|}N42;" [memv] memv) min #fn("<000s1}\x8540|;e0c1|}43;" [foldl
   #fn("7000r2|}X640|;};" [])] min)
 	  mod #fn("9000r2|e0|}32}T2x;" [div] mod) mod0
-	  #fn("8000r2||}V}T2x;" [] mod0) negative? #fn("7000r1|`X;" [] negative?)
-	  nestlist #fn(";000r3e0g2`32640_;}e1||}31g2ax33K;" [<= nestlist] nestlist)
+	  #fn("8000r2||}V}T2x;" [] mod0) nan? #fn("7000r1|c0>17702|c1>;" [+nan.0
+  -nan.0] nan?)
+	  negative? #fn("7000r1|`X;" [] negative?) nestlist
+	  #fn(";000r3e0g2`32640_;}e1||}31g2ax33K;" [<= nestlist] nestlist)
 	  newline #fn("9000\x8900001000\x8a0000770e0m02c1|e2322];" [*output-stream*
 								    #fn(io.write)
 								    *linefeed*] newline)

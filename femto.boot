@@ -275,8 +275,7 @@
   #fn("7000r1|c0>16:02c1i1031670c240;|;" ["" #fn(io.eof?)
 					  #fn(eof-object)])
   #fn(io.tostring!)]) #fn(buffer)] io.readall)
-	  io.readline #fn("8000r1c0|c142;" [#fn(io.readuntil)
-					    #\linefeed] io.readline)
+	  io.readline #fn("8000r1c0|c142;" [#fn(io.readuntil) #\newline] io.readline)
 	  io.readlines #fn("8000r1e0e1|42;" [read-all-of io.readline] io.readlines)
 	  iota #fn("8000r1e0e1|42;" [map-int identity] iota) keyword->symbol
 	  #fn("9000r1c0|316@0c1c2c3|313141;|;" [#fn(keyword?)
