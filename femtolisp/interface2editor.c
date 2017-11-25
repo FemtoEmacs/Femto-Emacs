@@ -515,6 +515,8 @@ int exponent_prefix(char_t *p, int *j) {
 	return 0;
 }
 
+int istex= 0;
+
 /*
  * check if in a class of token , return legth of token
  * 
@@ -565,7 +567,22 @@ int scan_for_keywords(char_t *p, int *token_type) {
 		*token_type = ID_TOKEN_NONE;
 		return 0;
 	}
-	
+/* 11-25-2017: Changed from here */
+     if (istex) 
+       {
+          if ( (*p == '\\') ) 
+	  {
+             for ( i = 1; *(p+i) != 0; i++) 
+              {
+                if (!isalpha( *(p+i) )) 
+                {
+                   *token_type = ID_TOKEN_KEYWORD;
+                  return i; 
+              }
+         }
+      } 
+     }
+/* until here */	
 	j = 0; /* Reset j */
 	for (i = 0; i < numWords[thisLanguage]; i++) {
 		if (seq(p, hiLite[thisLanguage][i], 1)) {
@@ -626,6 +643,8 @@ void setLanguage(char *extension, int *isPython) {
 			thisLanguage = i;
 		}
 	}
+  if ( (strcmp(extension, ".tex") == 0)) istex= 1;
+  else istex= 0;
   if ( (strcmp(extension, ".py") == 0) ||
        (strcmp(extension, ".rb") == 0) ) *isPython = 1;
   else *isPython = 0;
