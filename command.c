@@ -110,16 +110,6 @@ void xdown() {
   xcx = (unsigned) getch();
 }
 
-void xanymouse() {
-  static char_t xcx;
-  xcx = (unsigned) getch();
- // printf("[%d, ", xcx);
-  xcx = (unsigned) getch();
- // printf("%d, ", xcx);
-  xcx = (unsigned) getch();
- // printf("%d]", xcx);
-}
-
 void lnbegin()
 {
 	curbp->b_point = segstart(curbp, lnstart(curbp,curbp->b_point), curbp->b_point);
