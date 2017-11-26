@@ -286,7 +286,6 @@ extern void delete(void);
 extern void toggle_overwrite_mode(void);
 extern void down(void);
 extern void xdown(void);
-extern void xanymouse(void);
 extern void insert(void);
 extern void insert_at(void);
 extern void paste(void);
