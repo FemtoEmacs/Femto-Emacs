@@ -52,6 +52,7 @@ command_t commands[] = {
 	{"search-forward", search},
 	{"set-mark", i_set_mark},
 	{"shell-command", i_shell_command},
+	
 	{"show-version", version},
 	{"split-window", split_window},
 	{"toggle-overwrite-mode", toggle_overwrite_mode},
@@ -124,6 +125,7 @@ keymap_t keymap[] = {
 	{"C-x n",     "next-buffer"           , "\x18\x6E", next_buffer },
 	{"C-x o",     "other-window"          , "\x18\x6F", other_window },
 	{"C-x @",     "shell-command"         , "\x18\x40", i_shell_command },
+	{"C-M a",     "mouse-down"            , "\x1B\x5B\x4D", xdown },
 	{"DEL",       "forward-delete-char"   , "\x1B\x5B\x33\x7E", delete },
 	{"down",      "next-line"             , "\x1B\x5B\x42", down },
 	{"end",       "end-of-line"           , "\x1B\x4F\x46", lnend },
