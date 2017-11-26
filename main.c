@@ -8,7 +8,7 @@
 int main(int argc, char **argv)
 {
 	int i;
-
+        /*m0*/   MEVENT event;
 	/* Find basename. */
 	prog_name = *argv;
 	i = strlen(prog_name);
@@ -38,7 +38,7 @@ int main(int argc, char **argv)
 	init_pair(ID_COLOR_COMMENTS, COLOR_GREEN, COLOR_BLACK);   /* line comments */
         init_pair(ID_COLOR_BLOCK, COLOR_GREEN, COLOR_BLACK);      /* block comments */
         init_pair(ID_COLOR_STRING, COLOR_YELLOW, COLOR_BLACK);    /* strings */
-
+        if (argc > 2)  mousemask( ALL_MOUSE_EVENTS, NULL);
 	
 	bkgd((chtype) (' ' | COLOR_PAIR(ID_COLOR_ALPHA)));
 
