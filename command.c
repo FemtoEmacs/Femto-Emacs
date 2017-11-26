@@ -101,6 +101,25 @@ void down()
 	curbp->b_point = lncolumn(curbp, dndn(curbp, curbp->b_point),curbp->b_col);
 }
 
+void xdown() {
+  static char_t xcx;
+  xcx = (unsigned) getch();
+  if (xcx == 97) down();
+  if (xcx == 96) up();
+  xcx = (unsigned) getch();
+  xcx = (unsigned) getch();
+}
+
+void xanymouse() {
+  static char_t xcx;
+  xcx = (unsigned) getch();
+ // printf("[%d, ", xcx);
+  xcx = (unsigned) getch();
+ // printf("%d, ", xcx);
+  xcx = (unsigned) getch();
+ // printf("%d]", xcx);
+}
+
 void lnbegin()
 {
 	curbp->b_point = segstart(curbp, lnstart(curbp,curbp->b_point), curbp->b_point);
