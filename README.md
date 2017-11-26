@@ -47,7 +47,8 @@ and build the editor for Macistosh:
 % sudo make -f Makefile.macosx install
 ```
 
-You can test the editor in loco:
+### Option as Meta key 
+Enter the Terminal menu (right of the bitten Apple logo at the upper left corner of the screen), open  Preferences, choose Profiles and tick the Use-Option-as-Meta-key' box. Finally, you can test the editor in loco:
 
 ```
 % femto test.scm
