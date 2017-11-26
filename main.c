@@ -38,11 +38,19 @@ int main(int argc, char **argv)
 	init_pair(ID_COLOR_COMMENTS, COLOR_GREEN, COLOR_BLACK);   /* line comments */
         init_pair(ID_COLOR_BLOCK, COLOR_GREEN, COLOR_BLACK);      /* block comments */
         init_pair(ID_COLOR_STRING, COLOR_YELLOW, COLOR_BLACK);    /* strings */
-        if (argc > 2)  mousemask( ALL_MOUSE_EVENTS, NULL);
-	
+       
+	if ( (argc == 3) && (strcmp(argv[2], "+") == 0) )
+            { mousemask( ALL_MOUSE_EVENTS |
+                                  REPORT_MOUSE_POSITION, NULL);
+            }
+        if ( (argc == 2) && (strcmp(argv[1], "+") == 0))
+           { mousemask( ALL_MOUSE_EVENTS |
+                                  REPORT_MOUSE_POSITION, NULL);
+             argc = 1;
+           }
 	bkgd((chtype) (' ' | COLOR_PAIR(ID_COLOR_ALPHA)));
 
-	if (1 < argc) {
+	if (argc > 1) {
 		char bname[NBUFN];
 		char fname[NAME_MAX + 1];
 		/* Save filename irregardless of load() success. */
