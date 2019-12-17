@@ -7,6 +7,9 @@
 #include "header.h"
 
 
+#define IS_SPACE(chr) (chr == ' ' || chr == '\n' || chr == '\r'  || chr == '\t')
+
+
 extern int errno;
 
 
@@ -72,7 +75,7 @@ char *string_trim(char *str)
 	char *ptr = str;
 
 	/* first first none space */
-	while (isspace(*ptr))
+	while (IS_SPACE (*ptr))
 		++ptr;
 
 	str = ptr;
@@ -81,7 +84,7 @@ char *string_trim(char *str)
 	ptr = strchr (str, '\0') - 1;
 
 	/* traverse back to first none space */
-	while (isspace(*ptr))
+	while (IS_SPACE (*ptr))
 		--ptr;
 
 	*++ptr = '\0';

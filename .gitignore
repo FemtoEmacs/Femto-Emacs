@@ -1,5 +1,6 @@
 # -*- conf -*-
 
+.dir-locals.el
 *.o
 femto
 *.so
