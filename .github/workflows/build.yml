@@ -1,0 +1,112 @@
+name: build
+
+# Builds and tests SBEmacs on Linux, macOS and Windows.
+# Pushing a tag such as v2.0.0 also publishes a GitHub release with one
+# archive per platform.
+
+on:
+  push:
+    branches: [ master, main, sbcl ]
+    tags: [ 'v*' ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  unix:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest   # x86_64
+          - os: ubuntu-24.04-arm
+          - os: macos-latest    # Apple silicon
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install SBCL and ncurses (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y sbcl libncurses-dev pkg-config
+
+      - name: Install SBCL (macOS)
+        if: runner.os == 'macOS'
+        run: brew install sbcl
+
+      - name: Build
+        run: make
+
+      - name: Test
+        run: |
+          make test
+          ./sbemacs --version
+
+      - name: Package
+        run: |
+          make dist
+          cd dist && tar czf "$(ls -d sbemacs-*/ | head -1 | tr -d /).tar.gz" sbemacs-*/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbemacs-${{ matrix.os }}
+          path: dist/*.tar.gz
+
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install SBCL
+        shell: pwsh
+        run: choco install sbcl -y --no-progress
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          path-type: inherit        # so that sbcl.exe from Chocolatey is found
+          install: >-
+            make
+            zip
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-ncurses
+            mingw-w64-x86_64-pkgconf
+
+      - name: Build
+        run: |
+          export PATH="$PATH:/c/Program Files/Steel Bank Common Lisp"
+          make
+
+      - name: Test
+        run: |
+          export PATH="$PATH:/c/Program Files/Steel Bank Common Lisp"
+          make test
+          ./sbemacs.exe --version
+
+      - name: Package
+        run: |
+          export PATH="$PATH:/c/Program Files/Steel Bank Common Lisp"
+          make dist
+          cd dist && zip -qr sbemacs-windows-x86_64.zip sbemacs-windows-*/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbemacs-windows
+          path: dist/*.zip
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [ unix, windows ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          generate_release_notes: true

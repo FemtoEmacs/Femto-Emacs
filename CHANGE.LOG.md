@@ -1,4 +1,25 @@
-#Femto Emacs Change Log
+# SBEmacs / Femto Emacs Change Log
+
+## SBEmacs 2.0
+* femtolisp replaced by SBCL.  SBCL is now the host process and loads the C
+  editor core (src/) as a shared library through sb-alien; the core calls
+  back into Lisp for evaluation, user keys, kill hooks and highlighting.
+* Syntax highlighting rewritten in Common Lisp (lisp/highlight.lisp), with
+  `define-language`; the highlighter now looks up to 16 KB above the window
+  so comments opened off-screen are coloured correctly.  Added Prolog and
+  Lean; Python triple-quoted strings are strings.
+* init.lsp ported to Common Lisp and compiled in (lisp/defaults.lisp); the
+  user's file is now ~/.sbemacs/init.lisp and is optional.  Errors in it are
+  shown on the message line instead of aborting.
+* Buffer menu, kill ring, dired and grep ported to Common Lisp
+  (lisp/extensions/).  Kills are recorded in `*kill-ring*` by default.
+  dired and grep no longer shell out, so they work on Windows.
+* Errors in Esc-; and Esc-] are reported, never fatal.
+* New build: `make`, `make test`, `make install`, `make dist`; GitHub
+  Actions builds Linux, macOS and Windows archives.
+* Removed femtolisp/, femto.boot, xfemto.boot, r5rs.scm, the old makefiles
+  and uninstall.sh.
+
 
 ## Femto 1.13 27 Dec 2016
 * Fixed bug where could not open multiple files of same name but with different filepaths

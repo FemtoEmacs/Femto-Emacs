@@ -2,7 +2,11 @@
 
 .dir-locals.el
 *.o
-femto
 *.so
 *.a
-femtolisp/flisp
+build/
+sbemacs
+sbemacs.exe
+*.dylib
+*.dll
+dist/

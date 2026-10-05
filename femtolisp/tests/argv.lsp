@@ -1,1 +1,0 @@
-(print *argv*) (princ "\n")
