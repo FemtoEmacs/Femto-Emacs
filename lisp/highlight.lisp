@@ -107,6 +107,14 @@ identifiers (\"-*+!?<>=/:%&\" for Lisp)."
     (setf *languages* (cons lang (remove name *languages* :key #'language-name :test #'string-equal)))
     lang))
 
+(defparameter *lisp-word-chars* "-*+!?<>=/:%&$^~."
+  "Characters that may appear inside Lisp symbols, for :WORD-CHARS.")
+
+;;; Files with no known extension: numbers and "strings" only.
+(setf *default-language* (%make-language :name "Text"
+                                          :strings (list (octets "\""))
+                                          :word-bytes (make-word-table "")))
+
 (defun find-language (name)
   (find name *languages* :key #'language-name :test #'string-equal))
 

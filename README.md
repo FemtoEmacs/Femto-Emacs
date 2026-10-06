@@ -50,9 +50,11 @@ sudo make uninstall
 
 On Windows run `make` from the *MSYS2 MINGW64* shell, with SBCL on the `PATH`.
 
-`sbemacs` is a saved SBCL image that holds all the compiled Lisp.  It finds
-`libsbemacs` next to itself (or set `SBEMACS_LIB` to its full path), so keep
-the two files together.
+`sbemacs` is a saved SBCL image.  It finds `libsbemacs` next to itself (or
+set `SBEMACS_LIB` to its full path), so keep the two files together.
+
+Only changes to the C code (`src/`) or to the Lisp engine need `make`.
+Everything else in `lisp/` is a *script*: see [Scripts](#scripts-no-rebuild-needed).
 
 Pre-built archives for Linux, macOS and Windows are attached to each
 [release](../../releases).
@@ -96,14 +98,43 @@ line; they never take the editor down.
 | `C-c a` `C-c b` `C-c c` | `html-p` `html-h1` `html-pp` | HTML helpers |
 | `C-c z`   | `insert-day` | turns a region `(2016 9 3)` into `Saturday` |
 | `C-t` / `C-o` | `indent-two` / `deindent-two` | |
+| `C-x C-r` | `reload-scripts` | reload edited Lisp scripts (see below) |
 
 dired and grep are written in portable Common Lisp, so they behave the same
 on every platform.
 
+## Scripts: no rebuild needed
+
+The executable holds only the Lisp engine (`package`, `ffi`, `loader`,
+`core`).  The rest of `lisp/` consists of scripts, loaded in this order:
+
+| Script | |
+|--------|-|
+| `highlight.lisp` | the tokenizer and `define-language` |
+| `theme.lisp` | the colour theme |
+| `languages/*.lisp` | one file per language |
+| `defaults.lisp` | the commands and key bindings that used to be `init.lsp` |
+| `extensions/*.lisp` | buffer menu, kill ring, dired, grep |
+| `~/.sbemacs/languages/*.lisp`, `~/.sbemacs/extensions/*.lisp` | your own |
+| `~/.sbemacs/init.lisp` | your settings, last |
+
+Edit a script and restart, or press **`C-x C-r`** (`reload-scripts`) inside
+the editor: every script whose contents changed is loaded again, and the
+screen is redrawn with the new colours.  A new file in `languages/` or
+`extensions/` is picked up the same way.  Errors are shown on the message
+line and leave the previous definitions in place.
+
+How it works: `make` also compiles the scripts into the executable,
+remembering their contents, so `sbemacs` runs even without `lisp/`.  At
+start-up only scripts that differ from that copy are loaded; each is
+compiled once into `~/.cache/sbemacs/`, so start-up stays fast.  The
+scripts are looked for in `$SBEMACS_LISP`, then in `lisp/` next to the
+executable (the source tree, or `/usr/local/lib/sbemacs/lisp` after
+`make install`).
+
 ## Configuration: `~/.sbemacs/init.lisp`
 
-The init file is ordinary Common Lisp.  It is optional; the defaults are
-compiled in.  See [`samples/init.lisp`](samples/init.lisp) for a starting point.
+The init file is ordinary Common Lisp.  It is optional.  See [`samples/init.lisp`](samples/init.lisp) for a starting point.
 
 ```lisp
 (defun insert-date ()
@@ -133,14 +164,17 @@ SBEmacs draws on the terminal's own background and default text colour, so
 it fits light and dark terminal themes and the terminal's cursor stays
 visible.  On 256-colour terminals keywords are bold purple, strings olive
 green, numbers orange and comments grey; identifiers and punctuation use the
-terminal's text colour.  Change any face with `set-color`: faces are
+terminal's text colour.  The theme is the script
+[`lisp/theme.lisp`](lisp/theme.lisp).  To change single faces, use
+`set-color` in your init file; it overrides the theme.  Faces are
 `:keyword :comment :block-comment :string :digits :alpha :symbol :brace
 :modeline`, colours `:default :black :red :green :yellow :blue :magenta
 :cyan :white` or 0-255, attributes `:bold :underline :reverse :dim :italic`.
 
 ### Syntax highlighting
 
-The highlighter lives in [`lisp/highlight.lisp`](lisp/highlight.lisp).
+The highlighter lives in [`lisp/highlight.lisp`](lisp/highlight.lisp) and
+each language in its own file in [`lisp/languages/`](lisp/languages/).
 Before a window is drawn, the C core passes the visible text (and up to 16 KB
 above it, so comments opened off-screen are seen) to Lisp, which returns one
 colour per byte.  Languages come with C, Common Lisp, Scheme, Python, Ruby,
@@ -185,11 +219,13 @@ how to write a small interactive mode with it.
 
 ```
 src/            the C editor core; src/interface.c is the bridge to Lisp
-lisp/           package, FFI, highlighter, languages, callbacks, defaults
+lisp/           engine: package, ffi, loader, core (compiled into sbemacs)
+                scripts: highlight, theme, defaults
+lisp/languages  one script per language
 lisp/extensions buffer menu, kill ring, dired, grep
 tests/          make test
 samples/        example init file and files to try the highlighter on
-build.lisp      compiles lisp/ and saves the sbemacs executable
+build.lisp      compiles the engine and scripts, saves the sbemacs executable
 ```
 
 ## Coming from FemtoEmacs

@@ -14,6 +14,12 @@
 * Buffer menu, kill ring, dired and grep ported to Common Lisp
   (lisp/extensions/).  Kills are recorded in `*kill-ring*` by default.
   dired and grep no longer shell out, so they work on Windows.
+* Lisp scripts load dynamically: the executable holds only the engine;
+  highlight.lisp, theme.lisp, languages/*.lisp (one file per language),
+  defaults.lisp and extensions/*.lisp are reloaded at start-up when edited
+  (compiled once into ~/.cache/sbemacs/), and C-x C-r reloads them in a
+  running editor.  ~/.sbemacs/languages/ and ~/.sbemacs/extensions/ are
+  loaded too.  The colour theme moved from C to lisp/theme.lisp.
 * Errors in Esc-; and Esc-] are reported, never fatal.
 * New colour scheme on the terminal's own background (FemtoEmacs forced a
   black one, which hid the cursor on light terminal themes); 256-colour

@@ -9,11 +9,9 @@
 (defparameter *root*
   (make-pathname :name nil :type nil :defaults (or *load-truename* *default-pathname-defaults*)))
 
-(defparameter *sources*
-  '("lisp/package" "lisp/ffi" "lisp/highlight" "lisp/languages" "lisp/core"
-    "lisp/defaults"
-    "lisp/extensions/buffer-menu" "lisp/extensions/kill-ring"
-    "lisp/extensions/dired" "lisp/extensions/grep"))
+;; The engine; everything else in lisp/ is a script (see lisp/loader.lisp)
+(defparameter *engine*
+  '("lisp/package" "lisp/ffi" "lisp/loader" "lisp/core"))
 
 (setf sb-impl::*default-external-format* :utf-8)
 
@@ -35,7 +33,20 @@
                    *root*))
  :dont-save t)
 
-(mapc #'build-file *sources*)
+(handler-bind ((style-warning #'muffle-warning))
+  (mapc #'build-file *engine*))
+
+;; Compile the scripts into the image too, so that the executable works
+;; without lisp/.  Their contents are remembered: at start-up only scripts
+;; that were edited since are loaded again.
+(setf sbemacs::*script-directory* (truename (merge-pathnames "lisp/" *root*)))
+(multiple-value-bind (loaded errors)
+    (sbemacs::load-scripts :files (sbemacs::script-files sbemacs::*script-directory*)
+                           :cache-directory (merge-pathnames "build/scripts/" *root*))
+  (format t "~&Compiled ~D scripts into the image~%" (length loaded))
+  (when errors
+    (error "Scripts failed to load:~%~{  ~A~%~}" errors)))
+(setf sbemacs::*script-directory* nil)
 
 (sb-ext:save-lisp-and-die
  (merge-pathnames #+win32 "sbemacs.exe" #-win32 "sbemacs" *root*)

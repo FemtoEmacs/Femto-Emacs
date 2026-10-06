@@ -62,6 +62,14 @@ list-bindings shows them as \"user-defined-function\"."
 machines with little memory: the undo history of every modified buffer is
 kept in memory.")
 
+(defvar *color-theme* 'default-theme
+  "A function of one argument, the number of colours the terminal has,
+that sets faces with THEME-FACE.  The default is in lisp/theme.lisp.")
+
+(defun apply-color-theme (colors)
+  (when (and *color-theme* (fboundp *color-theme*))
+    (funcall *color-theme* colors)))
+
 (defvar *init-errors* '()
   "Problems found while loading the init file, shown after start-up.")
 
@@ -141,7 +149,8 @@ on a character boundary."
               (with-editor-environment ()
                 (cond ((string= event "key") (run-key arg))
                       ((string= event "kill") (dolist (f *kill-hook*) (funcall f arg)))
-                      ((string= event "startup") (run-startup)))
+                      ((string= event "startup") (run-startup))
+                      ((string= event "colors") (apply-color-theme (parse-integer arg))))
                 nil)
             (serious-condition (c) (describe-error c)))))
     (when (stringp result)
@@ -256,6 +265,8 @@ on a character boundary."
         (format *error-output* "sbemacs: ~A~%" e)
         (sb-ext:exit :code 1 :abort t)))
     (install-hooks)
+    (start-scripts)
+    (setf *init-errors* (reverse *script-errors*))
     (unless no-init (load-user-init))
     (when *undo-mode* (add-mode-global "undo"))
     (let ((code (call-fe-main args)))

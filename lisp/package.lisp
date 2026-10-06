@@ -37,6 +37,9 @@
    #:global-set-key #:global-unset-key #:key-binding #:*keymap*
    #:*kill-hook* #:*startup-hook* #:*kill-ring* #:*kill-ring-max*
    #:set-color #:terminal-colors #:show-startup-message
+   #:theme-face #:*color-theme* #:default-theme
+   ;; scripts
+   #:reload-scripts #:*script-directory*
    ;; syntax highlighting
    #:define-language #:find-language #:language-for-file #:*languages*
    #:highlight-string

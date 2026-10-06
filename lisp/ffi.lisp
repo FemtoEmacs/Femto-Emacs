@@ -126,6 +126,9 @@ and the library can be moved together."
 (defcore %screen-cols "fe_screen_cols" sb-alien:int)
 (defcore %set-color "fe_set_color" sb-alien:int
   (id sb-alien:int) (fg sb-alien:int) (bg sb-alien:int) (attr sb-alien:int))
+(defcore %set-theme-face "fe_set_theme_face" sb-alien:int
+  (id sb-alien:int) (fg sb-alien:int) (bg sb-alien:int) (attr sb-alien:int))
+(defcore %reapply-colors "fe_reapply_colors" sb-alien:void)
 (defcore %colors "fe_colors" sb-alien:int)
 
 (defcore %set-hooks "fe_set_hooks" sb-alien:void
@@ -279,8 +282,13 @@ which case GET-KEY-NAME and GET-KEY-BINDING describe it."
         ((and (integerp x) (<= -1 x 255)) x)
         (t (error "Unknown colour ~S; use ~{~S~^ ~} or 0-255" x (mapcar #'car *curses-colors*)))))
 
+(defun attribute-bits (attributes)
+  (loop for a in attributes
+        sum (or (cdr (assoc a *face-attributes*))
+                (error "Unknown attribute ~S; use ~{~S~^ ~}" a (mapcar #'car *face-attributes*)))))
+
 (defun set-color (face foreground &optional (background :default) &rest attributes)
-  "Change how FACE is drawn.
+  "Change how FACE is drawn; this overrides the colour theme.
 
   (set-color :keyword :red)
   (set-color :comment 244)                    ; grey, from the 256-colour palette
@@ -290,9 +298,12 @@ which case GET-KEY-NAME and GET-KEY-BINDING describe it."
 Faces: :keyword :comment :block-comment :string :digits :alpha (identifiers)
 :symbol (everything else) :brace (matching paren) :modeline."
   (= 1 (%set-color (color-id face) (color-number foreground) (color-number background)
-                   (loop for a in attributes
-                         sum (or (cdr (assoc a *face-attributes*))
-                                 (error "Unknown attribute ~S" a))))))
+                   (attribute-bits attributes))))
+
+(defun theme-face (face foreground &optional (background :default) &rest attributes)
+  "Like SET-COLOR, for use inside a colour theme (see lisp/theme.lisp)."
+  (= 1 (%set-theme-face (color-id face) (color-number foreground) (color-number background)
+                        (attribute-bits attributes))))
 
 (defun terminal-colors ()
   "How many colours the terminal has (0 before the screen is up)."

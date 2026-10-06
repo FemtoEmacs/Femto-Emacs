@@ -189,28 +189,57 @@ int fe_set_color(int id, int fg, int bg, int attr)
 	return 1;
 }
 
+/*
+ * Used by the Lisp colour theme (lisp/theme.lisp) while init_colors runs:
+ * like fe_set_color, but it sets the theme's face, which the user's own
+ * set-color calls still override.
+ */
+int fe_set_theme_face(int id, int fg, int bg, int attr)
+{
+	if (id < 1 || id > FE_MAX_COLOR) return 0;
+	face(id, (short) fg, (short) bg, attr);
+	return 1;
+}
+
 /* number of colours the terminal supports (0 before curses starts) */
 int fe_colors(void)
 {
 	return colors_ready && has_colors() ? COLORS : 0;
 }
 
-void init_colors(void)
+/* built-in fallback, then the Lisp theme, then the user's own faces */
+static void apply_faces(void)
 {
 	int i;
+	char ncolors[16];
 
-	if (has_colors()) {
-		start_color();
-		use_default_colors();
-	}
 	default_theme(has_colors() && COLORS >= 256);
+	colors_ready = 1;
+	snprintf(ncolors, sizeof(ncolors), "%d", has_colors() ? COLORS : 0);
+	call_lisp_event("colors", ncolors);
 	for (i = 1; i <= FE_MAX_COLOR; i++) {
 		if (user_set[i])
 			face(i, user_fg[i], user_bg[i], user_attr[i]);
 		install_face(i);
 	}
-	colors_ready = 1;
+}
+
+void init_colors(void)
+{
+	if (has_colors()) {
+		start_color();
+		use_default_colors();
+	}
+	apply_faces();
 	curs_set(1);
+}
+
+/* re-run the theme, e.g. after lisp/theme.lisp was edited and reloaded */
+void fe_reapply_colors(void)
+{
+	if (!colors_ready) return;
+	apply_faces();
+	redraw();
 }
 
 /* ------------------------------------------------------------------ */

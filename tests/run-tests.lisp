@@ -17,10 +17,15 @@
  :dont-save t)
 
 (handler-bind ((warning #'muffle-warning))
-  (dolist (f '("lisp/package" "lisp/ffi" "lisp/highlight" "lisp/languages" "lisp/core"
-               "lisp/defaults" "lisp/extensions/buffer-menu" "lisp/extensions/kill-ring"
-               "lisp/extensions/dired" "lisp/extensions/grep"))
+  (dolist (f '("lisp/package" "lisp/ffi" "lisp/loader" "lisp/core"))
     (load (merge-pathnames (concatenate 'string f ".lisp") *root*))))
+
+(setf sbemacs::*script-directory* (truename (merge-pathnames "lisp/" *root*)))
+(multiple-value-bind (loaded errors)
+    (sbemacs::load-scripts :files (sbemacs::script-files sbemacs::*script-directory*)
+                           :cache-directory (merge-pathnames "build/test-scripts/" *root*))
+  (declare (ignore loaded))
+  (when errors (format t "~&script errors: ~S~%" errors) (sb-ext:exit :code 1)))
 
 (in-package #:sbemacs)
 
@@ -109,6 +114,26 @@
          (coerce buf 'list))
        ;; "aé" = 61 C3 A9, the second é does not fit in 4 bytes + NUL
        '(#x61 #xC3 #xA9 0 255 255))
+
+;;; script loading
+(check "unchanged scripts are not loaded again"
+       (load-scripts :files (script-files *script-directory*)
+                     :cache-directory (merge-pathnames "build/test-scripts/" cl-user::*root*))
+       nil)
+(check "an edited script is loaded again, a new one is picked up"
+       (let* ((dir (merge-pathnames "build/test-lisp/" cl-user::*root*))
+              (lang (merge-pathnames "languages/zz.lisp" dir)))
+         (ensure-directories-exist lang)
+         (flet ((write-lang (kw)
+                  (with-open-file (o lang :direction :output :if-exists :supersede)
+                    (format o "(in-package #:sbemacs)~%(define-language \"ZZ\" :extensions \".zz2\" :keywords '(~S))~%" kw))))
+           (write-lang "one")
+           (load-scripts :files (list lang) :cache-directory (merge-pathnames "cache/" dir))
+           (sleep 1.1)                  ; file-write-date has 1 s resolution
+           (write-lang "two")
+           (list (length (load-scripts :files (list lang) :cache-directory (merge-pathnames "cache/" dir)))
+                 (faces "one two" "x.zz2"))))
+       '(1 ((4 . "two"))))
 
 (format t "~&~D/~D tests passed~%" (- *count* *failures*) *count*)
 (sb-ext:exit :code (if (zerop *failures*) 0 1))

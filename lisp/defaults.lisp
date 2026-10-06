@@ -1,9 +1,9 @@
 ;;;; defaults.lisp -- the user functions and key bindings from init.lsp
 ;;;;
 ;;;; In FemtoEmacs these lived in ~/init.lsp and had to be copied into the
-;;;; home directory together with r5rs.scm.  Now they are compiled into the
-;;;; editor; ~/.sbemacs/init.lisp is only needed for your own changes, and
-;;;; anything it defines or binds overrides what is here.
+;;;; home directory together with r5rs.scm.  This is a script (see
+;;;; loader.lisp): edit it and press C-x C-r, no rebuild needed.
+;;;; ~/.sbemacs/init.lisp is loaded afterwards and overrides what is here.
 
 (in-package #:sbemacs)
 
@@ -121,6 +121,8 @@
 (global-set-key "C-c i" 'insert-kill-ring)
 (global-set-key "C-c k" 'kill-ring-menu)
 (global-set-key "C-c z" 'insert-day)
+
+(global-set-key "C-x C-r" 'reload-scripts)
 
 (global-set-key "C-o" 'deindent-two)
 (global-set-key "C-t" 'indent-two)

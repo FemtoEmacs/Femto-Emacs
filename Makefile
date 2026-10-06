@@ -54,8 +54,10 @@ $(LIB): $(OBJS)
 src/%.o: src/%.c src/header.h src/public.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# The launcher is a saved SBCL image containing the compiled Lisp side.
-sbemacs$(EXE): $(LIB) build.lisp $(wildcard lisp/*.lisp lisp/extensions/*.lisp)
+# The executable is a saved SBCL image holding the Lisp engine plus a
+# compiled copy of the scripts.  Editing a script does NOT need a rebuild:
+# changed scripts are loaded at start-up (see lisp/loader.lisp).
+sbemacs$(EXE): $(LIB) build.lisp $(wildcard lisp/*.lisp lisp/*/*.lisp)
 	$(SBCL) --noinform --non-interactive --no-sysinit --no-userinit \
 	        --load build.lisp
 
