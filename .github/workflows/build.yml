@@ -76,7 +76,7 @@ jobs:
         shell: pwsh
         run: |
           $msi = Join-Path $env:RUNNER_TEMP 'sbcl-2.6.9-x86-64-windows-binary.msi'
-          Invoke-WebRequest -Uri 'https://prdownloads.sourceforge.net/sbcl/sbcl-2.6.9-x86-64-windows-binary.msi' -OutFile $msi
+          Invoke-WebRequest -Uri 'https://downloads.sourceforge.net/project/sbcl/sbcl/2.6.9/sbcl-2.6.9-x86-64-windows-binary.msi' -OutFile $msi
           $process = Start-Process msiexec.exe -ArgumentList '/i', $msi, '/qn', '/norestart' -Wait -PassThru
           if ($process.ExitCode -ne 0) {
             throw "SBCL installer exited with code $($process.ExitCode)"
