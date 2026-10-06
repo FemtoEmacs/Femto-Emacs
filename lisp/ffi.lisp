@@ -137,6 +137,8 @@ moved together."
 (defcore %command-name "fe_command_name" sb-alien:c-string (i sb-alien:int))
 (defcore %add-command-name "fe_add_command_name" sb-alien:void (name sb-alien:c-string))
 (defcore %set-window-start "fe_set_window_start" sb-alien:void (p sb-alien:long))
+(defcore %set-buffer-hint "fe_set_buffer_hint" sb-alien:void
+  (name sb-alien:c-string) (hint sb-alien:c-string))
 (defcore %set-modeline-hints "fe_set_modeline_hints" sb-alien:void
   (help sb-alien:c-string) (tail sb-alien:c-string))
 
@@ -319,6 +321,24 @@ the buffer)."
 \"Ctrl c r calls Claude; Ctrl c g calls GPT\"."
   (%set-modeline-hints (text help) (text tail))
   t)
+
+(defvar *buffer-hints* (make-hash-table :test 'equal)
+  "Buffer name -> its mode line hint; given to the C core at start-up.")
+
+(defun set-buffer-hint (buffer hint)
+  "Show HINT at the end of the mode line of BUFFER (a name) instead of the
+usual hints; NIL or \"\" goes back to them."
+  (let ((name (text buffer)) (hint (if hint (text hint) "")))
+    (if (string= hint "")
+        (remhash name *buffer-hints*)
+        (setf (gethash name *buffer-hints*) hint))
+    (when *library-path* (%set-buffer-hint name hint)))
+  t)
+
+(defun announce-buffer-hints ()
+  "The scripts compiled into the image are not loaded again at start-up:
+give their hints to the C core."
+  (maphash (lambda (name hint) (%set-buffer-hint name hint)) *buffer-hints*))
 
 (defun execute-builtin (name)
   "Run the C core's command NAME (\"query-replace\", \"exec-lisp-command\"...).

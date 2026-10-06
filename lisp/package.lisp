@@ -30,7 +30,7 @@
    #:delete-other-windows #:other-window #:split-window #:update-display
    #:refresh-screen #:screen-rows #:screen-columns
    #:delete-window #:window-count #:window-rows #:recenter #:set-mode-line-hints
-   #:set-window-start
+   #:set-window-start #:set-buffer-hint
    ;; message line, keyboard, prompts
    #:message #:clear-message-line #:log-debug #:log-message
    #:get-key #:get-key-name #:get-key-binding #:prompt

@@ -229,6 +229,8 @@ under \"Other keys\".")
       (funcall action))
     t))
 
+(set-buffer-hint *help-buffer* "arrows scroll; any other key returns to the file")
+
 (global-set-key "C-h" 'help)
 (global-set-key "F1" 'help)
 (global-set-key "C-x C-h" 'help)

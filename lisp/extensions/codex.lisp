@@ -190,7 +190,11 @@ are returned unchanged.  Elsewhere this is a no-op."
           #\Newline #\Newline
           (substitute #\Newline #\Return text))
   (beginning-of-buffer)
-  (message "Codex answered; C-x o returns to the source, C-c y inserts proposed code")
+  (let ((hint (if (and (fboundp 'answer-hint) (proposed-code text))
+                  (funcall 'answer-hint text)
+                  "C-x o goes back to the file; C-x 1 there closes this window")))
+    (set-buffer-hint *codex-answer-buffer* hint)
+    (message "Codex answered.  ~A" hint))
   t)
 
 (defun codex-submit ()
@@ -248,3 +252,5 @@ are returned unchanged.  Elsewhere this is a no-op."
 ;; Remove the old stub binding when this script is reloaded in a running editor.
 (global-unset-key "C-c x")
 (global-set-key "C-c g" 'ask-codex)
+
+(set-buffer-hint *codex-request-buffer* "C-c g sends the request; C-x o goes back to the file")

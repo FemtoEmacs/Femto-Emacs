@@ -349,6 +349,50 @@ void fe_set_modeline_hints(char *help, char *tail)
 	mark_all_windows();
 }
 
+/*
+ * A buffer can have hints of its own in place of the tail, e.g. the
+ * assistant's answer: "C-c y inserts the code and closes this window".
+ */
+#define MAX_BUFFER_HINTS 16
+
+static struct {
+	char name[NBUFN];
+	char hint[128];
+} buffer_hints[MAX_BUFFER_HINTS];
+
+/* HINT for the mode line of buffer NAME; an empty HINT removes it */
+void fe_set_buffer_hint(char *name, char *hint)
+{
+	int i, free_slot = -1;
+
+	for (i = 0; i < MAX_BUFFER_HINTS; i++) {
+		if (buffer_hints[i].name[0] != '\0' && strncmp(buffer_hints[i].name, name, NBUFN - 1) == 0)
+			break;
+		if (buffer_hints[i].name[0] == '\0' && free_slot < 0)
+			free_slot = i;
+	}
+	if (i == MAX_BUFFER_HINTS)
+		i = free_slot;
+	if (i < 0)
+		return;
+	if (hint[0] == '\0') {
+		buffer_hints[i].name[0] = '\0';
+	} else {
+		safe_strncpy(buffer_hints[i].name, name, NBUFN);
+		safe_strncpy(buffer_hints[i].hint, hint, sizeof(buffer_hints[i].hint));
+	}
+	mark_all_windows();
+}
+
+static char *buffer_hint(buffer_t *bp)
+{
+	int i;
+	for (i = 0; i < MAX_BUFFER_HINTS; i++)
+		if (buffer_hints[i].name[0] != '\0' && strcmp(buffer_hints[i].name, bp->b_bname) == 0)
+			return buffer_hints[i].hint;
+	return modeline_tail;
+}
+
 /* 1-based line number of offset OFF */
 int line_number(buffer_t *bp, point_t off)
 {
@@ -388,7 +432,7 @@ void modeline(window_t *wp)
 	snprintf(modeline_buf, sizeof(modeline_buf), "SBEmacs: %s %c%c %s%s%s, L. %d %c%c %s ",
 		 modeline_help, lch, lch, name, mch == '*' ? "*" : "",
 		 och == 'O' ? " [overwrite]" : "",
-		 line_number(wp->w_bufp, point), lch, lch, modeline_tail);
+		 line_number(wp->w_bufp, point), lch, lch, buffer_hint(wp->w_bufp));
 	/* too wide: "Ctrl-h" becomes "C-h", "Ctrl c r" "C-c r", then the end is cut */
 	if ((int) strlen(modeline_buf) > cols) {
 		char *p;

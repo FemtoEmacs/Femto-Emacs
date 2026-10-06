@@ -10,7 +10,10 @@
 * C-c r opens a menu: h for hints, q for a question written in its own
   window (C-c r sends it), d for a discussion, s for the set-up.
 * C-c y inserts every fenced snippet of the last answer, after asking,
-  and closes the answer window.
+  and closes the answer window; it works from the answer window too.
+* Each assistant window's mode line says which keys apply there (C-c y
+  in an answer, C-c r in a question, C-c t in the discussion...);
+  set-buffer-hint sets such a hint for any buffer.
 * The discussion (*discussion*) stays open: C-c r there sends what was
   written after the last "You:", and C-c t inserts the snippet under the
   cursor into the file being discussed.

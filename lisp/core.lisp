@@ -435,6 +435,7 @@ otherwise the terminal library.  Returns the backend in use."
     (install-hooks)
     (start-scripts)
     (announce-commands)
+    (announce-buffer-hints)
     (setf *init-errors* (reverse *script-errors*))
     (unless no-init (load-user-init))
     (when *undo-mode* (add-mode-global "undo"))

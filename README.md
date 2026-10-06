@@ -143,8 +143,10 @@ says so and runs in the terminal.
 | Key | |
 |-----|-|
 | `C-c r` | a small menu: `h` hints about the code at the cursor, `q` a question written in a window of its own (as many lines as you like; `C-c r` again sends it), `d` a discussion, `s` the set-up.  The answer opens in a window below |
-| `C-c y` | insert every snippet (```` ``` ```` block) of the last answer at the cursor, after you confirm, and close the answer window; `C-u` undoes it |
+| `C-c y` | insert every snippet (```` ``` ```` block) of the last answer at the cursor of your file, after you confirm, and close the answer window (works from either window); `C-u` undoes it |
 | `C-c t` | in the discussion window: insert the snippet under the cursor into your file, at its cursor, after you confirm |
+
+The mode line of each of these windows says which keys apply there.
 
 The **discussion** (`C-c r`, then `d`) is a conversation in the `*discussion*`
 window, which stays open: write after the last `You:`, press `C-c r`, and
