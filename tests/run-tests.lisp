@@ -266,6 +266,53 @@
          (subseq text (last-marker-position text "You:")))
        "two")
 
+;;; undo: what the history keeps (applying it needs a buffer)
+(defun rec (id kind pos string)
+  (let ((v (sb-ext:string-to-octets string :external-format :utf-8)))
+    (sb-sys:with-pinned-objects (v)
+      (record-change id kind pos (sb-sys:vector-sap v) (length v)))))
+
+(defun history-summary (id)
+  (let ((h (gethash id *undo-histories*)))
+    (mapcar (lambda (g)
+              (mapcar (lambda (c) (list (change-kind c) (change-pos c)
+                                        (sb-ext:octets-to-string (change-text c) :external-format :utf-8)))
+                      (undo-group-changes g)))
+            (undo-history-done h))))
+
+(check "typing joins, a new command starts a group"
+       (let ((*command-serial* 500) (*command-buffer-id* 9999))
+         (remhash 9999 *undo-histories*)
+         (rec 9999 #\i 0 "ab") (rec 9999 #\i 2 "c")
+         (incf *command-serial*)
+         (rec 9999 #\d 2 "c") (rec 9999 #\d 1 "b")      ; DEL, DEL
+         (incf *command-serial*)
+         (rec 9999 #\d 0 "x") (rec 9999 #\d 0 "y")      ; C-d, C-d
+         (history-summary 9999))
+       '(((:delete 0 "xy")) ((:delete 1 "bc")) ((:insert 0 "abc"))))
+(check "a change after undo forgets redo; saving remembers the top"
+       (let ((*command-serial* 600) (*command-buffer-id* 9998))
+         (remhash 9998 *undo-histories*)
+         (rec 9998 #\i 0 "a")
+         (record-change 9998 #\s 0 (sb-sys:int-sap 0) 0)
+         (let ((h (gethash 9998 *undo-histories*)))
+           (push (pop (undo-history-done h)) (undo-history-undone h))
+           (incf *command-serial*)
+           (rec 9998 #\i 0 "b")
+           (list (length (undo-history-undone h)) (undo-history-saved-id h) (top-id h))))
+       '(0 600 601))
+(check "a load forgets the history"
+       (progn (record-change 9998 #\r 0 (sb-sys:int-sap 0) 0) (gethash 9998 *undo-histories*))
+       nil)
+(check "the history stays under *undo-limit*"
+       (let ((*undo-limit* 10) (*command-buffer-id* 9997))
+         (remhash 9997 *undo-histories*)
+         (loop for i from 1 to 5
+               do (let ((*command-serial* (+ 700 i))) (rec 9997 #\i 0 "abcd")))
+         (let ((h (gethash 9997 *undo-histories*)))
+           (list (length (undo-history-done h)) (<= (undo-history-bytes h) 10))))
+       '(2 t))
+
 ;;; script loading
 (check "unchanged scripts are not loaded again"
        (load-scripts :files (script-files *script-directory*)

@@ -876,7 +876,6 @@ same place deactivates the region."
 (defcommand eval-expression () (execute-builtin "exec-lisp-command"))
 (defcommand query-replace-command () (execute-builtin "query-replace"))
 (defcommand shell-command-command () (execute-builtin "shell-command"))
-(defcommand undo-command () (undo))
 (defcommand recenter-command () (recenter))
 
 ;;; ------------------------------------------------------------------
@@ -891,8 +890,7 @@ same place deactivates the region."
 (global-set-key "C-o" 'open-line)
 (global-set-key "C-q" 'quoted-insert)
 (global-set-key "C-l" 'recenter-command)
-(global-set-key "C-_" 'undo-command)          ; also C-/ in most terminals
-(global-set-key "C-x u" 'undo-command)
+;; undo and redo: lisp/undo.lisp
 
 (global-set-key "M-f" 'forward-word-command)
 (global-set-key "M-b" 'backward-word-command)

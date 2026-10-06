@@ -316,6 +316,54 @@ void fe_copy_region(void)       { copy(); }
 void fe_yank(void)              { paste(); }
 void fe_kill_line(void)         { killtoeol(); }
 void fe_undo(void)              { undo_command(); }
+
+/* the current buffer's id (see b_id), and its modified flag */
+long fe_buffer_id(void)         { return curbp->b_id; }
+void fe_set_modified(int on)
+{
+	if (on) add_mode(curbp, B_MODIFIED);
+	else delete_mode(curbp, B_MODIFIED);
+}
+
+/* delete the bytes from START to END exactly (undo uses it) */
+void fe_delete_region(long start, long end)
+{
+	long size = document_size(curbp);
+	long len;
+
+	if (start < 0) start = 0;
+	if (end > size) end = size;
+	if (end <= start) return;
+	len = end - start;
+	curbp->b_point = movegap(curbp, start);
+	/* the bytes are now at the end of the gap; report them before dropping them */
+	record_change(curbp, 'd', start, curbp->b_egap, len);
+	curbp->b_egap += len;
+	curbp->b_point = start;
+	if (curbp->b_mark > start)
+		curbp->b_mark = curbp->b_mark >= end ? curbp->b_mark - len : start;
+	add_mode(curbp, B_MODIFIED);
+}
+
+/* insert LEN bytes exactly, at P (undo uses it: the bytes need not be UTF-8) */
+void fe_insert_bytes(long p, char *bytes, long len)
+{
+	long size = document_size(curbp);
+
+	if (len <= 0) return;
+	if (p < 0) p = 0;
+	if (p > size) p = size;
+	if (len >= curbp->b_egap - curbp->b_gap && !growgap(curbp, len))
+		return;
+	curbp->b_point = movegap(curbp, p);
+	memcpy(curbp->b_gap, bytes, len);
+	curbp->b_gap += len;
+	record_change(curbp, 'i', p, (char_t *) bytes, len);
+	curbp->b_point = p + len;
+	if (curbp->b_mark >= p && curbp->b_mark != NOMARK)
+		curbp->b_mark += len;
+	add_mode(curbp, B_MODIFIED);
+}
 void fe_discard_undo_history(void) { discard_undo_history(); }
 
 /* clipboard */

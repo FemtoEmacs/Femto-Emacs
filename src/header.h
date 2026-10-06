@@ -114,16 +114,7 @@ typedef struct undo_t {
 	char u_flags;
 } undo_t;
 
-/*
- * This structure supports the unlimited undo feature
- * Its members must be kept to a minimum as each instance takes up to 32 bytes
- */
-typedef struct undo_tt {
-	point_t  u_point;
-	char_t  *u_string;
-	char_t   u_type;
-	struct undo_tt *u_prev;
-} undo_tt;
+
 
 typedef struct buffer_t
 {
@@ -147,8 +138,7 @@ typedef struct buffer_t
 	char b_bname[NBUFN];      /* buffer name */
 	buffer_flags_t b_flags;   /* buffer flags */
 	undo_t b_ubuf;            /* undoset */
-	undo_tt *b_utail;         /* recent end of undo list */
-	int b_ucnt;               /* count of how many chars to undo on current undo */
+	long b_id;                /* unique, never reused: undo history is kept by id */
 } buffer_t;
 
 typedef struct window_t
@@ -288,7 +278,6 @@ extern int load_file(char *);
 extern int insert_file(char *, int);
 extern void append_string(buffer_t *, char *);
 extern void undoset(void);
-extern void undo(void);
 extern void backsp(void);
 extern void set_mark(void);
 extern void unmark(void);
@@ -310,7 +299,6 @@ extern void recenter(void);
 extern int window_position(window_t *, int, int);
 extern int line_number(buffer_t *, point_t);
 extern void insert(void);
-extern void insert_at(void);
 extern void paste(void);
 extern void quit(void);
 extern int yesno(int);
@@ -399,24 +387,10 @@ extern void resize_terminal();
 extern int match_string_position(string_list_t *, int);
 extern int shortest_string_len(string_list_t *);
 extern char *shortest_common_string(string_list_t *);
-extern undo_tt *new_undo();
-extern void add_undo(buffer_t *, char, point_t, char_t *);
-extern void free_undos(undo_tt *);
-extern void list_undos(void);
-extern void dump_undos(buffer_t *);
-extern int count_undos(buffer_t *);
-extern int get_total_undo_size(buffer_t *);
-extern int get_undo_size(undo_tt *);
-extern void list_undo_stats();
-extern void append_undo_char(undo_tt *, char);
-extern void append_undo_string(undo_tt *, char_t *);
 extern void undo_command(void);
-extern undo_tt *execute_undo(undo_tt *);
-extern int get_undo_again(void);
-extern char *get_undo_type_name(undo_tt *);
-extern void discard_buffer_undo_history(buffer_t *);
-extern int get_buf_utf8_size(char_t *, int);
-extern void debug_undo(char *, undo_tt *, buffer_t *);
+extern void list_undos(void);
+extern void list_undo_stats(void);
+extern void record_change(buffer_t *, int, point_t, const char_t *, long);
 
 /*
  * include public Femto interface functions definitions 

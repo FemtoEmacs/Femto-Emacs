@@ -4,6 +4,8 @@
 #include <string.h>
 #include "header.h"
 
+static long buffer_ids = 0;  /* b_id: a new one for every buffer */
+
 void buffer_init(buffer_t *bp)
 {
 	bp->b_mark = NOMARK;
@@ -23,8 +25,7 @@ void buffer_init(buffer_t *bp)
 	bp->b_next = NULL;
 	bp->b_bname[0] = '\0';
 	bp->b_fname[0] = '\0';
-	bp->b_utail = NULL;
-	bp->b_ucnt = -1;
+	bp->b_id = ++buffer_ids;
 }
 
 void zero_buffer(buffer_t *bp)
@@ -34,6 +35,7 @@ void zero_buffer(buffer_t *bp)
 	bp->b_egap = bp->b_ebuf;
 	bp->b_point = 0; /* goto start of buffer */
 	bp->b_mark = NOMARK;
+	record_change(bp, 'r', 0, NULL, 0);
 }
 
 /* get the size of the document in the buffer */
@@ -162,7 +164,7 @@ int delete_buffer(buffer_t *bp)
 	}
 
 	/* now we can delete */
-	free_undos(bp->b_utail);
+	record_change(bp, 'r', 0, NULL, 0);
 	free(bp->b_buf);
 	free(bp);
 	return TRUE;

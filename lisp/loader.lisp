@@ -60,6 +60,7 @@
     (append (file "highlight.lisp")
             (file "indent.lisp")
             (file "theme.lisp")
+            (file "undo.lisp")
             (file "gui.lisp")
             (lisp-files (merge-pathnames "languages/" directory))
             (file "defaults.lisp")

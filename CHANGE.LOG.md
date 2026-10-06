@@ -1,6 +1,14 @@
 # SBEmacs / Femto Emacs Change Log
 
 ## SBEmacs 2.0
+* Undo rewritten, in Lisp (lisp/undo.lisp).  The C core reports every
+  change to the text (insert or delete, with the bytes) through one hook;
+  changes are grouped by command (typing and deleting by runs of up to 20
+  characters), C-/ undoes a group at a time, C-M-_ (M-_) redoes, a new
+  change forgets the redo history, and undoing back to the saved text
+  clears the modified flag.  *undo-limit* bounds the memory per buffer.
+  The old undo in C, which undid one character per key, recorded its own
+  undoing, and missed query-replace and overwrite mode, is gone.
 * Help: C-h or F1 shows every key, one line each, on a page of its own;
   the arrows scroll it, C-c r / C-c g ask Claude / ChatGPT, any other key
   returns to the file and closes the assistants' windows

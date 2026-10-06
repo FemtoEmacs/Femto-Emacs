@@ -226,55 +226,19 @@ void insert()
 
 	/* overwrite if mid line, not EOL or EOF, CR will insert as normal */
 	if ((curbp->b_flags & B_OVERWRITE) && *input != '\r' && *(ptr(curbp, curbp->b_point)) != '\n' && curbp->b_point < pos(curbp,curbp->b_ebuf) ) {
+		char_t old = *(ptr(curbp, curbp->b_point));
 		*(ptr(curbp, curbp->b_point)) = *input;
+		record_change(curbp, 'd', curbp->b_point, &old, 1);
+		record_change(curbp, 'i', curbp->b_point, (char_t *) input, 1);
 		if (curbp->b_point < pos(curbp, curbp->b_ebuf))
 			++curbp->b_point;
-		/* FIXME - overwite mode not handled properly for undo yet */
-	} else {
-		the_char[0] = *input == '\r' ? '\n' : *input;
-		the_char[1] = '\0'; /* null terminate */
-		*curbp->b_gap++ = the_char[0]; 
-		curbp->b_point = pos(curbp, curbp->b_egap);
-		/* the point is set so that and undo will backspace over the char */
-		add_undo(curbp, UNDO_T_INSERT, curbp->b_point, the_char);
-	}
-	add_mode(curbp, B_MODIFIED);
-}
-
-/*
- * A special insert used as the undo of delete char (C-d or DEL)
- * this is where the char is inserted at the point and the cursor
- * is NOT moved on 1 char.  This MUST be a seperate function so that
- *   INSERT + BACKSPACE are matching undo pairs
- *   INSERT_AT + DELETE are matching undo pairs
- * Note: This function is only ever called by execute_undo to undo a DEL.
- */
-void insert_at()
-{
-	char_t the_char[2]; /* the inserted char plus a null */
-	assert(curbp->b_gap <= curbp->b_egap);
-
-	if (curbp->b_gap == curbp->b_egap && !growgap(curbp, CHUNK))
-		return;
-	curbp->b_point = movegap(curbp, curbp->b_point);
-
-
-	/* overwrite if mid line, not EOL or EOF, CR will insert as normal */
-	if ((curbp->b_flags & B_OVERWRITE) && *input != '\r' && *(ptr(curbp, curbp->b_point)) != '\n' && curbp->b_point < pos(curbp,curbp->b_ebuf) ) {
-		*(ptr(curbp, curbp->b_point)) = *input;
-		if (curbp->b_point < pos(curbp, curbp->b_ebuf))
-			++curbp->b_point;
-		/* FIXME - overwite mode not handled properly for undo yet */
 	} else {
 		the_char[0] = *input == '\r' ? '\n' : *input;
 		the_char[1] = '\0'; /* null terminate */
 		*curbp->b_gap++ = the_char[0];
+		record_change(curbp, 'i', curbp->b_point, the_char, 1);
 		curbp->b_point = pos(curbp, curbp->b_egap);
-		curbp->b_point--; /* move point back to where it was before, should always be safe */
-		/* the point is set so that and undo will DELETE the char */
-		add_undo(curbp, UNDO_T_INSAT, curbp->b_point, the_char);
 	}
-
 	add_mode(curbp, B_MODIFIED);
 }
 
@@ -290,12 +254,11 @@ void backsp()
 		curbp->b_gap -= n; /* increase start of gap by size of char */
 		add_mode(curbp, B_MODIFIED);
 
-		/* record the backspaced chars in the undo structure */
+		/* the backspaced bytes, for undo */
 		memcpy(the_char, curbp->b_gap, n);
-		the_char[n] = '\0'; /* null terminate, the backspaced char(s) */
+		the_char[n] = '\0';
 		curbp->b_point = pos(curbp, curbp->b_egap);
-		//debug("point after bs = %ld\n", curbp->b_point);
-		add_undo(curbp, UNDO_T_BACKSPACE, curbp->b_point, the_char);
+		record_change(curbp, 'd', curbp->b_point, the_char, n);
 	}
 
 	curbp->b_point = pos(curbp, curbp->b_egap);
@@ -318,7 +281,7 @@ void delete()
 		curbp->b_egap += n;
 		curbp->b_point = pos(curbp, curbp->b_egap);
 		add_mode(curbp, B_MODIFIED);
-		add_undo(curbp, UNDO_T_DELETE, curbp->b_point, the_char);
+		record_change(curbp, 'd', curbp->b_point, the_char, n);
 	}
 }
 
@@ -545,7 +508,7 @@ void copy_cut(int cut)
 		screen_set_clipboard((char *) scrap);  /* the system clipboard, in the GUI */
 		if (cut) {
 			//debug("CUT: pt=%ld nscrap=%d\n", curbp->b_point, nscrap);
-			add_undo(curbp, UNDO_T_KILL, (curbp->b_point < curbp->b_mark ? curbp->b_point : curbp->b_mark), scrap);
+			record_change(curbp, 'd', (curbp->b_point < curbp->b_mark ? curbp->b_point : curbp->b_mark), scrap, nscrap);
 			curbp->b_egap += nscrap; /* if cut expand gap down */
 			curbp->b_point = pos(curbp, curbp->b_egap); /* set point to after region */
 			add_mode(curbp, B_MODIFIED);
@@ -591,7 +554,7 @@ void insert_string(char *str)
 		curbp->b_point = movegap(curbp, curbp->b_point);
 		undoset();
 		//debug("INS STR: pt=%ld len=%d\n", curbp->b_point, strlen((char *)str));
-		add_undo(curbp, UNDO_T_YANK, curbp->b_point, (char_t *)str);
+		record_change(curbp, 'i', curbp->b_point, (char_t *) str, len);
 		memcpy(curbp->b_gap, str, len * sizeof (char_t));
 		curbp->b_gap += len;
 		curbp->b_point = pos(curbp, curbp->b_egap);
@@ -615,6 +578,7 @@ void append_string(buffer_t *bp, char *str)
 	if (len < bp->b_egap - bp->b_gap || growgap(bp, len)) {
 		bp->b_point = movegap(bp, bp->b_point);
 		undoset();
+		record_change(bp, 'i', bp->b_point, (char_t *) str, len);
 		memcpy(bp->b_gap, str, len * sizeof (char_t));
 		bp->b_gap += len;
 		bp->b_point = pos(bp, bp->b_egap);

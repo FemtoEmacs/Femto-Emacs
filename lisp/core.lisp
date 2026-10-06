@@ -257,6 +257,7 @@ installs itself here.")
            (handler-case
                (with-editor-environment ()
                  (cond ((string= event "key")
+                        (command-boundary arg)
                         (let ((fn (gethash arg *keymap*)))
                           (setf *this-key* arg
                                 *this-command* (or fn arg))
@@ -274,6 +275,7 @@ installs itself here.")
                             (unwind-protect (funcall fn)
                               (setf *last-command* *this-command*)))))
                        ((string= event "self-insert")
+                        (command-boundary t)
                         (setf *last-key* "self-insert"
                               *last-command* 'self-insert)
                         (setf handled (run-self-insert arg)))
@@ -300,10 +302,31 @@ installs itself here.")
   (ignore-errors (highlight-buffer-text fname text len colors))
   (values))
 
+;;; Every change to a buffer's text, reported by the C core (src/undo.c)
+;;; for the undo history in lisp/undo.lisp.
+(declaim (ftype (function (t t t t t) t) record-change))
+(declaim (ftype (function (&optional t) t) undo-boundary))
+
+(sb-alien:define-alien-callable lisp-change sb-alien:void
+    ((id sb-alien:long) (kind sb-alien:int) (pos sb-alien:long)
+     (text sb-alien:system-area-pointer) (len sb-alien:long))
+  ;; must not fail: on any error the change is simply not recorded
+  (ignore-errors
+   (when (fboundp 'record-change)
+     (record-change id (code-char kind) pos text len)))
+  (values))
+
+(defun command-boundary (&optional key)
+  "Called before each key (its name, or T for a typed character): the
+changes a command makes undo together."
+  (when (fboundp 'undo-boundary)
+    (ignore-errors (undo-boundary key))))
+
 (defun install-hooks ()
   (%set-hooks (sb-alien:alien-sap (sb-alien:alien-callable-function 'lisp-eval))
               (sb-alien:alien-sap (sb-alien:alien-callable-function 'lisp-event))
-              (sb-alien:alien-sap (sb-alien:alien-callable-function 'lisp-highlight))))
+              (sb-alien:alien-sap (sb-alien:alien-callable-function 'lisp-highlight)))
+  (%set-change-hook (sb-alien:alien-sap (sb-alien:alien-callable-function 'lisp-change))))
 
 ;;; ------------------------------------------------------------------
 ;;; Start-up

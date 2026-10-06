@@ -690,7 +690,9 @@ static void key_down(SDL_KeyboardEvent *e)
 		case SDLK_v: paste_clipboard(); return;
 		case SDLK_c: push_string("\x1bw"); return;      /* copy-region */
 		case SDLK_x: push_byte(0x17); return;           /* kill-region */
-		case SDLK_z: push_byte(0x15); return;           /* undo */
+		case SDLK_z:                                    /* undo, Shift: redo */
+			if (shift) push_string("\x1b\x1f"); else push_byte(0x15);
+			return;
 		case SDLK_s: push_string("\x18\x13"); return;   /* save */
 		case SDLK_q: push_string("\x18\x03"); return;   /* exit */
 		case SDLK_EQUALS: case SDLK_PLUS:

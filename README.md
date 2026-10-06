@@ -92,8 +92,11 @@ s-expressions (`M-f`, `M-e`, `M-}`, `C-M-f`), killing them (`M-d`, `M-DEL`,
 `C-M-k`; consecutive kills join), `M-y` after `C-y`, `C-t`/`M-t`/`C-x C-t`,
 `M-u`/`M-l`/`M-c`, `M-q`, `M-;`, `C-x h`, `C-x C-x`, `C-g`, keyboard macros
 (`C-x (`, `C-x )`, `C-x e`, then `e`), `C-x 0`, `M-x` with `TAB` completion
-and `C-x ?` (describe a key).  `C-u` is still undo, as in FemtoEmacs; `C-/`
-and `C-x u` are too.
+and `C-x ?` (describe a key).  **Undo** (`C-/`, also `C-x u` and FemtoEmacs's `C-u`)
+takes back one command at a time, a whole `M-q` or `C-y` at once and typed
+text by words; **redo** is `C-M-_` (or `M-_`; `Cmd-Shift-Z` in the window).
+Undoing back to the saved text clears the `*` on the mode line.  How it
+works is explained at the top of `lisp/undo.lisp`.
 
 The **region** between the mark (`C-SPC`) and the cursor is shaded, as in
 Emacs, until the text changes or `C-g`.  The **mouse** works in the terminal
@@ -334,7 +337,8 @@ The init file is ordinary Common Lisp.  It is optional.  See [`samples/init.lisp
   :keywords '("func" "package" "import" "var" "const" "type" "struct"
               "if" "else" "for" "range" "return" "go" "defer"))
 
-(setf *undo-mode* nil)                      ; save memory: no unlimited undo
+(setf *undo-mode* nil)                      ; no undo history at all
+(setf *undo-limit* (* 1024 1024))           ; history kept per buffer, in bytes (8 MB)
 ```
 
 ### Colours
@@ -432,7 +436,7 @@ optional and default to 1.
 |-|-|
 | Text | `point` `line-start` `line-end` `buffer-substring` `buffer-octets` `current-line-text` |
 | Movement | `forward-char` `backward-char` `forward-word` `backward-word` `next-line` `previous-line` `forward-page` `backward-page` `beginning-of-line` `end-of-line` `beginning-of-buffer` `end-of-buffer` `goto-line` `goto-char` `point` `mark` `set-mark` `buffer-size` `char-after` |
-| Editing | `insert` `backward-delete-char` `delete-char` `kill-region` `copy-region` `yank` `kill-line` `undo` `cut-region` `get-clipboard` `set-clipboard` `current-line-text` |
+| Editing | `insert` `backward-delete-char` `delete-char` `kill-region` `copy-region` `yank` `kill-line` `undo` `redo` `cut-region` `get-clipboard` `set-clipboard` `current-line-text` |
 | Search | `search-forward` `search-backward` (return true when found) |
 | Buffers | `get-buffer-name` `get-buffer-count` `buffer-filename` `buffer-modified-p` `select-buffer` `kill-buffer` `save-buffer` `find-file` `list-buffers` `rename-buffer` |
 | Windows | `split-window` `other-window` `delete-other-windows` `update-display` `refresh-screen` |

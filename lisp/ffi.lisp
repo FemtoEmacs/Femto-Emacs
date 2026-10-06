@@ -105,6 +105,11 @@ moved together."
 (defcore %yank "fe_yank" sb-alien:void)
 (defcore %kill-line "fe_kill_line" sb-alien:void)
 (defcore %undo "fe_undo" sb-alien:void)
+(defcore %buffer-id "fe_buffer_id" sb-alien:long)
+(defcore %set-modified "fe_set_modified" sb-alien:void (on sb-alien:int))
+(defcore %delete-region "fe_delete_region" sb-alien:void (start sb-alien:long) (end sb-alien:long))
+(defcore %insert-bytes "fe_insert_bytes" sb-alien:void
+  (p sb-alien:long) (bytes sb-alien:system-area-pointer) (len sb-alien:long))
 (defcore %discard-undo-history "fe_discard_undo_history" sb-alien:void)
 (defcore %get-clipboard "fe_get_clipboard" sb-alien:c-string)
 (defcore %set-clipboard "fe_set_clipboard" sb-alien:void (s sb-alien:c-string))
@@ -164,6 +169,8 @@ moved together."
   (id sb-alien:int) (fg sb-alien:long) (bg sb-alien:long) (attr sb-alien:int))
 (defcore %reapply-colors "fe_reapply_colors" sb-alien:void)
 (defcore %colors "fe_colors" sb-alien:int)
+
+(defcore %set-change-hook "fe_set_change_hook" sb-alien:void (hook sb-alien:system-area-pointer))
 
 (defcore %set-hooks "fe_set_hooks" sb-alien:void
   (eval sb-alien:system-area-pointer)
@@ -274,7 +281,7 @@ the buffer)."
 (defun copy-region () (%copy-region) t)
 (defun yank () (%yank) t)
 (defun kill-line () (%kill-line) t)
-(defun undo () (%undo) t)
+;; UNDO and REDO are in lisp/undo.lisp
 (defun discard-undo-history () (%discard-undo-history) t)
 (defun get-clipboard () (or (%get-clipboard) ""))
 (defun set-clipboard (s) (%set-clipboard (text s)) s)
