@@ -1,6 +1,12 @@
 # SBEmacs / Femto Emacs Change Log
 
 ## SBEmacs 2.0
+* An assistant: C-c r asks Claude about the code at the cursor (through
+  the Claude Code CLI, or the Messages API with curl) and shows the
+  answer in a window; C-c y inserts the proposed code after confirmation.
+  C-c x is the same for Codex, a stub for now.  Keys and safeguards after
+  Asimov's Three Laws.  Pure Lisp scripts: lisp/extensions/assistant.lisp
+  and codex.lisp.
 * A window of its own: `sbemacs --gui` (or `sbemacs-gui`) draws with SDL2
   and SDL2_ttf, with 24-bit colours, a TrueType font, mouse clicks and
   wheel, the system clipboard, font zoom, and dark and light themes.  Falls

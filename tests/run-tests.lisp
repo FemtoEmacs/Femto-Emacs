@@ -153,6 +153,19 @@
 (check "Prolog: next clause" (ind "Prolog" "foo(X) :-" "    bar(X)." "baz") 0)
 (check "ML: let" (ind "ML" "let f x =" "x") 2)
 
+;;; the assistant: JSON and proposed code
+(check "json-read: object, array, escapes, surrogate pair"
+       (json-read "{\"a\":[1,true,null],\"b\":\"x\\n\\u00e9\\ud83d\\ude00\"}")
+       (list (list "a" 1 t :null) (cons "b" (format nil "x~%é~A" (code-char #x1F600)))))
+(check "json-string escapes"
+       (json-string (format nil "a\"b\\c~%~C" (code-char 1)))
+       "\"a\\\"b\\\\c\\n\\u0001\"")
+(check "json round trip" (json-read (json-string "olá \"q\"")) "olá \"q\"")
+(check "proposed code is the first fenced block"
+       (proposed-code (format nil "Try:~%```python~%x = 1~%y = 2~%```~%and ```z```"))
+       (format nil "x = 1~%y = 2"))
+(check "no code block" (proposed-code "just words") nil)
+
 ;;; script loading
 (check "unchanged scripts are not loaded again"
        (load-scripts :files (script-files *script-directory*)

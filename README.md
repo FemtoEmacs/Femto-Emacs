@@ -117,6 +117,43 @@ own: 24-bit colours, a proper font, the mouse and the system clipboard.
 If no window can be opened (no display, e.g. over SSH), `sbemacs --gui`
 says so and runs in the terminal.
 
+### The assistant: Claude inside the editor (`C-c r`)
+
+| Key | |
+|-----|-|
+| `C-c r` | ask Claude about the code at the cursor; press RET at the prompt for hints, or type a question.  The answer opens in a window below (`C-x 1` closes it) |
+| `C-c y` | insert the code Claude proposed at the cursor, after you confirm; `C-u` undoes it |
+| `C-c x` | the same for Codex (a stub for now: [`lisp/extensions/codex.lisp`](lisp/extensions/codex.lisp)) |
+
+The keys follow Asimov's Three Laws of Robotics; `r` is the "R." of his
+robots' names (R. Daneel Olivaw).
+
+1. **No harm:** the assistant never changes your text by itself.  It sees
+   only what `C-c r` sends: the file name, its language and the text
+   around the cursor (and the region, if any).  The Claude Code CLI runs
+   with all tools disabled, so it cannot read or write your files.
+2. **Obedience:** `C-c y` types into the buffer only on your order, asks
+   first, and can be undone.
+3. **Self-preservation:** a missing program, a network error or a timeout
+   ends in a message, never in a crash or a lost buffer.
+
+Claude is reached in one of two ways (`*claude-transport*`):
+
+* `:cli`: the [Claude Code](https://claude.com/claude-code) program,
+  `claude -p`, with your usual login.  A Claude subscription works; no API
+  key is needed.
+* `:api`: the Messages API through `curl`, with `ANTHROPIC_API_KEY` or the
+  first line of `~/.sbemacs/anthropic-api-key`.  The key is passed to curl
+  on its standard input, never on the command line.
+* `:auto` (the default): `:cli` when `claude` is installed, `:api` otherwise.
+
+`*claude-model*` picks the model (`"sonnet"`, `"opus"`, or a full model
+name), `*assistant-timeout*` how long to wait, and `*assistant-instructions*`
+what the assistant is told.  The editor waits while the assistant thinks;
+the message line says so.  All of it is the script
+[`lisp/extensions/assistant.lisp`](lisp/extensions/assistant.lisp): change
+it and press `C-x C-r`.
+
 ### Lisp interaction
 
 * `C-x C-e` evaluates the expression just before the cursor and shows its
