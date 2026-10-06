@@ -35,14 +35,14 @@
 {\LARGE\bfseries SBEmacs commands}
 \end{center}
 \vspace{-4pt}
-{\small
+{\large
 \noindent\textbf{How to type a command.}
 \verb|C-| is the \keys{Ctrl} key and \verb|M-| is the \keys{Esc} key.\par
 \vspace{3pt}\noindent
-\begin{tabular}{@{}>{\ttfamily}p{1.6cm}@{\,}p{15.2cm}@{}}
-C-f & Keep \keys{Ctrl} down and press \keys{f}. Then let go of both.\\
-M-f & Press \keys{Esc} and let go of it, then press \keys{f}. Or keep \keys{Alt}
-      (\keys{Option} on a Mac) down and press \keys{f}.\\
+\begin{tabular}{@{}>{\ttfamily}p{2.2cm}@{\,}p{15.2cm}@{}}
+C-f & Keep \keys{Ctrl} down and press \keys{f}.\\
+M-f & Press \keys{Esc} and let go of it, then press \keys{f}.\\
+    & or keep \keys{Alt} (\keys{Option} on a Mac) down and press \keys{f}.\\
 C-x C-s & Keep \keys{Ctrl} down and press \keys{x}, then \keys{s}. Then let go of \keys{Ctrl}.\\
 C-x b & Keep \keys{Ctrl} down and press \keys{x}. Let go of \keys{Ctrl}, then press \keys{b}.\\
 C-M-f & Press \keys{Esc} and let go of it, then keep \keys{Ctrl} down and press \keys{f}.\\
@@ -55,96 +55,94 @@ C-M-f & Press \keys{Esc} and let go of it, then keep \keys{Ctrl} down and press 
 \small
 \setlength{\parindent}{0pt}
 \textbf{Files}\\[1pt]
+{\large
 \begin{tabular}{@{}>{\raggedright}p{2.35cm}@{\,}p{6.1cm}@{}}
-\texttt{C-x C-f} & open a file\\
-\texttt{C-x C-s} & save\\
-\texttt{C-x C-w} & save with another name\\
-\texttt{C-x i} & insert a file at the cursor\\
-\texttt{C-x C-c} & quit\\
-\end{tabular}
+\texttt{C-x C-f} &open a file\\
+\texttt{C-x C-s} &save\\
+\texttt{C-x C-w} &save with another name\\
+\texttt{C-x i} &insert a file\\
+\texttt{C-x C-c} &quit\\
+\end{tabular}}
 \vspace{7pt}
 
 \textbf{Moving}\\[1pt]
+{\large
 \begin{tabular}{@{}>{\raggedright}p{2.35cm}@{\,}p{6.1cm}@{}}
-\texttt{C-f\,\,C-b} & forward, back one character\\
+\texttt{C-f\,\,C-b} & forward, back one char\\
 \texttt{C-n\,\,C-p} & next, previous line\\
 \texttt{M-f\,\,M-b} & forward, back one word\\
 \texttt{C-a\,\,C-e} & beginning, end of the line\\
 \texttt{C-v\,\,M-v} & next, previous screen\\
 \texttt{M-<\,\,M->} & beginning, end of the file\\
 \texttt{M-g} & go to a line number\\
-\end{tabular}
+\end{tabular}}
 \vspace{7pt}
 
 \textbf{Editing}\\[1pt]
+{\large
 \begin{tabular}{@{}>{\raggedright}p{2.35cm}@{\,}p{6.1cm}@{}}
-\texttt{DEL} & delete the character before the cursor\\
-\texttt{C-d} & delete the character under the cursor\\
-\texttt{C-k} & kill to the end of the line\\
+\texttt{DEL} & delete char before the cursor\\
+\texttt{C-d} & delete char under the cursor\\
+\texttt{C-k} & kill to end of line\\
 \texttt{C-/} & undo; again: undo more\\
-\texttt{C-M-\_} & redo what undo took back\\
+\texttt{C-M-\_} & redo\\
 \texttt{TAB} & indent the line\\
 \texttt{M-q} & refill the paragraph\\
-\texttt{M-;} & comment the line or the region\\
-\end{tabular}
-\vspace{7pt}
-
-\textbf{Keyboard macros}\\[1pt]
-\begin{tabular}{@{}>{\raggedright}p{2.35cm}@{\,}p{6.1cm}@{}}
-\texttt{C-x (} & start recording the keys you type\\
-\texttt{C-x )} & stop recording\\
-\texttt{C-x e} & replay them; then \texttt{e} replays again\\
-\end{tabular}
+\texttt{M-;} & comment line or region\\
+\end{tabular}}
 \vspace{7pt}
 
 \columnbreak
 
 \textbf{Region (shaded)}\\[1pt]
+{\large
 \begin{tabular}{@{}>{\raggedright}p{2.35cm}@{\,}p{6.1cm}@{}}
-\texttt{C-Spc} & set the mark, then move the cursor\\
-\texttt{mouse} & drag to select; click to move\\
-\texttt{C-w} & kill (cut) the region\\
+\texttt{C-Spc} & set mark\\
+\texttt{mouse} & drag to select\\
+\texttt{C-w} & kill  region\\
 \texttt{M-w} & copy the region\\
 \texttt{C-y} & yank (paste)\\
 \texttt{M-y} & after C-y: an earlier kill\\
-\texttt{C-g} & unselect; cancel any command\\
-\end{tabular}
+\texttt{C-g} & cancel command\\
+\end{tabular}}
 \vspace{7pt}
 
 \textbf{Searching}\\[1pt]
+{\large
 \begin{tabular}{@{}>{\raggedright}p{2.35cm}@{\,}p{6.1cm}@{}}
-\texttt{C-s} & search forward; C-s again: next\\
+\texttt{C-s} & search forward\\
 \texttt{C-r} & search backward\\
-\texttt{M-\%} & replace, asking each time\\
-\end{tabular}
+\texttt{M-\%} & replace\\
+\end{tabular}}
 \vspace{7pt}
 
 \textbf{Buffers and windows}\\[1pt]
+{\large
 \begin{tabular}{@{}>{\raggedright}p{2.35cm}@{\,}p{6.1cm}@{}}
 \texttt{C-x b} & switch to a buffer by name\\
 \texttt{C-x C-b} & buffer menu\\
 \texttt{C-x 2} & split the window\\
 \texttt{C-x o} & other window (or click it)\\
-\texttt{C-x 0\,\,C-x 1} & close this, the other windows\\
-\end{tabular}
+\texttt{C-x 0} & close this  window\\
+\texttt{C-x 1} & close other window\\
+\end{tabular}}
 \vspace{7pt}
 
 \textbf{Help, Lisp and Claude}\\[1pt]
+{\large
 \begin{tabular}{@{}>{\raggedright}p{2.35cm}@{\,}p{6.1cm}@{}}
-\texttt{C-h} & every key, one per line (also F1)\\
+\texttt{C-h} & help with keybinding\\
 \texttt{M-x} & run a command by name\\
-\texttt{M-:} & evaluate a Lisp expression\\
-\texttt{C-x C-e} & evaluate the Lisp before the cursor\\
-\texttt{C-c r} & Claude: h hints, q question, d discussion\\
-\texttt{C-c y} & insert the code Claude proposed\\
-\texttt{C-c g} & ask ChatGPT (Codex)\\
-\end{tabular}
+\texttt{M-:} & eval a Lisp \\
+\texttt{C-x C-e} & eval Lisp before cursor\\
+\texttt{C-c r} & call Claude\\
+\texttt{C-c y} & insert Claude's code\\
+\texttt{C-c g} & ask ChatGPT\\
+\end{tabular}}
 \vspace{7pt}
 
 \end{multicols}
 \vspace{-6pt}
-{\footnotesize\noindent The rest of this document explains every command, the
-installation, and how to program SBEmacs in Lisp.}
 \restoregeometry
 \clearpage
 \tableofcontents
