@@ -109,10 +109,25 @@ jobs:
           ldd libsbemacs-gui.dll | awk '/\/mingw64\// {print $3}' | xargs -r cp -t dist/sbemacs-windows-*/
           cd dist && zip -qr sbemacs-windows-x86_64.zip sbemacs-windows-*/
 
+      - name: Build Windows installer
+        shell: pwsh
+        run: |
+          $staging = (Get-ChildItem dist -Directory -Filter 'sbemacs-windows-*' | Select-Object -First 1).FullName
+          $output = (Resolve-Path dist).Path
+          $compiler = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $compiler)) {
+            throw "Inno Setup compiler not found at $compiler"
+          }
+          & $compiler "/DStagingDir=$staging" "/DOutputDir=$output" windows\installer.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Get-Item dist\Femto-Emacs-*-Setup.exe
+
       - uses: actions/upload-artifact@v4
         with:
           name: sbemacs-windows
-          path: dist/*.zip
+          path: |
+            dist/*.zip
+            dist/*-Setup.exe
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
