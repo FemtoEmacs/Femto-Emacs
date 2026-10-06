@@ -25,7 +25,7 @@
 \makeindex
 
 \title{SBEmacs\\
-{\large FemtoEmacs on Steel Bank Common Lisp}\\[1ex]
+{\large Steel Bank Emacs}\\[1ex]
 {\normalsize (Content not checked for grammar and spelling errors)}}
 \author{Eduardo Costa}
 \date{}
@@ -37,13 +37,13 @@
 
 \chapter*{Preface}
 
-Femto is a tiny Emacs clone,
+SBEmacs, Steel Bank Emacs, is a tiny Emacs clone,
 originally derived from a minimalist
 editor called Atto. Although built
-upon the C Atto codebase, Femto can
-be customized using Lisp. SBEmacs is
-Femto with its old Lisp, femtolisp, replaced by
-Steel Bank Common Lisp, or SBCL for short.
+upon the C Atto codebase, SBEmacs can
+be customized using Lisp: Steel Bank Common Lisp,
+or SBCL for short. Its predecessor, FemtoEmacs,
+used a Lisp of its own, femtolisp.
 
 The fundamental paradigm of Emacs is that it
 rests on a small core, but can be
@@ -69,7 +69,7 @@ value.
 \item {\bf Loop.} The REPL returns to step 1.
 \end{enumerate}
 
-Femtolisp did not generate
+Femtolisp, the Lisp of FemtoEmacs, did not generate
 native code, but compiled symbolic expressions
 to a virtual machine language. SBCL, on the other hand,
 compiles every expression to the machine language of
@@ -166,7 +166,7 @@ and \keys{$\kappa$} simultaneously
  \verb|C-n| -- move cursor to the next line.\\
  \verb|C-p| -- move cursor to the previous line.\\
  \verb|C-l| -- put the line of the cursor in the middle of the window.\\
- \verb|C-/| -- undo. \verb|C-u| also undoes, as in FemtoEmacs.\\
+ \verb|C-/| -- undo. \verb|C-u| also undoes.\\
  \verb|C-v| -- forward page.\\
  \keys{INS} -- toggle overwrite mode.\\
  \keys{$\leftarrow$} \keys{$\rightarrow$} \keys{$\uparrow$} \keys{$\downarrow$} -- arrows move cursor.\\
@@ -383,7 +383,8 @@ gives \verb|0.125|.
 \end{quote}
 \end{itemize}
 
-In FemtoEmacs, the Lisp prompt was \keys{Esc}\keys{;}. In SBEmacs,
+In FemtoEmacs, the predecessor of SBEmacs, the Lisp prompt was
+\keys{Esc}\keys{;}. In SBEmacs,
 as in GNU Emacs, \keys{Esc}\keys{;} inserts a comment, and the Lisp
 prompt is \keys{Esc}\keys{:}.
 
@@ -634,9 +635,11 @@ bring the changes:
 
 A repository can keep more than one version of a program at
 the same time. Each version is called a branch. The
-FemtoEmacs repository has three branches:
+SBEmacs repository (still called \verb|Femto-Emacs| on GitHub)
+has three branches:
 \begin{itemize}
-\item \verb|master| -- the original FemtoEmacs of 2016, with femtolisp.
+\item \verb|master| -- FemtoEmacs, the predecessor of SBEmacs (2016),
+  with femtolisp.
 \item \verb|sbcl| -- SBEmacs, the editor described in this text,
   for Linux, Macintosh and Windows.
 \item \verb|windows| -- SBEmacs with an installer for Windows,

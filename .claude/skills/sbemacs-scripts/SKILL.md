@@ -1,11 +1,11 @@
 ---
 name: sbemacs-scripts
-description: Write or change SBEmacs Lisp scripts (key bindings, commands, syntax colouring with define-language, indentation with define-indentation, colours, extensions) for SBEmacs, the FemtoEmacs editor running on SBCL. Use when the user wants SBEmacs to do something new, or asks how its Lisp API works.
+description: Write or change SBEmacs Lisp scripts (key bindings, commands, syntax colouring with define-language, indentation with define-indentation, colours, extensions) for SBEmacs (Steel Bank Emacs), the Emacs-like editor written in C and SBCL. Use when the user wants SBEmacs to do something new, or asks how its Lisp API works.
 ---
 
 # Writing SBEmacs scripts
 
-SBEmacs is a small editor core in C driven by SBCL.  Everything a user
+SBEmacs (Steel Bank Emacs) is a small editor core in C driven by SBCL.  Everything a user
 customises is Common Lisp, in *scripts* that the editor reloads with
 `C-x C-r`: no `make` is needed.  Work in scripts; touch `src/*.c` or the
 four engine files (`lisp/package.lisp`, `ffi.lisp`, `loader.lisp`,

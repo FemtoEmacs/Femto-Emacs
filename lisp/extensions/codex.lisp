@@ -32,7 +32,7 @@
 (defvar *codex-working-directory* nil)
 
 (defparameter *codex-instructions*
-  "You are the Codex assistant inside Femto Emacs.  The user is editing a
+  "You are the Codex assistant inside SBEmacs.  The user is editing a
 file and has written a request in a separate editor window.  Answer that
 request using the supplied source context.
 
@@ -233,7 +233,7 @@ are returned unchanged.  Elsewhere this is a no-op."
     (format nil "Codex CLI: ~:[NOT FOUND~;~:*~A~]~%~
                  Model: ~:[CLI default~;~:*~A~]~%~
                  Sandbox: read-only~%Session: ephemeral~%~%~
-                 Femto Emacs checks PATH, the official standalone-install~%~
+                 SBEmacs checks PATH, the official standalone-install~%~
                  directories, npm on Windows, and the macOS ChatGPT app.~%~
                  If authentication is needed, run Codex once and choose~%~
                  Sign in with ChatGPT."

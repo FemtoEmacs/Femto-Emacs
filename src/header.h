@@ -26,7 +26,7 @@
 #define FALSE 0
 #endif
 
-#define VERSION	 "SBEmacs 2.0 (FemtoEmacs on SBCL), Public Domain"
+#define VERSION	 "SBEmacs 2.0 (Steel Bank Emacs), Public Domain"
 #define EXIT_OK         0               /* Success */
 #define EXIT_ERROR      1               /* Unknown error. */
 #define EXIT_USAGE      2               /* Usage */

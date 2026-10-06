@@ -3,8 +3,10 @@
 A tiny Emacs for the terminal or a window, configured and extended in
 Common Lisp.
 
-SBEmacs is [FemtoEmacs](https://github.com/FemtoEmacs/Femto-Emacs) with its
-2016 Lisp, femtolisp, replaced by [SBCL](https://www.sbcl.org/).
+SBEmacs, Steel Bank Emacs, is a small Emacs-like editor extended in
+[SBCL](https://www.sbcl.org/) Common Lisp.  It descends from
+[FemtoEmacs](https://github.com/FemtoEmacs/Femto-Emacs) (2016), whose Lisp,
+femtolisp, it replaces.
 The editor core (buffers, windows, undo, search, display) is still the small
 C program derived from Atto Emacs and Anthony Howe's editor; it draws either
 in a terminal (ncurses) or in its own window (SDL2).
@@ -92,7 +94,7 @@ s-expressions (`M-f`, `M-e`, `M-}`, `C-M-f`), killing them (`M-d`, `M-DEL`,
 `C-M-k`; consecutive kills join), `M-y` after `C-y`, `C-t`/`M-t`/`C-x C-t`,
 `M-u`/`M-l`/`M-c`, `M-q`, `M-;`, `C-x h`, `C-x C-x`, `C-g`, keyboard macros
 (`C-x (`, `C-x )`, `C-x e`, then `e`), `C-x 0`, `M-x` with `TAB` completion
-and `C-x ?` (describe a key).  **Undo** (`C-/`, also `C-x u` and FemtoEmacs's `C-u`)
+and `C-x ?` (describe a key).  **Undo** (`C-/`, also `C-x u` and `C-u`)
 takes back one command at a time, a whole `M-q` or `C-y` at once and typed
 text by words; **redo** is `C-M-_` (or `M-_`; `Cmd-Shift-Z` in the window).
 Undoing back to the saved text clears the `*` on the mode line.  How it
@@ -211,7 +213,7 @@ irm https://chatgpt.com/codex/install.ps1 | iex
 codex
 ```
 
-Open a source file and press `C-c g`.  Femto Emacs splits the editor and puts
+Open a source file and press `C-c g`.  SBEmacs splits the editor and puts
 the cursor in an empty `*codex-request*` buffer below the source.  Write what
 you want in ordinary language, for example:
 
@@ -230,10 +232,10 @@ session.  Codex receives the request, the selected text when there is a
 selection, and a bounded portion of the source around the cursor.  It cannot
 edit the project or the editor's C programs.  The implementation is entirely
 in [`lisp/extensions/codex.lisp`](lisp/extensions/codex.lisp).  Edit that file
-and press `C-x C-r` to reload it; rebuilding Femto Emacs is unnecessary.
+and press `C-x C-r` to reload it; rebuilding SBEmacs is unnecessary.
 
 `*codex-model*` selects a model (`NIL` uses the CLI default), and
-`*codex-timeout*` controls how long Femto Emacs waits.  Evaluate
+`*codex-timeout*` controls how long SBEmacs waits.  Evaluate
 `(codex-status)` with `M-:` to check whether the CLI was found.
 
 Discovery checks, in order: `*codex-program*` when explicitly set, `codex` on

@@ -266,6 +266,6 @@ wholesale: forget the history) or #\\s (saved)."
 
 (global-set-key "C-_" 'undo)            ; C-/ in most terminals
 (global-set-key "C-x u" 'undo)
-(global-set-key "C-u" 'undo)            ; FemtoEmacs's key
+(global-set-key "C-u" 'undo)            ; the old key, kept
 (global-set-key "C-M-_" 'redo)          ; Emacs 28's undo-redo
 (global-set-key "M-_" 'redo)
