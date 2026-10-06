@@ -335,12 +335,12 @@ void display_utf8(buffer_t *bp, char_t c, int n)
 
 /*
  * The mode line:
- *   SBEmacs: Ctrl-h or F1 for help == file.c*, line 3 == Ctrl-c r ...
+ *   SBEmacs: Ctrl-h for help == file.c*, L. 3 == Ctrl c r calls Claude; ...
  * (== in the selected window, -- in the others; * when modified).
  * The two hints can be changed from Lisp (set-mode-line-hints).
  */
-static char modeline_help[128] = "Ctrl-h or F1 for help";
-static char modeline_tail[128] = "Ctrl-c r calls Claude; Ctrl-c g calls ChatGPT";
+static char modeline_help[128] = "Ctrl-h for help";
+static char modeline_tail[128] = "Ctrl c r calls Claude; Ctrl c g calls GPT";
 
 void fe_set_modeline_hints(char *help, char *tail)
 {
@@ -385,15 +385,19 @@ void modeline(window_t *wp)
 	och = ((wp->w_bufp->b_flags & B_OVERWRITE) ? 'O' : lch);
 
 	/* a * after the name: modified; [overwrite]: overwrite mode */
-	snprintf(modeline_buf, sizeof(modeline_buf), "SBEmacs: %s %c%c %s%s%s, line %d %c%c %s ",
+	snprintf(modeline_buf, sizeof(modeline_buf), "SBEmacs: %s %c%c %s%s%s, L. %d %c%c %s ",
 		 modeline_help, lch, lch, name, mch == '*' ? "*" : "",
 		 och == 'O' ? " [overwrite]" : "",
 		 line_number(wp->w_bufp, point), lch, lch, modeline_tail);
-	/* too wide: Ctrl-x becomes C-x, then the end is cut */
+	/* too wide: "Ctrl-h" becomes "C-h", "Ctrl c r" "C-c r", then the end is cut */
 	if ((int) strlen(modeline_buf) > cols) {
 		char *p;
 		while ((p = strstr(modeline_buf, "Ctrl-")) != NULL)
 			memmove(p + 1, p + 4, strlen(p + 4) + 1);
+		while ((p = strstr(modeline_buf, "Ctrl ")) != NULL) {
+			memmove(p + 1, p + 4, strlen(p + 4) + 1);
+			p[1] = '-';
+		}
 	}
 	/* the cells, not the bytes, must fit: cut on a character boundary */
 	for (i = 0, n = 0; modeline_buf[i] != '\0'; i++) {

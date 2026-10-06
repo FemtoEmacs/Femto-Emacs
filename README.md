@@ -84,7 +84,7 @@ sbemacs [--gui] [-q] [--no-mouse] [file]
 other key returns to your file).  The mode line says so:
 
 ```
-SBEmacs: Ctrl-h or F1 for help == teste.lisp, line 3 == Ctrl-c r calls Claude; Ctrl-c g calls ChatGPT
+SBEmacs: Ctrl-h for help == teste.lisp, L. 3 == Ctrl c r calls Claude; Ctrl c g calls GPT
 ```
 
 The GNU Emacs keys work, including words, sentences, paragraphs and
@@ -142,7 +142,7 @@ says so and runs in the terminal.
 
 | Key | |
 |-----|-|
-| `C-c r` | ask Claude about the code at the cursor; press RET at the prompt for hints, or type a question.  The answer opens in a window below (`C-x 1` closes it) |
+| `C-c r` | a small menu: `h` hints about the code at the cursor, `q` a question written in a window of its own (as many lines as you like; `C-c r` again sends it), `s` the set-up.  The answer opens in a window below (`C-x 1` closes it) |
 | `C-c y` | insert the code Claude proposed at the cursor, after you confirm; `C-u` undoes it |
 | `C-c g` | open a lower window in which to write a request for Codex (`g` for GPT) |
 

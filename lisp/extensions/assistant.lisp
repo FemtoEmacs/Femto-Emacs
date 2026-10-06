@@ -2,11 +2,12 @@
 ;;;;
 ;;;; A script: edit and press C-x C-r, no rebuild.
 ;;;;
-;;;;   C-c r   ask the assistant about the code at the cursor; the answer
-;;;;           appears in a window below (C-x 1 closes it)
+;;;;   C-c r   a small menu: h for hints about the code at the cursor,
+;;;;           q to write a question (C-c r again sends it), s for the
+;;;;           set-up; the answer appears in a window below (C-x 1 closes it)
 ;;;;   C-c y   insert the code the assistant proposed, at the cursor,
 ;;;;           after you confirm (undo with C-u)
-;;;;   C-c x   the same question to Codex (a stub for now, see codex.lisp)
+;;;;   C-c g   Codex (ChatGPT), see codex.lisp
 ;;;;
 ;;;; The keys follow Isaac Asimov's Three Laws of Robotics.  C-c r is "R."
 ;;;; for robot, the title Asimov gives his robots (R. Daneel Olivaw,
@@ -62,6 +63,9 @@ Claude Code default) and for :api (NIL = *CLAUDE-API-MODEL*).")
 
 (defvar *assistant-buffer* "*assistant*"
   "The buffer where answers are shown.")
+
+(defvar *claude-request-buffer* "*claude-request*"
+  "The buffer where a question for Claude is written (C-c r, then q).")
 
 (defparameter *assistant-instructions*
   "You are the assistant built into SBEmacs, a small Emacs-like text editor.
@@ -422,19 +426,26 @@ cursor stays where it was."
     (other-window)
     (select-buffer origin)))
 
-(defun ask-assistant (key)
+(defun run-assistant (key question context origin)
+  "Send QUESTION (\"\" for hints) and CONTEXT to the assistant KEY and show
+the answer below the buffer ORIGIN."
   (let* ((assistant (find-assistant key))
-         (name (assistant-name assistant))
-         (question (prompt (format nil "Ask ~A (RET for hints): " name) ""))
-         (context (buffer-context)))
-    (setf *assistant-origin* (get-buffer-name))
+         (name (assistant-name assistant)))
+    (setf *assistant-origin* origin)
+    (unless (string= (get-buffer-name) origin)
+      (select-buffer origin))
     (message "~A is thinking ... (up to ~D s)" name *assistant-timeout*)
     (update-display)
     (handler-case
         (let ((answer (funcall (assistant-ask assistant) question context)))
           (setf *assistant-last-answer* answer)
           (show-in-assistant-window
-           (format nil "~A~@[ -- ~A~]" name (and (plusp (length (trim question))) question))
+           (format nil "~A~@[ -- ~A~]" name
+                   (let ((q (trim question)))
+                     (and (plusp (length q))
+                          (if (> (length q) 60)
+                              (concatenate 'string (substitute #\Space #\Newline (subseq q 0 57)) "...")
+                              (substitute #\Space #\Newline q)))))
            answer)
           (message "~A answered.  ~:[C-x 1 closes the window~;C-c y inserts the code, C-x 1 closes the window~]"
                    name (proposed-code answer)))
@@ -446,7 +457,110 @@ cursor stays where it was."
          (format nil "~A~%~%~A" (princ-to-string e) (assistant-status-text)))
         (message "~A could not be reached; see the window below" name)))))
 
-(defun ask-claude () (ask-assistant :claude))
+(defun ask-assistant (key)
+  "Ask on the message line, then answer (kept for scripts that use it)."
+  (let* ((name (assistant-name (find-assistant key)))
+         (question (prompt (format nil "Ask ~A (RET for hints): " name) "")))
+    (run-assistant key question (buffer-context) (get-buffer-name))))
+
+;;; ------------------------------------------------------------------
+;;; C-c r: the menu
+;;; ------------------------------------------------------------------
+
+(defparameter *claude-menu*
+  "  h   Hints: Claude reads the code at the cursor (and the selected
+      region) and suggests fixes and next steps.
+  q   Question: write it in a window of its own, as many lines as
+      you like; C-c r sends it.
+  s   Set-up: is Claude installed and logged in?
+
+  Any other key closes this menu.  Claude only reads: C-c y inserts
+  the code it proposes, after you confirm."
+  "The text of the C-c r menu.")
+
+(defvar *assistant-saved-context* nil
+  "The buffer around the cursor when the question window was opened.")
+
+(defun claude-compose (context origin)
+  "Open *claude-request* below ORIGIN, for a question of any length."
+  (setf *assistant-saved-context* context
+        *assistant-origin* origin)
+  (unless (string= (get-buffer-name) origin) (select-buffer origin))
+  (delete-other-windows)
+  (split-window)
+  (other-window)
+  (select-buffer *claude-request-buffer*)
+  (goto-char 0)
+  (delete-char (buffer-size))
+  (message "Write your question for Claude, then C-c r sends it (C-x o: back to ~A)" origin)
+  t)
+
+(defun claude-send-request ()
+  "Send the question written in *claude-request*."
+  (let ((question (trim (buffer-substring 0 (buffer-size)))))
+    (cond ((zerop (length question))
+           (message "Write a question first, then C-c r sends it"))
+          ((null *assistant-saved-context*)
+           (message "The file to ask about is unknown; start again from it with C-c r"))
+          (t (run-assistant :claude question *assistant-saved-context*
+                            (or *assistant-origin* "*scratch*"))))))
+
+(defun claude-menu ()
+  (let ((context (buffer-context))
+        (origin (get-buffer-name)))
+    (show-in-assistant-window "Ask Claude" *claude-menu*)
+    (message "Claude: h hints, q question, s set-up; any other key closes the menu")
+    (update-display)
+    (let* ((k (get-key))
+           (choice (and (= (length k) 1) (char-downcase (char k 0)))))
+      (case choice
+        (#\h (run-assistant :claude "" context origin))
+        (#\q (claude-compose context origin))
+        (#\s (assistant-status))
+        (t (close-assistant-windows)
+           (clear-message-line))))))
+
+(defun ask-claude ()
+  "C-c r: the menu; in *claude-request*, send the question."
+  (if (string= (get-buffer-name) *claude-request-buffer*)
+      (claude-send-request)
+      (claude-menu)))
+
+
+
+;;; ------------------------------------------------------------------
+;;; Closing the assistants' windows (C-h and the menu use it)
+;;; ------------------------------------------------------------------
+
+(defparameter *assistant-buffer-names*
+  '("*assistant*" "*claude-request*" "*codex*" "*codex-request*")
+  "Buffers that belong to the assistants; help (C-h) closes their windows.")
+
+(defun assistant-buffer-p (name)
+  (member name *assistant-buffer-names* :test #'string=))
+
+(defun file-behind-assistant ()
+  "The buffer an assistant was asked from, if we know it."
+  (or (and (boundp '*assistant-origin*) (symbol-value '*assistant-origin*))
+      (and (boundp '*codex-origin-buffer*) (symbol-value '*codex-origin-buffer*))
+      "*scratch*"))
+
+(defcommand close-assistant-windows ()
+  "Close every window showing a Claude or Codex buffer."
+  (let ((origin (get-buffer-name)))
+    (loop repeat (* 2 (window-count))
+          while (> (window-count) 1)
+          do (if (assistant-buffer-p (get-buffer-name))
+                 (delete-window)
+                 (other-window)))
+    (when (assistant-buffer-p (get-buffer-name))
+      (select-buffer (file-behind-assistant)))
+    ;; back to the window that was selected, if it is still there
+    (loop repeat (window-count)
+          until (string= (get-buffer-name) origin)
+          do (other-window))
+    t))
+
 
 ;;; ------------------------------------------------------------------
 ;;; What is set up, and how to fix it

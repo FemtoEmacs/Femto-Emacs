@@ -26,7 +26,7 @@ file you are editing.")
      ("C-h" "this page (also F1)")
      ("C-x ?" "what does a key do?")
      ("M-x" "run a command by name (TAB completes)")
-     ("C-c r" "ask Claude about the file")
+     ("C-c r" "Claude: a menu for hints or a question")
      ("C-c y" "insert the code an assistant proposed")
      ("C-c g" "write a request for ChatGPT (Codex); C-c g again sends it"))
     ("Files"
@@ -169,35 +169,6 @@ under \"Other keys\".")
             do (section title entries))
       (let ((others (help-other-keys)))
         (when others (section "Other keys" others))))))
-
-;;; Leaving: back to the file, and the assistants' windows closed
-
-(defparameter *assistant-buffer-names* '("*assistant*" "*codex*" "*codex-request*"))
-
-(defun assistant-buffer-p (name)
-  (member name *assistant-buffer-names* :test #'string=))
-
-(defun file-behind-assistant ()
-  "The buffer an assistant was asked from, if we know it."
-  (or (and (boundp '*assistant-origin*) (symbol-value '*assistant-origin*))
-      (and (boundp '*codex-origin-buffer*) (symbol-value '*codex-origin-buffer*))
-      "*scratch*"))
-
-(defcommand close-assistant-windows ()
-  "Close every window showing a Claude or Codex buffer."
-  (let ((origin (get-buffer-name)))
-    (loop repeat (* 2 (window-count))
-          while (> (window-count) 1)
-          do (if (assistant-buffer-p (get-buffer-name))
-                 (delete-window)
-                 (other-window)))
-    (when (assistant-buffer-p (get-buffer-name))
-      (select-buffer (file-behind-assistant)))
-    ;; back to the window that was selected, if it is still there
-    (loop repeat (window-count)
-          until (string= (get-buffer-name) origin)
-          do (other-window))
-    t))
 
 ;;; The page
 

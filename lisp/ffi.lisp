@@ -315,8 +315,8 @@ the buffer)."
   t)
 (defun line-number (&optional (p (point))) "1-based line of offset P." (%line-number p))
 (defun set-mode-line-hints (help tail)
-  "The two hints on the mode line, e.g. \"Ctrl-h or F1 for help\" and
-\"Ctrl-c r calls Claude; Ctrl-c g calls ChatGPT\"."
+  "The two hints on the mode line, e.g. \"Ctrl-h for help\" and
+\"Ctrl c r calls Claude; Ctrl c g calls GPT\"."
   (%set-modeline-hints (text help) (text tail))
   t)
 

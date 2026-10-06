@@ -5,8 +5,10 @@
   the arrows scroll it, C-c r / C-c g ask Claude / ChatGPT, any other key
   returns to the file and closes the assistants' windows
   (lisp/extensions/help.lisp).  The mode line reads
-  "SBEmacs: Ctrl-h or F1 for help == file, line N == Ctrl-c r calls
-  Claude; Ctrl-c g calls ChatGPT" (set-mode-line-hints changes the hints).
+  "SBEmacs: Ctrl-h for help == file, L. N == Ctrl c r calls Claude;
+  Ctrl c g calls GPT" (set-mode-line-hints changes the hints).
+* C-c r opens a menu: h for hints, q for a question written in its own
+  window (C-c r sends it), s for the set-up.
 * The GNU Emacs keys FemtoEmacs lacked, in lisp/extensions/emacs-keys.lisp:
   sentence, paragraph, s-expression and defun motion; kill-word,
   backward-kill-word, kill-sexp, kill-sentence, zap-to-char, joined kills,
