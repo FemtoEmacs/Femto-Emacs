@@ -165,6 +165,24 @@
        (proposed-code (format nil "Try:~%```python~%x = 1~%y = 2~%```~%and ```z```"))
        (format nil "x = 1~%y = 2"))
 (check "no code block" (proposed-code "just words") nil)
+(check "C-c g opens or submits a Codex request"
+       (key-binding "C-c g")
+       'ask-codex)
+(check "old Codex stub key is removed" (key-binding "C-c x") nil)
+(check "Codex prompt keeps request and saved source separate"
+       (let ((*codex-saved-context* "SOURCE-CONTEXT"))
+         (let ((text (codex-prompt "USER-REQUEST")))
+           (list (not (null (search "USER REQUEST" text)))
+                 (not (null (search "USER-REQUEST" text)))
+                 (not (null (search "SOURCE CONTEXT" text)))
+                 (not (null (search "SOURCE-CONTEXT" text))))))
+       '(t t t t))
+(check "Codex CLI is read-only and ephemeral"
+       (let ((*codex-working-directory* "/tmp/project/")
+             (*codex-model* nil))
+         (codex-exec-arguments))
+       '("exec" "--sandbox" "read-only" "--ephemeral" "--ignore-rules"
+         "--skip-git-repo-check" "--color" "never" "-C" "/tmp/project/" "-"))
 
 ;;; script loading
 (check "unchanged scripts are not loaded again"
