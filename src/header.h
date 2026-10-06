@@ -290,7 +290,7 @@ extern void copy_cut(int);
 extern void delete(void);
 extern void toggle_overwrite_mode(void);
 extern void down(void);
-extern void mouse_event(void);
+extern void editor_mouse_event(void);
 extern int mouse_button, mouse_col, mouse_row, mouse_release;
 extern int mark_active;
 extern int read_key_byte(void);

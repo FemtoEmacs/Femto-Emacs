@@ -115,7 +115,7 @@ static int mouse_dragging = 0;
 static int mouse_moved = 0;
 static point_t mouse_old_mark = NOMARK;
 
-void mouse_event()
+void editor_mouse_event()
 {
 	int b = mouse_button;
 
@@ -915,4 +915,3 @@ void resize_terminal()
 {
 	one_window(curwp);
 }
-

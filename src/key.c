@@ -136,8 +136,8 @@ keymap_t keymap[] = {
 	{"C-x n",     "next-buffer"           , "\x18\x6E", next_buffer },
 	{"C-x o",     "other-window"          , "\x18\x6F", other_window },
 	{"C-x @",     "shell-command"         , "\x18\x40", i_shell_command },
-	{"mouse",     "mouse"                 , "\x1B\x5B\x4D", mouse_event },
-	{"mouse",     "mouse"                 , "\x1B\x5B\x3C", mouse_event },
+	{"mouse",     "mouse"                 , "\x1B\x5B\x4D", editor_mouse_event },
+	{"mouse",     "mouse"                 , "\x1B\x5B\x3C", editor_mouse_event },
 	{"F1",        "help"                  , "\x1B\x4F\x50", keyboardDefinition },
 	{"F1",        "help"                  , "\x1B\x5B\x31\x31\x7E", keyboardDefinition },
 	{"F1",        "help"                  , "\x1B\x5B\x5B\x41", keyboardDefinition },
@@ -420,7 +420,7 @@ char_t *get_key(keymap_t *keys, keymap_t **key_return)
 					*key_return = k;
 					/* a mouse event: read its parameters now, so
 					   that they never reach the buffer as text */
-					if (k->func == mouse_event) {
+					if (k->func == editor_mouse_event) {
 						if (k->key_bytes[2] == '<')
 							read_mouse_sgr();
 						else
