@@ -78,8 +78,17 @@ int fe_main(int argc, char **argv)
 			 * if first char of input is a control char then
 			 * key is not bound, except TAB and NEWLINE
 			 */
-			if (*input > 31 || *input == 0x0A || *input == 0x09)
-				insert();
+			if (*input > 31 || *input == 0x0A || *input == 0x0D || *input == 0x09) {
+				/*
+				 * Lisp may take over a printable ASCII key, TAB or
+				 * RET: indentation, electric characters
+				 */
+				char key[2];
+				key[0] = (char) *input;
+				key[1] = '\0';
+				if (*input >= 128 || !call_lisp_event("self-insert", key))
+					insert();
+			}
                         else
 				msg(str_not_bound);
 		}

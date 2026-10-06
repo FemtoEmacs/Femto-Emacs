@@ -75,6 +75,9 @@ and the library can be moved together."
 (defcore %buffer-size "fe_buffer_size" sb-alien:long)
 (defcore %set-mark "fe_set_mark" sb-alien:void)
 (defcore %char-at "fe_char_at" sb-alien:int (p sb-alien:long))
+(defcore %line-start "fe_line_start" sb-alien:long (p sb-alien:long))
+(defcore %copy-text "fe_copy_text" sb-alien:long
+  (start sb-alien:long) (len sb-alien:long) (out sb-alien:system-area-pointer))
 
 (defcore %insert "fe_insert" sb-alien:void (s sb-alien:c-string))
 (defcore %backward-delete-char "fe_backward_delete_char" sb-alien:void (n sb-alien:int))
@@ -170,6 +173,36 @@ and the library can be moved together."
 (defun mark () "Byte offset of the mark, or NIL when no mark is set."
   (let ((m (%get-mark))) (if (minusp m) nil m)))
 (defun set-mark () (%set-mark) t)
+
+(defun buffer-octets (start end)
+  "The bytes of the current buffer from START to END, as an octet vector."
+  (let* ((start (max 0 start))
+         (end (min end (buffer-size)))
+         (v (make-array (max 0 (- end start)) :element-type '(unsigned-byte 8))))
+    (when (plusp (length v))
+      (sb-sys:with-pinned-objects (v)
+        (%copy-text start (length v) (sb-sys:vector-sap v))))
+    v))
+
+(defun line-start (&optional (p (point)))
+  "Byte offset where the (logical) line containing P starts."
+  (%line-start p))
+
+(defun line-end (&optional (p (point)))
+  "Byte offset of the newline ending the line containing P (or the end of
+the buffer)."
+  (let ((size (buffer-size)))
+    (loop for start = p then end
+          for end = (min size (+ start 4096))
+          for chunk = (buffer-octets start end)
+          for nl = (position 10 chunk)
+          when nl return (+ start nl)
+          when (>= end size) return size)))
+
+(defun buffer-substring (start end)
+  "The text of the current buffer between byte offsets START and END."
+  (sb-ext:octets-to-string (buffer-octets start end)
+                           :external-format '(:utf-8 :replacement #\?)))
 (defun buffer-size () (%buffer-size))
 (defun char-after (&optional (p (point)))
   "The character at byte offset P (ASCII view; NIL at end of buffer)."

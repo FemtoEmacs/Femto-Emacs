@@ -142,20 +142,34 @@ on a character boundary."
     (write-c-string result out size)
     0))
 
-(sb-alien:define-alien-callable lisp-event sb-alien:void
+(defvar *self-insert-hook* '()
+  "Functions called with a one-character string when a printable ASCII
+key, TAB or RET is typed.  The first that returns true has handled the
+key, and the C core does not insert it.  Indentation (lisp/indent.lisp)
+installs itself here.")
+
+(defun run-self-insert (key)
+  (dolist (f *self-insert-hook* nil)
+    (when (funcall f key) (return t))))
+
+(sb-alien:define-alien-callable lisp-event sb-alien:int
     ((event sb-alien:c-string) (arg sb-alien:c-string))
-  (let ((result
-          (handler-case
-              (with-editor-environment ()
-                (cond ((string= event "key") (run-key arg))
-                      ((string= event "kill") (dolist (f *kill-hook*) (funcall f arg)))
-                      ((string= event "startup") (run-startup))
-                      ((string= event "colors") (apply-color-theme (parse-integer arg))))
-                nil)
-            (serious-condition (c) (describe-error c)))))
+  (let* ((handled nil)
+         (result
+           (handler-case
+               (with-editor-environment ()
+                 (cond ((string= event "key") (run-key arg))
+                       ((string= event "self-insert") (setf handled (run-self-insert arg)))
+                       ((string= event "kill") (dolist (f *kill-hook*) (funcall f arg)))
+                       ((string= event "startup") (run-startup))
+                       ((string= event "colors") (apply-color-theme (parse-integer arg))))
+                 nil)
+             (serious-condition (c) (describe-error c)))))
     (when (stringp result)
-      (ignore-errors (message "~A" result)))
-    (values)))
+      (ignore-errors (message "~A" result))
+      ;; an error in a self-insert function must not swallow the key
+      (setf handled nil))
+    (if handled 1 0)))
 
 (sb-alien:define-alien-callable lisp-highlight sb-alien:void
     ((fname sb-alien:c-string) (bname sb-alien:c-string)

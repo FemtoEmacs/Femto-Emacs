@@ -20,6 +20,13 @@
   (compiled once into ~/.cache/sbemacs/), and C-x C-r reloads them in a
   running editor.  ~/.sbemacs/languages/ and ~/.sbemacs/extensions/ are
   loaded too.  The colour theme moved from C to lisp/theme.lisp.
+* Automatic indentation for every highlighted language (lisp/indent.lisp
+  and a `define-indentation` form in each language script): TAB indents
+  the line (and cycles levels in Python, Haskell, ML, Lean), RET indents
+  the new line, C-x C-i indents the region, closing tokens re-indent
+  their line.  Styles :lisp, :c, :python, :prolog and :block.
+* C-e on the last line of a file without a final newline now goes to the
+  real end of the line.
 * Errors in Esc-; and Esc-] are reported, never fatal.
 * New colour scheme on the terminal's own background (FemtoEmacs forced a
   black one, which hid the cursor on light terminal themes); 256-colour

@@ -115,6 +115,44 @@
        ;; "aé" = 61 C3 A9, the second é does not fit in 4 bytes + NUL
        '(#x61 #xC3 #xA9 0 255 255))
 
+;;; indentation: the column the last line gets
+(defun ind (language &rest lines)
+  (indentation-for-text language (format nil "~{~A~^~%~}" lines)))
+
+(check "Lisp: defun body" (ind "Common Lisp" "(defun foo (x)" "x") 2)
+(check "Lisp: distinguished argument" (ind "Common Lisp" "(defun foo" "(x)") 4)
+(check "Lisp: let bindings line up" (ind "Common Lisp" "(let ((a 1)" "(b 2))") 6)
+(check "Lisp: function arguments line up" (ind "Common Lisp" "(foo bar" "baz") 5)
+(check "Lisp: if branches line up" (ind "Common Lisp" "(defun f ()" "  (if a" "b") 6)
+(check "Lisp: quoted data" (ind "Common Lisp" "'(a b" "c") 2)
+(check "Lisp: flet function body" (ind "Common Lisp" "(flet ((f (x)" "x") 9)
+(check "Lisp: top level" (ind "Common Lisp" "(defun f ()" "  x)" "y") 0)
+(check "Lisp: inside a string, left alone" (ind "Common Lisp" "(defun f ()" "  \"doc" "x") nil)
+(check "Lisp: #\( is not a paren" (ind "Common Lisp" "(when x" "  #\\( y)" "z") 0)
+(check "Scheme: define" (ind "Scheme" "(define (f x)" "x") 2)
+(check "C: block" (ind "C" "int main(void)" "{" "x") 4)
+(check "C: statement after if" (ind "C" "int f(void) {" "    if (x)" "y") 8)
+(check "C: closing brace" (ind "C" "int f(void) {" "    if (x) {" "        y;" "}") 4)
+(check "C: arguments line up" (ind "C" "int f(void) {" "    foo(a," "b") 8)
+(check "C: case labels" (ind "C" "f() {" "    switch (x) {" "        case 1:" "y;") 12)
+(check "C: preprocessor" (ind "C" "f() {" "#define X" "y;") 4)
+(check "C: comment continuation" (ind "C" "f() {" "    /* hi" "*") 5)
+(check "C: brace on its own line" (ind "C" "int main(void)" "{") 0)
+(check "Python: block" (ind "Python" "def f(x):" "x") 4)
+(check "Python: after return" (ind "Python" "def f(x):" "    return x" "y") 0)
+(check "Python: else matches its if"
+       (ind "Python" "def f(x):" "    if x:" "        y" "else:") 4)
+(check "Python: brackets" (ind "Python" "x = foo(a," "b") 8)
+(check "Python: inside a docstring, left alone" (ind "Python" "def f():" "    \"\"\"doc" "x") nil)
+(check "Ruby: def ... end" (ind "Ruby" "def f" "  x" "end") 0)
+(check "Ruby: do |x|" (ind "Ruby" "foo.each do |x|" "y") 2)
+(check "Haskell: do" (ind "Haskell" "main = do" "x") 4)
+(check "Lean: by" (ind "Lean" "theorem t : p := by" "x") 2)
+(check "TeX: \\end" (ind "TeX" "\\begin{itemize}" "  \\item a" "\\end{itemize}") 0)
+(check "Prolog: clause body" (ind "Prolog" "foo(X) :-" "bar") 4)
+(check "Prolog: next clause" (ind "Prolog" "foo(X) :-" "    bar(X)." "baz") 0)
+(check "ML: let" (ind "ML" "let f x =" "x") 2)
+
 ;;; script loading
 (check "unchanged scripts are not loaded again"
        (load-scripts :files (script-files *script-directory*)

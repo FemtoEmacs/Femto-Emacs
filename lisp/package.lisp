@@ -13,7 +13,8 @@
    #:forward-page #:backward-page #:next-line #:previous-line
    #:beginning-of-line #:end-of-line #:beginning-of-buffer #:end-of-buffer
    #:goto-line #:point #:goto-char #:mark #:set-mark #:buffer-size
-   #:char-after #:current-line-text
+   #:char-after #:current-line-text #:buffer-octets #:buffer-substring
+   #:line-start #:line-end
    ;; editing
    #:insert #:backward-delete-char #:backwards-delete-char #:delete-char
    #:kill-region #:copy-region #:yank #:kill-line #:undo
@@ -35,9 +36,12 @@
    #:trim #:home #:config-file
    ;; customisation
    #:global-set-key #:global-unset-key #:key-binding #:*keymap*
-   #:*kill-hook* #:*startup-hook* #:*kill-ring* #:*kill-ring-max*
+   #:*kill-hook* #:*startup-hook* #:*self-insert-hook* #:*kill-ring* #:*kill-ring-max*
    #:set-color #:terminal-colors #:show-startup-message
    #:theme-face #:*color-theme* #:default-theme
+   ;; indentation
+   #:define-indentation #:define-indent-style #:indent-line #:indent-region
+   #:indent-buffer #:newline-and-indent #:indentation-for
    ;; scripts
    #:reload-scripts #:*script-directory*
    ;; syntax highlighting

@@ -4,6 +4,7 @@
 ;;;; file and core.lisp.  Everything else in lisp/ is a script:
 ;;;;
 ;;;;   highlight.lisp      the tokenizer and DEFINE-LANGUAGE
+;;;;   indent.lisp         automatic indentation and DEFINE-INDENTATION
 ;;;;   theme.lisp          the colour theme
 ;;;;   languages/*.lisp    one file per language
 ;;;;   defaults.lisp       the commands and key bindings that were init.lsp
@@ -56,6 +57,7 @@
   "The scripts in DIRECTORY, in load order."
   (flet ((file (name) (let ((p (merge-pathnames name directory))) (and (probe-file p) (list p)))))
     (append (file "highlight.lisp")
+            (file "indent.lisp")
             (file "theme.lisp")
             (lisp-files (merge-pathnames "languages/" directory))
             (file "defaults.lisp")

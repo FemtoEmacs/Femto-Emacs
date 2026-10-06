@@ -361,7 +361,7 @@ extern void match_parens(void);
 extern void match_paren_forwards(buffer_t *, char, char);
 extern void match_paren_backwards(buffer_t *, char, char);
 extern void call_lisp(char *, char *, int);
-extern void call_lisp_event(char *, char *);
+extern int call_lisp_event(char *, char *);
 extern int call_lisp_highlight(buffer_t *, char_t *, int, char_t *);
 extern void init_colors(void);
 extern void face_on(int);

@@ -99,6 +99,9 @@ line; they never take the editor down.
 | `C-c z`   | `insert-day` | turns a region `(2016 9 3)` into `Saturday` |
 | `C-t` / `C-o` | `indent-two` / `deindent-two` | |
 | `C-x C-r` | `reload-scripts` | reload edited Lisp scripts (see below) |
+| `TAB` | `indent-line` | indent the line for its language (see [Indentation](#indentation)) |
+| `RET` | `newline-and-indent` | new line, already indented |
+| `C-x C-i` | `indent-region` | indent the lines between mark and cursor |
 
 dired and grep are written in portable Common Lisp, so they behave the same
 on every platform.
@@ -111,8 +114,9 @@ The executable holds only the Lisp engine (`package`, `ffi`, `loader`,
 | Script | |
 |--------|-|
 | `highlight.lisp` | the tokenizer and `define-language` |
+| `indent.lisp` | automatic indentation and `define-indentation` |
 | `theme.lisp` | the colour theme |
-| `languages/*.lisp` | one file per language |
+| `languages/*.lisp` | one file per language: colours and indentation |
 | `defaults.lisp` | the commands and key bindings that used to be `init.lsp` |
 | `extensions/*.lisp` | buffer menu, kill ring, dired, grep |
 | `~/.sbemacs/languages/*.lisp`, `~/.sbemacs/extensions/*.lisp` | your own |
@@ -193,6 +197,57 @@ Haskell, OCaml/ML, TeX, Prolog and Lean.  `define-language` options:
 | `:char-prefix` | character-literal prefix to skip, e.g. `"#\\"` |
 | `:backslash-commands` | treat `\word` as a keyword (TeX) |
 
+### Indentation
+
+Every language that has colours is also indented: `TAB` indents the
+current line, `RET` starts the next line at the right column, and
+`C-x C-i` re-indents a region (`indent-buffer` from `Esc-;` does the whole
+file).  Closing tokens re-indent their line as you type them: `}` in C,
+`else:` / `elif` / `except` / `finally` in Python, `end` in Ruby, `\end` in
+TeX.
+
+| Language | Style | |
+|----------|-------|-|
+| Common Lisp, Emacs Lisp, Scheme, VHDL Lisp | `:lisp` | body forms by 2, distinguished arguments by 4, call arguments aligned under the first |
+| C | `:c` | blocks, `case` labels, continuation lines, arguments aligned inside `( )`, comments, preprocessor lines at column 0 |
+| Python | `:python` | after `:`, dedent after `return`/`pass`/..., `else`/`elif` line up with their `if`, brackets |
+| Prolog | `:prolog` | clause bodies, parentheses |
+| Ruby, Haskell, ML, Lean, TeX | `:block` | keywords that open and close blocks |
+
+Where the right level cannot be known (the line after a Python or Haskell
+block), pressing `TAB` again steps down one level at a time.
+
+Indentation lives in the language scripts, so it changes without a
+rebuild: edit, say, the `define-indentation` form at the end of
+[`lisp/languages/c.lisp`](lisp/languages/c.lisp) and press `C-x C-r`.
+
+```lisp
+(define-indentation "C"
+  :style :c :width 4          ; step
+  :tabs :auto                 ; t, nil, or :auto: tabs if the file uses them
+  :preprocessor t :case-labels t
+  :reindent-on-newline t      ; RET also re-indents the line it leaves
+  :electric-keys "{}:#" :electric-prefixes '("{" "}" "#")
+  :electric-words '("case" "default"))
+```
+
+For Lisp, `:specials` lists the forms with a body and how many
+distinguished arguments they take, e.g. `("defun" . 2)`; add your own
+macros there.  For a new language, the `:block` style is usually enough:
+
+```lisp
+(define-indentation "Go"
+  :style :block :width 4 :tabs t
+  :comment "//"
+  :open-endings '("{" "(")
+  :close-chars "})"
+  :electric-keys "})" :electric-prefixes '("}" ")"))
+```
+
+A completely new style is a Lisp function from an indentation context to
+a column, registered with `define-indent-style` (see
+[`lisp/indent.lisp`](lisp/indent.lisp)).
+
 ### The editor API
 
 These replace the femtolisp builtins and keep their names.  Counts are
@@ -200,6 +255,7 @@ optional and default to 1.
 
 | | |
 |-|-|
+| Text | `point` `line-start` `line-end` `buffer-substring` `buffer-octets` `current-line-text` |
 | Movement | `forward-char` `backward-char` `forward-word` `backward-word` `next-line` `previous-line` `forward-page` `backward-page` `beginning-of-line` `end-of-line` `beginning-of-buffer` `end-of-buffer` `goto-line` `goto-char` `point` `mark` `set-mark` `buffer-size` `char-after` |
 | Editing | `insert` `backward-delete-char` `delete-char` `kill-region` `copy-region` `yank` `kill-line` `undo` `cut-region` `get-clipboard` `set-clipboard` `current-line-text` |
 | Search | `search-forward` `search-backward` (return true when found) |
@@ -207,7 +263,7 @@ optional and default to 1.
 | Windows | `split-window` `other-window` `delete-other-windows` `update-display` `refresh-screen` |
 | Interaction | `message` (accepts `format` arguments) `clear-message-line` `prompt` `get-key` `get-key-name` `get-key-binding` |
 | Misc | `shell-command` `log-message` `log-debug` `trim` `home` `get-version-string` `quit-editor` |
-| Customising | `global-set-key` `global-unset-key` `define-language` `set-color` `*kill-hook*` `*startup-hook*` `*kill-ring*` `*undo-mode*` |
+| Customising | `global-set-key` `global-unset-key` `define-language` `define-indentation` `define-indent-style` `indent-line` `indent-region` `indent-buffer` `set-color` `*kill-hook*` `*startup-hook*` `*kill-ring*` `*undo-mode*` |
 
 `get-key` waits for a key and returns what was typed, or `""` for a bound key
 (arrow keys, `C-n`, ...), whose name and command `get-key-name` and

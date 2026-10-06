@@ -121,8 +121,13 @@ void lnbegin()
 
 void lnend()
 {
-	curbp->b_point = dndn(curbp, curbp->b_point);
-	left();
+	point_t next = dndn(curbp, curbp->b_point);
+
+	curbp->b_point = next;
+	/* on the last line of a file without a final newline, dndn() stops at
+	   the end of the buffer, which already is the end of the line */
+	if (next < document_size(curbp) || (next > 0 && *ptr(curbp, next - 1) == '\n'))
+		left();
 }
 
 void backward_word()

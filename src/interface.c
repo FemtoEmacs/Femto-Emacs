@@ -25,8 +25,13 @@
 /* evaluate EXPR, write the printed result (NUL terminated) into OUT */
 typedef int (*fe_eval_hook_t)(const char *expr, char *out, int outlen);
 
-/* generic notification: ("key" "C-x C-b"), ("kill" "*scratch*"), ("startup" "") */
-typedef void (*fe_event_hook_t)(const char *event, const char *arg);
+/*
+ * generic notification: ("key" "C-x C-b"), ("kill" "*scratch*"),
+ * ("startup" ""), ("colors" "256"), ("self-insert" "\t").  Returns
+ * non-zero when Lisp handled the event (for self-insert: the key was
+ * consumed, e.g. TAB indented the line, so C must not insert it).
+ */
+typedef int (*fe_event_hook_t)(const char *event, const char *arg);
 
 /*
  * syntax highlighting: given the buffer's file name and LEN bytes of text,
@@ -59,10 +64,11 @@ void call_lisp(char *expr, char *out, int outlen)
 	out[outlen - 1] = '\0';
 }
 
-void call_lisp_event(char *event, char *arg)
+int call_lisp_event(char *event, char *arg)
 {
 	if (event_hook != NULL)
-		event_hook(event, arg == NULL ? "" : arg);
+		return event_hook(event, arg == NULL ? "" : arg);
+	return 0;
 }
 
 /*
@@ -280,6 +286,32 @@ int fe_char_at(long p)
 {
 	if (p < 0 || p >= document_size(curbp)) return -1;
 	return *ptr(curbp, p);
+}
+
+/*
+ * Copy up to LEN bytes of the current buffer, starting at offset START,
+ * into OUT.  Returns the number of bytes copied.  Used by the Lisp side to
+ * read text in bulk (indentation, scanning) instead of byte by byte.
+ */
+long fe_copy_text(long start, long len, char *out)
+{
+	long size = document_size(curbp);
+	long i;
+
+	if (start < 0) start = 0;
+	if (start + len > size) len = size - start;
+	for (i = 0; i < len; i++)
+		out[i] = (char) *ptr(curbp, start + i);
+	return len < 0 ? 0 : len;
+}
+
+/* offset of the start of the logical line containing P */
+long fe_line_start(long p)
+{
+	long size = document_size(curbp);
+	if (p < 0) p = 0;
+	if (p > size) p = size;
+	return lnstart(curbp, p);
 }
 
 /* editing */

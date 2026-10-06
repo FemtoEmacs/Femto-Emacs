@@ -13,17 +13,7 @@
 
 (defun current-line-text ()
   "The text of the line the cursor is on, without moving the cursor."
-  (let ((here (point)))
-    (beginning-of-line)
-    (let ((start (point)))
-      (end-of-line)
-      (let* ((end (point))
-             (bytes (make-array (max 0 (- end start)) :element-type '(unsigned-byte 8))))
-        (loop for p from start below end
-              for i from 0
-              do (setf (aref bytes i) (logand #xff (%char-at p))))
-        (goto-char here)
-        (sb-ext:octets-to-string bytes :external-format '(:utf-8 :replacement #\?))))))
+  (buffer-substring (line-start) (line-end)))
 
 (defun read-string (string)
   "Read a Lisp object from STRING: (read-string \"(2016 8 31)\") => (2016 8 31)"
@@ -123,6 +113,7 @@
 (global-set-key "C-c z" 'insert-day)
 
 (global-set-key "C-x C-r" 'reload-scripts)
+(global-set-key "C-x C-i" 'indent-region)
 
 (global-set-key "C-o" 'deindent-two)
 (global-set-key "C-t" 'indent-two)
