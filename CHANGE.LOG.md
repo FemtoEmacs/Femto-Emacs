@@ -8,7 +8,12 @@
   "SBEmacs: Ctrl-h for help == file, L. N == Ctrl c r calls Claude;
   Ctrl c g calls GPT" (set-mode-line-hints changes the hints).
 * C-c r opens a menu: h for hints, q for a question written in its own
-  window (C-c r sends it), s for the set-up.
+  window (C-c r sends it), d for a discussion, s for the set-up.
+* C-c y inserts every fenced snippet of the last answer, after asking,
+  and closes the answer window.
+* The discussion (*discussion*) stays open: C-c r there sends what was
+  written after the last "You:", and C-c t inserts the snippet under the
+  cursor into the file being discussed.
 * The GNU Emacs keys FemtoEmacs lacked, in lisp/extensions/emacs-keys.lisp:
   sentence, paragraph, s-expression and defun motion; kill-word,
   backward-kill-word, kill-sexp, kill-sentence, zap-to-char, joined kills,

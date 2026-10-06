@@ -253,6 +253,19 @@
        (list (help-scroll 1 -1 100 20) (help-scroll 80 5 100 20) (help-scroll 10 1 100 20))
        '(1 81 11))
 
+(check "every snippet"
+       (proposed-snippets (format nil "a~%```lisp~%(f 1)~%```~%b~%```~%(g)~%(h)~%```~%"))
+       (list "(f 1)" (format nil "(g)~%(h)")))
+(check "the snippet under the cursor"
+       (let ((text (format nil "Claude:~%```~%(one)~%```~%and~%```~%(two)~%```~%")))
+         (list (snippet-at text 2) (snippet-at text 14) (snippet-at text 24) (snippet-at text 30)))
+       '(nil "(one)" nil "(two)"))
+(check "an unclosed fence has no snippet" (proposed-snippets (format nil "```~%x")) nil)
+(check "the last You: of a discussion"
+       (let ((text (format nil "head~%You:~%one~%Claude:~%ok~%~%You:~%two")))
+         (subseq text (last-marker-position text "You:")))
+       "two")
+
 ;;; script loading
 (check "unchanged scripts are not loaded again"
        (load-scripts :files (script-files *script-directory*)

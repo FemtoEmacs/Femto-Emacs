@@ -742,12 +742,6 @@ go to this line's comment, or start one."
     (deactivate-mark)
     (message "~:[Commented~;Uncommented~] ~D line~:P" commented (length lines))))
 
-(defun split-lines (string)
-  (loop with start = 0
-        for pos = (position #\Newline string :start start)
-        collect (subseq string start pos)
-        while pos do (setf start (1+ pos))))
-
 ;;; ------------------------------------------------------------------
 ;;; Mark and region
 ;;; ------------------------------------------------------------------

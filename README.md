@@ -142,8 +142,15 @@ says so and runs in the terminal.
 
 | Key | |
 |-----|-|
-| `C-c r` | a small menu: `h` hints about the code at the cursor, `q` a question written in a window of its own (as many lines as you like; `C-c r` again sends it), `s` the set-up.  The answer opens in a window below (`C-x 1` closes it) |
-| `C-c y` | insert the code Claude proposed at the cursor, after you confirm; `C-u` undoes it |
+| `C-c r` | a small menu: `h` hints about the code at the cursor, `q` a question written in a window of its own (as many lines as you like; `C-c r` again sends it), `d` a discussion, `s` the set-up.  The answer opens in a window below |
+| `C-c y` | insert every snippet (```` ``` ```` block) of the last answer at the cursor, after you confirm, and close the answer window; `C-u` undoes it |
+| `C-c t` | in the discussion window: insert the snippet under the cursor into your file, at its cursor, after you confirm |
+
+The **discussion** (`C-c r`, then `d`) is a conversation in the `*discussion*`
+window, which stays open: write after the last `You:`, press `C-c r`, and
+Claude's answer is appended, followed by a new `You:`.  Each message sends
+the whole discussion and the file around its cursor.  `C-h` and `C-c y` do
+not close it; `C-x 0` does, and `C-c r d` brings it back as it was.
 | `C-c g` | open a lower window in which to write a request for Codex (`g` for GPT) |
 
 The keys follow Asimov's Three Laws of Robotics; `r` is the "R." of his
