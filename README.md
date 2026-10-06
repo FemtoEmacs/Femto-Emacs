@@ -146,7 +146,7 @@ says so and runs in the terminal.
 |-----|-|
 | `C-c r` | ask Claude about the code at the cursor; press RET at the prompt for hints, or type a question.  The answer opens in a window below (`C-x 1` closes it) |
 | `C-c y` | insert the code Claude proposed at the cursor, after you confirm; `C-u` undoes it |
-| `C-c x` | the same for Codex (a stub for now: [`lisp/extensions/codex.lisp`](lisp/extensions/codex.lisp)) |
+| `C-c g` | open a lower window in which to write a request for Codex (`g` for GPT) |
 
 The keys follow Asimov's Three Laws of Robotics; `r` is the "R." of his
 robots' names (R. Daneel Olivaw).
@@ -181,6 +181,41 @@ what the assistant is told.  The editor waits while the assistant thinks;
 the message line says so.  All of it is the script
 [`lisp/extensions/assistant.lisp`](lisp/extensions/assistant.lisp): change
 it and press `C-x C-r`.
+
+### Codex inside the editor (`C-c g`)
+
+Install the current [OpenAI Codex CLI](https://developers.openai.com/codex/cli)
+and authenticate it once in a Windows terminal:
+
+```powershell
+npm install -g @openai/codex@latest
+codex login
+```
+
+Open a source file and press `C-c g`.  Femto Emacs splits the editor and puts
+the cursor in an empty `*codex-request*` buffer below the source.  Write what
+you want in ordinary language, for example:
+
+```text
+Insert into my code a naive recursive Fibonacci definition with declarations for speed.
+```
+
+Other requests can ask Codex to write and run Lisp tests, explain the selected
+code, or translate pinyin into Chinese characters.  Press `C-c g` again to
+send it.  The answer replaces the request window.  Use
+`C-x o` to return to the source; when the answer contains proposed code,
+`C-c y` asks for confirmation before inserting it.
+
+The extension runs `codex exec` with a read-only sandbox and an ephemeral
+session.  Codex receives the request, the selected text when there is a
+selection, and a bounded portion of the source around the cursor.  It cannot
+edit the project or the editor's C programs.  The implementation is entirely
+in [`lisp/extensions/codex.lisp`](lisp/extensions/codex.lisp).  Edit that file
+and press `C-x C-r` to reload it; rebuilding Femto Emacs is unnecessary.
+
+`*codex-model*` selects a model (`NIL` uses the CLI default), and
+`*codex-timeout*` controls how long Femto Emacs waits.  Evaluate
+`(codex-status)` with `Esc-;` to check whether the CLI was found.
 
 ### Lisp interaction
 
