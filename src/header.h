@@ -353,7 +353,7 @@ extern window_t *split_current_window(void);
 extern window_t *find_window(char *);
 extern window_t *popup_window(char *);
 extern void one_window(window_t *);
-extern void free_other_windows();
+extern void free_other_windows(window_t *winp);
 extern void w2b(window_t *);
 extern void b2w(window_t *);
 extern void b2w_all_windows(buffer_t *);
