@@ -136,6 +136,10 @@ static void default_theme(int many_colors)
 	face(ID_COLOR_MODELINE, -1, -1, FE_REVERSE);
 	face(ID_COLOR_BRACE, C_BLACK, C_CYAN, 0);
 	face(ID_COLOR_REGION, -1, -1, FE_REVERSE);
+	face(ID_COLOR_HEADING, -1, -1, FE_BOLD);
+	face(ID_COLOR_EMPHASIS, -1, -1, FE_ITALIC);
+	face(ID_COLOR_STRONG, -1, -1, FE_BOLD);
+	face(ID_COLOR_LINK, -1, -1, FE_UNDERLINE);
 
 	if (many_colors) {
 		face(ID_COLOR_KEYWORD,  127, -1, FE_BOLD);  /* purple */

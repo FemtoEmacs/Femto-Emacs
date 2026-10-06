@@ -363,7 +363,7 @@ each language in its own file in [`lisp/languages/`](lisp/languages/).
 Before a window is drawn, the C core passes the visible text (and up to 16 KB
 above it, so comments opened off-screen are seen) to Lisp, which returns one
 colour per byte.  Languages come with C, Common Lisp, Scheme, Python, Ruby,
-Haskell, OCaml/ML, TeX, Prolog and Lean.  `define-language` options:
+Haskell, OCaml/ML, TeX, Prolog, Lean and Markdown.  `define-language` options:
 
 | Option | Meaning |
 |--------|---------|
@@ -377,6 +377,16 @@ Haskell, OCaml/ML, TeX, Prolog and Lean.  `define-language` options:
 | `:case-insensitive` | match keywords ignoring case |
 | `:char-prefix` | character-literal prefix to skip, e.g. `"#\\"` |
 | `:backslash-commands` | treat `\word` as a keyword (TeX) |
+| `:highlighter` | a function `(language text length colors)` that colours the text itself (Markdown) |
+
+**Markdown** (`.md`) is coloured by lines and marks rather than tokens:
+headings, `**strong**`, `*emphasis*`, `` `code` ``, links, quotations, list
+markers, tables, rules and `<!-- comments -->`.  A block of code that names
+its language (```` ```lisp ````, ```` ```python ````) is coloured as that
+language.  The prose faces are `:heading`, `:emphasis`, `:strong` and
+`:link`.  `RET` in a list item starts the next one (`- `, `3. `, `> `), and
+on an empty item ends the list; `TAB` nests an item under the one above;
+`M-q` refills a paragraph, a list item (keeping its marker) or a quotation.
 
 ### Indentation
 
@@ -394,6 +404,7 @@ TeX.
 | Python | `:python` | after `:`, dedent after `return`/`pass`/..., `else`/`elif` line up with their `if`, brackets |
 | Prolog | `:prolog` | clause bodies, parentheses |
 | Ruby, Haskell, ML, Lean, TeX | `:block` | keywords that open and close blocks |
+| Markdown | `:markdown` | under the text of the list item above; `TAB` nests items |
 
 Where the right level cannot be known (the line after a Python or Haskell
 block), pressing `TAB` again steps down one level at a time.

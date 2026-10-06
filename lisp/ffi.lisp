@@ -398,7 +398,7 @@ which case GET-KEY-NAME and GET-KEY-BINDING describe it."
 (defparameter *color-ids*
   '((:symbol . 1) (:modeline . 2) (:brace . 3) (:keyword . 4) (:alpha . 5)
     (:digits . 6) (:comment . 7) (:block-comment . 8) (:string . 9)
-    (:region . 10)))
+    (:region . 10) (:heading . 11) (:emphasis . 12) (:strong . 13) (:link . 14)))
 
 ;; the eight basic colours; :default is the terminal's own colour, and
 ;; an integer 0-255 picks from the 256-colour palette
@@ -441,7 +441,8 @@ which case GET-KEY-NAME and GET-KEY-BINDING describe it."
 
 Faces: :keyword :comment :block-comment :string :digits :alpha (identifiers)
 :symbol (everything else) :brace (matching paren) :modeline :region
-(the selected text)."
+(the selected text), and for prose (Markdown) :heading :emphasis :strong
+:link."
   (= 1 (%set-color (color-id face) (color-number foreground) (color-number background)
                    (attribute-bits attributes))))
 

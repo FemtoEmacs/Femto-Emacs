@@ -313,6 +313,32 @@
            (list (length (undo-history-done h)) (<= (undo-history-bytes h) 10))))
        '(2 t))
 
+;;; Markdown
+(defun md (string) (remove-if (lambda (r) (member (car r) (list +alpha+ +symbol+)))
+                              (highlight-string string "x.md")))
+(check "Markdown heading" (md "# Title") '((11 . "# Title")))
+(check "Markdown emphasis, strong, code, snake_case"
+       (md "a **b** *c* `d` e_f_g") '((13 . "**b**") (12 . "*c*") (9 . "`d`")))
+(check "Markdown list, link, quotation"
+       (md (format nil "- [l](u)~%> q")) '((4 . "- ") (14 . "[l]") (7 . "(u)") (7 . "> q")))
+(check "Markdown setext heading and rule"
+       (md (format nil "T~%==~%~%---")) (list (cons 11 (format nil "T~%==")) '(7 . "---")))
+(check "Markdown code block in its own language"
+       (md (format nil "```c~%int x;~%```")) '((7 . "```c") (4 . "int") (7 . "```")))
+(check "Markdown multi-line comment"
+       (md (format nil "<!-- a~%b -->")) '((8 . "<!-- a") (8 . "b -->")))
+(check "Markdown: under the text of the item above"
+       (list (ind "Markdown" "- item" "x") (ind "Markdown" "  1. item" "x")
+             (ind "Markdown" "- item" "- next") (ind "Markdown" "text" "x"))
+       '(2 5 0 0))
+(check "Markdown: RET continues a list, an empty item ends it"
+       (mapcar (lambda (l) (multiple-value-list (markdown-continuation l)))
+               '("- milk" "  2. eggs" "- " "> said" "- [x] done" "plain"))
+       '(("- " nil) ("  3. " nil) ("- " :end) ("> " nil) ("- [ ] " nil) (nil)))
+(check "M-q keeps a list item's marker and hangs the rest"
+       (fill-text '("- aaa bbb ccc" "ddd") nil 12)
+       (format nil "- aaa bbb~%  ccc ddd"))
+
 ;;; script loading
 (check "unchanged scripts are not loaded again"
        (load-scripts :files (script-files *script-directory*)

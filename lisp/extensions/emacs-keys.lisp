@@ -611,7 +611,35 @@ alone); on a text line, delete the blank lines after it."
 
 (defun text-buffer-p ()
   (let ((lang (language-for-file (or (buffer-filename) (get-buffer-name)))))
-    (or (null lang) (string= (language-name lang) "TeX"))))
+    (or (null lang) (member (language-name lang) '("TeX" "Markdown") :test #'string=))))
+
+(defun list-item-prefix (line)
+  "If LINE is a Markdown list item (- x, * x, + x, 1. x, 1) x), its
+indentation and marker with the spaces after it; else NIL."
+  (let* ((i (or (position-if-not (lambda (c) (member c '(#\Space #\Tab))) line) (length line)))
+         (j (cond ((>= i (length line)) nil)
+                  ((member (char line i) '(#\- #\* #\+)) (1+ i))
+                  ((digit-char-p (char line i))
+                   (let ((k (or (position-if-not #'digit-char-p line :start i) (length line))))
+                     (and (< k (length line)) (member (char line k) '(#\. #\))) (1+ k))))
+                  (t nil))))
+    (when (and j (< j (length line)) (char= (char line j) #\Space))
+      (subseq line 0 (or (position #\Space line :start j :test-not #'char=) (length line))))))
+
+(defun block-start-line-p (line)
+  "Does LINE begin a Markdown block that a paragraph does not run into:
+a list item, a heading, a quotation, a fence or a table row?"
+  (let ((l (string-left-trim '(#\Space #\Tab) line)))
+    (or (list-item-prefix line)
+        (and (plusp (length l)) (member (char l 0) '(#\# #\> #\|)))
+        (starts-with-p "```" l) (starts-with-p "~~~" l))))
+
+(defun unfillable-line-p (line)
+  "Headings, fences and tables are never refilled."
+  (let ((l (string-left-trim '(#\Space #\Tab) line)))
+    (and (plusp (length l))
+         (or (member (char l 0) '(#\# #\|))
+             (starts-with-p "```" l) (starts-with-p "~~~" l)))))
 
 (defun fill-prefix-of (line comment)
   "Leading blanks of LINE, plus the comment marker and one space when LINE
@@ -628,14 +656,15 @@ is a comment."
           (subseq line 0 (min k (1+ j))))
         (subseq line 0 i))))
 
-(defun fill-words (words prefix width)
-  "Lines of at most WIDTH columns (when possible), each starting with PREFIX."
+(defun fill-words (words prefix width &optional (rest-prefix prefix))
+  "Lines of at most WIDTH columns (when possible); the first starts with
+PREFIX, the others with REST-PREFIX."
   (let ((lines '()) (current nil))
     (dolist (w words)
       (cond ((null current) (setf current (concatenate 'string prefix w)))
             ((> (+ (length current) 1 (length w)) width)
              (push current lines)
-             (setf current (concatenate 'string prefix w)))
+             (setf current (concatenate 'string rest-prefix w)))
             (t (setf current (concatenate 'string current " " w)))))
     (when current (push current lines))
     (nreverse lines)))
@@ -648,37 +677,54 @@ is a comment."
         while pos do (setf start (1+ pos))))
 
 (defun fill-text (lines comment width)
-  "Refill LINES (strings) of one paragraph; the first line gives the prefix."
-  (let* ((prefix (fill-prefix-of (first lines) comment))
+  "Refill LINES (strings) of one paragraph; the first line gives the prefix.
+A list item (- x, 1. x) keeps its marker, and the lines after it go under
+its text."
+  (let* ((item (and (null comment) (list-item-prefix (first lines))))
+         (prefix (or item (fill-prefix-of (first lines) comment)))
+         (rest-prefix (if item (make-string (length item) :initial-element #\Space) prefix))
          (words (loop for line in lines
-                      for p = (fill-prefix-of line comment)
+                      for first = t then nil
+                      for p = (if (and first item) item (fill-prefix-of line comment))
                       nconc (split-words (subseq line (min (length p) (length line)))))))
-    (format nil "~{~A~^~%~}" (fill-words words prefix width))))
+    (format nil "~{~A~^~%~}" (fill-words words prefix width rest-prefix))))
 
 (defcommand fill-paragraph ()
   "M-q: refill the paragraph (or comment block) at the cursor to
 *FILL-COLUMN* columns."
-  (let* ((comment (line-comment-start))
-         (size (buffer-size))
+  (let* ((size (buffer-size))
          (ls (line-start))
          (here (buffer-substring ls (line-end ls)))
+         (text-mode (text-buffer-p))
+         ;; a > quotation is filled like a comment that starts with >
+         (comment (if (and text-mode (starts-with-p ">" (string-left-trim " " here)))
+                      ">"
+                      (line-comment-start)))
          (prefix (fill-prefix-of here comment))
          (in-comment (and comment (search comment prefix))))
-    (flet ((member-line-p (start)
+    (flet ((line-at (start) (buffer-substring start (line-end start)))
+           (member-line-p (start)
              (let ((text (buffer-substring start (line-end start))))
                (and (not (blank-line-p #'buffer-get size start))
+                    (not (and text-mode (unfillable-line-p text)))
                     (if in-comment
                         (search comment (fill-prefix-of text comment))
                         t)))))
       (cond ((blank-line-p #'buffer-get size ls) (message "No paragraph here"))
-            ((not (or in-comment (text-buffer-p)))
+            ((not (or in-comment text-mode))
              (message "M-q fills comments and text, not code"))
+            ((and text-mode (unfillable-line-p here))
+             (message "Headings, tables and code are not refilled"))
             (t
              (let ((a ls) (b ls))
-               (loop while (and (> a 0) (member-line-p (line-start (1- a))))
+               ;; in Markdown a list item starts a paragraph of its own
+               (loop while (and (> a 0)
+                                (not (and text-mode (not in-comment) (block-start-line-p (line-at a))))
+                                (member-line-p (line-start (1- a))))
                      do (setf a (line-start (1- a))))
                (loop for next = (min size (1+ (line-end b)))
-                     while (and (< next size) (> next b) (member-line-p next))
+                     while (and (< next size) (> next b) (member-line-p next)
+                                (not (and text-mode (not in-comment) (block-start-line-p (line-at next)))))
                      do (setf b next))
                (let* ((end (line-end b))
                       (lines (loop with s = a

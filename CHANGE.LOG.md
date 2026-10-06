@@ -1,6 +1,14 @@
 # SBEmacs / Femto Emacs Change Log
 
 ## SBEmacs 2.0
+* Markdown (lisp/languages/markdown.lisp): headings, emphasis, strong,
+  code, links, quotations, lists, tables, rules and comments, with code
+  blocks coloured in their own language; RET continues lists, TAB nests
+  items, M-q refills list items and quotations.  New faces :heading,
+  :emphasis, :strong, :link; define-language takes :highlighter, and
+  define-indentation :levels and :newline.
+* A script whose compiled file no longer loads (after another script
+  changed a structure) is compiled again instead of failing.
 * Undo rewritten, in Lisp (lisp/undo.lisp).  The C core reports every
   change to the text (insert or delete, with the bytes) through one hook;
   changes are grouped by command (typing and deleting by runs of up to 20

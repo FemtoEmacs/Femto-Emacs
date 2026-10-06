@@ -74,13 +74,17 @@ extensions and `init.lisp`.
 - Keys and commands: `global-set-key` `global-unset-key` `key-binding`
   `defcommand` `execute-builtin` (runs a command of the C core by name)
 - Looks: `set-color` (faces `:keyword` `:comment` `:block-comment`
-  `:string` `:digits` `:alpha` `:symbol` `:brace` `:modeline` `:region`;
+  `:string` `:digits` `:alpha` `:symbol` `:brace` `:modeline` `:region`,
+  and for prose `:heading` `:emphasis` `:strong` `:link`;
   colours `:red`..., 0-255 or `"#rrggbb"`)
 - Languages: `define-language` (`:extensions` `:line-comment`
   `:block-comment` `:strings` `:keywords` `:escape` `:char-prefix`
-  `:case-insensitive` `:word-chars` `:backslash-commands`),
-  `define-indentation` (`:style` `:c` `:lisp` `:python` `:prolog` `:block`,
-  `:width`, `:tabs`), `define-indent-style`
+  `:case-insensitive` `:word-chars` `:backslash-commands`, and
+  `:highlighter` for a language that is not made of tokens: see
+  `lisp/languages/markdown.lisp`),
+  `define-indentation` (`:style` `:c` `:lisp` `:python` `:prolog` `:block`
+  `:markdown`, `:width`, `:tabs`, `:cycle`, `:levels`, `:newline`),
+  `define-indent-style`
 - Shell: `shell-command`
 
 ## Recipes

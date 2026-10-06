@@ -57,6 +57,10 @@
 #define ID_COLOR_BLOCK     8
 #define ID_COLOR_STRING    9
 #define ID_COLOR_REGION    10
+#define ID_COLOR_HEADING   11      /* prose: Markdown headings ... */
+#define ID_COLOR_EMPHASIS  12
+#define ID_COLOR_STRONG    13
+#define ID_COLOR_LINK      14
 
 /* undo types, in matched pairs */
 #define UNDO_T_NONE        0

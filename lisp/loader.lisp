@@ -112,21 +112,28 @@ scripts start in package SBEMACS, the user's in SBEMACS-USER."
         (sink (make-broadcast-stream)))
     (handler-bind ((warning #'muffle-warning))
       (let ((*standard-output* sink) (*error-output* sink))
-        (when (or (not (probe-file fasl))
-                  (> (file-write-date path) (file-write-date fasl)))
-          (ensure-directories-exist fasl)
-          ;; a stale fasl we may not overwrite (left by a build run as
-          ;; another user) can still be removed from our own directory
-          (when (probe-file fasl) (ignore-errors (delete-file fasl)))
-          (multiple-value-bind (output warnings-p failure-p)
-              (compile-file path :output-file fasl :external-format :utf-8)
-            (declare (ignore warnings-p))
-            (when (or (null output) failure-p)
-              ;; load the source instead, so the real error is reported
-              (ignore-errors (delete-file fasl))
-              (return-from load-script
-                (load path :external-format :utf-8)))))
-        (load fasl)))))
+        (flet ((compile-it ()
+                 (ensure-directories-exist fasl)
+                 ;; a stale fasl we may not overwrite (left by a build run as
+                 ;; another user) can still be removed from our own directory
+                 (when (probe-file fasl) (ignore-errors (delete-file fasl)))
+                 (multiple-value-bind (output warnings-p failure-p)
+                     (compile-file path :output-file fasl :external-format :utf-8)
+                   (declare (ignore warnings-p))
+                   (when (or (null output) failure-p)
+                     ;; load the source instead, so the real error is reported
+                     (ignore-errors (delete-file fasl))
+                     (return-from load-script
+                       (load path :external-format :utf-8))))))
+          (when (or (not (probe-file fasl))
+                    (> (file-write-date path) (file-write-date fasl)))
+            (compile-it))
+          ;; a fasl compiled against an older version of another script (a
+          ;; structure that gained a slot, say) fails to load: compile again
+          (handler-case (load fasl)
+            (error ()
+              (compile-it)
+              (load fasl))))))))
 
 (defun load-scripts (&key (files (append (script-files *script-directory*) (user-script-files)))
                           cache-directory force)

@@ -160,7 +160,8 @@ static int color_at(buffer_t *bp, char_t *p)
 	if (!hl_active || off < 0 || off >= hl_len)
 		return is_upper_or_lower(*p) ? ID_COLOR_ALPHA : ID_COLOR_SYMBOL;
 	c = hl_colors[off];
-	if (c < 1 || c > ID_COLOR_STRING) c = ID_COLOR_ALPHA;
+	/* the token faces, and the prose faces from ID_COLOR_HEADING on */
+	if (c < 1 || c > ID_COLOR_LINK || c == ID_COLOR_REGION) c = ID_COLOR_ALPHA;
 	return c;
 }
 

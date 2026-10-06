@@ -20,6 +20,11 @@
 (defconstant +comment+ 7)
 (defconstant +block-comment+ 8)
 (defconstant +string+ 9)
+;; faces for prose (Markdown): heading, emphasis, strong, link
+(defconstant +heading+ 11)
+(defconstant +emphasis+ 12)
+(defconstant +strong+ 13)
+(defconstant +link+ 14)
 
 (deftype octets () '(simple-array (unsigned-byte 8) (*)))
 
@@ -39,7 +44,10 @@
   (word-bytes (make-array 256 :element-type 'bit :initial-element 0)
    :type simple-bit-vector)
   ;; keywords indexed by their first byte; each bucket longest first
-  (keywords (make-array 256 :initial-element nil) :type simple-vector))
+  (keywords (make-array 256 :initial-element nil) :type simple-vector)
+  ;; a function (lang text len colors) that replaces the tokenizer, for
+  ;; languages that are not made of tokens (Markdown)
+  (highlighter nil))
 
 (defvar *languages* '()
   "All defined languages, most recently defined first.")
@@ -69,7 +77,7 @@
                                   (strings '("\"")) (escape #\\)
                                   char-prefix backslash-commands
                                   case-insensitive (word-chars "")
-                                  keywords)
+                                  keywords highlighter)
   "Define (or redefine) syntax highlighting for a language.
 
   (define-language \"C\"
@@ -81,8 +89,10 @@
 
 Other options: :ESCAPE (character, default #\\\\, or NIL), :CHAR-PREFIX
 (e.g. \"#\\\\\" for Lisp character syntax), :BACKSLASH-COMMANDS (TeX),
-:CASE-INSENSITIVE, and :WORD-CHARS, extra characters that may appear inside
-identifiers (\"-*+!?<>=/:%&\" for Lisp)."
+:CASE-INSENSITIVE, :WORD-CHARS, extra characters that may appear inside
+identifiers (\"-*+!?<>=/:%&\" for Lisp), and :HIGHLIGHTER, a function of
+(LANGUAGE TEXT LENGTH COLORS) that colours the text itself instead of the
+tokenizer (see languages/markdown.lisp)."
   (let* ((lang (%make-language
                 :name name
                 :extensions (mapcar #'normalise-extension (ensure-list extensions))
@@ -96,7 +106,8 @@ identifiers (\"-*+!?<>=/:%&\" for Lisp)."
                 :char-prefix (and char-prefix (octets char-prefix))
                 :backslash-commands backslash-commands
                 :case-insensitive case-insensitive
-                :word-bytes (make-word-table word-chars))))
+                :word-bytes (make-word-table word-chars)
+                :highlighter highlighter)))
     (dolist (k (remove-duplicates keywords :test #'string=))
       (let ((o (octets (if case-insensitive (string-downcase k) k))))
         (when (plusp (length o))
@@ -207,6 +218,9 @@ identifiers (\"-*+!?<>=/:%&\" for Lisp)."
 (defun highlight-octets (lang text len colors)
   "Fill COLORS[0..LEN) with faces for TEXT[0..LEN)."
   (declare (type octets text colors) (type fixnum len))
+  (when (language-highlighter lang)
+    (return-from highlight-octets
+      (progn (funcall (language-highlighter lang) lang text len colors) colors)))
   (let ((i 0))
     (declare (type fixnum i))
     (loop

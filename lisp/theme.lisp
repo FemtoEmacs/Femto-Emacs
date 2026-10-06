@@ -25,10 +25,12 @@
 (defparameter *gui-palettes*
   '((:dark  :background "#1d1f21" :foreground "#c5c8c6" :cursor "#f0c674"
             :selection "#373b41" :comment "#969896" :keyword "#b294bb"
-            :string "#b5bd68" :number "#de935f" :brace "#81a2be")
+            :string "#b5bd68" :number "#de935f" :brace "#81a2be"
+            :link "#8abeb7")
     (:light :background "#ffffff" :foreground "#4d4d4c" :cursor "#4271ae"
             :selection "#d6d6d6" :comment "#8e908c" :keyword "#8959a8"
-            :string "#718c00" :number "#f5871f" :brace "#4271ae")))
+            :string "#718c00" :number "#f5871f" :brace "#4271ae"
+            :link "#3e999f")))
 
 (defun gui-theme ()
   (let ((p (cdr (or (assoc (if (boundp '*gui-theme*) (symbol-value '*gui-theme*) :dark)
@@ -46,7 +48,11 @@
       (theme-face :comment       (c :comment))
       (theme-face :block-comment (c :comment))
       (theme-face :string        (c :string))
-      (theme-face :region        (c :foreground) (c :selection)))))
+      (theme-face :region        (c :foreground) (c :selection))
+      (theme-face :heading       (c :brace) :default :bold)
+      (theme-face :emphasis      (c :foreground) :default :italic)
+      (theme-face :strong        (c :foreground) :default :bold)
+      (theme-face :link          (c :link) :default :underline))))
 
 (defun terminal-theme (colors)
   (theme-face :symbol   :default)
@@ -57,6 +63,11 @@
   (if (>= colors 256)
       (theme-face :region 16 252)
       (theme-face :region :default :default :reverse))
+  ;; prose (Markdown)
+  (theme-face :heading  (if (>= colors 256) 25 :blue) :default :bold)
+  (theme-face :emphasis :default :default :italic)
+  (theme-face :strong   :default :default :bold)
+  (theme-face :link     (if (>= colors 256) 30 :cyan) :default :underline)
   (if (>= colors 256)
       (progn
         ;; picked to stay readable on both white and black backgrounds

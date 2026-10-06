@@ -314,6 +314,14 @@ the character under the
 cursor, the corresponding code, the line,
 and the character position in the text.
 
+\paragraph{Markdown.} SBEmacs colours Markdown files (\verb|.md|):
+headings, \verb|**strong**| and \verb|*emphasis*|, code between back
+quotes, links, quotations and lists. A block of code that names its language,
+like \verb|```lisp|, is coloured as that language. In a list,
+\keys{Enter} starts the next item, \verb|- | or \verb|3. |;
+\keys{Enter} on an empty item ends the list. \keys{Tab} nests an item under
+the item above, and \verb|M-q| refills a paragraph or a list item.
+
 \paragraph{Undo.} The \verb|C-/| command undoes the last
 command. If you press it again, it undoes the command before,
 and so on. Typed text is undone a word at a time, and a command
