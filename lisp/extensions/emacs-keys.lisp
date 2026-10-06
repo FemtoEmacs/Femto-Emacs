@@ -841,11 +841,124 @@ same place deactivates the region."
 ;;; Buffers, files, windows
 ;;; ------------------------------------------------------------------
 
+(defparameter *buffer-picker-buffer* "*buffer-pick*")
+(defparameter *buffer-picker-max-keys* 1000)
+(defvar *previous-picked-buffer* nil)
+
+(defun string-prefix-equal (prefix string)
+  "True when PREFIX is a case-insensitive prefix of STRING."
+  (and (<= (length prefix) (length string))
+       (string-equal prefix string :end2 (length prefix))))
+
+(defun buffer-picker-matches (query names)
+  "Buffer names beginning with QUERY, without changing their order."
+  (remove-if-not (lambda (name) (string-prefix-equal query name)) names))
+
+(defun buffer-picker-common-prefix (names)
+  "The case-preserving common prefix of NAMES, or the empty string."
+  (if (null names)
+      ""
+      (let* ((first (first names))
+             (limit (reduce #'min names :key #'length)))
+        (subseq first 0
+                (loop for i below limit
+                      while (every (lambda (name)
+                                     (char-equal (char first i) (char name i)))
+                                   (rest names))
+                      finally (return i))))))
+
+(defun buffer-picker-buffer-names ()
+  "Return the live buffer names.  NEXT-BUFFER is used only to walk the
+core's buffer ring; the buffer visible to the user is restored before this
+function returns."
+  (let ((origin (get-buffer-name))
+        (names nil))
+    (unwind-protect
+         (dotimes (i (get-buffer-count))
+           (declare (ignore i))
+           (pushnew (get-buffer-name) names :test #'string=)
+           (execute-builtin "next-buffer"))
+      (select-buffer origin))
+    (nreverse (remove *buffer-picker-buffer* names :test #'string=))))
+
+(defun buffer-picker-initial-index (matches origin)
+  (or (and *previous-picked-buffer*
+           (position *previous-picked-buffer* matches :test #'string=))
+      (position-if (lambda (name) (not (string= name origin))) matches)
+      0))
+
+(defun render-buffer-picker (query matches selected)
+  (select-buffer *buffer-picker-buffer*)
+  (delete-region 0 (buffer-size))
+  (insert "Switch to buffer\n"
+          "Type to filter; TAB completes; arrows select; RET opens; C-g cancels.\n\n"
+          "Filter: " query "\n\n")
+  (if matches
+      (loop for name in matches
+            for i from 0
+            do (insert (if (= i selected) "> " "  ") name "\n"))
+      (insert "  No matching buffers\n"))
+  (goto-char (buffer-size))
+  (update-display))
+
+(defun buffer-picker-bound-action ()
+  (let ((name (get-key-name))
+        (binding (get-key-binding)))
+    (cond ((or (string= name "C-g") (string= binding "keyboard-quit")) :cancel)
+          ((string= binding "previous-line") :previous)
+          ((string= binding "next-line") :next)
+          ((or (string= binding "backspace") (string= binding "delete-left")) :backspace)
+          (t nil))))
+
+(defun buffer-picker-key-action (key)
+  (cond ((or (string= key (string #\Newline))
+             (string= key (string #\Return))) :accept)
+        ((string= key (string #\Tab)) :complete)
+        ((string= key "") (buffer-picker-bound-action))
+        (t :insert)))
+
 (defcommand switch-to-buffer ()
-  (let ((name (trim (prompt "Switch to buffer (RET: next): " ""))))
-    (if (string= name "")
-        (execute-builtin "next-buffer")
-        (select-buffer name))))
+  "C-x b: choose a live buffer with filtering and completion."
+  (let* ((origin (get-buffer-name))
+         (names (buffer-picker-buffer-names))
+         (query "")
+         (matches names)
+         (selected (buffer-picker-initial-index matches origin))
+         (answer nil)
+         (cancelled nil))
+    (set-buffer-hint *buffer-picker-buffer*
+                     "type filter; TAB complete; arrows select; RET open; C-g cancel")
+    (unwind-protect
+         (loop repeat *buffer-picker-max-keys*
+               until (or answer cancelled)
+               do (setf matches (buffer-picker-matches query names)
+                        selected (if matches (min selected (1- (length matches))) 0))
+                  (render-buffer-picker query matches selected)
+                  (let* ((key (get-key))
+                         (action (buffer-picker-key-action key)))
+                    (case action
+                      (:cancel (setf cancelled t))
+                      (:accept (when matches (setf answer (nth selected matches))))
+                      (:previous (when matches
+                                   (setf selected (mod (1- selected) (length matches)))))
+                      (:next (when matches
+                               (setf selected (mod (1+ selected) (length matches)))))
+                      (:backspace (when (plusp (length query))
+                                    (setf query (subseq query 0 (1- (length query)))
+                                          selected 0)))
+                      (:complete (let ((prefix (buffer-picker-common-prefix matches)))
+                                   (when (> (length prefix) (length query))
+                                     (setf query prefix selected 0))))
+                      (:insert (when (and (= (length key) 1)
+                                          (graphic-char-p (char key 0)))
+                                 (setf query (concatenate 'string query key)
+                                       selected 0))))))
+      (select-buffer origin))
+    (cond (answer
+           (setf *previous-picked-buffer* origin)
+           (select-buffer answer)
+           (message "Buffer: ~A" answer))
+          (t (message "Buffer selection cancelled")))))
 
 (defun yes-p (question)
   (string-equal (trim (prompt (format nil "~A (y/n) " question) "")) "y"))

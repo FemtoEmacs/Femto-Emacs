@@ -119,7 +119,7 @@ C-M-f & Press \keys{Esc} and let go of it, then keep \keys{Ctrl} down and press 
 \textbf{Buffers and windows}\\[1pt]
 {\large
 \begin{tabular}{@{}>{\raggedright}p{2.35cm}@{\,}p{6.1cm}@{}}
-\texttt{C-x b} & switch to a buffer by name\\
+\texttt{C-x b} & choose a buffer from a filtered, completing list\\
 \texttt{C-x C-b} & buffer menu\\
 \texttt{C-x 2} & split the window\\
 \texttt{C-x o} & other window (or click it)\\
@@ -232,7 +232,10 @@ find commands that cope with this situation.
 \item \verb|C-x |$\kappa$ -- Keep \keys{Ctrl} down and press \keys{x};
 let go of \keys{Ctrl}, then press \keys{$\kappa$}
 \begin{quote}
-\verb|C-x b| -- switch to a buffer, by name.\\
+\verb|C-x b| -- choose a buffer. Type to filter the visible list,
+\keys{Tab} completes the common prefix, the arrow keys select an entry,
+\keys{Enter} opens it, and \verb|C-g| cancels. The previous buffer is
+selected initially, so repeated use quickly alternates between two buffers.\\
 \verb|C-x n| -- next buffer.\\
 \verb|C-x C-n| -- next buffer. Same as above.\\
 \verb|C-x C-b| -- list buffers.\\
@@ -540,7 +543,7 @@ C-r          search backward
 M-%          replace, asking each time (also M-r)
 C-x C-g      grep: search files
 C-x !        next grep match
-C-x b        switch to a buffer by name
+C-x b        choose a buffer from a filtered, completing list
 C-x C-b      buffer menu
 C-x 2        split the window
 C-x o        go to the other window (or click it)

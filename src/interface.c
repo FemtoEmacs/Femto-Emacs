@@ -389,6 +389,8 @@ void fe_set_clipboard(char *str)
 	assert(p != NULL);
 	memcpy(p, str, len + 1);
 	set_scrap(p);
+	/* Keep Lisp-originated copies and the GUI's system clipboard in sync. */
+	screen_set_clipboard(str);
 }
 
 /* searching: returns 1 when found (and moves there), 0 otherwise */
