@@ -36,7 +36,7 @@ VersionInfoProductVersion={#AppVersion}
 
 [Files]
 ; The release executable is deliberately omitted.  configure.ps1 creates it
-; with the user's separately installed SBCL 2.6.9.
+; with the user's separately installed recent SBCL.
 Source: "{#StagingDir}\*"; DestDir: "{app}"; Excludes: "sbemacs.exe"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
@@ -64,7 +64,8 @@ begin
       SW_HIDE, ewWaitUntilTerminated, ResultCode) then
       RaiseException('Could not start SBCL configuration.');
     if ResultCode <> 0 then
-      RaiseException('Femto Emacs could not be created with SBCL 2.6.9. ' +
-        'Install the official 64-bit SBCL 2.6.9 release and run this installer again.');
+      RaiseException('Femto Emacs could not be created with SBCL. ' +
+        'Install the latest official 64-bit SBCL release (2.6.9 or newer) ' +
+        'and run this installer again.');
   end;
 end;

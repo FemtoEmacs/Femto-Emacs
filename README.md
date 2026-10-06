@@ -35,11 +35,15 @@ needs SDL2, and everything written in Lisp works the same in both.
 
 ### Windows users
 
-First install the official 64-bit Windows release of
-[SBCL 2.6.9](https://www.sbcl.org/platform-table.html).  Then download
+First install a recent official 64-bit Windows release of
+[SBCL](https://www.sbcl.org/platform-table.html).  The SBCL project normally
+publishes a new version every month, so users should prefer the current release
+instead of retaining an old compiler indefinitely.  Femto Emacs currently
+requires SBCL 2.6.9 or newer, and its reproducible Windows build is tested with
+2.6.9.  Then download
 `Femto-Emacs-2.0-Windows-x86_64-Setup.exe` from the latest
 [Femto Emacs release](../../releases), double-click it, and follow the
-installer.  It verifies SBCL 2.6.9, installs the precompiled editor libraries,
+installer.  It verifies that SBCL is recent enough, installs the precompiled editor libraries,
 SDL2, SDL2_ttf, and the Lisp files, and asks SBCL to create `sbemacs.exe`.
 It also creates a normal Start-menu shortcut and can create a desktop shortcut.
 No MSYS2, C compiler, `make`, or administrator privileges are required.
@@ -76,7 +80,7 @@ sudo make uninstall
 
 These requirements apply to developers who rebuild the native code.  On
 Windows run `make` from the *MSYS2 MINGW64* shell, with SBCL on the `PATH`.
-Ordinary Windows users should install SBCL 2.6.9 and then use the installer
+Ordinary Windows users should install a recent SBCL and then use the installer
 above; they do not need MSYS2.
 
 `sbemacs` is a saved SBCL image.  It finds the libraries next to itself

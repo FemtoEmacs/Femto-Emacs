@@ -15,14 +15,15 @@ if (Test-Path $standardRoot) {
 $sbcl = $null
 foreach ($candidate in ($candidates | Select-Object -Unique)) {
     $reported = (& $candidate --noinform --non-interactive --eval '(princ (lisp-implementation-version))' --quit 2>&1 | Out-String).Trim()
-    if ($reported -match '(^|\s)2\.6\.9(\s|$)') {
+    if (($reported -match '(\d+\.\d+\.\d+)') -and
+        ([version]$Matches[1] -ge [version]'2.6.9')) {
         $sbcl = $candidate
         break
     }
 }
 
 if (-not $sbcl) {
-    throw 'SBCL 2.6.9 was not found. Install the official 64-bit Windows release from https://www.sbcl.org/platform-table.html, then run this installer again.'
+    throw 'A recent SBCL (2.6.9 or newer) was not found. Install the latest official 64-bit Windows release from https://www.sbcl.org/platform-table.html, then run this installer again.'
 }
 
 $appRoot = Split-Path $PSScriptRoot -Parent
