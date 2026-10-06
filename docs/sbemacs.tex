@@ -838,31 +838,143 @@ $ pacman -S make mingw-w64-x86_64-gcc mingw-w64-x86_64-ncurses \
 \end{quote}
 
 %%% ------------------------------------------------------------------
-\section{SDL2 and SDL2\_ttf}
+\section{SDL2 and SDL2\_ttf}\label{sec:sdl}
 %%% ------------------------------------------------------------------
 
-The graphical frontend needs two libraries: SDL2, which
-opens a window and reads the keyboard and the mouse, and
-SDL2\_ttf, which draws the letters with TrueType fonts.
-They are optional: without them, \verb|make| builds only the
-text version. The \verb|pkg-config| program tells whether they
-are installed:
+\paragraph{What they are.} A text terminal shows only characters, one
+per cell of a grid. A window of its own lets SBEmacs choose fonts and
+colours freely, but the program must then draw every letter itself, pixel
+by pixel, and talk to the operating system to open the window and to read
+the keyboard and the mouse. Each operating system does these things in its
+own way: Cocoa on the Macintosh, X11 or Wayland on Linux, Win32 on
+Windows. Instead of writing the editor three times, SBEmacs uses SDL2.
+
+SDL2, the Simple DirectMedia Layer, is a library that offers one set of
+functions for all these systems: open a window, draw rectangles and
+images, receive key presses and mouse clicks. Many games are built on
+it. SDL2 does not know how to draw letters, though. That is the job of
+SDL2\_ttf, a companion library that reads TrueType fonts (the
+\verb|.ttf| and \verb|.ttc| files of your system) and turns each letter
+into a small image that SDL2 can paint.
+
+Remember that a library is a file of compiled C functions that other
+programs use. To build a program on top of a library, the C compiler needs
+two things: the header files (\verb|SDL.h|, \verb|SDL_ttf.h|), which
+describe the functions, and the library itself
+(\verb|libSDL2.dylib|, \verb|libSDL2.so| or \verb|SDL2.dll|). On Linux,
+the headers come in a separate package, whose name ends in \verb|-dev| or
+\verb|-devel|.
+
+SDL2 and SDL2\_ttf are optional. If you only use SBEmacs in a text
+terminal, you can skip this section.
+
+\paragraph{pkg-config.} How does \verb|make| find the headers and the
+libraries? It asks \verb|pkg-config|, a small program that knows where each
+installed library lives. For instance:
 \begin{quote}
 \begin{verbatim}
 ~$ pkg-config --modversion sdl2 SDL2_ttf
 2.30.0
 2.22.0
+~$ pkg-config --cflags --libs sdl2 SDL2_ttf
+-I/opt/homebrew/include/SDL2 -L/opt/homebrew/lib -lSDL2_ttf -lSDL2
 \end{verbatim}
 \end{quote}
-If they are not there, install them:
+The first command prints the versions, which proves that both libraries
+are installed and that \verb|pkg-config| finds them. The second prints the
+options that \verb|make| hands to the C compiler. If the first command
+answers {\em Package sdl2 was not found}, install the libraries as shown
+below. If it answers {\em command not found}, \verb|pkg-config| itself is
+missing; install it too.
+
+\paragraph{MAC OS-X.} Install Homebrew first, as explained in
+section~\ref{sec:packages}. Then:
 \begin{quote}
 \begin{verbatim}
-~$ brew install sdl2 sdl2_ttf pkg-config                # Macintosh
-~$ sudo apt-get install libsdl2-dev libsdl2-ttf-dev     # Debian, Ubuntu
-~$ sudo dnf install SDL2-devel SDL2_ttf-devel           # Fedora
-$ pacman -S mingw-w64-x86_64-SDL2 mingw-w64-x86_64-SDL2_ttf  # MSYS2
+~$ brew install sdl2 sdl2_ttf pkg-config
 \end{verbatim}
 \end{quote}
+Homebrew installs everything under \verb|/opt/homebrew| (or
+\verb|/usr/local| on older Intel Macintosh computers), and tells
+\verb|pkg-config| where. You do not need \verb|sudo|.
+
+\paragraph{Linux.} Install the development packages, which bring the
+headers together with the libraries:
+\begin{quote}
+\begin{verbatim}
+~$ sudo apt-get install libsdl2-dev libsdl2-ttf-dev pkg-config  # Debian, Ubuntu
+~$ sudo dnf install SDL2-devel SDL2_ttf-devel pkgconf          # Fedora
+~$ sudo pacman -S sdl2 sdl2_ttf pkgconf                        # Arch
+\end{verbatim}
+\end{quote}
+SBEmacs needs a font. Most distributions come with the DejaVu fonts;
+if letters are missing in the window, install them
+(\verb|sudo apt-get install fonts-dejavu|).
+
+\paragraph{Windows.} If you install SBEmacs with the installer of the
+\verb|windows| branch, SDL2 and SDL2\_ttf come with it, and you have nothing
+to do. If you build SBEmacs yourself, install them in the {\em MSYS2
+MINGW64} shell:
+\begin{quote}
+\begin{verbatim}
+$ pacman -S mingw-w64-x86_64-SDL2 mingw-w64-x86_64-SDL2_ttf \
+            mingw-w64-x86_64-pkgconf
+\end{verbatim}
+\end{quote}
+The files \verb|SDL2.dll| and \verb|SDL2_ttf.dll| must then be where
+Windows finds them: in the folder of \verb|sbemacs.exe|, or in the MSYS2
+\verb|mingw64\bin| folder if it is in the \verb|PATH|.
+
+\paragraph{Build again.} The graphical frontend is compiled only when
+\verb|make| finds SDL2. If you ran \verb|make| before installing SDL2, it
+printed this note, and built the terminal version only:
+\begin{quote}
+\begin{verbatim}
+note: SDL2/SDL2_ttf not found, built the terminal version only
+\end{verbatim}
+\end{quote}
+After installing SDL2, build and install again:
+\begin{quote}
+\begin{verbatim}
+~/csand/sbemacs$ make
+~/csand/sbemacs$ sudo make install
+\end{verbatim}
+\end{quote}
+To make sure that the graphical frontend exists, look for its library next
+to the program:
+\begin{quote}
+\begin{verbatim}
+~/csand/sbemacs$ ls libsbemacs-*
+libsbemacs-gui.dylib   libsbemacs-term.dylib
+\end{verbatim}
+\end{quote}
+On Linux the names end in \verb|.so|; on Windows, in \verb|.dll|.
+
+\paragraph{Try it.}
+\begin{quote}
+\begin{verbatim}
+~$ sbemacs --gui notes.md
+\end{verbatim}
+\end{quote}
+If a window opens, everything is in place. If SBEmacs says
+{\em cannot open a window here, using the terminal}, either the graphical
+library was not built (go back to {\em Build again}) or there is no screen
+to open a window on: for instance, you are logged in a remote machine
+through \verb|ssh|. In that case the terminal version is the right one.
+
+\paragraph{Fonts and colours.} SBEmacs looks for a monospaced font among
+the usual ones of each system (Menlo and Monaco on the Macintosh, DejaVu
+Sans Mono and Liberation Mono on Linux, Consolas on Windows). To choose
+another one, give the path of its file in \verb|~/.sbemacs/init.lisp|:
+\begin{quote}
+\begin{verbatim}
+(setf *gui-font* "/Library/Fonts/JetBrainsMono-Regular.ttf")
+(setf *gui-font-size* 16)
+(setf *gui-theme* :light)        ; or :dark, the default
+\end{verbatim}
+\end{quote}
+In the window, \verb|C-+| and \verb|C--| (or \keys{Cmd}\keys{+} and
+\keys{Cmd}\keys{-} on the Macintosh) make the letters larger or smaller.
 
 %%% ------------------------------------------------------------------
 \section{make and sudo make install}
