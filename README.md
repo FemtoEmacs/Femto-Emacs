@@ -41,6 +41,7 @@ installer creates a normal Start-menu shortcut and can create a desktop
 shortcut.  It includes the editor, its SBCL runtime, both the terminal and
 graphical libraries, SDL2, SDL2_ttf, and their runtime libraries.  It does not
 require MSYS2, a C compiler, `make`, SBCL, or administrator privileges.
+The Windows release is built and checked with SBCL 2.6.9.
 
 The installer shortcut starts the SDL2 window.  The terminal interface remains
 available by running `sbemacs.exe` without `--gui` in a terminal.
