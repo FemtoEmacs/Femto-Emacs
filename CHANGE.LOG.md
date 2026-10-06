@@ -15,6 +15,9 @@
   (lisp/extensions/).  Kills are recorded in `*kill-ring*` by default.
   dired and grep no longer shell out, so they work on Windows.
 * Errors in Esc-; and Esc-] are reported, never fatal.
+* New colour scheme on the terminal's own background (FemtoEmacs forced a
+  black one, which hid the cursor on light terminal themes); 256-colour
+  palette when available; `set-color` takes 0-255 and :bold etc.
 * New build: `make`, `make test`, `make install`, `make dist`; GitHub
   Actions builds Linux, macOS and Windows archives.
 * Removed femtolisp/, femto.boot, xfemto.boot, r5rs.scm, the old makefiles

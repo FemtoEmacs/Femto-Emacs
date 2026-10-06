@@ -9,11 +9,14 @@
 ;;; Keep unlimited undo (the default).  Set to NIL on low-memory machines.
 (setf *undo-mode* t)
 
-;;; Colours: faces are :symbol :modeline :brace :keyword :alpha :digits
-;;; :comment :block-comment :string; colours are :black :red :green
-;;; :yellow :blue :magenta :cyan :white.
-(set-color :keyword :magenta)
-(set-color :comment :green)
+;;; Colours.  Faces: :keyword :comment :block-comment :string :digits
+;;; :alpha (identifiers) :symbol (the rest) :brace :modeline.
+;;; Colours: :default (the terminal's own), :black :red :green :yellow :blue
+;;; :magenta :cyan :white, or 0-255 on 256-colour terminals.
+;;; Attributes after the background: :bold :underline :reverse :dim :italic
+;; (set-color :keyword :blue :default :bold)
+;; (set-color :comment 244)                ; grey
+;; (set-color :string 28)                  ; dark green, for light backgrounds
 
 ;;; A command of your own, bound to a free user key (see Esc-l for the
 ;;; keys shown as "user-defined-function").

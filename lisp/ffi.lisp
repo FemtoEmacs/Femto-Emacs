@@ -124,7 +124,9 @@ and the library can be moved together."
 (defcore %quit "fe_quit" sb-alien:void)
 (defcore %screen-rows "fe_screen_rows" sb-alien:int)
 (defcore %screen-cols "fe_screen_cols" sb-alien:int)
-(defcore %set-color "fe_set_color" sb-alien:int (id sb-alien:int) (fg sb-alien:int) (bg sb-alien:int))
+(defcore %set-color "fe_set_color" sb-alien:int
+  (id sb-alien:int) (fg sb-alien:int) (bg sb-alien:int) (attr sb-alien:int))
+(defcore %colors "fe_colors" sb-alien:int)
 
 (defcore %set-hooks "fe_set_hooks" sb-alien:void
   (eval sb-alien:system-area-pointer)
@@ -259,17 +261,39 @@ which case GET-KEY-NAME and GET-KEY-BINDING describe it."
   '((:symbol . 1) (:modeline . 2) (:brace . 3) (:keyword . 4) (:alpha . 5)
     (:digits . 6) (:comment . 7) (:block-comment . 8) (:string . 9)))
 
+;; the eight basic colours; :default is the terminal's own colour, and
+;; an integer 0-255 picks from the 256-colour palette
 (defparameter *curses-colors*
-  '((:black . 0) (:red . 1) (:green . 2) (:yellow . 3)
+  '((:default . -1) (:black . 0) (:red . 1) (:green . 2) (:yellow . 3)
     (:blue . 4) (:magenta . 5) (:cyan . 6) (:white . 7)))
+
+(defparameter *face-attributes*
+  '((:bold . 1) (:underline . 2) (:reverse . 4) (:dim . 8) (:italic . 16)))
 
 (defun color-id (face)
   (or (cdr (assoc face *color-ids*))
       (error "Unknown face ~S; expected one of ~{~S~^ ~}" face (mapcar #'car *color-ids*))))
 
-(defun set-color (face foreground &optional (background :black))
-  "(set-color :keyword :red) -- change the colours used for FACE."
-  (flet ((c (x) (or (cdr (assoc x *curses-colors*))
-                    (and (integerp x) x)
-                    (error "Unknown colour ~S" x))))
-    (= 1 (%set-color (color-id face) (c foreground) (c background)))))
+(defun color-number (x)
+  (cond ((cdr (assoc x *curses-colors*)))
+        ((and (integerp x) (<= -1 x 255)) x)
+        (t (error "Unknown colour ~S; use ~{~S~^ ~} or 0-255" x (mapcar #'car *curses-colors*)))))
+
+(defun set-color (face foreground &optional (background :default) &rest attributes)
+  "Change how FACE is drawn.
+
+  (set-color :keyword :red)
+  (set-color :comment 244)                    ; grey, from the 256-colour palette
+  (set-color :string :green :default :bold)   ; attributes: :bold :underline
+                                              ; :reverse :dim :italic
+
+Faces: :keyword :comment :block-comment :string :digits :alpha (identifiers)
+:symbol (everything else) :brace (matching paren) :modeline."
+  (= 1 (%set-color (color-id face) (color-number foreground) (color-number background)
+                   (loop for a in attributes
+                         sum (or (cdr (assoc a *face-attributes*))
+                                 (error "Unknown attribute ~S" a))))))
+
+(defun terminal-colors ()
+  "How many colours the terminal has (0 before the screen is up)."
+  (%colors))

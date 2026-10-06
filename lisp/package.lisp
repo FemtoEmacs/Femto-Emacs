@@ -36,7 +36,7 @@
    ;; customisation
    #:global-set-key #:global-unset-key #:key-binding #:*keymap*
    #:*kill-hook* #:*startup-hook* #:*kill-ring* #:*kill-ring-max*
-   #:set-color #:show-startup-message
+   #:set-color #:terminal-colors #:show-startup-message
    ;; syntax highlighting
    #:define-language #:find-language #:language-for-file #:*languages*
    #:highlight-string

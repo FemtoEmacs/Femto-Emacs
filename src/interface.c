@@ -81,49 +81,136 @@ int call_lisp_highlight(buffer_t *bp, char_t *text, int len, char_t *colors)
 /* Colours, settable from Lisp before fe_main() starts curses           */
 /* ------------------------------------------------------------------ */
 
+/*
+ * Each face (ID_COLOR_*) has a foreground, a background and attributes.
+ * -1 means the terminal's own default colour.  Using the terminal's
+ * background (instead of forcing black, as FemtoEmacs did) keeps the
+ * terminal's cursor visible on light and dark themes alike.
+ *
+ * The default theme is chosen when curses starts, because only then do we
+ * know whether the terminal has 256 colours.  Faces set from Lisp before
+ * that are remembered and applied on top of it.
+ */
+
 #define FE_MAX_COLOR 16
+
+/* attribute bits used by fe_set_color, see set-color in lisp/ffi.lisp */
+#define FE_BOLD      1
+#define FE_UNDERLINE 2
+#define FE_REVERSE   4
+#define FE_DIM       8
+#define FE_ITALIC   16
+
 static short color_fg[FE_MAX_COLOR + 1];
 static short color_bg[FE_MAX_COLOR + 1];
-static int colors_set = 0;
+static int   color_attr[FE_MAX_COLOR + 1];
+static short user_fg[FE_MAX_COLOR + 1];
+static short user_bg[FE_MAX_COLOR + 1];
+static int   user_attr[FE_MAX_COLOR + 1];
+static int   user_set[FE_MAX_COLOR + 1];
+static int   colors_ready = 0;
 
-static void default_colors(void)
+static void face(int id, short fg, short bg, int attr)
 {
-	int i;
-	for (i = 0; i <= FE_MAX_COLOR; i++) {
-		color_fg[i] = COLOR_WHITE;
-		color_bg[i] = COLOR_BLACK;
-	}
-	color_fg[ID_COLOR_SYMBOL]   = COLOR_WHITE;
-	color_fg[ID_COLOR_MODELINE] = COLOR_BLACK;  color_bg[ID_COLOR_MODELINE] = COLOR_WHITE;
-	color_fg[ID_COLOR_BRACE]    = COLOR_BLACK;  color_bg[ID_COLOR_BRACE]    = COLOR_CYAN;
-	color_fg[ID_COLOR_KEYWORD]  = COLOR_MAGENTA;
-	color_fg[ID_COLOR_ALPHA]    = COLOR_CYAN;
-	color_fg[ID_COLOR_DIGITS]   = COLOR_YELLOW;
-	color_fg[ID_COLOR_COMMENTS] = COLOR_GREEN;
-	color_fg[ID_COLOR_BLOCK]    = COLOR_GREEN;
-	color_fg[ID_COLOR_STRING]   = COLOR_YELLOW;
-	colors_set = 1;
+	color_fg[id] = fg;
+	color_bg[id] = bg;
+	color_attr[id] = attr;
 }
 
-/* (set-color :keyword :red :black) ends up here; colours are curses numbers 0-7 */
-int fe_set_color(int id, int fg, int bg)
+static void default_theme(int many_colors)
 {
-	if (!colors_set) default_colors();
+	int i;
+	for (i = 0; i <= FE_MAX_COLOR; i++)
+		face(i, -1, -1, 0);
+
+	face(ID_COLOR_MODELINE, -1, -1, FE_REVERSE);
+	face(ID_COLOR_BRACE, COLOR_BLACK, COLOR_CYAN, 0);
+
+	if (many_colors) {
+		/* picked to stay readable on both white and black backgrounds */
+		face(ID_COLOR_KEYWORD,  127, -1, FE_BOLD);  /* purple */
+		face(ID_COLOR_DIGITS,   166, -1, 0);        /* orange */
+		face(ID_COLOR_COMMENTS, 244, -1, 0);        /* grey   */
+		face(ID_COLOR_BLOCK,    244, -1, 0);
+		face(ID_COLOR_STRING,    64, -1, 0);        /* olive green */
+	} else {
+		face(ID_COLOR_KEYWORD,  COLOR_MAGENTA, -1, FE_BOLD);
+		face(ID_COLOR_DIGITS,   COLOR_RED,     -1, 0);
+		face(ID_COLOR_COMMENTS, COLOR_BLUE,    -1, 0);
+		face(ID_COLOR_BLOCK,    COLOR_BLUE,    -1, 0);
+		face(ID_COLOR_STRING,   COLOR_GREEN,   -1, 0);
+	}
+}
+
+static short usable(short c)
+{
+	return (c >= COLORS) ? -1 : c;
+}
+
+static void install_face(int id)
+{
+	if (has_colors())
+		init_pair((short) id, usable(color_fg[id]), usable(color_bg[id]));
+}
+
+/* attrset() for a face: colour pair plus its attributes */
+void face_on(int id)
+{
+	int a = color_attr[id];
+	attr_t attrs = 0;
+
+	if (a & FE_BOLD)      attrs |= A_BOLD;
+	if (a & FE_UNDERLINE) attrs |= A_UNDERLINE;
+	if (a & FE_REVERSE)   attrs |= A_REVERSE;
+	if (a & FE_DIM)       attrs |= A_DIM;
+#ifdef A_ITALIC
+	if (a & FE_ITALIC)    attrs |= A_ITALIC;
+#endif
+	if (has_colors())
+		attrs |= COLOR_PAIR(id);
+	attrset(attrs);
+}
+
+/*
+ * (set-color :keyword :red) ends up here.  Colours are 0-255 or -1 for
+ * the terminal default; attr is a combination of the FE_* bits.
+ */
+int fe_set_color(int id, int fg, int bg, int attr)
+{
 	if (id < 1 || id > FE_MAX_COLOR) return 0;
-	color_fg[id] = (short) fg;
-	color_bg[id] = (short) bg;
-	if (curscr != NULL && has_colors())
-		init_pair((short) id, color_fg[id], color_bg[id]);
+	user_fg[id] = (short) fg;
+	user_bg[id] = (short) bg;
+	user_attr[id] = attr;
+	user_set[id] = 1;
+	if (colors_ready) {
+		face(id, (short) fg, (short) bg, attr);
+		install_face(id);
+	}
 	return 1;
+}
+
+/* number of colours the terminal supports (0 before curses starts) */
+int fe_colors(void)
+{
+	return colors_ready && has_colors() ? COLORS : 0;
 }
 
 void init_colors(void)
 {
 	int i;
-	if (!colors_set) default_colors();
-	start_color();
-	for (i = 1; i <= ID_COLOR_STRING; i++)
-		init_pair((short) i, color_fg[i], color_bg[i]);
+
+	if (has_colors()) {
+		start_color();
+		use_default_colors();
+	}
+	default_theme(has_colors() && COLORS >= 256);
+	for (i = 1; i <= FE_MAX_COLOR; i++) {
+		if (user_set[i])
+			face(i, user_fg[i], user_bg[i], user_attr[i]);
+		install_face(i);
+	}
+	colors_ready = 1;
+	curs_set(1);
 }
 
 /* ------------------------------------------------------------------ */

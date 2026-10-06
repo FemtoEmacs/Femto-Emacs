@@ -173,11 +173,11 @@ void display_char(buffer_t *bp, char_t *p)
 		return;
 	}
 	if (bp->b_paren != NOPAREN && (off == bp->b_point || off == bp->b_paren))
-		attron(COLOR_PAIR(ID_COLOR_BRACE));
+		face_on(ID_COLOR_BRACE);
 	else
-		attron(COLOR_PAIR(color_at(bp, p)));
+		face_on(color_at(bp, p));
 	addch(*p);
-	attron(COLOR_PAIR(ID_COLOR_ALPHA));
+	face_on(ID_COLOR_SYMBOL);
 }
 
 char *get_file_extension(char *filename)
@@ -241,9 +241,9 @@ void display(window_t *wp, int flag)
 			nch = utf8_size(*p);
 			if ( nch > 1) {
 				j++;
-				attron(COLOR_PAIR(color_at(bp, p)));
+				face_on(color_at(bp, p));
 				display_utf8(bp, *p, nch);
-				attron(COLOR_PAIR(ID_COLOR_ALPHA));
+				face_on(ID_COLOR_SYMBOL);
 			} else if (isprint(*p) || *p == '\t' || *p == '\n') {
 				j += *p == '\t' ? 8-(j&7) : 1;
 				display_char(bp, p);
@@ -320,7 +320,7 @@ void modeline(window_t *wp)
 	static char modeline_buf[256];
 
 	/* n = utf8_size(*(ptr(wp->w_bufp, wp->w_bufp->b_point))); */
-	attron(COLOR_PAIR(ID_COLOR_MODELINE));
+	face_on(ID_COLOR_MODELINE);
 	move(wp->w_top + wp->w_rows, 0);
 	lch = (wp == curwp ? '=' : '-');
 	mch = ((wp->w_bufp->b_flags & B_MODIFIED) ? '*' : lch);
@@ -336,7 +336,7 @@ void modeline(window_t *wp)
 
 	for (i = strlen(modeline_buf) + 1; i <= COLS; i++)
 		addch(lch);
-	attron(COLOR_PAIR(ID_COLOR_SYMBOL));
+	face_on(ID_COLOR_SYMBOL);
 }
 
 void dispmsg()

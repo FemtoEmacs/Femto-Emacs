@@ -364,6 +364,7 @@ extern void call_lisp(char *, char *, int);
 extern void call_lisp_event(char *, char *);
 extern int call_lisp_highlight(buffer_t *, char_t *, int, char_t *);
 extern void init_colors(void);
+extern void face_on(int);
 extern int fe_main(int, char **);
 extern void keyboardDefinition(void);
 extern void run_kill_hook(char *);

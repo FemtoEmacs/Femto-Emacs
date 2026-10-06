@@ -40,7 +40,8 @@ int fe_main(int argc, char **argv)
                                   REPORT_MOUSE_POSITION, NULL);
              argc = 1;
            }
-	bkgd((chtype) (' ' | COLOR_PAIR(ID_COLOR_ALPHA)));
+	bkgd((chtype) (' ' | (has_colors() ? COLOR_PAIR(ID_COLOR_SYMBOL) : 0)));
+	face_on(ID_COLOR_SYMBOL);
 
 	if (argc > 1) {
 		char bname[NBUFN];

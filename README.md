@@ -113,7 +113,8 @@ compiled in.  See [`samples/init.lisp`](samples/init.lisp) for a starting point.
 
 (global-set-key "C-c d" 'insert-date)       ; any key Esc-l shows as user-defined-function
 
-(set-color :keyword :red)                   ; faces: :keyword :comment :string :digits ...
+(set-color :keyword :blue :default :bold)   ; face, foreground, background, attributes
+(set-color :comment 244)                    ; 0-255 on 256-colour terminals
 
 (define-language "Go"
   :extensions '(".go")
@@ -125,6 +126,17 @@ compiled in.  See [`samples/init.lisp`](samples/init.lisp) for a starting point.
 
 (setf *undo-mode* nil)                      ; save memory: no unlimited undo
 ```
+
+### Colours
+
+SBEmacs draws on the terminal's own background and default text colour, so
+it fits light and dark terminal themes and the terminal's cursor stays
+visible.  On 256-colour terminals keywords are bold purple, strings olive
+green, numbers orange and comments grey; identifiers and punctuation use the
+terminal's text colour.  Change any face with `set-color`: faces are
+`:keyword :comment :block-comment :string :digits :alpha :symbol :brace
+:modeline`, colours `:default :black :red :green :yellow :blue :magenta
+:cyan :white` or 0-255, attributes `:bold :underline :reverse :dim :italic`.
 
 ### Syntax highlighting
 
