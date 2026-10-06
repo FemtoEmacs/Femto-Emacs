@@ -88,12 +88,24 @@ an editor window."
             (or (> start 0) (< end size)) region before after)))
 
 (defun codex-source-directory ()
-  "Directory of the current file, or the editor's working directory."
-  (let ((file (buffer-filename)))
-    (if file
-        (native (make-pathname :name nil :type nil :version nil
-                               :defaults (pathname file)))
-        (native *default-pathname-defaults*))))
+  "Absolute directory of the current file, or the editor's directory.
+A relative buffer name such as teste.lisp must not become the empty string."
+  (let* ((file (buffer-filename))
+         (absolute (and file (plusp (length file))
+                        (merge-pathnames (pathname file)
+                                         *default-pathname-defaults*)))
+         (directory (if absolute
+                        (make-pathname :name nil :type nil :version nil
+                                       :defaults absolute)
+                        *default-pathname-defaults*)))
+    (native directory)))
+
+(defun codex-effective-working-directory ()
+  "A nonempty directory for `codex exec --cd'."
+  (let ((directory (trim (or *codex-working-directory* ""))))
+    (if (plusp (length directory))
+        directory
+        (native (truename *default-pathname-defaults*)))))
 
 (defun codex-clear-current-buffer ()
   (goto-char 0)
@@ -162,7 +174,8 @@ an editor window."
                 "--ignore-rules"
                 "--skip-git-repo-check"
                 "--color" "never"
-                "-C" *codex-working-directory*)
+                (concatenate 'string "--cd="
+                             (codex-effective-working-directory)))
           (when *codex-model* (list "--model" *codex-model*))
           (list "-")))
 

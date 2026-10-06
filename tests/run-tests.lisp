@@ -192,7 +192,14 @@
              (*codex-model* nil))
          (codex-exec-arguments))
        '("exec" "--sandbox" "read-only" "--ephemeral" "--ignore-rules"
-         "--skip-git-repo-check" "--color" "never" "-C" "/tmp/project/" "-"))
+         "--skip-git-repo-check" "--color" "never" "--cd=/tmp/project/" "-"))
+(check "Codex never sends an empty --cd value"
+       (let* ((*codex-working-directory* "")
+              (*codex-model* nil)
+              (argument (find-if (lambda (item) (starts-with-p "--cd=" item))
+                                 (codex-exec-arguments))))
+         (and argument (> (length argument) (length "--cd="))))
+       t)
 (check "Codex program setting is exported"
        (eq (find-symbol "*CODEX-PROGRAM*" '#:sbemacs-user)
            (find-symbol "*CODEX-PROGRAM*" '#:sbemacs))
