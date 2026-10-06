@@ -76,7 +76,11 @@ jobs:
         shell: pwsh
         run: |
           $msi = Join-Path $env:RUNNER_TEMP 'sbcl-2.6.9-x86-64-windows-binary.msi'
-          Invoke-WebRequest -Uri 'https://downloads.sourceforge.net/project/sbcl/sbcl/2.6.9/sbcl-2.6.9-x86-64-windows-binary.msi' -OutFile $msi
+          & curl.exe -L --fail --silent --show-error --output $msi 'https://downloads.sourceforge.net/project/sbcl/sbcl/2.6.9/sbcl-2.6.9-x86-64-windows-binary.msi'
+          if ($LASTEXITCODE -ne 0) { throw 'Could not download the official SBCL 2.6.9 MSI' }
+          $header = [System.IO.File]::ReadAllBytes($msi)[0..7]
+          $oleHeader = [byte[]](0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1)
+          if ((Compare-Object $header $oleHeader)) { throw 'The SBCL download is not an MSI file' }
           $process = Start-Process msiexec.exe -ArgumentList '/i', $msi, '/qn', '/norestart' -Wait -PassThru
           if ($process.ExitCode -ne 0) {
             throw "SBCL installer exited with code $($process.ExitCode)"
