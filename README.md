@@ -147,6 +147,11 @@ Claude is reached in one of two ways (`*claude-transport*`):
   on its standard input, never on the command line.
 * `:auto` (the default): `:cli` when `claude` is installed, `:api` otherwise.
 
+If Claude cannot be reached, the window below says why and how to fix it;
+`Esc-;` `(assistant-status)` shows the same check at any time.  The usual
+fix is to install Claude Code and log in once in a terminal
+(`curl -fsSL https://claude.ai/install.sh | bash`, then `claude`).
+
 `*claude-model*` picks the model (`"sonnet"`, `"opus"`, or a full model
 name), `*assistant-timeout*` how long to wait, and `*assistant-instructions*`
 what the assistant is told.  The editor waits while the assistant thinks;

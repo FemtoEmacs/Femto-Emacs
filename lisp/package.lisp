@@ -53,6 +53,8 @@
    ;; extensions
    #:buffer-menu #:kill-ring-menu #:insert-kill-ring #:dired
    #:grep-command #:next-grep
+   #:ask-claude #:ask-codex #:assistant-insert #:assistant-status
+   #:*claude-transport* #:*claude-model* #:*assistant-timeout*
    ;; default user commands (formerly in init.lsp)
    #:*undo-mode* #:read-string #:weekday #:what-day #:insert-day
    #:html-p #:html-h1 #:html-pp #:indent-two #:deindent-two

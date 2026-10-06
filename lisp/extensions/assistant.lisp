@@ -129,6 +129,17 @@ it returns the answer as a string or signals an error."
       (let ((p (probe-file (merge-pathnames (concatenate 'string name ext) dir))))
         (when (and p (pathname-name p)) (return-from find-program p))))))
 
+(defun child-environment ()
+  "This process's environment, with the PATH extended by the directories
+FIND-PROGRAM looks in (an editor started from the Dock or Finder gets a
+short PATH, and programs like claude may need to find others)."
+  (let ((path (format nil "~{~A~^~A~}"
+                      (loop for (d . more) on (path-directories)
+                            collect (string-right-trim "/\\" (native d))
+                            when more collect #+win32 ";" #-win32 ":"))))
+    (cons (concatenate 'string "PATH=" path)
+          (remove-if (lambda (e) (starts-with-p "PATH=" e)) (sb-ext:posix-environ)))))
+
 (defun run-with-input (program args input &key (timeout *assistant-timeout*))
   "Run PROGRAM with ARGS, feed it the string INPUT on stdin, and return
 its standard output, its standard error and its exit code.  Kill it after
@@ -136,6 +147,7 @@ TIMEOUT seconds."
   (let* ((proc (sb-ext:run-program program args
                                    :input :stream :output :stream :error :stream
                                    :wait nil :search nil
+                                   :environment (child-environment)
                                    :external-format :utf-8))
          (out (make-string-output-stream))
          (err (make-string-output-stream))
@@ -426,11 +438,47 @@ cursor stays where it was."
            answer)
           (message "~A answered.  ~:[C-x 1 closes the window~;C-c y inserts the code, C-x 1 closes the window~]"
                    name (proposed-code answer)))
-      ;; Third Law: whatever happens, the editor and the buffer survive
+      ;; Third Law: whatever happens, the editor and the buffer survive.
+      ;; The explanation goes in the window, where it can be read.
       (error (e)
-        (message "~A: ~A" name (substitute #\Space #\Newline (princ-to-string e)))))))
+        (show-in-assistant-window
+         (format nil "~A could not be reached" name)
+         (format nil "~A~%~%~A" (princ-to-string e) (assistant-status-text)))
+        (message "~A could not be reached; see the window below" name)))))
 
 (defun ask-claude () (ask-assistant :claude))
+
+;;; ------------------------------------------------------------------
+;;; What is set up, and how to fix it
+;;; ------------------------------------------------------------------
+
+(defun assistant-status-text ()
+  (let ((claude (find-program "claude"))
+        (curl (find-program "curl"))
+        (key (anthropic-api-key)))
+    (format nil "Set-up~%------~%~
+                 transport (*claude-transport*): ~S~%~
+                 claude program: ~:[NOT FOUND~;~:*~A~]~%~
+                 curl:           ~:[NOT FOUND~;~:*~A~]~%~
+                 API key:        ~:[none~;found~]~%~%~
+                 To use your Claude subscription, install Claude Code and log in~%~
+                 once in a terminal:~%~%    ~
+                 curl -fsSL https://claude.ai/install.sh | bash~%    ~
+                 claude~%~%~
+                 (or: brew install --cask claude-code).  Claude Code needs a Pro,~%~
+                 Max, Team or Enterprise plan.  To use an API key instead, put it~%~
+                 in ~~/.sbemacs/anthropic-api-key or in ANTHROPIC_API_KEY.~%~%~
+                 Programs are looked for on the PATH and in:~%~{  ~A~%~}"
+            *claude-transport*
+            (and claude (native claude))
+            (and curl (native curl))
+            key
+            (mapcar #'native (last (path-directories) 6)))))
+
+(defun assistant-status ()
+  "Show how the assistant would reach Claude (Esc-; (assistant-status))."
+  (show-in-assistant-window "Assistant status" (assistant-status-text))
+  t)
 
 ;;; ------------------------------------------------------------------
 ;;; Second Law: insert the proposed code, when told to
