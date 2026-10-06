@@ -10,13 +10,18 @@
 ;;; Finding and loading libsbemacs
 ;;; ------------------------------------------------------------------
 
-(defparameter *library-name*
-  #+darwin "libsbemacs.dylib"
-  #+win32 "libsbemacs.dll"
-  #-(or darwin win32) "libsbemacs.so")
+(defparameter *library-extension*
+  #+darwin "dylib" #+win32 "dll" #-(or darwin win32) "so")
+
+(defun library-name (backend)
+  "libsbemacs-term or libsbemacs-gui, with this system's extension."
+  (format nil "libsbemacs-~A.~A" (if (eq backend :gui) "gui" "term") *library-extension*))
 
 (defvar *library-path* nil
-  "Where libsbemacs was loaded from.")
+  "Where the editor library was loaded from.")
+
+(defvar *backend* nil
+  "The library in use: :TERMINAL or :GUI.")
 
 (defvar *source-directory*
   (let ((here (or *compile-file-truename* *load-truename*)))
@@ -24,27 +29,37 @@
       (merge-pathnames "../" (make-pathname :name nil :type nil :defaults here))))
   "The lisp/ directory's parent when the sources were compiled.")
 
-(defun library-candidates ()
-  (let ((env (sb-ext:posix-getenv "SBEMACS_LIB"))
+(defun library-candidates (backend)
+  (let ((name (library-name backend))
+        (env (sb-ext:posix-getenv (if (eq backend :gui) "SBEMACS_GUI_LIB" "SBEMACS_LIB")))
         (exe (ignore-errors (truename sb-ext:*runtime-pathname*))))
     (remove nil
-            (list (and env (pathname env))
-                  (and exe (merge-pathnames *library-name* exe))
-                  (and exe (merge-pathnames (concatenate 'string "../lib/sbemacs/" *library-name*) exe))
-                  (and *source-directory* (merge-pathnames *library-name* *source-directory*))
-                  (merge-pathnames *library-name*)))))
+            (list (and env (plusp (length env)) (pathname env))
+                  (and exe (merge-pathnames name exe))
+                  (and exe (merge-pathnames (concatenate 'string "../lib/sbemacs/" name) exe))
+                  (and *source-directory* (merge-pathnames name *source-directory*))
+                  (merge-pathnames name)))))
 
-(defun load-core-library ()
-  "Load libsbemacs.  It is not saved in the image, so that the executable
-and the library can be moved together."
+(defun load-core-library (&optional (backend :terminal))
+  "Load the editor library for BACKEND (:TERMINAL or :GUI).  Both export
+the same functions, so everything else is the same.  The library is not
+saved in the image, so that the executable and the libraries can be
+moved together."
   (unless *library-path*
-    (let ((path (find-if #'probe-file (library-candidates))))
+    (let ((path (find-if #'probe-file (library-candidates backend))))
       (unless path
-        (error "Cannot find ~A. Looked in:~%~{  ~A~%~}Set SBEMACS_LIB to its full path."
-               *library-name* (mapcar #'namestring (library-candidates))))
+        (error "Cannot find ~A. Looked in:~%~{  ~A~%~}Set ~A to its full path."
+               (library-name backend) (mapcar #'namestring (library-candidates backend))
+               (if (eq backend :gui) "SBEMACS_GUI_LIB" "SBEMACS_LIB")))
       (sb-alien:load-shared-object (native (truename path)) :dont-save t)
-      (setf *library-path* (truename path))))
+      (setf *library-path* (truename path)
+            *backend* backend)))
   *library-path*)
+
+(defun unload-core-library ()
+  (when *library-path*
+    (sb-alien:unload-shared-object (native *library-path*))
+    (setf *library-path* nil *backend* nil)))
 
 (defun native (pathname)
   (sb-ext:native-namestring pathname))
@@ -128,9 +143,9 @@ and the library can be moved together."
 (defcore %screen-rows "fe_screen_rows" sb-alien:int)
 (defcore %screen-cols "fe_screen_cols" sb-alien:int)
 (defcore %set-color "fe_set_color" sb-alien:int
-  (id sb-alien:int) (fg sb-alien:int) (bg sb-alien:int) (attr sb-alien:int))
+  (id sb-alien:int) (fg sb-alien:long) (bg sb-alien:long) (attr sb-alien:int))
 (defcore %set-theme-face "fe_set_theme_face" sb-alien:int
-  (id sb-alien:int) (fg sb-alien:int) (bg sb-alien:int) (attr sb-alien:int))
+  (id sb-alien:int) (fg sb-alien:long) (bg sb-alien:long) (attr sb-alien:int))
 (defcore %reapply-colors "fe_reapply_colors" sb-alien:void)
 (defcore %colors "fe_colors" sb-alien:int)
 
@@ -138,6 +153,15 @@ and the library can be moved together."
   (eval sb-alien:system-area-pointer)
   (event sb-alien:system-area-pointer)
   (highlight sb-alien:system-area-pointer))
+
+(defcore %screen-probe "fe_screen_probe" sb-alien:int)
+(defcore %backend-name "fe_backend" sb-alien:c-string)
+(defcore %gui-set-font "fe_gui_set_font" sb-alien:void (path sb-alien:c-string) (points sb-alien:int))
+(defcore %gui-set-colors "fe_gui_set_colors" sb-alien:void
+  (fg sb-alien:long) (bg sb-alien:long) (cursor sb-alien:long))
+
+(defcore %gui-set-option "fe_gui_set_option" sb-alien:void
+  (name sb-alien:c-string) (value sb-alien:int))
 
 (defcore %fe-main "fe_main" sb-alien:int (argc sb-alien:int) (argv (* sb-alien:c-string)))
 
@@ -310,10 +334,18 @@ which case GET-KEY-NAME and GET-KEY-BINDING describe it."
   (or (cdr (assoc face *color-ids*))
       (error "Unknown face ~S; expected one of ~{~S~^ ~}" face (mapcar #'car *color-ids*))))
 
+(defconstant +rgb-flag+ #x1000000
+  "Marks a 24-bit colour (SCR_RGB_FLAG in src/screen.h).")
+
 (defun color-number (x)
+  "A colour for the C side: -1 (default), 0-255, or a 24-bit \"#rrggbb\"."
   (cond ((cdr (assoc x *curses-colors*)))
         ((and (integerp x) (<= -1 x 255)) x)
-        (t (error "Unknown colour ~S; use ~{~S~^ ~} or 0-255" x (mapcar #'car *curses-colors*)))))
+        ((and (stringp x) (= (length x) 7) (char= (char x 0) #\#)
+              (every (lambda (c) (digit-char-p c 16)) (subseq x 1)))
+         (logior +rgb-flag+ (parse-integer x :start 1 :radix 16)))
+        (t (error "Unknown colour ~S; use ~{~S~^ ~}, 0-255 or \"#rrggbb\""
+                  x (mapcar #'car *curses-colors*)))))
 
 (defun attribute-bits (attributes)
   (loop for a in attributes

@@ -242,7 +242,36 @@ installs itself here.")
 ;;; ------------------------------------------------------------------
 
 (defun usage ()
-  (format t "Usage: sbemacs [-q] [file] [+]~%~%  -q         do not load ~~/.sbemacs/init.lisp~%  +          enable the mouse~%  --version  print the version and exit~%"))
+  (format t "Usage: sbemacs [--gui] [-q] [file] [+]~%~%  --gui, -g  open a window (SDL2) instead of using the terminal;~%             also when started as sbemacs-gui~%  -q         do not load ~~/.sbemacs/init.lisp~%  +          enable the mouse in the terminal~%  --version  print the version and exit~%"))
+
+(defmacro with-foreign-float-traps (&body body)
+  "C libraries (SDL, FreeType, graphics drivers) may compute with
+infinities and NaNs; SBCL would turn that into a Lisp error."
+  `(sb-int:with-float-traps-masked (:overflow :invalid :divide-by-zero :inexact :underflow)
+     ,@body))
+
+(defun gui-requested-p (args)
+  (or (member "--gui" args :test #'string=)
+      (member "-g" args :test #'string=)
+      (search "gui" (file-namestring (or (first sb-ext:*posix-argv*) "")))))
+
+(defun choose-backend (want-gui)
+  "Load the GUI library when asked for and a window can be opened here;
+otherwise the terminal library.  Returns the backend in use."
+  (when want-gui
+    (handler-case
+        (progn
+          (load-core-library :gui)
+          (if (= 1 (with-foreign-float-traps (%screen-probe)))
+              (return-from choose-backend :gui)
+              (progn
+                (unload-core-library)
+                (format *error-output* "sbemacs: cannot open a window here, using the terminal~%"))))
+      (error (e)
+        (unload-core-library)
+        (format *error-output* "sbemacs: ~A~%sbemacs: using the terminal~%" e))))
+  (load-core-library :terminal)
+  :terminal)
 
 (defun call-fe-main (args)
   "Call fe_main with a C argv built from ARGS."
@@ -274,15 +303,20 @@ installs itself here.")
           ((or (member "--help" args :test #'string=) (member "-h" args :test #'string=))
            (usage)
            (sb-ext:exit :code 0)))
-    (handler-case (load-core-library)
-      (error (e)
-        (format *error-output* "sbemacs: ~A~%" e)
-        (sb-ext:exit :code 1 :abort t)))
+    (let ((want-gui (gui-requested-p args)))
+      (setf args (remove-if (lambda (a) (member a '("--gui" "-g") :test #'string=)) args))
+      (handler-case (choose-backend want-gui)
+        (error (e)
+          (format *error-output* "sbemacs: ~A~%" e)
+          (sb-ext:exit :code 1 :abort t))))
     (install-hooks)
     (start-scripts)
     (setf *init-errors* (reverse *script-errors*))
     (unless no-init (load-user-init))
     (when *undo-mode* (add-mode-global "undo"))
-    (let ((code (call-fe-main args)))
+    (when (and (eq *backend* :gui) (fboundp 'apply-gui-settings))
+      (handler-case (funcall 'apply-gui-settings)
+        (error (e) (push (describe-error e) *init-errors*))))
+    (let ((code (with-foreign-float-traps (call-fe-main args))))
       (finish-output)
       (sb-ext:exit :code code :abort t))))

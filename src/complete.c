@@ -18,7 +18,7 @@ int getfilename(char *prompt, char *buf, int nbuf)
 			nskip = -1;
 		didtry = 0;
 		display_prompt_and_response(prompt, buf);
-		c = getch(); /* get a character from the user */
+		c = screen_getch(); /* get a character from the user */
 
 		switch(c) {
 		case 0x0a: /* cr, lf */

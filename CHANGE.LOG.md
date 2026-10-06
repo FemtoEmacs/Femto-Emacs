@@ -1,6 +1,15 @@
 # SBEmacs / Femto Emacs Change Log
 
 ## SBEmacs 2.0
+* A window of its own: `sbemacs --gui` (or `sbemacs-gui`) draws with SDL2
+  and SDL2_ttf, with 24-bit colours, a TrueType font, mouse clicks and
+  wheel, the system clipboard, font zoom, and dark and light themes.  Falls
+  back to the terminal when no window can be opened.
+* The C core no longer calls ncurses: it draws through src/screen.h, with
+  two back ends, src/term.c (ncurses) and src/gui.c (SDL2).  They are built
+  into two libraries with the same API, libsbemacs-term and libsbemacs-gui;
+  the executable loads one at start-up.
+* `set-color` accepts "#rrggbb" (approximated in a terminal).
 * femtolisp replaced by SBCL.  SBCL is now the host process and loads the C
   editor core (src/) as a shared library through sb-alien; the core calls
   back into Lisp for evaluation, user keys, kill hooks and highlighting.

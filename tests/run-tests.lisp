@@ -11,8 +11,8 @@
 
 (sb-alien:load-shared-object
  (sb-ext:native-namestring
-  (merge-pathnames #+darwin "libsbemacs.dylib" #+win32 "libsbemacs.dll"
-                   #-(or darwin win32) "libsbemacs.so"
+  (merge-pathnames #+darwin "libsbemacs-term.dylib" #+win32 "libsbemacs-term.dll"
+                   #-(or darwin win32) "libsbemacs-term.so"
                    *root*))
  :dont-save t)
 

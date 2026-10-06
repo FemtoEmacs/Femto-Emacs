@@ -39,6 +39,9 @@
    #:*kill-hook* #:*startup-hook* #:*self-insert-hook* #:*kill-ring* #:*kill-ring-max*
    #:set-color #:terminal-colors #:show-startup-message
    #:theme-face #:*color-theme* #:default-theme
+   ;; the window
+   #:set-gui-font #:set-gui-colors #:*gui-font* #:*gui-font-size*
+   #:*option-is-meta* #:*gui-theme* #:*gui-font-candidates*
    ;; indentation
    #:define-indentation #:define-indent-style #:indent-line #:indent-region
    #:indent-buffer #:newline-and-indent #:indentation-for

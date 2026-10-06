@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <assert.h>
-#include <curses.h>
+#include "screen.h"
 #include <stdio.h>
 #include <sys/types.h>
 #include <ctype.h>
@@ -21,12 +21,17 @@
 #define NAME_MAX 255
 #endif
 
+#ifndef TRUE
+#define TRUE  1
+#define FALSE 0
+#endif
+
 #define VERSION	 "SBEmacs 2.0 (FemtoEmacs on SBCL), Public Domain"
 #define EXIT_OK         0               /* Success */
 #define EXIT_ERROR      1               /* Unknown error. */
 #define EXIT_USAGE      2               /* Usage */
 #define EXIT_FAIL       3               /* Known failure. */
-#define MSGLINE         (LINES-1)
+#define MSGLINE         (screen_rows()-1)
 #define NOMARK          -1
 #define NOPAREN         -1
 #define CHUNK           8096L
@@ -364,6 +369,7 @@ extern void call_lisp(char *, char *, int);
 extern int call_lisp_event(char *, char *);
 extern int call_lisp_highlight(buffer_t *, char_t *, int, char_t *);
 extern void init_colors(void);
+extern void goto_screen_position(int, int);
 extern void face_on(int);
 extern int fe_main(int, char **);
 extern void keyboardDefinition(void);

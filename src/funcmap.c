@@ -233,7 +233,7 @@ void execute_command()
 	cpos = strlen(command_name);
 
 	while (process_input) {
-		ch = getch();
+		ch = screen_getch();
 		/* ignore control keys other than C-g, TAB, backspace, del, CR, ESC */
 		if (ch < 32 && ch != 7 && ch != 9 && ch != 8 && ch != 13 && ch != 10 && ch != 27)
 			continue;
@@ -241,7 +241,7 @@ void execute_command()
 		switch(ch) {
 		case 27: /* esc */
 			tab_count = 0;
-			flushinp(); /* discard any escape sequence without writing in buffer */
+			screen_flushinp(); /* discard any escape sequence without writing in buffer */
 			break;
 
 		case 7: /* ctrl-g */
@@ -284,7 +284,7 @@ void execute_command()
 					append_string(bp, "  ");
 					column += (2 + strlen(sl->string));
 
-					if (column >= COLS - 30) {
+					if (column >= screen_cols() - 30) {
 						append_string(bp, "\n");
 						column = 0;
 					}
@@ -293,7 +293,7 @@ void execute_command()
 			}
 			free_string_list(cmd_list);
 			display_prompt_and_response(prompt, command_name);
-			refresh();
+			screen_refresh();
 			break;
 
 		case 0x7f: /* del, erase */

@@ -100,29 +100,33 @@ int call_lisp_highlight(buffer_t *bp, char_t *text, int len, char_t *colors)
 
 #define FE_MAX_COLOR 16
 
-/* attribute bits used by fe_set_color, see set-color in lisp/ffi.lisp */
-#define FE_BOLD      1
-#define FE_UNDERLINE 2
-#define FE_REVERSE   4
-#define FE_DIM       8
-#define FE_ITALIC   16
+/* attribute bits used by fe_set_color: the same as SCR_* in screen.h */
+#define FE_BOLD      SCR_BOLD
+#define FE_UNDERLINE SCR_UNDERLINE
+#define FE_REVERSE   SCR_REVERSE
+#define FE_DIM       SCR_DIM
+#define FE_ITALIC    SCR_ITALIC
 
-static short color_fg[FE_MAX_COLOR + 1];
-static short color_bg[FE_MAX_COLOR + 1];
+/* basic colour numbers (the xterm palette) */
+enum { C_BLACK, C_RED, C_GREEN, C_YELLOW, C_BLUE, C_MAGENTA, C_CYAN, C_WHITE };
+
+static long  color_fg[FE_MAX_COLOR + 1];
+static long  color_bg[FE_MAX_COLOR + 1];
 static int   color_attr[FE_MAX_COLOR + 1];
-static short user_fg[FE_MAX_COLOR + 1];
-static short user_bg[FE_MAX_COLOR + 1];
+static long  user_fg[FE_MAX_COLOR + 1];
+static long  user_bg[FE_MAX_COLOR + 1];
 static int   user_attr[FE_MAX_COLOR + 1];
 static int   user_set[FE_MAX_COLOR + 1];
 static int   colors_ready = 0;
 
-static void face(int id, short fg, short bg, int attr)
+static void face(int id, long fg, long bg, int attr)
 {
 	color_fg[id] = fg;
 	color_bg[id] = bg;
 	color_attr[id] = attr;
 }
 
+/* a fallback in case lisp/theme.lisp is missing or broken */
 static void default_theme(int many_colors)
 {
 	int i;
@@ -130,66 +134,47 @@ static void default_theme(int many_colors)
 		face(i, -1, -1, 0);
 
 	face(ID_COLOR_MODELINE, -1, -1, FE_REVERSE);
-	face(ID_COLOR_BRACE, COLOR_BLACK, COLOR_CYAN, 0);
+	face(ID_COLOR_BRACE, C_BLACK, C_CYAN, 0);
 
 	if (many_colors) {
-		/* picked to stay readable on both white and black backgrounds */
 		face(ID_COLOR_KEYWORD,  127, -1, FE_BOLD);  /* purple */
 		face(ID_COLOR_DIGITS,   166, -1, 0);        /* orange */
 		face(ID_COLOR_COMMENTS, 244, -1, 0);        /* grey   */
 		face(ID_COLOR_BLOCK,    244, -1, 0);
 		face(ID_COLOR_STRING,    64, -1, 0);        /* olive green */
 	} else {
-		face(ID_COLOR_KEYWORD,  COLOR_MAGENTA, -1, FE_BOLD);
-		face(ID_COLOR_DIGITS,   COLOR_RED,     -1, 0);
-		face(ID_COLOR_COMMENTS, COLOR_BLUE,    -1, 0);
-		face(ID_COLOR_BLOCK,    COLOR_BLUE,    -1, 0);
-		face(ID_COLOR_STRING,   COLOR_GREEN,   -1, 0);
+		face(ID_COLOR_KEYWORD,  C_MAGENTA, -1, FE_BOLD);
+		face(ID_COLOR_DIGITS,   C_RED,     -1, 0);
+		face(ID_COLOR_COMMENTS, C_BLUE,    -1, 0);
+		face(ID_COLOR_BLOCK,    C_BLUE,    -1, 0);
+		face(ID_COLOR_STRING,   C_GREEN,   -1, 0);
 	}
-}
-
-static short usable(short c)
-{
-	return (c >= COLORS) ? -1 : c;
 }
 
 static void install_face(int id)
 {
-	if (has_colors())
-		init_pair((short) id, usable(color_fg[id]), usable(color_bg[id]));
+	screen_set_face(id, color_fg[id], color_bg[id], color_attr[id]);
 }
 
-/* attrset() for a face: colour pair plus its attributes */
+/* draw with a face from now on */
 void face_on(int id)
 {
-	int a = color_attr[id];
-	attr_t attrs = 0;
-
-	if (a & FE_BOLD)      attrs |= A_BOLD;
-	if (a & FE_UNDERLINE) attrs |= A_UNDERLINE;
-	if (a & FE_REVERSE)   attrs |= A_REVERSE;
-	if (a & FE_DIM)       attrs |= A_DIM;
-#ifdef A_ITALIC
-	if (a & FE_ITALIC)    attrs |= A_ITALIC;
-#endif
-	if (has_colors())
-		attrs |= COLOR_PAIR(id);
-	attrset(attrs);
+	screen_face(id);
 }
 
 /*
  * (set-color :keyword :red) ends up here.  Colours are 0-255 or -1 for
  * the terminal default; attr is a combination of the FE_* bits.
  */
-int fe_set_color(int id, int fg, int bg, int attr)
+int fe_set_color(int id, long fg, long bg, int attr)
 {
 	if (id < 1 || id > FE_MAX_COLOR) return 0;
-	user_fg[id] = (short) fg;
-	user_bg[id] = (short) bg;
+	user_fg[id] = fg;
+	user_bg[id] = bg;
 	user_attr[id] = attr;
 	user_set[id] = 1;
 	if (colors_ready) {
-		face(id, (short) fg, (short) bg, attr);
+		face(id, fg, bg, attr);
 		install_face(id);
 	}
 	return 1;
@@ -200,17 +185,17 @@ int fe_set_color(int id, int fg, int bg, int attr)
  * like fe_set_color, but it sets the theme's face, which the user's own
  * set-color calls still override.
  */
-int fe_set_theme_face(int id, int fg, int bg, int attr)
+int fe_set_theme_face(int id, long fg, long bg, int attr)
 {
 	if (id < 1 || id > FE_MAX_COLOR) return 0;
-	face(id, (short) fg, (short) bg, attr);
+	face(id, fg, bg, attr);
 	return 1;
 }
 
 /* number of colours the terminal supports (0 before curses starts) */
 int fe_colors(void)
 {
-	return colors_ready && has_colors() ? COLORS : 0;
+	return colors_ready ? screen_colors() : 0;
 }
 
 /* built-in fallback, then the Lisp theme, then the user's own faces */
@@ -219,9 +204,9 @@ static void apply_faces(void)
 	int i;
 	char ncolors[16];
 
-	default_theme(has_colors() && COLORS >= 256);
+	default_theme(screen_colors() >= 256);
 	colors_ready = 1;
-	snprintf(ncolors, sizeof(ncolors), "%d", has_colors() ? COLORS : 0);
+	snprintf(ncolors, sizeof(ncolors), "%d", screen_colors());
 	call_lisp_event("colors", ncolors);
 	for (i = 1; i <= FE_MAX_COLOR; i++) {
 		if (user_set[i])
@@ -232,12 +217,7 @@ static void apply_faces(void)
 
 void init_colors(void)
 {
-	if (has_colors()) {
-		start_color();
-		use_default_colors();
-	}
 	apply_faces();
-	curs_set(1);
 }
 
 /* re-run the theme, e.g. after lisp/theme.lisp was edited and reloaded */
@@ -377,12 +357,12 @@ char *fe_rename_buffer(char *name)   { return rename_current_buffer(name); }
 void fe_delete_other_windows(void)   { delete_other_windows(); }
 void fe_other_window(void)           { other_window(); }
 void fe_split_window(void)           { split_window(); }
-void fe_update_display(void)         { if (curscr != NULL && curwp != NULL) update_display(); }
-void fe_refresh(void)                { if (curscr != NULL) redraw(); }
+void fe_update_display(void)         { if (screen_active() && curwp != NULL) update_display(); }
+void fe_refresh(void)                { if (screen_active()) redraw(); }
 
 /* message line */
 void fe_message(char *s)             { msg("%s", s); }
-void fe_clear_message_line(void)     { if (curscr != NULL) clear_message_line(); }
+void fe_clear_message_line(void)     { if (screen_active()) clear_message_line(); }
 void fe_log_debug(char *s)           { debug("%s", s); }
 void fe_log_message(char *s)         { log_message(s); }
 
@@ -414,5 +394,19 @@ void  fe_shell_command(char *cmd)    { shell_command(cmd); }
 int   fe_add_mode_global(char *mode) { return add_mode_global(mode); }
 char *fe_version(void)               { return get_version_string(); }
 void  fe_quit(void)                  { done = 1; }
-int   fe_screen_rows(void)           { return LINES; }
-int   fe_screen_cols(void)           { return COLS; }
+int   fe_screen_rows(void)           { return screen_active() ? screen_rows() : 0; }
+int   fe_screen_cols(void)           { return screen_active() ? screen_cols() : 0; }
+
+/* can this back end start here?  (the GUI needs a display) */
+int fe_screen_probe(void)            { return screen_probe(); }
+
+/* which back end this library was built with: "terminal" or "gui" */
+const char *fe_backend(void)         { return screen_backend(); }
+
+/*
+ * GUI settings, given by lisp/gui.lisp before fe_main (no-ops in the
+ * terminal library).  Colours as in fe_set_color.
+ */
+void fe_gui_set_font(char *path, int points)          { screen_set_font(path, points); }
+void fe_gui_set_colors(long fg, long bg, long cursor) { screen_set_default_colors(fg, bg, cursor); }
+void fe_gui_set_option(char *name, int value)         { screen_set_option(name, value); }

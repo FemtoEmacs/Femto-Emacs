@@ -22,25 +22,18 @@ int fe_main(int argc, char **argv)
 
 	setlocale(LC_ALL, "") ; /* required for 3,4 byte UTF8 chars */
 
-	if (initscr() == NULL)
-		fatal(f_initscr);
-
-	raw();
-	noecho();
-	idlok(stdscr, TRUE);
+	{
+		/* "+" as the last argument turns the mouse on (always on in the GUI) */
+		int mouse = (argc >= 2 && strcmp(argv[argc - 1], "+") == 0);
+		if (mouse)
+			argc--;
+		if (!screen_init(mouse)) {
+			fprintf(stderr, f_initscr, prog_name);
+			return EXIT_FAIL;
+		}
+	}
 
 	init_colors();
-
-	if ( (argc == 3) && (strcmp(argv[2], "+") == 0) )
-            { mousemask( ALL_MOUSE_EVENTS |
-                                  REPORT_MOUSE_POSITION, NULL);
-            }
-        if ( (argc == 2) && (strcmp(argv[1], "+") == 0))
-           { mousemask( ALL_MOUSE_EVENTS |
-                                  REPORT_MOUSE_POSITION, NULL);
-             argc = 1;
-           }
-	bkgd((chtype) (' ' | (has_colors() ? COLOR_PAIR(ID_COLOR_SYMBOL) : 0)));
 	face_on(ID_COLOR_SYMBOL);
 
 	if (argc > 1) {
@@ -100,20 +93,15 @@ int fe_main(int argc, char **argv)
 	if (scrap != NULL)
 		free(scrap);
 
-	move(LINES-1, 0);
-	refresh();
-	noraw();
-	endwin();
+	screen_end();
 
 	return (EXIT_OK);
 }
 
 void fatal(char *m)
 {
-	if (curscr != NULL) {
-		move(LINES-1, 0);
-		refresh();
-		endwin();
+	if (screen_active()) {
+		screen_end();
 		putchar('\n');
 	}
 	fprintf(stderr, m, prog_name);

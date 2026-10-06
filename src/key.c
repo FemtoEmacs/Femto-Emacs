@@ -218,7 +218,7 @@ char_t *get_key(keymap_t *keys, keymap_t **key_return)
 	do {
 		assert(K_BUFFER_LENGTH > record - buffer);
 		/* read and record one byte. */
-		*record++ = (unsigned)getch();
+		*record++ = (unsigned)screen_getch();
 		*record = '\0';
 
 		/* if recorded bytes match any multi-byte sequence... */
@@ -271,20 +271,20 @@ int getinput(char *prompt, char *buf, int nbuf, int flag)
 	int c;
 	int start_col = strlen(prompt);
 
-	mvaddstr(MSGLINE, 0, prompt);
-	clrtoeol();
+	screen_mvaddstr(MSGLINE, 0, prompt);
+	screen_clrtoeol();
 
 	if (flag == F_CLEAR) buf[0] = '\0';
 
 	/* if we have a default value print it and go to end of it */
 	if (buf[0] != '\0') {
-		addstr(buf);
+		screen_addstr(buf);
 		cpos = strlen(buf);
 	}
 
 	for (;;) {
-		refresh();
-		c = getch();
+		screen_refresh();
+		c = screen_getch();
 		/* ignore control keys other than backspace, cr, lf */
 		if (c < 32 && c != 0x07 && c != 0x08 && c != 0x0a && c != 0x0d)
 			continue;
@@ -303,15 +303,15 @@ int getinput(char *prompt, char *buf, int nbuf, int flag)
 			if (cpos == 0)
 				continue;
 
-			move(MSGLINE, start_col + cpos - 1);
-			addch(' ');
-			move(MSGLINE, start_col + cpos - 1);
+			screen_move(MSGLINE, start_col + cpos - 1);
+			screen_addch(' ');
+			screen_move(MSGLINE, start_col + cpos - 1);
 			buf[--cpos] = '\0';
 			break;
 
 		default:
 			if (cpos < nbuf -1) {
-				addch(c);
+				screen_addch(c);
 				buf[cpos++] = c;
 				buf[cpos] ='\0';
 			}

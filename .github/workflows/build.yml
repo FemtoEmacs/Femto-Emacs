@@ -26,11 +26,14 @@ jobs:
 
       - name: Install SBCL and ncurses (Linux)
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y sbcl libncurses-dev pkg-config
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sbcl libncurses-dev pkg-config \
+            libsdl2-dev libsdl2-ttf-dev fonts-dejavu-core xvfb
 
       - name: Install SBCL (macOS)
         if: runner.os == 'macOS'
-        run: brew install sbcl
+        run: brew install sbcl sdl2 sdl2_ttf pkg-config
 
       - name: Build
         run: make
@@ -39,6 +42,17 @@ jobs:
         run: |
           make test
           ./sbemacs --version
+          ls libsbemacs-gui.*               # the GUI library must have been built
+
+      - name: GUI smoke test (Linux, virtual display)
+        if: runner.os == 'Linux'
+        run: |
+          # the window must open and stay up; timeout ends it (exit 124)
+          set +e
+          xvfb-run -a timeout 5 ./sbemacs --gui README.md 2> gui.err
+          code=$?
+          cat gui.err
+          test $code -eq 124 && ! grep -q "using the terminal" gui.err
 
       - name: Package
         run: |
@@ -72,6 +86,8 @@ jobs:
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-ncurses
             mingw-w64-x86_64-pkgconf
+            mingw-w64-x86_64-SDL2
+            mingw-w64-x86_64-SDL2_ttf
 
       - name: Build
         run: |
@@ -83,11 +99,14 @@ jobs:
           export PATH="$PATH:/c/Program Files/Steel Bank Common Lisp"
           make test
           ./sbemacs.exe --version
+          ls libsbemacs-gui.dll
 
       - name: Package
         run: |
           export PATH="$PATH:/c/Program Files/Steel Bank Common Lisp"
           make dist
+          # the DLLs libsbemacs-gui.dll needs (SDL2, SDL2_ttf, FreeType, ...)
+          ldd libsbemacs-gui.dll | awk '/\/mingw64\// {print $3}' | xargs -r cp -t dist/sbemacs-windows-*/
           cd dist && zip -qr sbemacs-windows-x86_64.zip sbemacs-windows-*/
 
       - uses: actions/upload-artifact@v4

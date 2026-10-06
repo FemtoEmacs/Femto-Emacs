@@ -6,6 +6,7 @@
 ;;;;   highlight.lisp      the tokenizer and DEFINE-LANGUAGE
 ;;;;   indent.lisp         automatic indentation and DEFINE-INDENTATION
 ;;;;   theme.lisp          the colour theme
+;;;;   gui.lisp            font and options for the window (sbemacs --gui)
 ;;;;   languages/*.lisp    one file per language
 ;;;;   defaults.lisp       the commands and key bindings that were init.lsp
 ;;;;   extensions/*.lisp   buffer menu, kill ring, dired, grep
@@ -59,6 +60,7 @@
     (append (file "highlight.lisp")
             (file "indent.lisp")
             (file "theme.lisp")
+            (file "gui.lisp")
             (lisp-files (merge-pathnames "languages/" directory))
             (file "defaults.lisp")
             (lisp-files (merge-pathnames "extensions/" directory)))))

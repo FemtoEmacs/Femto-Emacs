@@ -30,14 +30,14 @@ point_t segstart(buffer_t *bp, point_t start, point_t finish)
 		if (*p == '\n') {
 			c = 0;
 			start = scan+1;
-		} else if (COLS <= c) {
+		} else if (screen_cols() <= c) {
 			c = 0;
 			start = scan;
 		}
 		++scan;
 		c += *p == '\t' ? 8 - (c & 7) : 1;
 	}
-	return (c < COLS ? start : finish);
+	return (c < screen_cols() ? start : finish);
 }
 
 /* Forward scan for start of logical line segment following 'finish' */
@@ -49,7 +49,7 @@ point_t segnext(buffer_t *bp, point_t start, point_t finish)
 	point_t scan = segstart(bp, start, finish);
 	for (;;) {
 		p = ptr(bp, scan);
-		if (bp->b_ebuf <= p || COLS <= c)
+		if (bp->b_ebuf <= p || screen_cols() <= c)
 			break;
 		++scan;
 		if (*p == '\n')
@@ -130,8 +130,8 @@ static void highlight_window(buffer_t *bp, int rows)
 		start = 0;
 	else
 		start = lnstart(bp, start);
-	/* a screen row shows at most COLS characters of up to 4 bytes each */
-	end = bp->b_page + (point_t) (rows + 1) * (COLS + 1) * 4;
+	/* a screen row shows at most screen_cols() characters of up to 4 bytes each */
+	end = bp->b_page + (point_t) (rows + 1) * (screen_cols() + 1) * 4;
 	if (end > size) end = size;
 	len = (int) (end - start);
 	if (len <= 0) return;
@@ -169,14 +169,14 @@ void display_char(buffer_t *bp, char_t *p)
 	point_t off = pos(bp, p);
 
 	if (bp->b_mark != NOMARK && off == bp->b_mark) {
-		addch(*p | A_REVERSE);
+		screen_addch(*p | SCR_REVERSE_CHAR);
 		return;
 	}
 	if (bp->b_paren != NOPAREN && (off == bp->b_point || off == bp->b_paren))
 		face_on(ID_COLOR_BRACE);
 	else
 		face_on(color_at(bp, p));
-	addch(*p);
+	screen_addch(*p);
 	face_on(ID_COLOR_SYMBOL);
 }
 
@@ -221,7 +221,7 @@ void display(window_t *wp, int flag)
 
 	highlight_window(bp, wp->w_rows);
 
-	move(wp->w_top, 0); /* start from top of window */
+	screen_move(wp->w_top, 0); /* start from top of window */
 	i = wp->w_top;
 	j = 0;
 	bp->b_epage = bp->b_page;
@@ -248,13 +248,13 @@ void display(window_t *wp, int flag)
 				j += *p == '\t' ? 8-(j&7) : 1;
 				display_char(bp, p);
 			} else {
-				const char *ctrl = unctrl(*p);
+				const char *ctrl = screen_unctrl(*p);
 				j += (int) strlen(ctrl);
-				addstr(ctrl);
+				screen_addstr(ctrl);
 			}
 		}
-		if (*p == '\n' || COLS <= j) {
-			j -= COLS;
+		if (*p == '\n' || screen_cols() <= j) {
+			j -= screen_cols();
 			if (j < 0)
 				j = 0;
 			++i;
@@ -264,8 +264,8 @@ void display(window_t *wp, int flag)
 
 	/* replacement for clrtobot() to bottom of window */
 	for (k=i; k < wp->w_top + wp->w_rows; k++) {
-		move(k, j); /* clear from very last char not start of line */
-		clrtoeol();
+		screen_move(k, j); /* clear from very last char not start of line */
+		screen_clrtoeol();
 		j = 0; /* thereafter start of line */
 	}
 
@@ -273,8 +273,8 @@ void display(window_t *wp, int flag)
 	modeline(wp);
 	if (wp == curwp && flag) {
 		dispmsg();
-		move(bp->b_row, bp->b_col); /* set cursor */
-		refresh();
+		screen_move(bp->b_row, bp->b_col); /* set cursor */
+		screen_refresh();
 	}
 	wp->w_update = FALSE;
 }
@@ -310,7 +310,7 @@ void display_utf8(buffer_t *bp, char_t c, int n)
 		sbuf[i] = *ptr(bp, bp->b_epage + i);
 	}
 	sbuf[n] = '\0';
-	addstr(sbuf);
+	screen_addstr(sbuf);
 }
 
 void modeline(window_t *wp)
@@ -320,8 +320,10 @@ void modeline(window_t *wp)
 	static char modeline_buf[256];
 
 	/* n = utf8_size(*(ptr(wp->w_bufp, wp->w_bufp->b_point))); */
+	if (wp == curwp)
+		screen_set_title(wp->w_bufp->b_fname[0] ? wp->w_bufp->b_fname : wp->w_bufp->b_bname);
 	face_on(ID_COLOR_MODELINE);
-	move(wp->w_top + wp->w_rows, 0);
+	screen_move(wp->w_top + wp->w_rows, 0);
 	lch = (wp == curwp ? '=' : '-');
 	mch = ((wp->w_bufp->b_flags & B_MODIFIED) ? '*' : lch);
 	och = ((wp->w_bufp->b_flags & B_OVERWRITE) ? 'O' : lch);
@@ -332,38 +334,38 @@ void modeline(window_t *wp)
 	/* sprintf(modeline_buf, "%c%c%c Femto: %c%c %s %s  T%dR%d Pt%ld Pg%ld Pe%ld r%dc%d B%d N%d",  lch,och,mch,lch,lch, wp->w_name, get_buffer_modeline_name(wp->w_bufp), wp->w_top, wp->w_rows, wp->w_point, wp->w_bufp->b_page, wp->w_bufp->b_epage, wp->w_bufp->b_row, wp->w_bufp->b_col, wp->w_bufp->b_cnt, n); */
 
 	snprintf(modeline_buf, sizeof(modeline_buf), "%c%c%c SBEmacs: %c%c %s",  lch,och,mch,lch,lch, get_buffer_modeline_name(wp->w_bufp));
-	addstr(modeline_buf);
+	screen_addstr(modeline_buf);
 
-	for (i = strlen(modeline_buf) + 1; i <= COLS; i++)
-		addch(lch);
+	for (i = strlen(modeline_buf) + 1; i <= screen_cols(); i++)
+		screen_addch(lch);
 	face_on(ID_COLOR_SYMBOL);
 }
 
 void dispmsg()
 {
-	move(MSGLINE, 0);
+	screen_move(MSGLINE, 0);
 	if (msgflag) {
-		addstr(msgline);
+		screen_addstr(msgline);
 		msgflag = FALSE;
 	}
-	clrtoeol();
+	screen_clrtoeol();
 }
 
 void clear_message_line()
 {
 	ZERO_STRING(msgline);
 	msgflag = FALSE;
-	move(MSGLINE, 0);
-	clrtoeol();
+	screen_move(MSGLINE, 0);
+	screen_clrtoeol();
 }
 
 void display_prompt_and_response(char *prompt, char *response)
 {
-	mvaddstr(MSGLINE, 0, prompt);
+	screen_mvaddstr(MSGLINE, 0, prompt);
 	/* if we have a value print it and go to end of it */
 	if (response[0] != '\0')
-		addstr(response);
-	clrtoeol();
+		screen_addstr(response);
+	screen_clrtoeol();
 }
 
 void update_display()
@@ -377,7 +379,7 @@ void update_display()
 	/* only one window */
 	if (wheadp->w_next == NULL) {
 		display(curwp, TRUE);
-		refresh();
+		screen_refresh();
 		bp->b_psize = bp->b_size;
 		return;
 	}
@@ -395,8 +397,8 @@ void update_display()
 	/* now display our window and buffer */
 	w2b(curwp);
 	dispmsg();
-	move(curwp->w_row, curwp->w_col); /* set cursor for curwp */
-	refresh();
+	screen_move(curwp->w_row, curwp->w_col); /* set cursor for curwp */
+	screen_refresh();
 	bp->b_psize = bp->b_size;  /* now safe to save previous size for next time */
 }
 
@@ -440,4 +442,66 @@ void b2w_all_windows(buffer_t *bp)
 			b2w(wp);
 		}
 	}
+}
+
+/*
+ * Move the cursor to the buffer position shown at screen ROW, COL (a
+ * mouse click).  Clicking in another window selects it.  The walk mirrors
+ * the painting loop in display().
+ */
+void goto_screen_position(int row, int col)
+{
+	window_t *wp;
+	buffer_t *bp;
+	point_t p, end;
+	int i, j, w;
+	char_t *c;
+
+	for (wp = wheadp; wp != NULL; wp = wp->w_next)
+		if (row >= wp->w_top && row < wp->w_top + wp->w_rows)
+			break;
+	if (wp == NULL)
+		return;
+
+	if (wp != curwp) {
+		curwp->w_update = TRUE;
+		curwp = wp;
+		curbp = wp->w_bufp;
+		if (curbp->b_cnt > 1)
+			w2b(curwp);
+	}
+	bp = curbp;
+	end = document_size(bp);
+	p = bp->b_page;
+	i = wp->w_top;
+	j = 0;
+
+	while (p < end) {
+		c = ptr(bp, p);
+		if (*c == '\t')
+			w = 8 - (j & 7);
+		else if (*c == '\n' || *c == '\r')
+			w = 1;
+		else if (*c >= 0x80)
+			w = 1;
+		else if (!isprint(*c))
+			w = (int) strlen(screen_unctrl(*c));
+		else
+			w = 1;
+
+		if (i == row && (col < j + w || *c == '\n'))
+			break;
+		if (i > row)
+			break;
+
+		p += (*c >= 0x80) ? utf8_size(*c) : 1;
+		j += w;
+		if (*c == '\n' || screen_cols() <= j) {
+			j -= screen_cols();
+			if (j < 0 || *c == '\n')
+				j = 0;
+			++i;
+		}
+	}
+	bp->b_point = p;
 }

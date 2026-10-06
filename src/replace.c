@@ -47,11 +47,11 @@ void query_replace(void)
 
 		if (ask == TRUE) {
 			msg(question);
-			clrtoeol();
+			screen_clrtoeol();
 
 		qprompt:
 			display(curwp, TRUE);
-			c = getch();
+			c = screen_getch();
 
 			switch (c) {
 			case 'y': /* yes, substitute */
@@ -66,7 +66,7 @@ void query_replace(void)
 				break;
 
 			case 0x1B: /* esc */
-				flushinp(); /* discard any escape sequence without writing in buffer */
+				screen_flushinp(); /* discard any escape sequence without writing in buffer */
 			case 'q': /* controlled exit */
 				return;
 

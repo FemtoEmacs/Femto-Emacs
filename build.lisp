@@ -3,7 +3,8 @@
 ;;;;   sbcl --non-interactive --no-sysinit --no-userinit --load build.lisp
 ;;;;
 ;;;; (make does this for you.)  The result, sbemacs (sbemacs.exe on
-;;;; Windows), must stay next to libsbemacs.so/.dylib/.dll.
+;;;; Windows), must stay next to libsbemacs-term and libsbemacs-gui
+;;;; (.so, .dylib or .dll).
 
 
 (defparameter *root*
@@ -28,8 +29,8 @@
 ;; again at start-up, next to itself (see LOAD-CORE-LIBRARY).
 (sb-alien:load-shared-object
  (sb-ext:native-namestring
-  (merge-pathnames #+darwin "libsbemacs.dylib" #+win32 "libsbemacs.dll"
-                   #-(or darwin win32) "libsbemacs.so"
+  (merge-pathnames #+darwin "libsbemacs-term.dylib" #+win32 "libsbemacs-term.dll"
+                   #-(or darwin win32) "libsbemacs-term.so"
                    *root*))
  :dont-save t)
 

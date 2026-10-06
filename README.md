@@ -1,57 +1,69 @@
 # SBEmacs
 
-A tiny Emacs for the terminal, configured and extended in Common Lisp.
+A tiny Emacs for the terminal or a window, configured and extended in
+Common Lisp.
 
 SBEmacs is [FemtoEmacs](https://github.com/FemtoEmacs/Femto-Emacs) with its
 2016 Lisp, femtolisp, replaced by [SBCL](https://www.sbcl.org/).
-The editor core (buffers, windows, undo, search, the ncurses display) is still
-the small C program derived from Atto Emacs and Anthony Howe's editor.
+The editor core (buffers, windows, undo, search, display) is still the small
+C program derived from Atto Emacs and Anthony Howe's editor; it draws either
+in a terminal (ncurses) or in its own window (SDL2).
 Everything that used to be written in femtolisp is now Common Lisp compiled
 by SBCL: key bindings, the startup screen, the buffer menu, the kill ring,
 dired, grep, and the syntax highlighter.
 
 ```
-  ┌──────────────────────────────┐        ┌──────────────────────────────┐
-  │ SBCL process (sbemacs)       │  FFI   │ libsbemacs (C core)          │
-  │                              │ ─────► │                              │
-  │ init file, key bindings,     │ fe_*   │ gap buffers, windows, undo,  │
-  │ syntax highlighting,         │        │ search, ncurses display,     │
-  │ buffer menu, kill ring,      │ ◄───── │ keyboard                     │
-  │ dired, grep, Esc-; Esc-]     │ hooks  │                              │
-  └──────────────────────────────┘        └──────────────────────────────┘
+  ┌────────────────────────────────┐        ┌────────────────────────────────┐
+  │ SBCL process (sbemacs)         │  FFI   │ libsbemacs-term  or  -gui      │
+  │                                │ -----> │                                │
+  │ init file, key bindings,       │ fe_*   │ editor core: gap buffers,      │
+  │ highlighting, indentation,     │        │ windows, undo, search, keys    │
+  │ theme, buffer menu, kill       │ <----- │ ---------- screen.h ---------- │
+  │ ring, dired, grep, Esc-;       │ hooks  │ term.c (ncurses) | gui.c (SDL2)│
+  └────────────────────────────────┘        └────────────────────────────────┘
 ```
 
-SBCL is the host process.  It loads the C core as a shared library with
-`sb-alien` (part of SBCL, no Quicklisp needed), registers three callbacks
-(evaluate, events such as user keys, and highlight), and calls `fe_main`.
+SBCL is the host process.  It loads one of two C libraries with `sb-alien`
+(part of SBCL, no Quicklisp needed), registers three callbacks (evaluate,
+events such as keys, and highlight), and calls `fe_main`.  The two libraries
+contain the same editor core and export the same functions; they differ only
+in the back end behind `src/screen.h`: `libsbemacs-term` draws with ncurses,
+`libsbemacs-gui` opens a window with SDL2.  So a terminal-only user never
+needs SDL2, and everything written in Lisp works the same in both.
 
 ## Requirements
 
 * [SBCL](https://www.sbcl.org/platform-table.html) 2.1 or newer
 * a C compiler and `make`
 * ncurses with wide-character support (`libncursesw`)
+* for the window: [SDL2](https://www.libsdl.org/) and SDL2_ttf (optional;
+  without them only the terminal version is built)
 
 | System  | Install the prerequisites |
 |---------|---------------------------|
-| Debian / Ubuntu | `sudo apt install sbcl build-essential libncurses-dev` |
-| Fedora  | `sudo dnf install sbcl gcc make ncurses-devel` |
-| macOS   | `xcode-select --install` and `brew install sbcl` (the system ncurses is used) |
-| Windows | SBCL from sbcl.org, plus [MSYS2](https://www.msys2.org/) with `pacman -S make mingw-w64-x86_64-gcc mingw-w64-x86_64-ncurses mingw-w64-x86_64-pkgconf` |
+| Debian / Ubuntu | `sudo apt install sbcl build-essential libncurses-dev libsdl2-dev libsdl2-ttf-dev` |
+| Fedora  | `sudo dnf install sbcl gcc make ncurses-devel SDL2-devel SDL2_ttf-devel` |
+| macOS   | `xcode-select --install` and `brew install sbcl sdl2 sdl2_ttf pkg-config` (the system ncurses is used) |
+| Windows | SBCL from sbcl.org, plus [MSYS2](https://www.msys2.org/) with `pacman -S make mingw-w64-x86_64-gcc mingw-w64-x86_64-ncurses mingw-w64-x86_64-pkgconf mingw-w64-x86_64-SDL2 mingw-w64-x86_64-SDL2_ttf` |
 
 ## Building
 
 ```sh
-make            # builds libsbemacs.so (.dylib, .dll) and the sbemacs executable
+make            # builds libsbemacs-term, libsbemacs-gui (.so, .dylib, .dll)
+                # and the sbemacs executable
 make test       # runs the Lisp test suite (no terminal needed)
-./sbemacs file.c
+./sbemacs file.c          # in the terminal
+./sbemacs --gui file.c    # in a window
 sudo make install        # into /usr/local; PREFIX=... to change
 sudo make uninstall
 ```
 
 On Windows run `make` from the *MSYS2 MINGW64* shell, with SBCL on the `PATH`.
 
-`sbemacs` is a saved SBCL image.  It finds `libsbemacs` next to itself (or
-set `SBEMACS_LIB` to its full path), so keep the two files together.
+`sbemacs` is a saved SBCL image.  It finds the libraries next to itself
+(or set `SBEMACS_LIB` / `SBEMACS_GUI_LIB` to their full paths), so keep the
+files together.  `make install` also creates `sbemacs-gui`, which opens the
+window without `--gui`.
 
 Only changes to the C code (`src/`) or to the Lisp engine need `make`.
 Everything else in `lisp/` is a *script*: see [Scripts](#scripts-no-rebuild-needed).
@@ -62,7 +74,10 @@ Pre-built archives for Linux, macOS and Windows are attached to each
 ## Using it
 
 ```
-sbemacs [-q] [file] [+]      -q: skip the init file   +: enable the mouse
+sbemacs [--gui] [-q] [file] [+]
+  --gui, -g  open a window (also when started as sbemacs-gui)
+  -q         skip the init file
+  +          enable the mouse in the terminal
 ```
 
 The usual Emacs keys work: `C-x C-f` find file, `C-x C-s` save, `C-x C-c` quit,
@@ -72,6 +87,35 @@ region, `C-y` yank, `C-u` undo, `C-x 2` split window, `C-x o` other window.
 
 On macOS, tick *Use Option as Meta key* in Terminal → Settings → Profiles →
 Keyboard so that the Option key works as `Esc`.
+
+### The window (`sbemacs --gui`)
+
+The same editor, keys, Lisp and scripts, drawn with SDL2 in a window of its
+own: 24-bit colours, a proper font, the mouse and the system clipboard.
+
+* **Mouse:** click to move the cursor (in any window), the wheel scrolls,
+  the middle button pastes.
+* **Clipboard:** `Esc-w` / `C-w` also copy to the system clipboard;
+  `Shift-Insert` pastes from it.  On a Mac, `Cmd-C`, `Cmd-X`, `Cmd-V`,
+  `Cmd-Z`, `Cmd-S` and `Cmd-Q` work as usual.
+* **Font size:** `Ctrl-+` / `Ctrl--` (`Cmd-+` / `Cmd--` on a Mac).
+* **Meta:** Alt (Option on a Mac) works as `Esc`.  Set `*option-is-meta*`
+  to `nil` to type accents with Option instead.
+* **Look:** `*gui-theme*` is `:dark` or `:light` (in
+  [`lisp/theme.lisp`](lisp/theme.lisp)); `set-gui-font` picks any TrueType
+  or OpenType file.  By default the first installed of JetBrains Mono, Fira
+  Code, Cascadia, Source Code Pro, Menlo, Consolas, DejaVu Sans Mono, ... is
+  used ([`lisp/gui.lisp`](lisp/gui.lisp)).
+
+```lisp
+;; ~/.sbemacs/init.lisp
+(set-gui-font "/Users/me/Library/Fonts/JetBrainsMono-Regular.ttf" 15)
+(setf *gui-theme* :light)
+(set-color :keyword "#cc6666" :default :bold)   ; "#rrggbb" works everywhere
+```
+
+If no window can be opened (no display, e.g. over SSH), `sbemacs --gui`
+says so and runs in the terminal.
 
 ### Lisp interaction
 
@@ -274,7 +318,8 @@ how to write a small interactive mode with it.
 ## Source layout
 
 ```
-src/            the C editor core; src/interface.c is the bridge to Lisp
+src/            the C editor core; src/interface.c is the bridge to Lisp,
+                src/screen.h the screen layer, term.c and gui.c its back ends
 lisp/           engine: package, ffi, loader, core (compiled into sbemacs)
                 scripts: highlight, theme, defaults
 lisp/languages  one script per language

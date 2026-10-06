@@ -24,7 +24,7 @@ window_t* new_window()
 void one_window(window_t *wp)
 {
 	wp->w_top = 0;
-	wp->w_rows = LINES - 2;
+	wp->w_rows = screen_rows() - 2;
 	wp->w_next = NULL;
 }
 

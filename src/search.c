@@ -17,7 +17,7 @@ void search()
 	cpos = strlen(searchtext);
 
 	for (;;) {
-		c = getch();
+		c = screen_getch();
 		/* ignore control keys other than C-g, backspace, CR,  C-s, C-R, ESC */
 		if (c < 32 && c != 07 && c != 0x08 && c != 0x13 && c != 0x12 && c != 0x1b)
 			continue;
@@ -25,7 +25,7 @@ void search()
 		switch(c) {
 		case 0x1b: /* esc */
 			searchtext[cpos] = '\0';
-			flushinp(); /* discard any escape sequence without writing in buffer */
+			screen_flushinp(); /* discard any escape sequence without writing in buffer */
 			return;
 
 		case 0x07: /* ctrl-g */

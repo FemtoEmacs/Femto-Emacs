@@ -24,8 +24,8 @@ void end_of_buffer()
 void quit_ask()
 {
 	if (modified_buffers() > 0) {
-		mvaddstr(MSGLINE, 0, str_modified_buffers);
-		clrtoeol();
+		screen_mvaddstr(MSGLINE, 0, str_modified_buffers);
+		screen_clrtoeol();
 		if (!yesno(FALSE))
 			return;
 	}
@@ -37,9 +37,9 @@ int yesno(int flag)
 {
 	int ch;
 
-	addstr(flag ? str_yes : str_no);
-	refresh();
-	ch = getch();
+	screen_addstr(flag ? str_yes : str_no);
+	screen_refresh();
+	ch = screen_getch();
 	if (ch == '\r' || ch == '\n')
 		return (flag);
 	return (tolower(ch) == str_yes[1]);
@@ -52,7 +52,7 @@ void quit()
 
 void redraw()
 {
-	clear();
+	screen_clear();
 	mark_all_windows();
 	update_display();
 }
@@ -105,13 +105,20 @@ void down()
 	curbp->b_point = lncolumn(curbp, dndn(curbp, curbp->b_point),curbp->b_col);
 }
 
-void xdown() {
-  static char_t xcx;
-  xcx = (unsigned) getch();
-  if (xcx == 97) down();
-  if (xcx == 96) up();
-  xcx = (unsigned) getch();
-  xcx = (unsigned) getch();
+/*
+ * A mouse event in the xterm X10 encoding: ESC [ M, then button, column
+ * and row, each + 32.  Wheel up/down move a line; a left click moves the
+ * cursor to where it was clicked.
+ */
+void xdown()
+{
+	int button = screen_getch() & 0xFF;
+	int col = (screen_getch() & 0xFF) - 33;
+	int row = (screen_getch() & 0xFF) - 33;
+
+	if (button == 97) down();
+	else if (button == 96) up();
+	else if ((button & 3) == 0 && button < 64) goto_screen_position(row, col);
 }
 
 void lnbegin()
@@ -337,7 +344,7 @@ void savebuffer()
 	} else {
 		writefile();
 	}
-	refresh();
+	screen_refresh();
 }
 
 char *rename_current_buffer(char *bname)
@@ -375,8 +382,8 @@ void killbuffer()
               return;
 
 	if (!(curbp->b_flags & B_SPECIAL) && curbp->b_flags & B_MODIFIED) {
-		mvaddstr(MSGLINE, 0, str_notsaved);
-		clrtoeol();
+		screen_mvaddstr(MSGLINE, 0, str_notsaved);
+		screen_clrtoeol();
 		if (!yesno(FALSE))
 			return;
 	}
@@ -482,6 +489,7 @@ void copy_cut(int cut)
 		undoset();
 		(void) memcpy(scrap, p, nscrap * sizeof (char_t));
 		*(scrap + nscrap) = '\0';  /* null terminate for insert_string */
+		screen_set_clipboard((char *) scrap);  /* the system clipboard, in the GUI */
 		if (cut) {
 			//debug("CUT: pt=%ld nscrap=%d\n", curbp->b_point, nscrap);
 			add_undo(curbp, UNDO_T_KILL, (curbp->b_point < curbp->b_mark ? curbp->b_point : curbp->b_mark), scrap);
@@ -598,7 +606,7 @@ void showpos()
 		msg(str_endpos, current, lastln,
 			curbp->b_point, ((curbp->b_ebuf - curbp->b_buf) - (curbp->b_egap - curbp->b_gap)));
 	} else {
-		msg(str_pos, unctrl(*(ptr(curbp, curbp->b_point))), *(ptr(curbp, curbp->b_point)),
+		msg(str_pos, screen_unctrl(*(ptr(curbp, curbp->b_point))), *(ptr(curbp, curbp->b_point)),
 			current, lastln,
 			curbp->b_point, ((curbp->b_ebuf - curbp->b_buf) - (curbp->b_egap - curbp->b_gap)));
 	}
@@ -718,8 +726,8 @@ void match_paren_backwards(buffer_t *bp, char open_paren, char close_paren)
 
 void i_describe_key()
 {
-	mvaddstr(MSGLINE, 0, "Describe key ");
-	clrtoeol();
+	screen_mvaddstr(MSGLINE, 0, "Describe key ");
+	screen_clrtoeol();
 
 	input = get_key(key_map, &key_return);
 
