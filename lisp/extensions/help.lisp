@@ -229,7 +229,7 @@ under \"Other keys\".")
       (funcall action))
     t))
 
-(set-buffer-hint *help-buffer* "arrows scroll; any other key returns to the file")
+(set-buffer-hint *help-buffer* "arrows scroll; other keys: back")
 
 (global-set-key "C-h" 'help)
 (global-set-key "F1" 'help)

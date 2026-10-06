@@ -192,9 +192,10 @@ are returned unchanged.  Elsewhere this is a no-op."
   (beginning-of-buffer)
   (let ((hint (if (and (fboundp 'answer-hint) (proposed-code text))
                   (funcall 'answer-hint text)
-                  "C-x o goes back to the file; C-x 1 there closes this window")))
+                  "C-x o back to file")))
     (set-buffer-hint *codex-answer-buffer* hint)
-    (message "Codex answered.  ~A" hint))
+    (message "Codex answered.  ~:[C-x o goes back to the file~;C-c y inserts the code and closes the window~]"
+             (proposed-code text)))
   t)
 
 (defun codex-submit ()
@@ -253,4 +254,4 @@ are returned unchanged.  Elsewhere this is a no-op."
 (global-unset-key "C-c x")
 (global-set-key "C-c g" 'ask-codex)
 
-(set-buffer-hint *codex-request-buffer* "C-c g sends the request; C-x o goes back to the file")
+(set-buffer-hint *codex-request-buffer* "C-c g ask; C-x o back to file")

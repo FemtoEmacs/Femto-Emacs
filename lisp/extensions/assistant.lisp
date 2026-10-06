@@ -471,21 +471,22 @@ the answer below the buffer ORIGIN."
                               (substitute #\Space #\Newline q)))))
            answer)
           (set-buffer-hint *assistant-buffer* (answer-hint answer))
-          (message "~A answered.  ~A" name (answer-hint answer)))
+          (message "~A answered.  ~:[C-x 1 closes the window~;C-c y inserts the code and closes the window~]"
+                   name (proposed-code answer)))
       ;; Third Law: whatever happens, the editor and the buffer survive.
       ;; The explanation goes in the window, where it can be read.
       (error (e)
         (show-in-assistant-window
          (format nil "~A could not be reached" name)
          (format nil "~A~%~%~A" (princ-to-string e) (assistant-status-text)))
-        (set-buffer-hint *assistant-buffer* "C-x 1 closes this window")
+        (set-buffer-hint *assistant-buffer* "C-x 1 close")
         (message "~A could not be reached; see the window below" name)))))
 
 (defun answer-hint (answer)
   "What the keys do with ANSWER, for its mode line and the message line."
   (if (proposed-code answer)
-      "C-c y inserts the code and closes this window"
-      "C-x 1 closes this window"))
+      "C-c y insert code & close"
+      "C-x 1 close"))
 
 (defun ask-assistant (key)
   "Ask on the message line, then answer (kept for scripts that use it)."
@@ -541,7 +542,7 @@ the answer below the buffer ORIGIN."
   (let ((context (buffer-context))
         (origin (get-buffer-name)))
     (show-in-assistant-window "Ask Claude" *claude-menu*)
-    (set-buffer-hint *assistant-buffer* "h hints, q question, d discussion, s set-up; other keys close")
+    (set-buffer-hint *assistant-buffer* "h hints; q ask; d discuss; s set-up")
     (message "Claude: h hints, q question, d discussion, s set-up; any other key closes the menu")
     (update-display)
     (let* ((k (get-key))
@@ -627,7 +628,7 @@ discussion, send what was written since the last answer."
 (defun assistant-status ()
   "Show how the assistant would reach Claude (Esc-; (assistant-status))."
   (show-in-assistant-window "Assistant status" (assistant-status-text))
-  (set-buffer-hint *assistant-buffer* "C-x 1 closes this window")
+  (set-buffer-hint *assistant-buffer* "C-x 1 close")
   t)
 
 ;;; ------------------------------------------------------------------
@@ -813,6 +814,6 @@ file, at its cursor, after asking."
 (global-set-key "C-c y" 'assistant-insert)
 
 ;;; What the mode line of each assistant window says
-(set-buffer-hint *claude-request-buffer* "C-c r sends the question; C-x o goes back to the file")
-(set-buffer-hint *claude-discussion-buffer* "C-c r sends; C-c t inserts the snippet at the cursor")
+(set-buffer-hint *claude-request-buffer* "C-c r ask; C-x o back to file")
+(set-buffer-hint *claude-discussion-buffer* "C-c r send; C-c t code-tangle")
 (global-set-key "C-c t" 'discussion-tangle)

@@ -384,13 +384,14 @@ void fe_set_buffer_hint(char *name, char *hint)
 	mark_all_windows();
 }
 
+/* the buffer's own hint, or NULL */
 static char *buffer_hint(buffer_t *bp)
 {
 	int i;
 	for (i = 0; i < MAX_BUFFER_HINTS; i++)
 		if (buffer_hints[i].name[0] != '\0' && strcmp(buffer_hints[i].name, bp->b_bname) == 0)
 			return buffer_hints[i].hint;
-	return modeline_tail;
+	return NULL;
 }
 
 /* 1-based line number of offset OFF */
@@ -416,6 +417,7 @@ void modeline(window_t *wp)
 {
 	int i, n, cols = screen_cols();
 	char lch, mch, och;
+	char *hint;
 	static char modeline_buf[1024];
 	char *name = get_buffer_modeline_name(wp->w_bufp);
 	point_t point = (wp == curwp) ? wp->w_bufp->b_point : wp->w_point;
@@ -428,11 +430,22 @@ void modeline(window_t *wp)
 	mch = ((wp->w_bufp->b_flags & B_MODIFIED) && !(wp->w_bufp->b_flags & B_SPECIAL) ? '*' : lch);
 	och = ((wp->w_bufp->b_flags & B_OVERWRITE) ? 'O' : lch);
 
-	/* a * after the name: modified; [overwrite]: overwrite mode */
-	snprintf(modeline_buf, sizeof(modeline_buf), "SBEmacs: %s %c%c %s%s%s, L. %d %c%c %s ",
-		 modeline_help, lch, lch, name, mch == '*' ? "*" : "",
-		 och == 'O' ? " [overwrite]" : "",
-		 line_number(wp->w_bufp, point), lch, lch, buffer_hint(wp->w_bufp));
+	/*
+	 * a * after the name: modified; [overwrite]: overwrite mode.  A
+	 * buffer with a hint of its own (the assistants' windows) shows
+	 * only that, to stay short:
+	 *   SBEmacs: *discussion*, L. 8 == C-c r send; C-c t code-tangle
+	 */
+	hint = buffer_hint(wp->w_bufp);
+	if (hint != NULL)
+		snprintf(modeline_buf, sizeof(modeline_buf), "SBEmacs: %s%s%s, L. %d %c%c %s ",
+			 name, mch == '*' ? "*" : "", och == 'O' ? " [overwrite]" : "",
+			 line_number(wp->w_bufp, point), lch, lch, hint);
+	else
+		snprintf(modeline_buf, sizeof(modeline_buf), "SBEmacs: %s %c%c %s%s%s, L. %d %c%c %s ",
+			 modeline_help, lch, lch, name, mch == '*' ? "*" : "",
+			 och == 'O' ? " [overwrite]" : "",
+			 line_number(wp->w_bufp, point), lch, lch, modeline_tail);
 	/* too wide: "Ctrl-h" becomes "C-h", "Ctrl c r" "C-c r", then the end is cut */
 	if ((int) strlen(modeline_buf) > cols) {
 		char *p;
