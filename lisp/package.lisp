@@ -56,7 +56,7 @@
    #:ask-claude #:ask-codex #:codex-submit #:codex-status
    #:assistant-insert #:assistant-status
    #:*claude-transport* #:*claude-model* #:*assistant-timeout*
-   #:*codex-model* #:*codex-timeout*
+   #:*codex-program* #:*codex-model* #:*codex-timeout*
    ;; default user commands (formerly in init.lsp)
    #:*undo-mode* #:read-string #:weekday #:what-day #:insert-day
    #:html-p #:html-h1 #:html-pp #:indent-two #:deindent-two

@@ -183,6 +183,13 @@
          (codex-exec-arguments))
        '("exec" "--sandbox" "read-only" "--ephemeral" "--ignore-rules"
          "--skip-git-repo-check" "--color" "never" "-C" "/tmp/project/" "-"))
+(check "Codex program setting is exported"
+       (eq (find-symbol "*CODEX-PROGRAM*" '#:sbemacs-user)
+           (find-symbol "*CODEX-PROGRAM*" '#:sbemacs))
+       t)
+(check "Codex installation candidates include the platform default"
+       (plusp (length (codex-installation-candidates)))
+       t)
 
 ;;; script loading
 (check "unchanged scripts are not loaded again"
