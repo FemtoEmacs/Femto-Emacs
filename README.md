@@ -300,6 +300,7 @@ line; they never take the editor down.
 
 | Key       | Command | |
 |-----------|---------|-|
+| `C-x b`   | `switch-to-buffer` | list buffers; type to filter, `Tab` completes, arrows select, `Enter` opens, `C-g` cancels |
 | `C-x C-b` | `buffer-menu` | pick a buffer: `1` one window, `2` split, `s` save, `k` kill, `x` exit |
 | `C-x C-d` | `dired` | browse directories: `f`/RET open, `u` up, `g` refresh, `x` exit |
 | `C-x C-g` | `grep-command` | search files (case-insensitive), results in `*grep*` |

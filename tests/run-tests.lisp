@@ -96,6 +96,13 @@
 (check "read-string" (read-string "(2016 8 31)") '(2016 8 31))
 (check "trim" (trim "  buf  ") "buf")
 (check "summarize-kill" (summarize-kill (format nil "line one~%line two")) "line one")
+(check "buffer picker filters case-insensitive prefixes"
+       (buffer-picker-matches "*CO" '("*scratch*" "*codex-chat*" "code.lisp"))
+       '("*codex-chat*"))
+(check "buffer picker completes the common prefix"
+       (buffer-picker-common-prefix '("alpha.lisp" "alphabet.txt" "Alpine"))
+       "alp")
+(check "buffer picker empty completion" (buffer-picker-common-prefix nil) "")
 
 ;;; the evaluator used by Esc-; and Esc-]
 (check "eval-string evaluates every form"
