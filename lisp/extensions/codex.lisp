@@ -2,10 +2,11 @@
 ;;;;
 ;;;; This is a script: edit it and press C-x C-r; no editor rebuild.
 ;;;;
-;;;;   C-c g       open *codex-request* below the source window
-;;;;   C-c g       again, from that buffer, sends the request
-;;;;   C-c y       after returning to the source window, insert the first
-;;;;               fenced code block from the answer, with confirmation
+;;;;   C-c g       a menu: h hints, q question, d discussion, s set-up
+;;;;   C-c g       in a question or discussion window, sends the request
+;;;;   C-c y       in a question answer, insert every fenced code block
+;;;;               into the source and close the help window
+;;;;   C-c t       in a discussion, insert the snippet under the cursor
 ;;;;
 ;;;; Codex receives a bounded copy of the source around point.  It runs with
 ;;;; the read-only sandbox and an ephemeral session: it may inspect and test,
@@ -27,12 +28,26 @@
 
 (defvar *codex-request-buffer* "*codex-request*")
 (defvar *codex-answer-buffer* "*codex*")
+(defparameter *codex-discussion-buffer* "*codex-discussion*")
 (defvar *codex-origin-buffer* nil)
 (defvar *codex-saved-context* nil)
 (defvar *codex-working-directory* nil)
+(defvar *codex-discussion-origin* nil)
+
+(defparameter *codex-menu*
+  "  h   Hints: Codex reads the code at the cursor (and the selected
+      region) and suggests fixes and next steps.
+  q   Question: write it in a window of its own, as many lines as
+      you like; C-c g sends it.
+  d   Discussion: a conversation in a window that stays open; C-c t
+      there inserts the snippet under the cursor into your file.
+  s   Set-up: is Codex installed and signed in with ChatGPT?
+
+  Any other key closes this menu.  Codex only reads: C-c y inserts
+  the code it proposes, after you confirm.")
 
 (defparameter *codex-instructions*
-  "You are the Codex assistant inside Femto Emacs.  The user is editing a
+  "You are the Codex assistant inside SBEmacs.  The user is editing a
 file and has written a request in a separate editor window.  Answer that
 request using the supplied source context.
 
@@ -84,10 +99,10 @@ an editor window."
   (goto-char 0)
   (delete-char (buffer-size)))
 
-(defun codex-compose ()
+(defun codex-compose (&optional context origin)
   "Open the lower Codex request window and save the source context."
-  (setf *codex-origin-buffer* (get-buffer-name)
-        *codex-saved-context* (codex-source-context)
+  (setf *codex-origin-buffer* (or origin (get-buffer-name))
+        *codex-saved-context* (or context (buffer-context))
         *codex-working-directory* (codex-source-directory))
   (delete-other-windows)
   (split-window)
@@ -167,8 +182,9 @@ are returned unchanged.  Elsewhere this is a no-op."
   #-win32
   (values program arguments))
 
-(defun codex-cli-ask (request)
+(defun codex-cli-ask (request &optional context)
   "Return the final response from a read-only, ephemeral Codex CLI run."
+  (when context (setf *codex-saved-context* context))
   (let ((program (or (find-codex-program)
                      (error "Codex was not found. Install the official Codex CLI or the ChatGPT desktop app, then sign in with ChatGPT."))))
     (multiple-value-bind (launcher arguments)
@@ -181,6 +197,12 @@ are returned unchanged.  Elsewhere this is a no-op."
             (error "codex exited with code ~A: ~A"
                    code (trim (if (plusp (length (trim err))) err out))))))))
 
+(defun codex-ask (question context)
+  "ASK function used by the common assistant window machinery."
+  (codex-cli-ask question context))
+
+(define-assistant :codex "Codex" 'codex-ask)
+
 (defun codex-show-answer (title text)
   "Replace the lower request window with a Codex answer."
   (select-buffer *codex-answer-buffer*)
@@ -190,7 +212,12 @@ are returned unchanged.  Elsewhere this is a no-op."
           #\Newline #\Newline
           (substitute #\Newline #\Return text))
   (beginning-of-buffer)
-  (message "Codex answered; C-x o returns to the source, C-c y inserts proposed code")
+  (let ((hint (if (and (fboundp 'answer-hint) (proposed-code text))
+                  (funcall 'answer-hint text)
+                  "C-x o back to file")))
+    (set-buffer-hint *codex-answer-buffer* hint)
+    (message "Codex answered.  ~:[C-x o goes back to the file~;C-c y inserts the code and closes the window~]"
+             (proposed-code text)))
   t)
 
 (defun codex-submit ()
@@ -204,31 +231,40 @@ are returned unchanged.  Elsewhere this is a no-op."
       (return-from codex-submit nil))
     (message "Codex is thinking ... (up to ~D seconds)" *codex-timeout*)
     (update-display)
-    (handler-case
-        (let ((answer (codex-cli-ask request)))
-          ;; Keep compatibility with C-c y while assistant.lisp is evolving.
-          (when (boundp '*assistant-last-answer*)
-            (setf *assistant-last-answer* answer))
-          (when (boundp '*assistant-origin*)
-            (setf *assistant-origin* *codex-origin-buffer*))
-          (codex-show-answer (format nil "Codex -- ~A" request) answer))
-      (error (condition)
-        (codex-show-answer
-         "Codex could not be reached"
-         (format nil "~A~%~%~A" condition (codex-status-text)))))))
+    (run-assistant :codex request *codex-saved-context*
+                   (or *codex-origin-buffer* "*scratch*"))))
+
+(defun codex-menu ()
+  "Show the Codex menu and perform its one-key choice."
+  (let ((context (buffer-context))
+        (origin (get-buffer-name)))
+    (setf *codex-working-directory* (codex-source-directory))
+    (show-in-assistant-window "Ask Codex (ChatGPT)" *codex-menu*)
+    (set-buffer-hint *assistant-buffer* "h hints; q ask; d discuss; s set-up")
+    (message "Codex: h hints, q question, d discussion, s set-up; any other key closes the menu")
+    (update-display)
+    (let* ((key (get-key))
+           (choice (and (= (length key) 1) (char-downcase (char key 0)))))
+      (case choice
+        (#\h (run-assistant :codex "" context origin))
+        (#\q (codex-compose context origin))
+        (#\d (codex-discussion origin))
+        (#\s (codex-status))
+        (t (close-assistant-windows) (clear-message-line))))))
 
 (defun ask-codex ()
-  "C-c g: compose a request, or send it when already composing."
-  (if (string= (get-buffer-name) *codex-request-buffer*)
-      (codex-submit)
-      (codex-compose)))
+  "C-c g: menu; in a question or discussion window, send the request."
+  (cond ((string= (get-buffer-name) *codex-request-buffer*) (codex-submit))
+        ((string= (get-buffer-name) *codex-discussion-buffer*)
+         (codex-discussion-send))
+        (t (codex-menu))))
 
 (defun codex-status-text ()
   (let ((program (find-codex-program)))
     (format nil "Codex CLI: ~:[NOT FOUND~;~:*~A~]~%~
                  Model: ~:[CLI default~;~:*~A~]~%~
                  Sandbox: read-only~%Session: ephemeral~%~%~
-                 Femto Emacs checks PATH, the official standalone-install~%~
+                 SBEmacs checks PATH, the official standalone-install~%~
                  directories, npm on Windows, and the macOS ChatGPT app.~%~
                  If authentication is needed, run Codex once and choose~%~
                  Sign in with ChatGPT."
@@ -236,15 +272,95 @@ are returned unchanged.  Elsewhere this is a no-op."
 
 (defun codex-status ()
   "Show Codex setup in the lower window."
-  (let ((origin (get-buffer-name)))
-    (delete-other-windows)
-    (split-window)
-    (other-window)
-    (codex-show-answer "Codex status" (codex-status-text))
-    (other-window)
-    (select-buffer origin))
+  (show-in-assistant-window "Codex status" (codex-status-text))
+  (set-buffer-hint *assistant-buffer* "C-x 1 close")
   t)
+
+;;; ------------------------------------------------------------------
+;;; A Codex discussion: deliberately kept separate from a question
+;;; ------------------------------------------------------------------
+
+(defparameter *codex-you-marker* "You:")
+(defparameter *codex-marker* "Codex:")
+
+(defun codex-discussion (origin)
+  "Open (or return to) the persistent Codex discussion about ORIGIN."
+  (unless (string= (get-buffer-name) origin) (select-buffer origin))
+  (setf *codex-discussion-origin* origin
+        *codex-working-directory* (codex-source-directory))
+  (delete-other-windows)
+  (split-window)
+  (other-window)
+  (select-buffer *codex-discussion-buffer*)
+  (when (zerop (buffer-size))
+    (insert (format nil "Discussion with Codex about ~A~%~
+                         C-c g sends what you write after the last ~A~%~
+                         C-c t inserts the snippet under the cursor into ~A~%~
+                         C-x 0 closes this window; C-c g, then d, brings it back~%~
+                         ~A~%~%~A~%"
+                    origin *codex-you-marker* origin
+                    (make-string 70 :initial-element #\=) *codex-you-marker*)))
+  (end-of-buffer)
+  (message "Write to Codex after \"~A\", then C-c g" *codex-you-marker*)
+  t)
+
+(defun codex-discussion-send ()
+  "Send the latest user turn, the transcript and current source to Codex."
+  (let* ((text (buffer-substring 0 (buffer-size)))
+         (start (last-marker-position text *codex-you-marker*))
+         (message-text (and start (trim (subseq text start)))))
+    (cond ((or (null message-text) (zerop (length message-text)))
+           (message "Write after the last \"~A\", then C-c g" *codex-you-marker*))
+          ((null *codex-discussion-origin*)
+           (message "The file is unknown; start from it with C-c g, then d"))
+          (t
+           (let ((context (call-in-window-of *codex-discussion-origin* #'buffer-context))
+                 (question (format nil "This is a continuing discussion. Reply to the ~
+                                        user's last message.~%~%~A" text)))
+             (message "Codex is thinking ... (up to ~D s)" *codex-timeout*)
+             (update-display)
+             (let ((answer (handler-case (codex-ask question context)
+                             (error (condition)
+                               (format nil "(Codex could not be reached: ~A)" condition)))))
+               (setf *assistant-last-answer* answer
+                     *assistant-origin* *codex-discussion-origin*)
+               (end-of-buffer)
+               (insert (format nil "~:[~%~;~]~%~A~%~A~%~%~A~%"
+                               (and (plusp (length text))
+                                    (char= (char text (1- (length text))) #\Newline))
+                               *codex-marker* (trim (substitute #\Newline #\Return answer))
+                               *codex-you-marker*))
+               (message "Codex answered. C-c t on a snippet inserts it into ~A"
+                        *codex-discussion-origin*)))))))
+
+(defun codex-discussion-tangle ()
+  "Insert the fenced snippet at point in the persistent Codex discussion."
+  (let* ((octets (buffer-octets 0 (buffer-size)))
+         (text (sb-ext:octets-to-string octets :external-format '(:utf-8 :replacement #\?)))
+         (index (length (sb-ext:octets-to-string
+                         (subseq octets 0 (point))
+                         :external-format '(:utf-8 :replacement #\?))))
+         (code (snippet-at text index)))
+    (if (null code)
+        (message "Put the cursor on a snippet (between its ``` lines) first")
+        (call-in-window-of *codex-discussion-origin*
+                           (lambda ()
+                             (confirm-insert code
+                               (format nil "into ~A at line ~D"
+                                       *codex-discussion-origin* (line-number))))))))
+
+(defun assistant-discussion-tangle ()
+  "C-c t: dispatch to the discussion shown in the current buffer."
+  (cond ((string= (get-buffer-name) *claude-discussion-buffer*)
+         (discussion-tangle))
+        ((string= (get-buffer-name) *codex-discussion-buffer*)
+         (codex-discussion-tangle))
+        (t (message "C-c t works in a Claude or Codex discussion window"))))
 
 ;; Remove the old stub binding when this script is reloaded in a running editor.
 (global-unset-key "C-c x")
 (global-set-key "C-c g" 'ask-codex)
+(global-set-key "C-c t" 'assistant-discussion-tangle)
+
+(set-buffer-hint *codex-request-buffer* "C-c g ask; C-x o back to file")
+(set-buffer-hint *codex-discussion-buffer* "C-c g send; C-c t code-tangle")

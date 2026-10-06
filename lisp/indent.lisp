@@ -47,7 +47,11 @@
 
 :WIDTH is the indentation step.  :TABS is T (indent with tabs, 8 columns
 wide), NIL (spaces) or :AUTO (tabs if most indented lines in the file
-start with a tab).  The other options depend on the style; see the
+start with a tab).  :CYCLE T makes a repeated TAB change the level;
+:LEVELS names a function of the context returning the columns it cycles
+through (default: steps of :WIDTH).  :NEWLINE names a function that RET
+calls first; when it returns true it has handled the key (Markdown uses
+it to continue lists).  The other options depend on the style; see the
 language files for examples."
   (setf (gethash language *indentation*)
         (%make-indent-spec :style style :width width :tabs tabs :options options)))
@@ -277,6 +281,10 @@ text (or just after the indentation when it was inside it)."
 (defvar *last-tab* nil
   "(buffer line-start column) after a TAB, to cycle on the next one.")
 
+(defvar *indenting-by-tab* nil
+  "True while TAB (not RET or indent-region) indents a line: a style may
+then move the line, e.g. nest a Markdown list item.")
+
 (defun indent-line (&optional cycle)
   "Indent the current line according to its language.  Returns the new
 column, or NIL when the language has no indentation rules.  With CYCLE
@@ -285,7 +293,7 @@ each time, wrapping round to the computed column."
   (let ((spec (current-indent-spec)))
     (when spec
       (let* ((ctx (buffer-indent-context spec))
-             (col (compute-indentation ctx)))
+             (col (let ((*indenting-by-tab* cycle)) (compute-indentation ctx))))
         (when col
           (let ((current (indentation-at (ictx-text ctx) (ictx-line ctx)))
                 (w (indent-spec-width spec))
@@ -294,9 +302,18 @@ each time, wrapping round to the computed column."
                        (equal (first last) (get-buffer-name))
                        (= (second last) (current-line-start))
                        (= (third last) current))
-              (setf col (if (> current 0)
-                            (max 0 (- (* w (ceiling current w)) w))
-                            col)))
+              (let ((levels (indent-option spec :levels)))
+                (setf col
+                      (cond (levels
+                             ;; the style's own levels: the next one to the
+                             ;; right, then back to the leftmost
+                             (let ((all (sort (remove-duplicates
+                                               (cons 0 (funcall levels ctx)))
+                                              #'<)))
+                               (or (find-if (lambda (l) (> l current)) all)
+                                   (first all))))
+                            ((> current 0) (max 0 (- (* w (ceiling current w)) w)))
+                            (t col)))))
             (set-line-indentation ctx col)
             (setf *last-tab* (list (get-buffer-name) (current-line-start) col))
             col))))))
@@ -305,6 +322,9 @@ each time, wrapping round to the computed column."
   "Insert a newline and indent the new line."
   (let ((spec (current-indent-spec)))
     (cond ((null spec) (insert (string #\Newline)) nil)
+          ;; a language with its own RET (Markdown continues lists)
+          ((and (indent-option spec :newline)
+                (funcall (indent-option spec :newline))))
           (t
            ;; a line left blank keeps no stray indentation
            (when (indent-option spec :reindent-on-newline)

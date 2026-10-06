@@ -89,6 +89,9 @@ moved together."
 (defcore %set-point "fe_set_point" sb-alien:void (p sb-alien:long))
 (defcore %buffer-size "fe_buffer_size" sb-alien:long)
 (defcore %set-mark "fe_set_mark" sb-alien:void)
+(defcore %set-mark-at "fe_set_mark_at" sb-alien:void (p sb-alien:long))
+(defcore %mark-active "fe_mark_active" sb-alien:int)
+(defcore %set-mark-active "fe_set_mark_active" sb-alien:void (on sb-alien:int))
 (defcore %char-at "fe_char_at" sb-alien:int (p sb-alien:long))
 (defcore %line-start "fe_line_start" sb-alien:long (p sb-alien:long))
 (defcore %copy-text "fe_copy_text" sb-alien:long
@@ -102,6 +105,11 @@ moved together."
 (defcore %yank "fe_yank" sb-alien:void)
 (defcore %kill-line "fe_kill_line" sb-alien:void)
 (defcore %undo "fe_undo" sb-alien:void)
+(defcore %buffer-id "fe_buffer_id" sb-alien:long)
+(defcore %set-modified "fe_set_modified" sb-alien:void (on sb-alien:int))
+(defcore %delete-region "fe_delete_region" sb-alien:void (start sb-alien:long) (end sb-alien:long))
+(defcore %insert-bytes "fe_insert_bytes" sb-alien:void
+  (p sb-alien:long) (bytes sb-alien:system-area-pointer) (len sb-alien:long))
 (defcore %discard-undo-history "fe_discard_undo_history" sb-alien:void)
 (defcore %get-clipboard "fe_get_clipboard" sb-alien:c-string)
 (defcore %set-clipboard "fe_set_clipboard" sb-alien:void (s sb-alien:c-string))
@@ -125,6 +133,19 @@ moved together."
 (defcore %split-window "fe_split_window" sb-alien:void)
 (defcore %update-display "fe_update_display" sb-alien:void)
 (defcore %refresh "fe_refresh" sb-alien:void)
+(defcore %delete-window "fe_delete_window" sb-alien:void)
+(defcore %window-count "fe_window_count" sb-alien:int)
+(defcore %window-rows "fe_window_rows" sb-alien:int)
+(defcore %recenter "fe_recenter" sb-alien:void)
+(defcore %line-number "fe_line_number" sb-alien:int (p sb-alien:long))
+(defcore %execute-command "fe_execute_command" sb-alien:int (name sb-alien:c-string))
+(defcore %command-name "fe_command_name" sb-alien:c-string (i sb-alien:int))
+(defcore %add-command-name "fe_add_command_name" sb-alien:void (name sb-alien:c-string))
+(defcore %set-window-start "fe_set_window_start" sb-alien:void (p sb-alien:long))
+(defcore %set-buffer-hint "fe_set_buffer_hint" sb-alien:void
+  (name sb-alien:c-string) (hint sb-alien:c-string))
+(defcore %set-modeline-hints "fe_set_modeline_hints" sb-alien:void
+  (help sb-alien:c-string) (tail sb-alien:c-string))
 
 (defcore %message "fe_message" sb-alien:void (s sb-alien:c-string))
 (defcore %clear-message-line "fe_clear_message_line" sb-alien:void)
@@ -148,6 +169,8 @@ moved together."
   (id sb-alien:int) (fg sb-alien:long) (bg sb-alien:long) (attr sb-alien:int))
 (defcore %reapply-colors "fe_reapply_colors" sb-alien:void)
 (defcore %colors "fe_colors" sb-alien:int)
+
+(defcore %set-change-hook "fe_set_change_hook" sb-alien:void (hook sb-alien:system-area-pointer))
 
 (defcore %set-hooks "fe_set_hooks" sb-alien:void
   (eval sb-alien:system-area-pointer)
@@ -196,7 +219,20 @@ moved together."
 (defun goto-char (p) "Move the cursor to byte offset P." (%set-point p) (%get-point))
 (defun mark () "Byte offset of the mark, or NIL when no mark is set."
   (let ((m (%get-mark))) (if (minusp m) nil m)))
-(defun set-mark () (%set-mark) t)
+(defun set-mark (&optional (position (point)))
+  "Set the mark at POSITION (default: the cursor) and activate the region,
+which is shaded until the text changes or C-g."
+  (%set-mark-at position)
+  (%set-mark-active 1)
+  t)
+(defun push-mark (&optional (position (point)))
+  "Set the mark at POSITION without activating the region."
+  (%set-mark-at position)
+  t)
+(defun clear-mark () (%set-mark-at -1) (%set-mark-active 0) t)
+(defun region-active-p () (= 1 (%mark-active)))
+(defun activate-mark () (when (mark) (%set-mark-active 1)) t)
+(defun deactivate-mark () (%set-mark-active 0) t)
 
 (defun buffer-octets (start end)
   "The bytes of the current buffer from START to END, as an octet vector."
@@ -245,7 +281,7 @@ the buffer)."
 (defun copy-region () (%copy-region) t)
 (defun yank () (%yank) t)
 (defun kill-line () (%kill-line) t)
-(defun undo () (%undo) t)
+;; UNDO and REDO are in lisp/undo.lisp
 (defun discard-undo-history () (%discard-undo-history) t)
 (defun get-clipboard () (or (%get-clipboard) ""))
 (defun set-clipboard (s) (%set-clipboard (text s)) s)
@@ -278,6 +314,48 @@ the buffer)."
 (defun split-window () (%split-window) t)
 (defun update-display () (%update-display) t)
 (defun refresh-screen () (%refresh) t)
+(defun delete-window () (%delete-window) t)
+(defun window-count () (%window-count))
+(defun window-rows () "Text lines in the selected window." (%window-rows))
+(defun recenter () (%recenter) t)
+(defun set-window-start (p)
+  "Show the selected window from offset P, which should start a line."
+  (%set-window-start p)
+  t)
+(defun line-number (&optional (p (point))) "1-based line of offset P." (%line-number p))
+(defun set-mode-line-hints (help tail)
+  "The two hints on the mode line, e.g. \"Ctrl-h for help\" and
+\"Ctrl c r calls Claude; Ctrl c g calls GPT\"."
+  (%set-modeline-hints (text help) (text tail))
+  t)
+
+(defvar *buffer-hints* (make-hash-table :test 'equal)
+  "Buffer name -> its mode line hint; given to the C core at start-up.")
+
+(defun set-buffer-hint (buffer hint)
+  "Show HINT at the end of the mode line of BUFFER (a name) instead of the
+usual hints; NIL or \"\" goes back to them."
+  (let ((name (text buffer)) (hint (if hint (text hint) "")))
+    (if (string= hint "")
+        (remhash name *buffer-hints*)
+        (setf (gethash name *buffer-hints*) hint))
+    (when *library-path* (%set-buffer-hint name hint)))
+  t)
+
+(defun announce-buffer-hints ()
+  "The scripts compiled into the image are not loaded again at start-up:
+give their hints to the C core."
+  (maphash (lambda (name hint) (%set-buffer-hint name hint)) *buffer-hints*))
+
+(defun execute-builtin (name)
+  "Run the C core's command NAME (\"query-replace\", \"exec-lisp-command\"...).
+Returns NIL if there is no such command."
+  (= 1 (%execute-command (text name))))
+
+(defun builtin-command-names ()
+  (loop for i from 0
+        for name = (%command-name i)
+        while name collect name))
 (defun screen-rows () (%screen-rows))
 (defun screen-columns () (%screen-cols))
 
@@ -319,7 +397,8 @@ which case GET-KEY-NAME and GET-KEY-BINDING describe it."
 
 (defparameter *color-ids*
   '((:symbol . 1) (:modeline . 2) (:brace . 3) (:keyword . 4) (:alpha . 5)
-    (:digits . 6) (:comment . 7) (:block-comment . 8) (:string . 9)))
+    (:digits . 6) (:comment . 7) (:block-comment . 8) (:string . 9)
+    (:region . 10) (:heading . 11) (:emphasis . 12) (:strong . 13) (:link . 14)))
 
 ;; the eight basic colours; :default is the terminal's own colour, and
 ;; an integer 0-255 picks from the 256-colour palette
@@ -361,7 +440,9 @@ which case GET-KEY-NAME and GET-KEY-BINDING describe it."
                                               ; :reverse :dim :italic
 
 Faces: :keyword :comment :block-comment :string :digits :alpha (identifiers)
-:symbol (everything else) :brace (matching paren) :modeline."
+:symbol (everything else) :brace (matching paren) :modeline :region
+(the selected text), and for prose (Markdown) :heading :emphasis :strong
+:link."
   (= 1 (%set-color (color-id face) (color-number foreground) (color-number background)
                    (attribute-bits attributes))))
 

@@ -17,7 +17,7 @@ void search()
 	cpos = strlen(searchtext);
 
 	for (;;) {
-		c = screen_getch();
+		c = read_key_byte();
 		/* ignore control keys other than C-g, backspace, CR,  C-s, C-R, ESC */
 		if (c < 32 && c != 07 && c != 0x08 && c != 0x13 && c != 0x12 && c != 0x1b)
 			continue;

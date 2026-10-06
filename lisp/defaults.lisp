@@ -15,6 +15,12 @@
   "The text of the line the cursor is on, without moving the cursor."
   (buffer-substring (line-start) (line-end)))
 
+(defun split-lines (string)
+  (loop with start = 0
+        for pos = (position #\Newline string :start start)
+        collect (subseq string start pos)
+        while pos do (setf start (1+ pos))))
+
 (defun read-string (string)
   "Read a Lisp object from STRING: (read-string \"(2016 8 31)\") => (2016 8 31)"
   (let ((*read-eval* nil))
@@ -76,10 +82,10 @@
 ;;; Indentation and case
 ;;; ------------------------------------------------------------------
 
-;; C-t
+;; C-x >
 (defun indent-two () (insert "  "))
 
-;; C-o
+;; C-x <
 (defun deindent-two () (backward-delete-char 2))
 
 (defun transform-region (function)
@@ -178,5 +184,5 @@ inserts the value into the buffer."
 (global-set-key "C-x C-e" 'eval-last-sexp)
 (global-set-key "C-x C-i" 'indent-region)
 
-(global-set-key "C-o" 'deindent-two)
-(global-set-key "C-t" 'indent-two)
+(global-set-key "C-x >" 'indent-two)        ; C-o and C-t are Emacs's again
+(global-set-key "C-x <" 'deindent-two)       ; (lisp/extensions/emacs-keys.lisp)

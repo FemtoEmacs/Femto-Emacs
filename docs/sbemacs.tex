@@ -1,0 +1,2102 @@
+\documentclass[a4paper,12pt,openany]{book}
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{menukeys}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage[T1]{fontenc}
+\usepackage{upquote}
+\usepackage{wrapfig}
+\usepackage{makeidx}
+\usepackage{fancyvrb}
+\usepackage{fvextra}
+\usepackage{url}
+\usepackage{geometry}
+\usepackage{multicol}
+\usepackage{array}
+% long lines of programs and commands wrap instead of leaving the page
+\RecustomVerbatimEnvironment{verbatim}{Verbatim}{fontsize=\small,breaklines,breakanywhere}
+
+\newsavebox{\fmbox}
+\newenvironment{fmpage}[1]
+           {\begin{lrbox}{\fmbox}\begin{minipage}{#1}}
+           {\end{minipage}\end{lrbox}\fbox{\usebox{\fmbox}}}
+
+\addto\captionsenglish{\renewcommand{\figurename}{Figure}}
+
+\makeindex
+
+
+\begin{document}
+\newgeometry{margin=1.4cm,top=1.1cm,bottom=1.2cm}
+\thispagestyle{empty}
+\begin{center}
+{\LARGE\bfseries SBEmacs commands}
+\end{center}
+\vspace{-4pt}
+{\large
+\noindent\textbf{How to type a command.}
+\verb|C-| is the \keys{Ctrl} key and \verb|M-| is the \keys{Esc} key.\par
+\vspace{3pt}\noindent
+\begin{tabular}{@{}>{\ttfamily}p{2.2cm}@{\,}p{15.2cm}@{}}
+C-f & Keep \keys{Ctrl} down and press \keys{f}.\\
+M-f & Press \keys{Esc} and let go of it, then press \keys{f}.\\
+    & or keep \keys{Alt} (\keys{Option} on a Mac) down and press \keys{f}.\\
+C-x C-s & Keep \keys{Ctrl} down and press \keys{x}, then \keys{s}. Then let go of \keys{Ctrl}.\\
+C-x b & Keep \keys{Ctrl} down and press \keys{x}. Let go of \keys{Ctrl}, then press \keys{b}.\\
+C-M-f & Press \keys{Esc} and let go of it, then keep \keys{Ctrl} down and press \keys{f}.\\
+\end{tabular}
+}
+\vspace{2pt}
+\hrule
+\vspace{6pt}
+\begin{multicols}{2}
+\small
+\setlength{\parindent}{0pt}
+\textbf{Files}\\[1pt]
+{\large
+\begin{tabular}{@{}>{\raggedright}p{2.35cm}@{\,}p{6.1cm}@{}}
+\texttt{C-x C-f} &open a file\\
+\texttt{C-x C-s} &save\\
+\texttt{C-x C-w} &save with another name\\
+\texttt{C-x i} &insert a file\\
+\texttt{C-x C-c} &quit\\
+\end{tabular}}
+\vspace{7pt}
+
+\textbf{Moving}\\[1pt]
+{\large
+\begin{tabular}{@{}>{\raggedright}p{2.35cm}@{\,}p{6.1cm}@{}}
+\texttt{C-f\,\,C-b} & forward, back one char\\
+\texttt{C-n\,\,C-p} & next, previous line\\
+\texttt{M-f\,\,M-b} & forward, back one word\\
+\texttt{C-a\,\,C-e} & beginning, end of the line\\
+\texttt{C-v\,\,M-v} & next, previous screen\\
+\texttt{M-<\,\,M->} & beginning, end of the file\\
+\texttt{M-g} & go to a line number\\
+\end{tabular}}
+\vspace{7pt}
+
+\textbf{Editing}\\[1pt]
+{\large
+\begin{tabular}{@{}>{\raggedright}p{2.35cm}@{\,}p{6.1cm}@{}}
+\texttt{DEL} & delete char before the cursor\\
+\texttt{C-d} & delete char under the cursor\\
+\texttt{C-k} & kill to end of line\\
+\texttt{C-/} & undo; again: undo more\\
+\texttt{C-M-\_} & redo\\
+\texttt{TAB} & indent the line\\
+\texttt{M-q} & refill the paragraph\\
+\texttt{M-;} & comment line or region\\
+\end{tabular}}
+\vspace{7pt}
+
+\columnbreak
+
+\textbf{Region (shaded)}\\[1pt]
+{\large
+\begin{tabular}{@{}>{\raggedright}p{2.35cm}@{\,}p{6.1cm}@{}}
+\texttt{C-Spc} & set mark\\
+\texttt{mouse} & drag to select\\
+\texttt{C-w} & kill  region\\
+\texttt{M-w} & copy the region\\
+\texttt{C-y} & yank (paste)\\
+\texttt{M-y} & after C-y: an earlier kill\\
+\texttt{C-g} & cancel command\\
+\end{tabular}}
+\vspace{7pt}
+
+\textbf{Searching}\\[1pt]
+{\large
+\begin{tabular}{@{}>{\raggedright}p{2.35cm}@{\,}p{6.1cm}@{}}
+\texttt{C-s} & search forward\\
+\texttt{C-r} & search backward\\
+\texttt{M-\%} & replace\\
+\end{tabular}}
+\vspace{7pt}
+
+\textbf{Buffers and windows}\\[1pt]
+{\large
+\begin{tabular}{@{}>{\raggedright}p{2.35cm}@{\,}p{6.1cm}@{}}
+\texttt{C-x b} & switch to a buffer by name\\
+\texttt{C-x C-b} & buffer menu\\
+\texttt{C-x 2} & split the window\\
+\texttt{C-x o} & other window (or click it)\\
+\texttt{C-x 0} & close this  window\\
+\texttt{C-x 1} & close other window\\
+\end{tabular}}
+\vspace{7pt}
+
+\textbf{Help, Lisp and AI}\\[1pt]
+{\large
+\begin{tabular}{@{}>{\raggedright}p{2.35cm}@{\,}p{6.1cm}@{}}
+\texttt{C-h} & help with keybinding\\
+\texttt{M-x} & run a command by name\\
+\texttt{M-:} & eval a Lisp \\
+\texttt{C-x C-e} & eval Lisp before cursor\\
+\texttt{C-c r} & call Claude\\
+\texttt{C-c y} & insert Claude's code\\
+\texttt{C-c g} & call Codex/ChatGPT\\
+\end{tabular}}
+\vspace{7pt}
+
+\end{multicols}
+\vspace{-6pt}
+\restoregeometry
+\clearpage
+\tableofcontents
+\mainmatter
+
+
+%%% ==================================================================
+\chapter{The commands in detail}
+%%% ==================================================================
+
+This chapter explains the commands of the first page in more detail.
+The next chapter shows how to install SBEmacs.
+
+In the following cheat sheet, \verb|Spc| denotes
+the space bar, \verb|C-| is the \keys{Ctrl} prefix, \verb|M-| represents
+the  \keys{Alt} prefix and  $\kappa$ can be any key.
+
+\paragraph{Help.} If you forget a command, press \verb|C-h| or \keys{F1}.
+SBEmacs shows all its keybindings on a page of their own,
+one key per line. The arrows, \verb|C-n| and \verb|C-p| scroll
+the page; any other key takes you back to the file you are editing.
+The status line, at the bottom of each window, reminds you of this:
+\begin{quote}
+\begin{verbatim}
+SBEmacs: Ctrl-h for help == fib.lisp, L. 5 == Ctrl c r calls ...
+\end{verbatim}
+\end{quote}
+Besides the name of the file, the status line shows the line
+where the cursor is. An asterisk after the file name means
+that the file has been modified, but not saved.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\textwidth]{figs/sbemacs-help.png}
+\caption{The help page, \texttt{C-h}}
+\end{figure}
+
+\paragraph{Basic commands.} \verb|C-|$\kappa$ -- Keep \keys{Ctrl} down
+and press \keys{$\kappa$}
+\begin{quote}
+ \verb|C-s| then type some text, and press \verb|C-s| again
+  -- search a text.\\
+ \verb|C-r| then type some text, and press \verb|C-r| again
+  -- reverse search.\\
+ \verb|C-k| -- kill a line.\\
+ \verb|C-h| -- help (the backspace key deletes backward).\\
+ \verb|C-d| -- delete char forward.\\
+ \verb|C-Spc| then move the cursor -- select a region.\\
+ \verb|M-w| -- save selected region into the kill ring. \\
+ \verb|C-w| -- kill region.\\
+ \verb|C-y| -- insert killed or saved region.\\
+ \verb|C-g| -- cancel minibuffer reading, or unselect the region.\\
+ \verb|C-a| -- go to beginning of line.\\
+ \verb|C-e| -- go to end of line.\\
+ \verb|C-b| -- move backward one character.\\
+ \verb|C-f| -- move forward one character.\\
+ \verb|C-n| -- move cursor to the next line.\\
+ \verb|C-p| -- move cursor to the previous line.\\
+ \verb|C-l| -- put the line of the cursor in the middle of the window.\\
+ \verb|C-/| -- undo. \verb|C-u| also undoes.\\
+ \verb|C-v| -- forward page.\\
+ \keys{INS} -- toggle overwrite mode.\\
+ \keys{$\leftarrow$} \keys{$\rightarrow$} \keys{$\uparrow$} \keys{$\downarrow$} -- arrows move cursor.\\
+\end{quote}
+
+\paragraph{Control-x commands.} \verb|C-x C-|$\kappa$ -- Keep \keys{Ctrl}
+down and press \keys{x}, then \keys{$\kappa$}
+\begin{quote}
+  \verb|C-x C-f| -- open a file into a new buffer.\\
+  \verb|C-x C-w| -- write file with new name.\\
+\verb|C-x C-s| -- save file.\\
+\verb|C-x s| -- save every modified file, asking first.\\
+\verb|C-x C-c| -- exit SBEmacs.\\
+\verb|C-x i| -- insert file at the cursor.\\
+\verb|C-x ?| -- describes a key stroke.\\
+\verb|C-x @| --  shell command. After \verb|C-x @|,
+if one types \verb|ls| at the prompt, the computer
+will list the current folder.
+It is possible to use any other shell command
+just like the \verb|ls| example.
+\end{quote}
+
+\paragraph{Window commands.} One can have more
+than one window on the screen. Below, you will
+find commands that cope with this situation.
+\begin{itemize}
+\item \verb|C-x |$\kappa$ -- Keep \keys{Ctrl} down and press \keys{x};
+let go of \keys{Ctrl}, then press \keys{$\kappa$}
+\begin{quote}
+\verb|C-x b| -- switch to a buffer, by name.\\
+\verb|C-x n| -- next buffer.\\
+\verb|C-x C-n| -- next buffer. Same as above.\\
+\verb|C-x C-b| -- list buffers.\\
+\verb|C-x k| -- kill current buffer.\\
+\verb|C-x =| -- cursor position.\\
+\verb|C-x 2| -- split window into cursor window and other window.\\
+\verb|C-x o| -- jump to the other window.\\
+\verb|C-x 1| -- close the other window.\\
+\verb|C-x 0| -- close the cursor window.\\
+\verb|C-x ^| -- make the cursor window taller.
+\end{quote}
+\item \verb|Esc| $\kappa$ -- Press the \keys{Esc} key and let go of it,
+then press the \keys{$\kappa$} key.
+\begin{quote}
+\verb|Esc >| -- go to the end of buffer.\\
+\verb|Esc <| -- go to the beginning of buffer.\\
+\verb|Esc f| -- word forward.\\
+\verb|Esc b| -- word backward.\\
+\end{quote}
+\item \verb|M|-$\kappa$ -- Keep the \keys{Alt} key
+down and press the \keys{$\kappa$} key. On the Macintosh,
+the \keys{Alt} key is called \keys{Option}; in the Terminal
+application, you must tick {\em Use Option as Meta key}
+in Settings, Profiles, Keyboard.
+\begin{quote}
+\verb|M-b| -- move backward one word.\\
+\verb|M-f| -- move forward one word.\\
+\verb|M-g| -- go to the line given in the minibuffer.\\
+\verb|M-n| -- activate the next buffer.\\
+\verb|M-r| -- query replace. \verb|M-%| does the same.
+\end{quote}
+\end{itemize}
+
+\paragraph{The mouse.} You can click on a window to move
+the cursor there; a click on another window selects that window.
+If you keep the button down and drag the mouse, you select a region.
+This works in the graphical window and in the text terminal.
+In a text terminal, SBEmacs takes the mouse from the terminal; if
+you want the terminal's own selection, hold down the \keys{Shift}
+key (the \keys{Option} key in the Macintosh Terminal) while
+you drag, or start the editor with the \verb|--no-mouse| option.
+
+\paragraph{The region.} The region is the text between the mark,
+which you set with \verb|C-Spc|, and the cursor. Like in Emacs,
+SBEmacs shades the region while it is active. The shade goes away
+when you change the text, when you copy the region with \verb|M-w|,
+or when you press \verb|C-g|.
+
+\paragraph{Query replace.} If you press \keys{Esc}\keys{r},
+the computer enters in the query replace mode.
+First, SBEmacs prompts for the text snippet S
+that you want to replace. Then it prompts for
+the replacement R. When you type the R text and
+press the \keys{Enter} key, the cursor jumps to
+the first occurence of S, and SBEmacs
+asks whether you want to
+replace it. If the answer is
+\verb|y|, SBEmacs will replace S
+with \verb|R| and jump to the next occurence.
+If the answer is \verb|n|, SBEmacs will
+jump to the next occurrence of S without
+performing the replacement.
+
+\paragraph{Go to line.} When you try to compile
+code containing errors, the compiler
+usually reports the line number where the error occurred.
+If you press \keys{Esc}\keys{g}, SBEmacs
+prompts for a line number. As soon as you
+type the number and press the \keys{Enter}
+key, the cursor jumps to the line where the
+error occurred.
+
+In order to know the position of the cursor,
+press the \verb|C-x =| command,
+and SBEmacs gives information concerning
+the character under the
+cursor, the corresponding code, the line,
+and the character position in the text.
+
+\paragraph{Markdown.} SBEmacs colours Markdown files (\verb|.md|):
+headings, \verb|**strong**| and \verb|*emphasis*|, code between back
+quotes, links, quotations and lists. A block of code that names its language,
+like \verb|```lisp|, is coloured as that language. In a list,
+\keys{Enter} starts the next item, \verb|- | or \verb|3. |;
+\keys{Enter} on an empty item ends the list. \keys{Tab} nests an item under
+the item above, and \verb|M-q| refills a paragraph or a list item.
+
+\paragraph{Undo.} The \verb|C-/| command undoes the last
+command. If you press it again, it undoes the command before,
+and so on. Typed text is undone a word at a time, and a command
+that changed many lines, like \verb|M-q| (fill paragraph), is undone
+at once. If you undo too much, \verb|C-M-_| (or \verb|M-_|) redoes
+what undo took back. When you undo all the changes made since the
+file was saved, the asterisk disappears from the status line.
+
+\paragraph{Nia Vardalos.}
+In order to get acquainted with editing and scripting,
+let us accompany the Canadian programmer Nia
+Vardalos, while she explores SBEmacs.
+
+When text is needed for carrying out a command,
+it is read from the minibuffer, a one line
+window at the bottom of the screen. For instance,
+if Nia presses \verb|C-s| for finding a text,
+the text is read from the minibuffer. After
+typing the text that she wants to localize,
+Nia presses \verb|C-s| again to start the search.
+For abandoning an ongoing command, she may press \verb|C-g|.
+
+To transport a region from one place to another,
+Nia presses \verb|C-Spc| to start
+ the selection process
+ and move the cursor to select the region.
+ Then she presses \verb|C-w| to
+kill her selection. Finally, she moves
+the cursor to the insertion place,
+and presses the \verb|C-y| shortcut.
+Of course, she can select the region with the mouse instead.
+
+To copy a region, Nia presses \verb|C-Spc| and moves the cursor to select the region.
+Then she presses \verb|M-w| to save the selection into the kill ring. Finally,
+she takes the cursor to the destination where the copy is to be inserted and
+issues the \verb|C-y| command. If she wants an earlier kill,
+she presses \verb|M-y| right after \verb|C-y|, and SBEmacs replaces
+the yanked text with the kill before it.
+
+Nia noticed that there are two equivalent ways to
+issue an \verb|M-|$\kappa$ command. She can
+press and release the \keys{Esc} key, then
+strike the  $\kappa$ key. Alternatively, she
+can keep the \keys{Alt} key down and press
+the \keys{$\kappa$} key.
+
+\paragraph{Calculations with Lisp.} SBEmacs
+offers a Lisp dialect to perform calculations
+and text processing. Let us assume that you
+want to find how many students graduate
+from medical schools in California. You
+press \keys{Esc}\keys{:} and SBEmacs
+will prompt you for a Lisp expression.
+\begin{quote}
+\verb|> (+ 190 180 170 160 120 100 100 90)|\keys{Enter}
+\end{quote}
+In the above expression, the first thing after
+the open parenthesis is the \verb|+| sum
+operation identifier. After the name of
+the operation, there is a list of
+the arguments to be added together.
+As soon as Nia presses the \keys{Enter} key,
+SBEmacs shows the result of the addition:
+\begin{quote}
+\verb|1110|
+\end{quote}
+The rule that worked for
+the $\verb|(+ | x_1\;x_2\ldots\verb|)|$
+sum operation also works for the
+other arithmetic function too.
+\begin{itemize}
+  \item{Multiplication} is performed
+by the \verb|*| operation.
+\begin{quote}
+\keys{Esc}\keys{:}\\
+\verb|> (* 1 2 3 4 5)|\keys{Enter}\\
+120
+\end{quote}
+\item{Division} is obtained through the \verb|/| operation.
+\begin{quote}
+\keys{Esc}\keys{:}\\
+\verb|> (/ 1 2 4)|\keys{Enter}\\
+1/8
+\end{quote}
+The above operation performed the chain
+division \verb|1/2/4|. Common Lisp keeps the exact
+fraction \verb|1/8|. If you want a decimal number,
+write one of the arguments as a decimal: \verb|(/ 1.0 2 4)|
+gives \verb|0.125|.
+\item{Subtraction} has the syntax shown below.
+\begin{quote}
+\keys{Esc}\keys{:}\\
+\verb|> (- 1 2 4)|\keys{Enter}\\
+-5
+\end{quote}
+\item Mixed operations. One can nest subexpressions
+  within an outer expression. For instance,
+  to get the average student number graduating
+  from medical school in California, one can
+  calculate the expression:
+\begin{quote}
+\keys{Esc}\keys{:}\\
+\verb|> (/ (+ 190 180 170 160 120 100 100 90) 8.0)|\keys{Enter}\\
+138.75
+\end{quote}
+\end{itemize}
+
+In FemtoEmacs, the predecessor of SBEmacs, the Lisp prompt was
+\keys{Esc}\keys{;}. In SBEmacs,
+as in GNU Emacs, \keys{Esc}\keys{;} inserts a comment, and the Lisp
+prompt is \keys{Esc}\keys{:}.
+
+\paragraph{Command execution.} When you press
+shortcut keys, SBEmacs calls a command written in
+C or in Lisp. You can get a complete list of all
+SBEmacs keybindings by pressing \verb|C-h|.
+
+There are commands that are not associated to
+shortcut keys.
+For instance, the \verb|undo-status| command
+tells how many steps of undo the buffer keeps.
+Press \keys{Esc}\keys{$x$}
+and type \verb|undo-status| at the
+minibuffer prompt. The \keys{Tab} key completes the name of
+the command. Below you will find a fairly complete list
+of SBEmacs commands.
+
+\paragraph{Moving.}
+\begin{verbatim}
+C-f          forward one character (also the right arrow)
+C-b          back one character (also the left arrow)
+C-n          next line (also the down arrow)
+C-p          previous line (also the up arrow)
+M-f          forward one word
+M-b          back one word
+C-a          beginning of the line
+C-e          end of the line
+M-m          first non-blank character of the line
+M-a          back to the start of the sentence
+M-e          forward to the end of the sentence
+M-{          back one paragraph
+M-}          forward one paragraph
+C-v          next screen
+M-v          previous screen
+M-<          beginning of the file
+M->          end of the file
+M-g          go to a line number
+C-l          put the cursor's line in the middle of the window
+C-M-f        forward over an expression (Lisp: an s-expression)
+C-M-b        back over an expression
+C-M-u        out to the enclosing parenthesis
+C-M-d        into the next parenthesis
+C-M-a        beginning of the definition (defun, function)
+C-M-e        end of the definition
+\end{verbatim}
+
+\paragraph{Selecting.} The region is shaded.
+\begin{verbatim}
+C-Spc        set the mark: the region runs from it to the cursor
+mouse        click to move the cursor or choose a window;
+             drag to select
+C-x h        select the whole file
+M-h          select the paragraph
+M-@          select to the end of the word
+C-M-Spc      select to the end of the expression
+C-x C-x      swap the cursor and the mark
+C-g          unselect; cancel a command
+\end{verbatim}
+
+\paragraph{Killing (cutting) and yanking (pasting).}
+\begin{verbatim}
+C-w          kill the region
+M-w          copy the region
+C-y          yank the last kill
+M-y          right after C-y: replace it with the kill before
+C-k          kill to the end of the line (again: joins the kills)
+M-d          kill the next word
+M-DEL        kill the previous word
+M-k          kill to the end of the sentence
+C-M-k        kill the next expression
+M-z          kill up to and including a character
+C-d          delete the character under the cursor
+DEL          delete the character before the cursor (Backspace)
+C-c i        choose a kill to insert
+C-c k        browse the kill ring
+\end{verbatim}
+
+\paragraph{Changing text.}
+\begin{verbatim}
+C-/          undo the last command; again: the one before
+C-M-_        redo what undo took back (also M-_)
+C-t          swap the two characters at the cursor
+M-t          swap two words
+C-x C-t      swap this line with the one above
+M-u          upper-case the next word
+M-l          lower-case the next word
+M-c          capitalize the next word
+C-x C-u      upper-case the region
+C-x C-l      lower-case the region
+C-o          open a line after the cursor
+C-j          new line, indented
+TAB          indent the line
+C-x TAB      indent the region (also C-M-\)
+M-^          join this line to the previous one
+M-\          delete the spaces around the cursor
+M-Spc        leave just one space
+C-x C-o      delete blank lines
+M-q          refill the paragraph or comment
+M-;          comment: add one, or (un)comment the region
+C-q          insert the next key as it is (C-q TAB: a tab)
+INS          overwrite mode on or off
+\end{verbatim}
+
+\paragraph{Searching, buffers, windows and macros.}
+\begin{verbatim}
+C-s          search forward (C-s again: next match)
+C-r          search backward
+M-%          replace, asking each time (also M-r)
+C-x C-g      grep: search files
+C-x !        next grep match
+C-x b        switch to a buffer by name
+C-x C-b      buffer menu
+C-x 2        split the window
+C-x o        go to the other window (or click it)
+C-x 0        close this window
+C-x 1        close the other windows
+C-x (        start recording keys
+C-x )        stop recording
+C-x e        replay them; then e replays again
+\end{verbatim}
+
+\paragraph{Lisp and assistants.}
+\begin{verbatim}
+C-x C-e      evaluate the expression before the cursor
+C-M-x        evaluate the top-level form around the cursor
+M-:          evaluate an expression typed at the bottom
+M-]          evaluate the block and insert the value
+M-!          run a shell command
+C-x C-r      reload the Lisp scripts (no rebuild needed)
+C-c r        Claude: hints, a question or a discussion
+C-c y        insert the code of the last answer
+C-c t        in the discussion: insert the snippet under the cursor
+C-c g        write a request for ChatGPT (Codex)
+\end{verbatim}
+
+%%% CHAPTER2
+%%% ==================================================================
+\chapter{Installation}
+%%% ==================================================================
+
+A text editor, like Emacs or SBEmacs, has three components:
+\begin{enumerate}
+\item A frontend that inserts characters into a buffer.
+A buffer is a memory region with an image of a
+text file. One can see the buffer as a representation
+of a scratch pad. As such, the frontend provides tools to
+insert keystrokes at the  point indicated by
+a movable cursor.
+\item Editing operations that save buffers
+as files, delete and insert text, move the
+cursor around, copy items from one place to another, etc.
+\item A scripting language for customizing the editor.
+\end{enumerate}
+
+There is a large choice of frontends. Some frontends
+work with a raster graphics image, which  is a dot matrix
+data structure that represents a grid of pixels.
+There are also frontends that are specialized in
+showing letters and other characters via an appropriate
+display media. The latter sort of frontend is called
+text-based user interfaces, while the former is called
+graphical user interface, or GUI for short.
+
+Text-based user interfaces are more
+confortable on the eyes, since they  provide
+sharper and crisp alphabetical letters.
+On the other hand, GUI allows for font
+customization. SBEmacs offers both. In a text terminal,
+it uses ncurses, which is a text-based user interface.
+In a window of its own, it uses SDL2, a library that
+draws on a grid of pixels, and SDL2\_ttf, which renders
+TrueType fonts. The two frontends are compiled into two
+separate libraries, so a person who only works in the
+text terminal never needs SDL2.
+
+The scripting language is Common Lisp, as implemented by
+SBCL. In fact, SBCL is the program that you run: it loads the
+small editor core, written in C, and then the Lisp scripts.
+
+In this chapter, you will install all these pieces.
+I have to say this again: An installation
+task has so many details that, unless you
+are an engineer yourself,
+ask for help from a computer expert.
+If you never used a text terminal, read
+Chapter~\ref{chapter:shell} first.
+
+%%% ------------------------------------------------------------------
+\section{Cloning the GitHub repository}\label{sec:clone}
+%%% ------------------------------------------------------------------
+
+The sources of SBEmacs are kept on GitHub, a site that stores
+programs together with the history of all their changes.
+Such a collection is called a repository. To get a copy of the
+repository on your machine, you need the \verb|git| program.
+In order to check whether you have it, type:
+\begin{quote}
+\begin{verbatim}
+~$ git --version
+git version 2.39.5
+\end{verbatim}
+\end{quote}
+If the computer says that it does not know \verb|git|,
+install it. On the Macintosh, the command below installs
+\verb|git| together with the C compiler and \verb|make|,
+which you will need anyway:
+\begin{quote}
+\begin{verbatim}
+~$ xcode-select --install
+\end{verbatim}
+\end{quote}
+On Debian or Ubuntu Linux, use apt-get:
+\begin{quote}
+\begin{verbatim}
+~$ sudo apt-get install git build-essential
+\end{verbatim}
+\end{quote}
+
+Now, clone the repository, i.e., make a local copy of it.
+Let us assume that Nia keeps her sources in a \verb|csand|
+folder:
+\begin{quote}
+\begin{verbatim}
+~$ mkdir -p csand
+~$ cd csand
+~/csand$ git clone https://github.com/FemtoEmacs/Femto-Emacs.git sbemacs
+~/csand$ cd sbemacs
+~/csand/sbemacs$
+\end{verbatim}
+\end{quote}
+The last argument of \verb|git clone|, \verb|sbemacs|, is the
+name of the folder that receives the copy. If you omit it, git
+names the folder after the repository, \verb|Femto-Emacs|.
+
+Later on, when the authors improve the editor, you do not need
+to clone the repository again. Enter the folder and ask git to
+bring the changes:
+\begin{quote}
+\begin{verbatim}
+~/csand/sbemacs$ git pull
+\end{verbatim}
+\end{quote}
+
+%%% ------------------------------------------------------------------
+\section{Branches}
+%%% ------------------------------------------------------------------
+
+A repository can keep more than one version of a program at
+the same time. Each version is called a branch. The
+SBEmacs repository (still called \verb|Femto-Emacs| on GitHub)
+has three branches:
+\begin{itemize}
+\item \verb|master| -- FemtoEmacs, the predecessor of SBEmacs (2016),
+  with femtolisp.
+\item \verb|sbcl| -- SBEmacs, the editor described in this text,
+  for Linux, Macintosh and Windows.
+\item \verb|windows| -- SBEmacs with an installer for Windows,
+  so that Windows users do not need a C compiler.
+\end{itemize}
+The \verb|git branch -a| command lists the branches; an
+asterisk marks the one whose files you have in the folder.
+To switch to another branch, use \verb|git switch|:
+\begin{quote}
+\begin{verbatim}
+~/csand/sbemacs$ git branch -a
+* master
+  remotes/origin/master
+  remotes/origin/sbcl
+  remotes/origin/windows
+~/csand/sbemacs$ git switch sbcl
+Switched to a new branch 'sbcl'
+~/csand/sbemacs$ git switch windows
+Switched to a new branch 'windows'
+~/csand/sbemacs$ git switch sbcl
+Switched to branch 'sbcl'
+\end{verbatim}
+\end{quote}
+When you switch, git replaces the files of the folder with
+the files of the chosen branch. Therefore, if you have changed
+a file, git refuses to switch until you save your work
+with \verb|git commit|, or put it aside with \verb|git stash|.
+Old versions of git do not know \verb|git switch|; use
+\verb|git checkout sbcl| instead.
+
+For the rest of this chapter, Nia stays in the \verb|sbcl| branch.
+If you use Windows and only want to run the editor, switch to
+the \verb|windows| branch and follow its \verb|README.md|: it
+explains how to install SBCL and run the installer, which needs
+neither a C compiler nor administrator privileges.
+
+%%% ------------------------------------------------------------------
+\section{Installing SBCL}
+%%% ------------------------------------------------------------------
+
+SBCL, Steel Bank Common Lisp, is a free compiler for the Common Lisp
+language. Users of SBEmacs are supposed to install it, because
+SBEmacs is a program that SBCL runs. Any recent version works.
+
+\paragraph{MAC OS-X.} The easiest way is Homebrew, a package
+manager for the Macintosh (see section~\ref{sec:packages}).
+If you do not have Homebrew yet, the instructions are at
+\verb|https://brew.sh|. Then:
+\begin{quote}
+\begin{verbatim}
+~$ brew install sbcl
+\end{verbatim}
+\end{quote}
+
+\paragraph{Linux.} Use the package manager of your distribution:
+\begin{quote}
+\begin{verbatim}
+~$ sudo apt-get install sbcl       # Debian, Ubuntu
+~$ sudo dnf install sbcl           # Fedora
+\end{verbatim}
+\end{quote}
+
+\paragraph{Windows.} Download the installer of the most recent
+64-bit version from
+\path|https://www.sbcl.org/platform-table.html|,
+double-click it and follow the instructions.
+
+\paragraph{Checking.} Whatever your system, check that the
+terminal finds SBCL:
+\begin{quote}
+\begin{verbatim}
+~$ sbcl --version
+SBCL 2.5.9
+\end{verbatim}
+\end{quote}
+If you type \verb|sbcl| alone, you get the Lisp prompt,
+where you can try the arithmetic of Chapter~1. The
+\verb|(exit)| expression takes you back to the shell.
+\begin{quote}
+\begin{verbatim}
+~$ sbcl
+* (+ 190 180 170 160 120 100 100 90)
+1110
+* (exit)
+~$
+\end{verbatim}
+\end{quote}
+
+%%% ------------------------------------------------------------------
+\section{ncurses}\label{sec:ncurses}\index{ncurses}
+%%% ------------------------------------------------------------------
+
+Computers need a tool to make communication
+with users possible. That tool is
+called User Interface, or UI for short.
+A text terminal
+offers sharper and crisp characters
+through the use of a specialized
+User Interface called ncurses. SBEmacs uses ncurses
+when it runs in a text terminal, and needs the version
+that handles characters with
+diacritics, so you can write words
+like {\em café} and {\em façade}. This version is
+called ncursesw, where the \verb|w| stands for wide characters.
+
+In 2016, one had to download ncurses and build it, because
+the operating systems came with old versions. Today, this is
+seldom necessary.
+
+\paragraph{MAC OS-X.} The Macintosh comes with ncurses, and
+SBEmacs uses it. The Xcode command line tools of
+section~\ref{sec:clone} bring the files that the C compiler needs.
+To check the version:
+\begin{quote}
+\begin{verbatim}
+~$ tic -V
+ncurses 6.0.20150808
+~$ ls $(xcrun --show-sdk-path)/usr/include/ncurses.h
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/ncurses.h
+\end{verbatim}
+\end{quote}
+If \verb|xcrun| complains, run \verb|xcode-select --install| again.
+
+\paragraph{Linux.} The ncurses library is certainly installed,
+since many programs use it, but the files that the C compiler
+needs come in a separate package. Check whether the compiler
+can find ncursesw:
+\begin{quote}
+\begin{verbatim}
+~$ pkg-config --modversion ncursesw
+6.4.20240113
+\end{verbatim}
+\end{quote}
+If the computer answers that the package was not found,
+install it:
+\begin{quote}
+\begin{verbatim}
+~$ sudo apt-get install libncurses-dev pkg-config  # Debian, Ubuntu
+~$ sudo dnf install ncurses-devel pkgconf          # Fedora
+\end{verbatim}
+\end{quote}
+
+\paragraph{Windows.} If you build SBEmacs from the sources, you
+need MSYS2 (\path|https://www.msys2.org|), a collection of Unix
+tools for Windows. In the {\em MSYS2 MINGW64} shell, install
+the compiler, make, ncurses and pkg-config:
+\begin{quote}
+\begin{verbatim}
+$ pacman -S make mingw-w64-x86_64-gcc mingw-w64-x86_64-ncurses \
+            mingw-w64-x86_64-pkgconf
+\end{verbatim}
+\end{quote}
+
+%%% ------------------------------------------------------------------
+\section{SDL2 and SDL2\_ttf}\label{sec:sdl}
+%%% ------------------------------------------------------------------
+
+\paragraph{What they are.} A text terminal shows only characters, one
+per cell of a grid. A window of its own lets SBEmacs choose fonts and
+colours freely, but the program must then draw every letter itself, pixel
+by pixel, and talk to the operating system to open the window and to read
+the keyboard and the mouse. Each operating system does these things in its
+own way: Cocoa on the Macintosh, X11 or Wayland on Linux, Win32 on
+Windows. Instead of writing the editor three times, SBEmacs uses SDL2.
+
+SDL2, the Simple DirectMedia Layer, is a library that offers one set of
+functions for all these systems: open a window, draw rectangles and
+images, receive key presses and mouse clicks. Many games are built on
+it. SDL2 does not know how to draw letters, though. That is the job of
+SDL2\_ttf, a companion library that reads TrueType fonts (the
+\verb|.ttf| and \verb|.ttc| files of your system) and turns each letter
+into a small image that SDL2 can paint.
+
+Remember that a library is a file of compiled C functions that other
+programs use. To build a program on top of a library, the C compiler needs
+two things: the header files (\verb|SDL.h|, \verb|SDL_ttf.h|), which
+describe the functions, and the library itself
+(\verb|libSDL2.dylib|, \verb|libSDL2.so| or \verb|SDL2.dll|). On Linux,
+the headers come in a separate package, whose name ends in \verb|-dev| or
+\verb|-devel|.
+
+SDL2 and SDL2\_ttf are optional. If you only use SBEmacs in a text
+terminal, you can skip this section.
+
+\paragraph{pkg-config.} How does \verb|make| find the headers and the
+libraries? It asks \verb|pkg-config|, a small program that knows where each
+installed library lives. For instance:
+\begin{quote}
+\begin{verbatim}
+~$ pkg-config --modversion sdl2 SDL2_ttf
+2.30.0
+2.22.0
+~$ pkg-config --cflags --libs sdl2 SDL2_ttf
+-I/opt/homebrew/include/SDL2 -L/opt/homebrew/lib -lSDL2_ttf -lSDL2
+\end{verbatim}
+\end{quote}
+The first command prints the versions, which proves that both libraries
+are installed and that \verb|pkg-config| finds them. The second prints the
+options that \verb|make| hands to the C compiler. If the first command
+answers {\em Package sdl2 was not found}, install the libraries as shown
+below. If it answers {\em command not found}, \verb|pkg-config| itself is
+missing; install it too.
+
+\paragraph{MAC OS-X.} Install Homebrew first, as explained in
+section~\ref{sec:packages}. Then:
+\begin{quote}
+\begin{verbatim}
+~$ brew install sdl2 sdl2_ttf pkg-config
+\end{verbatim}
+\end{quote}
+Homebrew installs everything under \verb|/opt/homebrew| (or
+\verb|/usr/local| on older Intel Macintosh computers), and tells
+\verb|pkg-config| where. You do not need \verb|sudo|.
+
+\paragraph{Linux.} Install the development packages, which bring the
+headers together with the libraries:
+\begin{quote}
+\begin{verbatim}
+~$ sudo apt-get install libsdl2-dev libsdl2-ttf-dev pkg-config  # Debian, Ubuntu
+~$ sudo dnf install SDL2-devel SDL2_ttf-devel pkgconf          # Fedora
+~$ sudo pacman -S sdl2 sdl2_ttf pkgconf                        # Arch
+\end{verbatim}
+\end{quote}
+SBEmacs needs a font. Most distributions come with the DejaVu fonts;
+if letters are missing in the window, install them
+(\verb|sudo apt-get install fonts-dejavu|).
+
+\paragraph{Windows.} If you install SBEmacs with the installer of the
+\verb|windows| branch, SDL2 and SDL2\_ttf come with it, and you have nothing
+to do. If you build SBEmacs yourself, install them in the {\em MSYS2
+MINGW64} shell:
+\begin{quote}
+\begin{verbatim}
+$ pacman -S mingw-w64-x86_64-SDL2 mingw-w64-x86_64-SDL2_ttf \
+            mingw-w64-x86_64-pkgconf
+\end{verbatim}
+\end{quote}
+The files \verb|SDL2.dll| and \verb|SDL2_ttf.dll| must then be where
+Windows finds them: in the folder of \verb|sbemacs.exe|, or in the MSYS2
+\verb|mingw64\bin| folder if it is in the \verb|PATH|.
+
+\paragraph{Build again.} The graphical frontend is compiled only when
+\verb|make| finds SDL2. If you ran \verb|make| before installing SDL2, it
+printed this note, and built the terminal version only:
+\begin{quote}
+\begin{verbatim}
+note: SDL2/SDL2_ttf not found, built the terminal version only
+\end{verbatim}
+\end{quote}
+After installing SDL2, build and install again:
+\begin{quote}
+\begin{verbatim}
+~/csand/sbemacs$ make
+~/csand/sbemacs$ sudo make install
+\end{verbatim}
+\end{quote}
+To make sure that the graphical frontend exists, look for its library next
+to the program:
+\begin{quote}
+\begin{verbatim}
+~/csand/sbemacs$ ls libsbemacs-*
+libsbemacs-gui.dylib   libsbemacs-term.dylib
+\end{verbatim}
+\end{quote}
+On Linux the names end in \verb|.so|; on Windows, in \verb|.dll|.
+
+\paragraph{Try it.}
+\begin{quote}
+\begin{verbatim}
+~$ sbemacs --gui notes.md
+\end{verbatim}
+\end{quote}
+If a window opens, everything is in place. If SBEmacs says
+{\em cannot open a window here, using the terminal}, either the graphical
+library was not built (go back to {\em Build again}) or there is no screen
+to open a window on: for instance, you are logged in a remote machine
+through \verb|ssh|. In that case the terminal version is the right one.
+
+\paragraph{Fonts and colours.} SBEmacs looks for a monospaced font among
+the usual ones of each system (Menlo and Monaco on the Macintosh, DejaVu
+Sans Mono and Liberation Mono on Linux, Consolas on Windows). To choose
+another one, give the path of its file in \verb|~/.sbemacs/init.lisp|:
+\begin{quote}
+\begin{verbatim}
+(setf *gui-font* "/Library/Fonts/JetBrainsMono-Regular.ttf")
+(setf *gui-font-size* 16)
+(setf *gui-theme* :light)        ; or :dark, the default
+\end{verbatim}
+\end{quote}
+In the window, \verb|C-+| and \verb|C--| (or \keys{Cmd}\keys{+} and
+\keys{Cmd}\keys{-} on the Macintosh) make the letters larger or smaller.
+
+%%% ------------------------------------------------------------------
+\section{make and sudo make install}
+%%% ------------------------------------------------------------------
+
+The editor folder contains
+many files in the C  computer language, and many in Lisp.
+In order to become usable, these files
+must be compiled into a set of libraries
+containing instructions written in a
+language that the computer understands.
+You do not need any knowledge of C to
+perform the translation to machine
+language. All instructions in the
+batch job for performing the compilation
+are written in  \verb|Makefile|. Enter the folder and type
+\verb|make|:
+\begin{quote}
+\begin{verbatim}
+~/csand/sbemacs$ git switch sbcl
+~/csand/sbemacs$ make
+~/csand/sbemacs$ make test
+112/112 tests passed
+\end{verbatim}
+\end{quote}
+The \verb|make| command produces three files:
+\begin{itemize}
+\item \verb|libsbemacs-term| -- the editor core with the ncurses frontend.
+\item \verb|libsbemacs-gui| -- the editor core with the SDL2 frontend,
+  if SDL2 is installed.
+\item \verb|sbemacs| -- the program itself, which SBCL saved together
+  with the compiled Lisp scripts.
+\end{itemize}
+On the Macintosh, the libraries have the \verb|.dylib| extension;
+on Linux, \verb|.so|; on Windows, \verb|.dll|. The \verb|make test|
+command is optional: it checks that the Lisp side works.
+
+You can already try the editor from inside the folder. Remember
+that the dot indicates the current directory. For instance,
+the \verb|./sbemacs| command means: execute the \verb|sbemacs| file
+present in the current directory.
+\begin{quote}
+\begin{verbatim}
+~/csand/sbemacs$ ./sbemacs samples/fib.lisp
+\end{verbatim}
+\end{quote}
+
+Installation is achieved by copying the
+compiled files to \verb|/usr/local/|:
+\begin{quote}
+\begin{verbatim}
+~/csand/sbemacs$ sudo make install
+\end{verbatim}
+\end{quote}
+The installation requires that the
+system copy files to the \verb|/usr/local/|
+folder. However, you must give special
+permission for this operation to be performed,
+otherwise the possibility remains open for
+a virus to make similar copies
+in critical folders.
+The \verb|sudo|
+command informs the machine that you
+are a superuser. To avoid being tricked
+by a virus or an unauthorized user,
+the machine asks for the password,
+and if you type it correctly,
+the system installs SBEmacs: the program goes to
+\path|/usr/local/lib/sbemacs/|, and the commands
+\verb|sbemacs| and \verb|sbemacs-gui| to \verb|/usr/local/bin/|.
+
+Only \verb|sudo make install| needs \verb|sudo|. Never type
+\verb|sudo make|: the files that a superuser creates belong to
+the superuser, and the next \verb|make| cannot overwrite them.
+If you prefer not to use \verb|sudo| at all, install SBEmacs in
+your home folder:
+\begin{quote}
+\begin{verbatim}
+~/csand/sbemacs$ make install PREFIX=$HOME/.local
+\end{verbatim}
+\end{quote}
+and make sure that \verb|~/.local/bin| is in your search path
+(in the \verb|~/.zshrc| or \verb|~/.bashrc| file):
+\begin{quote}
+\begin{verbatim}
+export PATH="$HOME/.local/bin:$PATH"
+\end{verbatim}
+\end{quote}
+
+Every time you bring a new version with \verb|git pull|,
+repeat \verb|make| and \verb|sudo make install|. However,
+if you only change a Lisp script, you do not need to build anything:
+see section~\ref{sec:lisp}.
+
+%%% ------------------------------------------------------------------
+\section{Running SBEmacs}
+%%% ------------------------------------------------------------------
+
+In a text terminal, type \verb|sbemacs| followed by the name of the
+file you want to edit:
+\begin{quote}
+\begin{verbatim}
+~$ sbemacs fib.lisp
+\end{verbatim}
+\end{quote}
+To open the editor in a window of its own, add the \verb|--gui|
+option, or use the \verb|sbemacs-gui| command:
+\begin{quote}
+\begin{verbatim}
+~$ sbemacs --gui fib.lisp
+~$ sbemacs-gui fib.lisp
+\end{verbatim}
+\end{quote}
+If a window cannot be opened, for instance when you are logged
+in a remote machine, SBEmacs says so and works in the terminal.
+Other options:
+\begin{quote}
+\verb|-q| -- do not load your configuration file,
+\path|~/.sbemacs/init.lisp|.\\
+\verb|--no-mouse| -- leave the mouse to the terminal.\\
+\verb|--version| -- print the version and exit.
+\end{quote}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\textwidth]{figs/sbemacs-gui.png}
+\caption{\texttt{sbemacs --gui fib.lisp}: a region selected with
+the mouse, and the menu of \texttt{C-c r}}
+\end{figure}
+
+In the window, the usual shortcuts of the Macintosh work too:
+\keys{Cmd}\keys{C} copies, \keys{Cmd}\keys{X} cuts, \keys{Cmd}\keys{V}
+pastes, \keys{Cmd}\keys{Z} undoes and \keys{Cmd}\keys{Q} quits.
+\verb|C-+| and \verb|C--| make the font larger or smaller.
+In \path|~/.sbemacs/init.lisp|, you can choose the font, its size and
+a light or dark theme:
+\begin{quote}
+\begin{verbatim}
+(setf *gui-font-size* 16)
+(setf *gui-theme* :light)      ; or :dark
+(setf *gui-font* "/Library/Fonts/Menlo.ttc")
+\end{verbatim}
+\end{quote}
+
+%%% ------------------------------------------------------------------
+\section{Installing Claude and Codex}
+%%% ------------------------------------------------------------------
+
+SBEmacs can ask Claude, an artificial intelligence made by
+Anthropic, for help with the text you are editing. The editor does
+not talk to Claude directly: it calls Claude Code, a program that
+you install and log in once. You must subscribe to Claude: Claude Code
+requires a Pro, Max, Team or Enterprise plan, or an Anthropic
+Console account; the free plan does not include it.
+
+\paragraph{MAC OS-X and Linux.}
+\begin{quote}
+\begin{verbatim}
+~$ curl -fsSL https://claude.ai/install.sh | bash
+\end{verbatim}
+\end{quote}
+On the Macintosh, Homebrew works too:
+\begin{quote}
+\begin{verbatim}
+~$ brew install --cask claude-code
+\end{verbatim}
+\end{quote}
+
+\paragraph{Windows.} In PowerShell:
+\begin{quote}
+\begin{verbatim}
+PS C:\Users\nia> irm https://claude.ai/install.ps1 | iex
+\end{verbatim}
+\end{quote}
+
+\paragraph{Logging in.} Open a new terminal, check the
+installation, and run \verb|claude| once. It opens the browser, where
+you log in with your Claude account.
+\begin{quote}
+\begin{verbatim}
+~$ claude --version
+~$ claude
+\end{verbatim}
+\end{quote}
+After logging in, type \verb|/exit| to leave Claude Code. You will not
+need to log in again.
+
+\paragraph{API key.} If you have an Anthropic API key instead of a
+subscription, SBEmacs can use it: write the key in the first line of
+the \path|~/.sbemacs/anthropic-api-key| file, or put it in the
+\verb|ANTHROPIC_API_KEY| environment variable. Never put the key in
+a file that you share or send to GitHub.
+
+\paragraph{Codex and ChatGPT.} The \verb|C-c g| command asks Codex,
+OpenAI's programming assistant, using an eligible ChatGPT subscription.
+Install the current Codex program, for instance with
+\verb|npm install -g @openai/codex@latest|, run \verb|codex| once and
+choose {\em Sign in with ChatGPT}. On Windows, PowerShell can install it
+without npm:
+\begin{quote}
+\begin{verbatim}
+PS C:\Users\nia> irm https://chatgpt.com/codex/install.ps1 | iex
+PS C:\Users\nia> codex
+\end{verbatim}
+\end{quote}
+On a Macintosh, SBEmacs also looks for the copy of Codex inside the
+ChatGPT application. If that copy needs authentication, the same one-time
+terminal sign-in completes the set-up. The editor never asks for an API key.
+
+\paragraph{Checking.} Inside SBEmacs, press \verb|C-c r s| to check
+Claude or \verb|C-c g s| to check Codex. The editor tells whether it
+found the corresponding program, where it found it, and how to fix what
+is missing.
+
+%%% ------------------------------------------------------------------
+\section{Using Claude and Codex}
+%%% ------------------------------------------------------------------
+
+The keybinding that calls Claude was inspired by Isaac Asimov's
+robot stories, where robots have names like R.~Daneel Olivaw and
+R.~Giskard: \verb|C-c r| is R. for robot. The assistant also obeys
+Asimov's Three Laws of Robotics:
+\begin{enumerate}
+\item {\bf First Law.} ``A robot may not injure a human being or,
+  through inaction, allow a human being to come to harm.''
+  Claude never changes your text by itself. It sees only what
+  \verb|C-c r| sends, and it runs with all its tools disabled,
+  so it cannot touch your files.
+\item {\bf Second Law.} ``A robot must obey the orders given it by
+  human beings except where such orders would conflict with the First
+  Law.'' Claude types into your buffer only when you order it with
+  \verb|C-c y| or \verb|C-c t|, it asks before doing so, and \verb|C-/|
+  takes the insertion back.
+\item {\bf Third Law.} ``A robot must protect its own existence as long
+  as such protection does not conflict with the First or Second Law.''
+  A missing program, a network error or a timeout end in a message,
+  never in a crash or a lost buffer.
+\end{enumerate}
+
+When Nia presses \verb|C-c r|, a small menu opens below her file:
+\begin{quote}
+\begin{verbatim}
+  h   Hints: Claude reads the code at the cursor (and the selected
+      region) and suggests fixes and next steps.
+  q   Question: write it in a window of its own, as many lines as
+      you like; C-c r sends it.
+  d   Discussion: a conversation in a window that stays open; C-c t
+      there inserts the snippet under the cursor into your file.
+  s   Set-up: is Claude installed and logged in?
+\end{verbatim}
+\end{quote}
+Any other key closes the menu. In every window that belongs to
+Claude, the status line tells which keys work there.
+
+\paragraph{Hints.} If Nia presses \verb|h|, Claude reads the text
+around the cursor and, if she selected a region, the region too.
+The answer appears in a window below the file. While Claude thinks,
+the editor waits; the message line says so.
+
+\paragraph{Questions.} If Nia presses \verb|q|, a window called
+\verb|*claude-request*| opens. She writes her question there, in as
+many lines as she likes, for instance:
+\begin{quote}
+\begin{verbatim}
+Write a naive Fibonacci with declare for speed.
+\end{verbatim}
+\end{quote}
+and presses \verb|C-c r| again to send it. The answer replaces the
+question window.
+
+\paragraph{Inserting the code.} When an answer contains code, Claude
+puts it between lines of three back quotes:
+\begin{quote}
+\begin{verbatim}
+```lisp
+(defun fib (n)
+  (declare (type fixnum n))
+  (if (< n 2) n (+ (fib (- n 1)) (fib (- n 2)))))
+```
+\end{verbatim}
+\end{quote}
+Each such block is a snippet. The \verb|C-c y| command inserts all
+the snippets of the last answer at the cursor of Nia's file, after
+asking, and closes the answer window. It works from the file
+window and from the answer window. If Nia does not want the code,
+\verb|C-x 1| closes the answer window.
+
+\paragraph{Discussion.} For a longer conversation, Nia presses
+\verb|C-c r| and then \verb|d|. The \verb|*discussion*| window stays
+open, whatever Nia does in the other windows. She writes after the
+last \verb|You:| line and presses \verb|C-c r|; Claude's answer is
+appended, followed by a new \verb|You:|. Each message sends the whole
+discussion and the file around its cursor, so Claude sees the code as
+it is now. To bring a snippet of the discussion into the file, Nia
+puts the cursor inside the snippet and presses \verb|C-c t|, for
+tangle; SBEmacs asks, then inserts the snippet at the cursor of the
+file. The \verb|C-x 0| command closes the discussion window, and
+\verb|C-c r d| brings it back as it was.
+
+\paragraph{Codex and ChatGPT.} Codex has the same distinction between a
+short question and a continuing discussion. Nia presses \verb|C-c g| and
+sees this menu:
+\begin{quote}
+\begin{verbatim}
+  h   Hints about the code at the cursor
+  q   Question in a window of its own; C-c g sends it
+  d   Discussion that stays open; C-c g sends each turn
+  s   Set-up: is Codex installed and signed in with ChatGPT?
+\end{verbatim}
+\end{quote}
+
+For a question, she chooses \verb|q|, writes as many lines as she needs,
+and presses \verb|C-c g|. The answer replaces the question window. If it
+contains fenced snippets, \verb|C-c y| asks for confirmation, inserts all
+of them at the cursor in the main file, and closes the help window.
+
+For a conversation, she chooses \verb|d|. She writes after the last
+\verb|You:| and presses \verb|C-c g| for every turn. Codex receives the
+discussion so far and a fresh view of the source around the cursor. The
+window deliberately remains open. To use one answer, she places the cursor
+inside that snippet and presses \verb|C-c t|. She closes the discussion
+herself with \verb|C-x 0| when she is satisfied; \verb|C-c g d| brings the
+same discussion back.
+
+Both forms are read-only until Nia explicitly accepts text. Codex runs in
+a read-only sandbox and an ephemeral command-line session. It cannot edit
+the project, and the instructions tell it to avoid the editor's C sources.
+The implementation is the Common Lisp script
+\path|lisp/extensions/codex.lisp|; no C code is needed for this feature.
+
+\paragraph{Help page.} The help page of \verb|C-h| has the same keys:
+from there, \verb|C-c r| asks Claude, and \verb|C-c g| asks ChatGPT.
+Any other key takes Nia back to her file and closes the windows of
+the assistants, except the discussion.
+
+%%% ------------------------------------------------------------------
+\section{Executing Lisp programs}\label{sec:lisp}
+%%% ------------------------------------------------------------------
+
+There are many ways of executing Lisp in SBEmacs. They all
+evaluate the expressions in the same Common Lisp, the one that
+runs the editor. Errors are reported on the message line; they
+never take the editor down.
+
+\paragraph{The Lisp prompt.} As you learned in Chapter~1,
+\keys{Esc}\keys{:} prompts for an expression and shows its value.
+
+\paragraph{Evaluating a definition.} Nia writes a program in a
+file, for instance \verb|fib.lisp|:
+\begin{quote}
+\begin{verbatim}
+(defun fib (n)
+  (if (< n 2)
+      n
+      (+ (fib (- n 1)) (fib (- n 2)))))
+\end{verbatim}
+\end{quote}
+With the cursor after the last parenthesis, she presses
+\verb|C-x C-e|. SBEmacs evaluates the expression before the cursor
+and shows \verb|FIB| on the message line, which means that
+the function is defined. If the cursor is anywhere inside the
+definition, \verb|C-M-x| has the same effect. Now she can call
+the function from the Lisp prompt:
+\begin{quote}
+\keys{Esc}\keys{:}\\
+\verb|> (fib 20)|\keys{Enter}\\
+6765
+\end{quote}
+She could also type \verb|(fib 20)| in the file and press \verb|C-x C-e|
+after it. The \verb|Esc ]| command evaluates the expression
+around the cursor and inserts the value into the text.
+
+\paragraph{The editor from Lisp.} The expressions can control the
+editor. For instance, \verb|(insert "Hello")| inserts a text at the
+cursor, \verb|(goto-line 10)| moves the cursor, \verb|(buffer-filename)|
+returns the name of the file.
+
+\paragraph{Running a program in SBCL.} A program that reads files
+or prints a lot is better run by SBCL itself, outside the editor.
+Nia adds a line that prints a result at the end of \verb|fib.lisp|,
+\begin{quote}
+\begin{verbatim}
+(format t "fib(25) = ~a~%" (fib 25))
+\end{verbatim}
+\end{quote}
+saves the file, and presses \keys{Esc}\keys{!} (or \verb|C-x @|) to
+run a shell command:
+\begin{quote}
+\verb|sbcl --script fib.lisp|\keys{Enter}
+\end{quote}
+SBEmacs shows the output in a buffer of its own:
+\begin{quote}
+\verb|fib(25) = 75025|
+\end{quote}
+
+\paragraph{Configuration.} When SBEmacs starts, it loads
+\path|~/.sbemacs/init.lisp|, if the file exists. That is where Nia
+puts her own commands and keybindings:
+\begin{quote}
+\begin{verbatim}
+(defun insert-date ()
+  (multiple-value-bind (s m h d mo y) (get-decoded-time)
+    (declare (ignore s m h))
+    (insert (format nil "~D-~2,'0D-~2,'0D" y mo d))))
+
+(global-set-key "C-c d" 'insert-date)
+(set-color :comment 244)        ; grey comments
+\end{verbatim}
+\end{quote}
+Keys are written as in GNU Emacs: \verb|"C-c d"|, \verb|"M-o"|,
+\verb|"C-M-y"|, \verb|"F1"|.
+
+\paragraph{Scripts.} Syntax colouring, indentation, keybindings and
+the assistants are Lisp scripts, in the \verb|lisp/| folder of the
+sources. The files that Nia puts in \path|~/.sbemacs/extensions/| and
+\path|~/.sbemacs/languages/| are loaded too. If she edits any of
+these files, she presses \verb|C-x C-r|, and SBEmacs reloads what
+changed; there is no need to run \verb|make| again. For instance, a
+new language is a file with two forms:
+\begin{quote}
+\begin{verbatim}
+(define-language "Go"
+  :extensions '(".go")
+  :line-comment "//"
+  :block-comment '("/*" . "*/")
+  :keywords '("func" "package" "import" "return" "if" "else"))
+
+(define-indentation "Go" :style :c :width 4)
+\end{verbatim}
+\end{quote}
+Chapter~\ref{chapter:skill} explains how to ask Claude Code to
+write such scripts for you.
+
+%%% ==================================================================
+\chapter{Shell}\label{chapter:shell}
+%%% ==================================================================
+\index{Shell}
+Nia, a Greek young woman, has an
+account on a well known social network.
+She visits her friends' postings on a daily basis,
+and when she finds an interesting picture or video,
+she presses the {\em Like}-button. However, when
+she needs to discuss her upcoming holidays on the Saba Island
+with her Argentinian boyfriend, she uses the
+live chat box. After all, hitting buttons and
+icons offers only a very limited interaction tool,
+and does not produce a highly detailed
+level of information that permits the answering
+of questions and making of statements.
+
+
+Using a chat service needs to
+be very easy and fun, otherwise all those teenage
+friends of Nia's would be doing something else.
+I am telling you this, because there are
+two ways of commanding a computer.
+The first is called Graphical User Interface (GUI)
+and consists of moving the cursor with a
+mouse or other pointing device and clicking
+over a menu option or an icon,
+such as the {\em Like} button.
+As previously mentioned, a Graphical User Interface
+often does not generate adequate information
+for making a request to the computer. In addition,
+finding the right object  to press
+can become difficult in a labyrinth of
+menu options.
+
+The other method of interacting with
+the computer is known as Shell and is similar to
+a chat with one's own machine.
+
+In your computer, there is a giant
+program, called the operating system, which controls
+all peripherals that the machine uses to
+stay connected with the external world:
+pointing devices,  keyboard,
+video terminal, robots, cameras, solid
+state drives, pen drives, and other peripherals.
+
+In a Shell interface, Nia issues written instructions
+that the operating system answers by fulfilling the
+assigned tasks. The language that Nia
+uses to chat with the operating
+system is called {\em Bourne-again shell}, or
+bash for short. This language has
+commands to go through folders, browser
+files, create new directories, copy
+objects from one place to the other,
+configure the machine, install
+applications, change the permissions
+of a file, create groups to organize
+users and devices, etc.
+Recent Macintosh computers use zsh, a cousin of bash; for the
+commands of this chapter, the two languages are the same.
+When accessing the operating system through
+a text-based terminal, a shell language is the main way
+of executing programs and doing work on a computer.
+
+The shell interface derives its name from
+the fact that it acts like a shell
+surrounding all other programs being run,
+and controlling everything the machine performs.
+
+To make a long story short,
+it is much faster to complete tasks
+using a shell than with graphical applications,
+icons, menus and mouse. Another benefit of the
+shell is that you can gain access to many
+more commands and scripts than with
+a Graphical User Interface.
+
+In order not to scare off the feeble-minded,
+many operating systems hide access
+to the text terminal. In some distribution
+of Linux, you need to maintain the \keys{Alt} key
+down, then press the \keys{F2} key to open a
+dialog box, where you must type the
+name of the terminal you want to open.
+If you are really lucky, you may find
+the icon of the terminal  on the
+toolbar.
+
+\includegraphics[scale=0.8]{figs/terminal.png}
+
+If the way of opening the text terminal
+is not obvious, you should ask for help
+from a student majoring in Computer Science.
+You can teach her Russian, Samskrit, Javanese
+or Ancient Greek, as a compensation
+for the time that she will spend explaining
+how to start a terminal in 
+OS X or Linux. If you are afraid
+of paying for a few minutes of tutorial
+about the Bourne-again shell
+with hundred hours of classes on
+Russian, don't worry! The CS
+major will give up after barely
+starting the section on the alphabet. After all,
+Philology is much more difficult
+than Computer Engineering.
+For details, read the tale ``The man who could speak
+Javanese'' by Lima Barreto.
+
+\paragraph{The prompt.}\index{Shell!prompt} 
+The shell prompt
+is where one types commands. The prompt
+has different aspects, depending on the
+configuration of the terminal.
+In Nia's machine, it looks something like this:
+\begin{quote}
+\verb|~$ _|
+\end{quote}
+Files are stored in folders. Typically, the
+prompt shows the folder where the user is
+currently working.
+
+The main duty of the
+operating system is to maintain the contents of
+the mass storage devices in a tree structure
+of files and folders.
+Folders are also called {\em directories},
+and like physical folders or cabinets,
+they organize files.
+
+A folder can be put inside another folder.
+In a given machine, there is a folder 
+reserved for duties carried out by the
+administrator.
+This special folder is called home
+or personal directory.
+
+Besides the administrator, a machine can
+have other rightful users, each with
+a personal folder. For instance, Nia's folder
+on her Mac OS X has the \verb|/Users/nia|
+path. You will learn a more formal
+definition of path later on.
+
+
+\paragraph{pwd \#}\index{Shell!pwd} 
+The \verb|pwd| command informs
+the user's position in the file tree.
+A folder can be placed
+inside another folder.
+For example, in a Macintosh, Nia's home
+folder is inside the \verb|/Users| directory.
+
+One uses a path to identify
+a nest of folders. In a path, a subfolder
+is separated from the parent folder
+by a slash bar. If one needs to know
+the current folder, there is the \verb|pwd|
+command. 
+\begin{quote}
+\verb|~$ pwd         # shows the current folder. |\keys{Enter}\\
+\verb|/Users/nia|\\
+\end{quote}
+When Nia issues a command, she may
+add comments to it, so her boyfriend that
+does not know Bourne-again shell (bash)
+can understand what
+is going on and learn something in
+the process. Comments are prefixed
+with the \verb|#| hash char, as you
+can see in the above chat. Therefore,
+when the computer sees a \verb|#|
+hash char, it ignores everything to
+the end of the line.
+
+\paragraph{mkdir wrk \#}\index{Shell!mkdir}
+creates a \verb|wrk|
+folder inside the current directory,
+where \verb|wrk| can be replaced
+with any other name.
+For instance, if Nia is inside her
+home directory, \verb|mkdir wrk| creates
+a folder with the \verb|/Users/nia/wrk| path.
+
+\paragraph{cd wrk \#}\index{Shell!change dir} 
+One can use the
+\verb|cd <folder name>| commands to enter
+the named folder.
+The \verb|cd ..|  command
+takes Nia to the parent of the current
+directory.
+Thanks to the \verb|cd|
+command, one can navigate through the
+tree of folders and directories.
+
+\paragraph{Tab.}\index{Shell!tab} If you want to go
+to a given directory, type part of the directory
+path, and then press \keys{Tab}.
+The shell will complete the folder name for you.
+
+\paragraph{Home directory.}\index{Home directory} One
+can use a \verb|~| tilde to represent
+the home directory. For instance,
+\verb|cd ~| will send Nia to her
+personal folder. The \verb|cd $HOME| has
+the same effect, i.e., it places Nia inside
+her personal directory.
+
+\paragraph{echo \#}\index{Shell!echo} One can use the
+\verb|echo| command to print something.
+Therefore, \verb|echo $HOME| prints
+the contents of the \verb|HOME|
+environment variable on the terminal.
+
+Environment variables store
+the terminal configuration. For instance,
+the \verb|HOME| variable contains
+the user's personal directory identifier.
+One needs to prefix the environment
+variable with the \verb|$| char
+to access its contents. Therefore,
+\verb|echo $HOME| displays the
+contents of the \verb|HOME| variable.
+
+The instruction \verb|echo "Work Space" > readme.txt|
+creates a \verb|readme.txt| text file and
+writes the \verb|"Work Space"| string there.
+If the \verb|readme.txt| file exists,
+this command supersedes it.
+
+The command \verb|echo "Shell practice" >> readme.txt|
+appends a string to a text file. It does
+not erase the previous content of
+the \verb|readme.txt| file. Of course,
+you should replace the string or the
+file name, as necessity dictates.
+
+
+Below you will find
+an extended example of a chat between Nia and
+the OS X operating system.
+\begin{quote}
+\verb|~$ mkdir wrk   # creates a work space folder      | \keys{Enter}\\
+\verb|~$ cd wrk      # transfers action to the wrk file | \keys{Enter}\\
+\verb|~/wrk$ echo "* Work space" > readme.txt | \keys{Enter}\\
+\verb|~/wrk$ echo "This folder is used" >> readme.txt |\keys{Enter}\\
+\verb|~/wrk$ echo "to practice the bash" >> readme.txt | \keys{Enter}\\
+\verb|~/wrk$ echo "commands and queries." >> readme.txt | \keys{Enter}\\
+\verb|~/wrk$ ls      # list files in current folder. | \keys{Enter}\\
+\verb|readme.txt |\\
+\verb|~/wrk$ cat readme.txt  # shows the file contents.| \keys{Enter}
+\begin{verbatim}
+* Work space
+This folder is used
+to practice the bash
+commands and queries.
+\end{verbatim}
+\end{quote}
+
+\paragraph{ls \#}\index{Shell!ls} 
+By convention, a file name has
+two parts, the id and the extension. The id
+is separated from the extension by a dot.
+The \verb|ls | command lists all files
+and subfolders present in the current folder.
+The \verb|ls *.txt| prints only files
+with the \verb|.txt| extension.
+
+\paragraph{Wild card.}\index{Shell!wild card} The 
+\verb|*.txt| pattern
+is called wild card.
+In a wild card, the \verb|*| asterix matches
+any sequence of chars, while the \verb|?|
+interrogation mark matches a single char.
+
+\paragraph{ls -lia *.txt \#} prints detailed
+information about the \verb|.txt| files,
+like date of creation, size, etc.
+\begin{quote}
+\verb|~/wrk$ ls -la |  \keys{Enter}
+\end{quote}
+\begin{verbatim}
+total 8
+drwxr-xr-x    3 edu500ac  staff    102 Sep 18 16:29 .
+drwxr-xr-x+ 321 edu500ac  staff  10914 Sep 18 14:40 ..
+-rw-r--r--    1 edu500ac  staff     74 Sep 18 16:30 readme.txt
+\end{verbatim}
+
+Files starting with a dot are called hidden files,
+due to the fact that the \verb|ls| command does not
+normally show them. All the same,
+the \verb|ls -a| option includes the
+hidden files in the listing.
+
+\index{Permissions}
+In the preceding examples, the first character
+in each list entry is either a dash (-) or the letter d.
+A dash (-) indicates that the file is a regular file.
+The letter d indicates that the entry is a folder.
+A special file type that might appear in a
+\verb|ls -la| command is the symlink. It begins
+with a lowercase l, and points to another location
+in the file system.
+Directly after the file classification comes the permissions,
+represented by the following letters:
+\begin{itemize}
+\item r -- read permission.
+\item w -- write permission.
+\item x -- execute permission.
+\end{itemize}
+
+\paragraph{cp readme.txt lire.txt \#}\index{Shell!cp} 
+makes a copy
+of a file. You can copy a whole directory
+with the \verb|-rf| options, as shown below.
+\begin{quote}
+\begin{verbatim}
+~/wrk$ ls
+readme.txt
+~/wrk$ cp readme.txt lire.fr
+~/wrk$ ls
+lire.fr  readme.txt
+~/wrk$ cd ..
+~$ cp -rf wrk wsp
+~$ cd wsp/
+~/wsp$ ls
+lire.fr  readme.txt
+\end{verbatim}
+\end{quote}
+
+\paragraph{rm lire.txt \#}\index{Shell!rm} 
+removes a file.
+The \verb|-rf| option 
+removes a whole folder.
+\begin{quote}
+\begin{verbatim}
+~/wsp$ ls
+lire.fr  readme.txt
+~/wsp$ rm lire.fr
+~/wsp$ ls
+readme.txt
+~/wsp$ cd ..
+~$ ls wrk
+lire.fr  readme.txt
+~$ rm -rf wrk
+~$ ls wrk
+ls: wrk: No such file or directory
+\end{verbatim}
+\end{quote}
+
+\paragraph{mv wsp wrp \#}\index{Shell!mv} changes
+the name of a file or folder, or
+even permits the moving of a file or
+folder to another location.
+\begin{quote}
+\begin{verbatim}
+~$ mv wsp wrk
+~$ cd wrk
+~/wrk$ ls
+readme.txt
+~/wrk$ mv readme.txt read.me
+~/wrk$ ls
+read.me
+~/wrk$ cp read.me wrk-readme.txt
+~/wrk$ ls
+read.me  wrk-readme.txt
+~/wrk$ mv wrk-readme.txt ~/Documents/
+~/wrk$ ls
+read.me
+~/wrk$ cat ~/Documents/wrk-readme.txt
+Work space
+This folder is used
+to practice the bash
+commands and queries.
+\end{verbatim}
+\end{quote}
+
+\paragraph{Copy to pen drive.}\index{Pen drive}
+In most Linux distributions, the pen drive is
+seen as a folder inside the \verb|/media/nia/|
+directory, where you should replace \verb|nia|
+with your user name. In the Macintosh, the
+pen drive appears at the \verb|/Volumes/| folder.
+The commands {\bf cp}, {\bf rm} and {\bf ls}
+see the pen drive as a normal folder.
+
+
+\section{Package managers}\label{sec:packages}\index{Package managers}
+A package
+manager is a tool that works with
+core libraries to handle, even though poorly,
+the installation and removal of
+software. Each operating system has its own
+package manager. Even if you stick to a single
+operating system, you will have to
+deal with many package managers
+and different philosophies concerning
+software installation.
+
+
+I will teach you how to use three
+installation tools: apt-get,
+homebrew and git clone. However,
+this tutorial will not
+completely cover the many subtleties
+involved while you make your machine usable.
+You will really need the help of
+that girl who is majoring in
+Computer Engineering.
+Tell her that, if she teaches you
+how to configure apt-get install,
+you will teach her the ancient
+Javanese script.
+
+\paragraph{apt-get.}\index{apt-get} Debian, Ubuntu and their relatives
+keep the programs in repositories that the \verb|apt-get| tool
+consults. Before installing, ask apt-get to refresh its list of
+programs; then install what you need:
+\begin{quote}
+\begin{verbatim}
+~$ sudo apt-get update
+~$ sudo apt-get install sbcl git build-essential libncurses-dev
+\end{verbatim}
+\end{quote}
+The \verb|sudo| prefix is needed because apt-get writes into
+system folders. Fedora uses \verb|dnf| instead of
+\verb|apt-get|, with the same syntax.
+
+\paragraph{Homebrew.}\index{Homebrew} The Macintosh has no package
+manager of its own. Homebrew fills the gap. The installation
+command is on the \verb|https://brew.sh| page; copy it into the
+terminal and press \keys{Enter}. After that, \verb|brew| installs
+programs without \verb|sudo|:
+\begin{quote}
+\begin{verbatim}
+~$ brew install sbcl sdl2 sdl2_ttf pkg-config
+~$ brew upgrade           # brings new versions of everything
+\end{verbatim}
+\end{quote}
+
+\paragraph{git clone.}\index{git} Many programs, SBEmacs among them,
+are distributed as source code in a git repository. The
+\verb|git clone| command makes a copy of the repository, \verb|git pull|
+brings the changes, and \verb|make| builds the program, as you saw
+in section~\ref{sec:clone}. The advantage is that you always
+have the most recent version; the drawback is that you must build
+it yourself.
+
+\paragraph{Where programs go.} Unix and Unix like systems
+are unable to find a command, except when
+it is installed in a pre-defined search
+path or when the file path is completely
+specified. The search path is kept in the \verb|PATH| environment
+variable:
+\begin{quote}
+\begin{verbatim}
+~$ echo $PATH
+/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin
+~$ which sbemacs
+/usr/local/bin/sbemacs
+\end{verbatim}
+\end{quote}
+The \verb|which| command tells where a program is. If you
+installed two copies of a program, the shell runs the one whose
+folder comes first in \verb|PATH|.
+
+%%% ==================================================================
+\chapter{Teaching Claude: SKILL.md}\label{chapter:skill}
+%%% ==================================================================
+
+There are two ways of working with Claude. Inside SBEmacs,
+\verb|C-c r| asks Claude a question about the text you are editing.
+Claude only reads: it cannot open files or run programs, and you
+decide what goes into your buffer. Outside the editor, in the text
+terminal, Claude Code can do much more. If Nia enters a folder and
+types \verb|claude|, she can chat with Claude Code, which reads the
+files of the folder, writes new ones, and runs commands like
+\verb|make|, always asking her permission first.
+
+Suppose that Nia wants SBEmacs to colour Go programs. She could
+type \verb|claude| in her terminal and say:
+\begin{quote}
+{\em Write an SBEmacs script that colours and indents Go files.}
+\end{quote}
+Claude Code knows Common Lisp, but it does not know SBEmacs.
+It does not know that a language is defined by \verb|define-language|,
+that personal scripts go to \path|~/.sbemacs/languages/|, or that
+\verb|C-x C-r| reloads them. It would find out by reading the sources,
+which takes time, or it would guess, which is worse. Generative AI are
+notoriously bad at saying ``I don't know''.
+
+A skill solves this problem. A skill is a folder with a file
+called \verb|SKILL.md|, which teaches Claude how to do one kind of
+task. Claude Code reads only the first lines of each skill, its
+description. When a request matches the description, Claude reads
+the whole file and follows it.
+
+\section{The format of SKILL.md}
+
+A \verb|SKILL.md| file has two parts. The first part, between two
+lines of three dashes, is a header with the name of the skill and
+its description:
+\begin{quote}
+\begin{verbatim}
+---
+name: sbemacs-scripts
+description: Write or change SBEmacs Lisp scripts (key bindings,
+  commands, syntax colouring with define-language, indentation ...)
+  Use when the user wants SBEmacs to do something new, or asks
+  how its Lisp API works.
+---
+\end{verbatim}
+\end{quote}
+The description is the most important line of the file, because
+Claude uses it to decide whether the skill applies. It should say
+what the skill does and when to use it. The \verb|name| becomes a
+command: Nia can call the skill explicitly by typing
+\verb|/sbemacs-scripts| in Claude Code.
+
+The second part is ordinary text, in Markdown, the format of
+\verb|README.md| files: headings start with \verb|#|, lists with
+\verb|-|, and program examples go between lines of three back quotes.
+This part contains the instructions: where things are, which rules to
+follow, and examples to imitate. Write it as you would explain the
+task to a new colleague, with short sentences and concrete examples.
+
+\section{Where skills live}
+
+Claude Code looks for skills in two places:
+\begin{itemize}
+\item \path|~/.claude/skills/NAME/SKILL.md| -- personal skills, which
+  work in every folder of your machine.
+\item \path|.claude/skills/NAME/SKILL.md| -- project skills, inside
+  a repository. They work when Claude Code runs in that repository,
+  and everybody who clones the repository gets them.
+\end{itemize}
+The SBEmacs repository brings a project skill:
+\begin{quote}
+\begin{verbatim}
+~/csand/sbemacs/.claude/skills/sbemacs-scripts/SKILL.md
+\end{verbatim}
+\end{quote}
+The folder name starts with a dot, so \verb|ls| does not show it;
+\verb|ls -a| does. If Nia runs \verb|claude| inside
+\verb|~/csand/sbemacs|, the skill is available. To use it everywhere,
+for instance in the folder where she keeps her Go programs, she
+copies it to her personal skills:
+\begin{quote}
+\begin{verbatim}
+~$ mkdir -p ~/.claude/skills
+~$ cp -r ~/csand/sbemacs/.claude/skills/sbemacs-scripts ~/.claude/skills/
+\end{verbatim}
+\end{quote}
+
+\section{Using the skill}
+
+Nia enters her folder, starts Claude Code and asks:
+\begin{quote}
+\begin{verbatim}
+~/go-programs$ claude
+> Write an SBEmacs script that colours and indents Go files.
+\end{verbatim}
+\end{quote}
+Claude recognizes the task from the description, reads the skill,
+and writes the file \path|~/.sbemacs/languages/go.lisp|, with a
+\verb|define-language| form and a
+\verb|define-indentation| form. It asks
+before creating the file. Then Nia opens a Go file in SBEmacs, or
+presses \verb|C-x C-r| if the editor is already running, and the
+colours appear. If Claude does not pick the skill by itself, Nia
+names it:
+\begin{quote}
+\begin{verbatim}
+> /sbemacs-scripts a command on C-c d that inserts today's date
+\end{verbatim}
+\end{quote}
+
+\section{The SBEmacs skill}
+
+Here is the complete file. Its rules are the rules of this book:
+the assistant never changes the text behind your back, errors end in
+a message, and programs declare their types instead of hiding
+the warnings of the compiler.
+
+{\small
+\VerbatimInput[fontsize=\footnotesize,breaklines,breakanywhere]{../.claude/skills/sbemacs-scripts/SKILL.md}
+}
+
+\section{Writing your own skill}
+
+A skill is worth writing when you find yourself explaining the same
+thing to Claude more than twice. For instance, if Nia always wants her
+Lisp programs with type declarations and tests, she can create
+\path|~/.claude/skills/nia-lisp/SKILL.md|:
+\begin{quote}
+\begin{verbatim}
+---
+name: nia-lisp
+description: Nia's way of writing Common Lisp. Use for any
+  Common Lisp code she asks for.
+---
+
+- Declare the types of every function with declaim ftype.
+- Never muffle warnings; fix them.
+- Write a test for each function with the check macro.
+- Explain each function in one sentence, in plain English.
+\end{verbatim}
+\end{quote}
+Keep a skill short and specific. Claude reads it when it applies,
+so a long skill costs time on every task of that kind, and a vague
+description makes Claude use the skill at the wrong moments, or never.
+
+\chapter*{About SBEmacs}
+\addcontentsline{toc}{chapter}{About SBEmacs}
+
+SBEmacs, Steel Bank Emacs, is a tiny Emacs clone,
+originally derived from a minimalist
+editor called Atto. Although built
+upon the C Atto codebase, SBEmacs can
+be customized using Lisp: Steel Bank Common Lisp,
+or SBCL for short. Its predecessor, FemtoEmacs,
+used a Lisp of its own, femtolisp.
+
+The fundamental paradigm of Emacs is that it
+rests on a small core, but can be
+extended and customized through
+the Lisp programming language.
+
+Instead of requiring from the programmer a compile,
+build, test and fix cycle ---
+Lisp offers a Read, Eval, Print Loop (REPL).
+\begin{enumerate}
+\item {\bf Read.} The REPL reads
+a symbolic expression
+such as \verb|(+ 42 13 4)| from
+a text terminal. The symbolic expression -- sexpr --
+always has the form: $(\textrm{operation}\;a_1\;a_2\ldots a_n)$,
+where $a_1$, $a_2$\ldots $a_n$ are the arguments of
+the operation.
+\item {\bf Eval.} The compiler translates the symbolic
+expression to machine language, then executes the
+generated code and calculates the corresponding
+value.
+\item {\bf Print.} The value produced in step 2 is printed.
+\item {\bf Loop.} The REPL returns to step 1.
+\end{enumerate}
+
+Femtolisp, the Lisp of FemtoEmacs, did not generate
+native code, but compiled symbolic expressions
+to a virtual machine language. SBCL, on the other hand,
+compiles every expression to the machine language of
+your computer, so the scripts that colour and indent
+your programs run as fast as the C core of the editor.
+
+The REPL approach enables fast prototyping
+of extensions as each idea can be tested
+individually on the command line inside
+the editor with an immediate result check.
+In SBEmacs, this is true of the editor itself:
+syntax colouring, indentation, the key bindings and the
+assistants are Lisp scripts. If you edit one of them
+and press \verb|C-x C-r|, the editor reloads it;
+there is no need to build the program again.
+
+For historical reasons, the reference GNU
+Emacs implementation uses a specialised version of
+lisp known as Emacs Lisp.  However, the Emacs Lisp
+dialect is not standard lisp, being used
+only by the GNU Emacs editor and its
+derivatives.
+
+Common Lisp was chosen
+as the extension language
+for SBEmacs for the following reasons:
+\begin{enumerate}
+\item SBCL is open source.
+\item Common Lisp is an ANSI standard. One can use
+classical Common Lisp tutorials and books to learn
+how to configure and customize SBEmacs.
+\item SBCL is fast.
+\item SBCL runs on Linux, Macintosh and Windows.
+\end{enumerate}
+
+The present text is based on {\em An introduction to femtolisp},
+by Eduardo Costa and Vernon Sipple.
+
+SBEmacs was written by Eduardo Costa, on top of FemtoEmacs by Hugh Barney
+and its contributors.
+
+\end{document}

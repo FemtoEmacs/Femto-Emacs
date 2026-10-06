@@ -160,22 +160,42 @@ static int color_at(buffer_t *bp, char_t *p)
 	if (!hl_active || off < 0 || off >= hl_len)
 		return is_upper_or_lower(*p) ? ID_COLOR_ALPHA : ID_COLOR_SYMBOL;
 	c = hl_colors[off];
-	if (c < 1 || c > ID_COLOR_STRING) c = ID_COLOR_ALPHA;
+	/* the token faces, and the prose faces from ID_COLOR_HEADING on */
+	if (c < 1 || c > ID_COLOR_LINK || c == ID_COLOR_REGION) c = ID_COLOR_ALPHA;
 	return c;
+}
+
+/*
+ * The active region (between mark and point, see mark_active) is shaded
+ * in the selected window, as in Emacs.
+ */
+static point_t region_lo = 0, region_hi = 0;
+
+static void set_region(window_t *wp)
+{
+	buffer_t *bp = wp->w_bufp;
+
+	region_lo = region_hi = 0;
+	if (wp != curwp || !mark_active || bp->b_mark == NOMARK)
+		return;
+	region_lo = bp->b_mark < bp->b_point ? bp->b_mark : bp->b_point;
+	region_hi = bp->b_mark < bp->b_point ? bp->b_point : bp->b_mark;
+}
+
+static int face_for(buffer_t *bp, char_t *p)
+{
+	point_t off = pos(bp, p);
+
+	if (off >= region_lo && off < region_hi)
+		return ID_COLOR_REGION;
+	if (bp->b_paren != NOPAREN && (off == bp->b_point || off == bp->b_paren))
+		return ID_COLOR_BRACE;
+	return color_at(bp, p);
 }
 
 void display_char(buffer_t *bp, char_t *p)
 {
-	point_t off = pos(bp, p);
-
-	if (bp->b_mark != NOMARK && off == bp->b_mark) {
-		screen_addch(*p | SCR_REVERSE_CHAR);
-		return;
-	}
-	if (bp->b_paren != NOPAREN && (off == bp->b_point || off == bp->b_paren))
-		face_on(ID_COLOR_BRACE);
-	else
-		face_on(color_at(bp, p));
+	face_on(face_for(bp, p));
 	screen_addch(*p);
 	face_on(ID_COLOR_SYMBOL);
 }
@@ -220,6 +240,7 @@ void display(window_t *wp, int flag)
 	}
 
 	highlight_window(bp, wp->w_rows);
+	set_region(wp);
 
 	screen_move(wp->w_top, 0); /* start from top of window */
 	i = wp->w_top;
@@ -241,7 +262,7 @@ void display(window_t *wp, int flag)
 			nch = utf8_size(*p);
 			if ( nch > 1) {
 				j++;
-				face_on(color_at(bp, p));
+				face_on(face_for(bp, p));
 				display_utf8(bp, *p, nch);
 				face_on(ID_COLOR_SYMBOL);
 			} else if (isprint(*p) || *p == '\t' || *p == '\n') {
@@ -313,30 +334,140 @@ void display_utf8(buffer_t *bp, char_t c, int n)
 	screen_addstr(sbuf);
 }
 
-void modeline(window_t *wp)
+/*
+ * The mode line:
+ *   SBEmacs: Ctrl-h for help == file.c*, L. 3 == Ctrl c r calls Claude; ...
+ * (== in the selected window, -- in the others; * when modified).
+ * The two hints can be changed from Lisp (set-mode-line-hints).
+ */
+static char modeline_help[128] = "Ctrl-h for help";
+static char modeline_tail[128] = "Ctrl c r calls Claude; Ctrl c g calls GPT";
+
+void fe_set_modeline_hints(char *help, char *tail)
+{
+	safe_strncpy(modeline_help, help, sizeof(modeline_help));
+	safe_strncpy(modeline_tail, tail, sizeof(modeline_tail));
+	mark_all_windows();
+}
+
+/*
+ * A buffer can have hints of its own in place of the tail, e.g. the
+ * assistant's answer: "C-c y inserts the code and closes this window".
+ */
+#define MAX_BUFFER_HINTS 16
+
+static struct {
+	char name[NBUFN];
+	char hint[128];
+} buffer_hints[MAX_BUFFER_HINTS];
+
+/* HINT for the mode line of buffer NAME; an empty HINT removes it */
+void fe_set_buffer_hint(char *name, char *hint)
+{
+	int i, free_slot = -1;
+
+	for (i = 0; i < MAX_BUFFER_HINTS; i++) {
+		if (buffer_hints[i].name[0] != '\0' && strncmp(buffer_hints[i].name, name, NBUFN - 1) == 0)
+			break;
+		if (buffer_hints[i].name[0] == '\0' && free_slot < 0)
+			free_slot = i;
+	}
+	if (i == MAX_BUFFER_HINTS)
+		i = free_slot;
+	if (i < 0)
+		return;
+	if (hint[0] == '\0') {
+		buffer_hints[i].name[0] = '\0';
+	} else {
+		safe_strncpy(buffer_hints[i].name, name, NBUFN);
+		safe_strncpy(buffer_hints[i].hint, hint, sizeof(buffer_hints[i].hint));
+	}
+	mark_all_windows();
+}
+
+/* the buffer's own hint, or NULL */
+static char *buffer_hint(buffer_t *bp)
 {
 	int i;
-	char lch, mch, och;
-	static char modeline_buf[256];
+	for (i = 0; i < MAX_BUFFER_HINTS; i++)
+		if (buffer_hints[i].name[0] != '\0' && strcmp(buffer_hints[i].name, bp->b_bname) == 0)
+			return buffer_hints[i].hint;
+	return NULL;
+}
 
-	/* n = utf8_size(*(ptr(wp->w_bufp, wp->w_bufp->b_point))); */
+/* 1-based line number of offset OFF */
+int line_number(buffer_t *bp, point_t off)
+{
+	point_t gap = bp->b_gap - bp->b_buf;
+	char_t *p, *end;
+	int n = 1;
+
+	if (off > document_size(bp)) off = document_size(bp);
+	end = bp->b_buf + (off < gap ? off : gap);
+	for (p = bp->b_buf; p < end; p++)
+		if (*p == '\n') n++;
+	if (off > gap) {
+		end = bp->b_egap + (off - gap);
+		for (p = bp->b_egap; p < end; p++)
+			if (*p == '\n') n++;
+	}
+	return n;
+}
+
+void modeline(window_t *wp)
+{
+	int i, n, cols = screen_cols();
+	char lch, mch, och;
+	char *hint;
+	static char modeline_buf[1024];
+	char *name = get_buffer_modeline_name(wp->w_bufp);
+	point_t point = (wp == curwp) ? wp->w_bufp->b_point : wp->w_point;
+
 	if (wp == curwp)
 		screen_set_title(wp->w_bufp->b_fname[0] ? wp->w_bufp->b_fname : wp->w_bufp->b_bname);
 	face_on(ID_COLOR_MODELINE);
 	screen_move(wp->w_top + wp->w_rows, 0);
 	lch = (wp == curwp ? '=' : '-');
-	mch = ((wp->w_bufp->b_flags & B_MODIFIED) ? '*' : lch);
+	mch = ((wp->w_bufp->b_flags & B_MODIFIED) && !(wp->w_bufp->b_flags & B_SPECIAL) ? '*' : lch);
 	och = ((wp->w_bufp->b_flags & B_OVERWRITE) ? 'O' : lch);
 
-	/* debug version */
-	/* sprintf(modeline_buf, "%c%c%c Femto: %c%c %s %s  T%dR%d Pt%ld Pg%ld Pe%ld r%dc%d B%d",  lch,och,mch,lch,lch, wp->w_name, get_buffer_modeline_name(wp->w_bufp), wp->w_top, wp->w_rows, wp->w_point, wp->w_bufp->b_page, wp->w_bufp->b_epage, wp->w_bufp->b_row, wp->w_bufp->b_col, wp->w_bufp->b_cnt); */
-
-	/* sprintf(modeline_buf, "%c%c%c Femto: %c%c %s %s  T%dR%d Pt%ld Pg%ld Pe%ld r%dc%d B%d N%d",  lch,och,mch,lch,lch, wp->w_name, get_buffer_modeline_name(wp->w_bufp), wp->w_top, wp->w_rows, wp->w_point, wp->w_bufp->b_page, wp->w_bufp->b_epage, wp->w_bufp->b_row, wp->w_bufp->b_col, wp->w_bufp->b_cnt, n); */
-
-	snprintf(modeline_buf, sizeof(modeline_buf), "%c%c%c SBEmacs: %c%c %s",  lch,och,mch,lch,lch, get_buffer_modeline_name(wp->w_bufp));
+	/*
+	 * a * after the name: modified; [overwrite]: overwrite mode.  A
+	 * buffer with a hint of its own (the assistants' windows) shows
+	 * only that, to stay short:
+	 *   SBEmacs: *discussion*, L. 8 == C-c r send; C-c t code-tangle
+	 */
+	hint = buffer_hint(wp->w_bufp);
+	if (hint != NULL)
+		snprintf(modeline_buf, sizeof(modeline_buf), "SBEmacs: %s%s%s, L. %d %c%c %s ",
+			 name, mch == '*' ? "*" : "", och == 'O' ? " [overwrite]" : "",
+			 line_number(wp->w_bufp, point), lch, lch, hint);
+	else
+		snprintf(modeline_buf, sizeof(modeline_buf), "SBEmacs: %s %c%c %s%s%s, L. %d %c%c %s ",
+			 modeline_help, lch, lch, name, mch == '*' ? "*" : "",
+			 och == 'O' ? " [overwrite]" : "",
+			 line_number(wp->w_bufp, point), lch, lch, modeline_tail);
+	/* too wide: "Ctrl-h" becomes "C-h", "Ctrl c r" "C-c r", then the end is cut */
+	if ((int) strlen(modeline_buf) > cols) {
+		char *p;
+		while ((p = strstr(modeline_buf, "Ctrl-")) != NULL)
+			memmove(p + 1, p + 4, strlen(p + 4) + 1);
+		while ((p = strstr(modeline_buf, "Ctrl ")) != NULL) {
+			memmove(p + 1, p + 4, strlen(p + 4) + 1);
+			p[1] = '-';
+		}
+	}
+	/* the cells, not the bytes, must fit: cut on a character boundary */
+	for (i = 0, n = 0; modeline_buf[i] != '\0'; i++) {
+		if (((unsigned char) modeline_buf[i] & 0xC0) != 0x80) {
+			if (n == cols) break;
+			n++;
+		}
+	}
+	modeline_buf[i] = '\0';
 	screen_addstr(modeline_buf);
 
-	for (i = strlen(modeline_buf) + 1; i <= screen_cols(); i++)
+	for (; n < cols; n++)
 		screen_addch(lch);
 	face_on(ID_COLOR_SYMBOL);
 }
@@ -449,19 +580,16 @@ void b2w_all_windows(buffer_t *bp)
  * mouse click).  Clicking in another window selects it.  The walk mirrors
  * the painting loop in display().
  */
-void goto_screen_position(int row, int col)
+int goto_screen_position(int row, int col)
 {
 	window_t *wp;
-	buffer_t *bp;
-	point_t p, end;
-	int i, j, w;
-	char_t *c;
 
+	/* a window's text and its mode line below it */
 	for (wp = wheadp; wp != NULL; wp = wp->w_next)
-		if (row >= wp->w_top && row < wp->w_top + wp->w_rows)
+		if (row >= wp->w_top && row <= wp->w_top + wp->w_rows)
 			break;
 	if (wp == NULL)
-		return;
+		return FALSE;
 
 	if (wp != curwp) {
 		curwp->w_update = TRUE;
@@ -470,6 +598,25 @@ void goto_screen_position(int row, int col)
 		if (curbp->b_cnt > 1)
 			w2b(curwp);
 	}
+	if (row == wp->w_top + wp->w_rows)  /* the mode line selects only */
+		return FALSE;
+	return window_position(wp, row, col);
+}
+
+/*
+ * Move the cursor of the current window WP to screen ROW, COL; rows
+ * outside the window are taken as its first or last row (no scrolling).
+ */
+int window_position(window_t *wp, int row, int col)
+{
+	buffer_t *bp;
+	point_t p, end;
+	int i, j, w;
+	char_t *c;
+
+	if (row < wp->w_top) row = wp->w_top;
+	if (row >= wp->w_top + wp->w_rows) row = wp->w_top + wp->w_rows - 1;
+	if (col < 0) col = 0;
 	bp = curbp;
 	end = document_size(bp);
 	p = bp->b_page;
@@ -504,4 +651,5 @@ void goto_screen_position(int row, int col)
 		}
 	}
 	bp->b_point = p;
+	return TRUE;
 }

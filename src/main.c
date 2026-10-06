@@ -23,10 +23,18 @@ int fe_main(int argc, char **argv)
 	setlocale(LC_ALL, "") ; /* required for 3,4 byte UTF8 chars */
 
 	{
-		/* "+" as the last argument turns the mouse on (always on in the GUI) */
-		int mouse = (argc >= 2 && strcmp(argv[argc - 1], "+") == 0);
-		if (mouse)
+		/*
+		 * The mouse is on; "-" as the last argument turns it off in
+		 * a terminal (where it takes over the terminal's own text
+		 * selection).  "+" is accepted for FemtoEmacs compatibility.
+		 */
+		int mouse = 1;
+		if (argc >= 2 && strcmp(argv[argc - 1], "-") == 0) {
+			mouse = 0;
 			argc--;
+		} else if (argc >= 2 && strcmp(argv[argc - 1], "+") == 0) {
+			argc--;
+		}
 		if (!screen_init(mouse)) {
 			fprintf(stderr, f_initscr, prog_name);
 			return EXIT_FAIL;
@@ -44,6 +52,7 @@ int fe_main(int argc, char **argv)
 		make_buffer_name(bname, fname);
 		curbp = find_buffer(bname, TRUE);
 		(void)insert_file(fname, FALSE);
+		record_change(curbp, 'r', 0, NULL, 0);  /* the file as read: no history */
 		strcpy(curbp->b_fname, fname);
 	} else {
 		curbp = find_buffer(str_scratch, TRUE);
@@ -60,13 +69,27 @@ int fe_main(int argc, char **argv)
 
 
 	while (!done) {
+		buffer_t *before_bp;
+		point_t before_size;
+
 		update_display();
 		input = get_key(key_map, &key_return);
+		before_bp = curbp;
+		before_size = document_size(curbp);
 
 		if (key_return != NULL) {
-			whatKey= key_return->key_name;
-			(key_return->func)();
+			/*
+			 * Every key goes to the Lisp keymap first, so scripts
+			 * can bind any key; the C binding runs when Lisp has
+			 * none.  (Lisp may read keys itself, which changes
+			 * key_return: take the function first.)
+			 */
+			void (*func)(void) = key_return->func;
+			whatKey = key_return->key_name;
+			if (!call_lisp_event("key", whatKey))
+				func();
 		} else {
+			mark_active = 0;    /* typing ends the selection */
 			/*
 			 * if first char of input is a control char then
 			 * key is not bound, except TAB and NEWLINE
@@ -85,6 +108,10 @@ int fe_main(int argc, char **argv)
                         else
 				msg(str_not_bound);
 		}
+
+		/* as in Emacs, changing the text deactivates the region */
+		if (curbp != before_bp || document_size(curbp) != before_size)
+			mark_active = 0;
 
 		/* debug_stats("main loop:"); */
 		match_parens();

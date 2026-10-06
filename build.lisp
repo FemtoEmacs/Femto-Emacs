@@ -16,6 +16,11 @@
 
 (setf sb-impl::*default-external-format* :utf-8)
 
+;; Efficiency notes ("unable to optimize due to type uncertainty", "doing
+;; SAP to pointer coercion") are advice, not problems: recent SBCLs print
+;; them for the C callbacks.  Keep the build output to warnings and errors.
+(declaim (sb-ext:muffle-conditions sb-ext:compiler-note))
+
 (defun build-file (name)
   (let* ((source (merge-pathnames (concatenate 'string name ".lisp") *root*))
          (output (merge-pathnames (concatenate 'string "build/" name ".fasl") *root*))

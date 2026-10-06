@@ -135,6 +135,11 @@ static void default_theme(int many_colors)
 
 	face(ID_COLOR_MODELINE, -1, -1, FE_REVERSE);
 	face(ID_COLOR_BRACE, C_BLACK, C_CYAN, 0);
+	face(ID_COLOR_REGION, -1, -1, FE_REVERSE);
+	face(ID_COLOR_HEADING, -1, -1, FE_BOLD);
+	face(ID_COLOR_EMPHASIS, -1, -1, FE_ITALIC);
+	face(ID_COLOR_STRONG, -1, -1, FE_BOLD);
+	face(ID_COLOR_LINK, -1, -1, FE_UNDERLINE);
 
 	if (many_colors) {
 		face(ID_COLOR_KEYWORD,  127, -1, FE_BOLD);  /* purple */
@@ -253,6 +258,18 @@ long fe_get_mark(void)          { return curbp->b_mark; }
 long fe_buffer_size(void)       { return document_size(curbp); }
 void fe_set_mark(void)          { i_set_mark(); }
 
+/* the mark at offset P (negative: no mark), without touching the region state */
+void fe_set_mark_at(long p)
+{
+	long size = document_size(curbp);
+	if (p > size) p = size;
+	curbp->b_mark = p < 0 ? NOMARK : p;
+}
+
+/* is the region active (shaded)?  Set it with fe_set_mark_active */
+int  fe_mark_active(void)       { return mark_active && curbp->b_mark != NOMARK; }
+void fe_set_mark_active(int on) { mark_active = on ? 1 : 0; }
+
 void fe_set_point(long p)
 {
 	long size = document_size(curbp);
@@ -303,6 +320,54 @@ void fe_copy_region(void)       { copy(); }
 void fe_yank(void)              { paste(); }
 void fe_kill_line(void)         { killtoeol(); }
 void fe_undo(void)              { undo_command(); }
+
+/* the current buffer's id (see b_id), and its modified flag */
+long fe_buffer_id(void)         { return curbp->b_id; }
+void fe_set_modified(int on)
+{
+	if (on) add_mode(curbp, B_MODIFIED);
+	else delete_mode(curbp, B_MODIFIED);
+}
+
+/* delete the bytes from START to END exactly (undo uses it) */
+void fe_delete_region(long start, long end)
+{
+	long size = document_size(curbp);
+	long len;
+
+	if (start < 0) start = 0;
+	if (end > size) end = size;
+	if (end <= start) return;
+	len = end - start;
+	curbp->b_point = movegap(curbp, start);
+	/* the bytes are now at the end of the gap; report them before dropping them */
+	record_change(curbp, 'd', start, curbp->b_egap, len);
+	curbp->b_egap += len;
+	curbp->b_point = start;
+	if (curbp->b_mark > start)
+		curbp->b_mark = curbp->b_mark >= end ? curbp->b_mark - len : start;
+	add_mode(curbp, B_MODIFIED);
+}
+
+/* insert LEN bytes exactly, at P (undo uses it: the bytes need not be UTF-8) */
+void fe_insert_bytes(long p, char *bytes, long len)
+{
+	long size = document_size(curbp);
+
+	if (len <= 0) return;
+	if (p < 0) p = 0;
+	if (p > size) p = size;
+	if (len >= curbp->b_egap - curbp->b_gap && !growgap(curbp, len))
+		return;
+	curbp->b_point = movegap(curbp, p);
+	memcpy(curbp->b_gap, bytes, len);
+	curbp->b_gap += len;
+	record_change(curbp, 'i', p, (char_t *) bytes, len);
+	curbp->b_point = p + len;
+	if (curbp->b_mark >= p && curbp->b_mark != NOMARK)
+		curbp->b_mark += len;
+	add_mode(curbp, B_MODIFIED);
+}
 void fe_discard_undo_history(void) { discard_undo_history(); }
 
 /* clipboard */
@@ -359,6 +424,46 @@ void fe_other_window(void)           { other_window(); }
 void fe_split_window(void)           { split_window(); }
 void fe_update_display(void)         { if (screen_active() && curwp != NULL) update_display(); }
 void fe_refresh(void)                { if (screen_active()) redraw(); }
+void fe_delete_window(void)          { delete_window(); }
+int  fe_window_count(void)           { return count_windows(); }
+int  fe_window_rows(void)            { return curwp == NULL ? 0 : curwp->w_rows; }
+void fe_recenter(void)               { if (screen_active()) recenter(); }
+
+/* show the selected window from offset P (the start of a line) */
+void fe_set_window_start(long p)
+{
+	if (p < 0) p = 0;
+	if (p > document_size(curbp)) p = document_size(curbp);
+	curbp->b_page = p;
+	if (curbp->b_point < p)
+		curbp->b_point = p;
+}
+int  fe_line_number(long p)          { return line_number(curbp, p); }
+
+/*
+ * Run a command of the C core by name ("query-replace", "exec-lisp-command"
+ * ...).  Returns 0 when there is no such command.
+ */
+int fe_execute_command(char *name)
+{
+	command_t *fn;
+	for (fn = commands; fn->name != NULL; fn++)
+		if (strcmp(fn->name, name) == 0) {
+			whatKey = fn->name;
+			(fn->func)();
+			return 1;
+		}
+	return 0;
+}
+
+/* the name of the C command number I, or NULL after the last one */
+char *fe_command_name(int i)
+{
+	int n;
+	for (n = 0; n < i && commands[n].name != NULL; n++)
+		;
+	return commands[n].name;
+}
 
 /* message line */
 void fe_message(char *s)             { msg("%s", s); }

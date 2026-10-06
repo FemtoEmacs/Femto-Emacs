@@ -2,11 +2,13 @@
 ;;;;
 ;;;; A script: edit and press C-x C-r, no rebuild.
 ;;;;
-;;;;   C-c r   ask the assistant about the code at the cursor; the answer
-;;;;           appears in a window below (C-x 1 closes it)
+;;;;   C-c r   a small menu: h for hints about the code at the cursor,
+;;;;           q to write a question (C-c r again sends it), s for the
+;;;;           set-up; the answer appears in a window below, whose mode
+;;;;           line says which keys apply
 ;;;;   C-c y   insert the code the assistant proposed, at the cursor,
 ;;;;           after you confirm (undo with C-u)
-;;;;   C-c x   the same question to Codex (a stub for now, see codex.lisp)
+;;;;   C-c g   Codex (ChatGPT), see codex.lisp
 ;;;;
 ;;;; The keys follow Isaac Asimov's Three Laws of Robotics.  C-c r is "R."
 ;;;; for robot, the title Asimov gives his robots (R. Daneel Olivaw,
@@ -63,6 +65,16 @@ Claude Code default) and for :api (NIL = *CLAUDE-API-MODEL*).")
 (defvar *assistant-buffer* "*assistant*"
   "The buffer where answers are shown.")
 
+(defvar *claude-request-buffer* "*claude-request*"
+  "The buffer where a question for Claude is written (C-c r, then q).")
+
+(defparameter *claude-discussion-buffer* "*discussion*"
+  "The buffer of the discussion with Claude (C-c r, then d).  Not closed
+by C-h or C-c y; C-x 0 closes its window.")
+
+(defvar *discussion-origin* nil "The file the discussion is about.")
+
+
 (defparameter *assistant-instructions*
   "You are the assistant built into SBEmacs, a small Emacs-like text editor.
 The user pressed a key to ask for help while editing.  You receive the
@@ -72,10 +84,11 @@ question, give short, concrete hints about the code at the cursor: bugs,
 simplifications, what to write next.
 
 Your answer is shown as plain text in an editor window about 80 columns
-wide, so keep it brief and do not use Markdown headings or tables.  When
-you propose code to insert at the cursor, put exactly that code in ONE
-fenced block (``` ... ```); the user can insert it with a key.  Never
-rewrite the whole file."
+wide, so keep it brief and do not use Markdown headings or tables.  Put
+code to insert at the cursor in fenced blocks (``` ... ```): the user can
+insert them with a key, so fence only code meant to be inserted, and show
+code you are not proposing (the old version, say) indented, without
+fences.  Never rewrite the whole file."
   "System instructions sent with every question.")
 
 ;;; ------------------------------------------------------------------
@@ -406,47 +419,189 @@ cursor marked <<CURSOR>>."
 (defvar *assistant-last-answer* nil)
 (defvar *assistant-origin* nil "The buffer the question was asked from.")
 
-(defun show-in-assistant-window (title text)
-  "Show TEXT in *ASSISTANT-BUFFER* in the lower half of the screen; the
-cursor stays where it was."
-  (let ((origin (get-buffer-name)))
-    (delete-other-windows)
-    (split-window)
-    (other-window)
-    (select-buffer *assistant-buffer*)
-    (goto-char 0)
-    (delete-char (buffer-size))
-    (insert (format nil "~A~%~A~%~%" title (make-string (min 70 (length title)) :initial-element #\-)))
-    (insert (substitute #\Newline #\Return text))
-    (beginning-of-buffer)
-    (other-window)
-    (select-buffer origin)))
+(defun buffer-shown-p (name)
+  "Is buffer NAME shown in some window?"
+  (let ((found nil))
+    (loop repeat (window-count)
+          do (when (string= (get-buffer-name) name) (setf found t))
+             (other-window))
+    found))
 
-(defun ask-assistant (key)
+(defun show-in-assistant-window (title text)
+  "Show TEXT in *ASSISTANT-BUFFER* in a window below; the cursor stays
+where it was.  An open discussion window stays open."
+  (flet ((fill-buffer ()
+           (goto-char 0)
+           (delete-char (buffer-size))
+           (insert (format nil "~A~%~A~%~%" title (make-string (min 70 (length title)) :initial-element #\-)))
+           (insert (substitute #\Newline #\Return text))
+           (beginning-of-buffer)))
+    (if (buffer-shown-p *assistant-buffer*)
+        (call-in-window-of *assistant-buffer* #'fill-buffer)
+        (let ((origin (get-buffer-name)))
+          (unless (or (buffer-shown-p *claude-discussion-buffer*)
+                      (and (boundp '*codex-discussion-buffer*)
+                           (buffer-shown-p (symbol-value '*codex-discussion-buffer*))))
+            (delete-other-windows))
+          (split-window)
+          (other-window)
+          (select-buffer *assistant-buffer*)
+          (fill-buffer)
+          ;; back to the window above
+          (loop repeat (1- (window-count)) do (other-window))
+          (unless (string= (get-buffer-name) origin) (select-buffer origin))))))
+
+(defun run-assistant (key question context origin)
+  "Send QUESTION (\"\" for hints) and CONTEXT to the assistant KEY and show
+the answer below the buffer ORIGIN."
   (let* ((assistant (find-assistant key))
-         (name (assistant-name assistant))
-         (question (prompt (format nil "Ask ~A (RET for hints): " name) ""))
-         (context (buffer-context)))
-    (setf *assistant-origin* (get-buffer-name))
+         (name (assistant-name assistant)))
+    (setf *assistant-origin* origin)
+    (unless (string= (get-buffer-name) origin)
+      (select-buffer origin))
     (message "~A is thinking ... (up to ~D s)" name *assistant-timeout*)
     (update-display)
     (handler-case
         (let ((answer (funcall (assistant-ask assistant) question context)))
           (setf *assistant-last-answer* answer)
           (show-in-assistant-window
-           (format nil "~A~@[ -- ~A~]" name (and (plusp (length (trim question))) question))
+           (format nil "~A~@[ -- ~A~]" name
+                   (let ((q (trim question)))
+                     (and (plusp (length q))
+                          (if (> (length q) 60)
+                              (concatenate 'string (substitute #\Space #\Newline (subseq q 0 57)) "...")
+                              (substitute #\Space #\Newline q)))))
            answer)
-          (message "~A answered.  ~:[C-x 1 closes the window~;C-c y inserts the code, C-x 1 closes the window~]"
+          (set-buffer-hint *assistant-buffer* (answer-hint answer))
+          (message "~A answered.  ~:[C-x 1 closes the window~;C-c y inserts the code and closes the window~]"
                    name (proposed-code answer)))
       ;; Third Law: whatever happens, the editor and the buffer survive.
       ;; The explanation goes in the window, where it can be read.
       (error (e)
         (show-in-assistant-window
          (format nil "~A could not be reached" name)
-         (format nil "~A~%~%~A" (princ-to-string e) (assistant-status-text)))
+         (format nil "~A~%~%~A" (princ-to-string e)
+                 (if (and (eq key :codex) (fboundp 'codex-status-text))
+                     (funcall 'codex-status-text)
+                     (assistant-status-text))))
+        (set-buffer-hint *assistant-buffer* "C-x 1 close")
         (message "~A could not be reached; see the window below" name)))))
 
-(defun ask-claude () (ask-assistant :claude))
+(defun answer-hint (answer)
+  "What the keys do with ANSWER, for its mode line and the message line."
+  (if (proposed-code answer)
+      "C-c y insert code & close"
+      "C-x 1 close"))
+
+(defun ask-assistant (key)
+  "Ask on the message line, then answer (kept for scripts that use it)."
+  (let* ((name (assistant-name (find-assistant key)))
+         (question (prompt (format nil "Ask ~A (RET for hints): " name) "")))
+    (run-assistant key question (buffer-context) (get-buffer-name))))
+
+;;; ------------------------------------------------------------------
+;;; C-c r: the menu
+;;; ------------------------------------------------------------------
+
+(defparameter *claude-menu*
+  "  h   Hints: Claude reads the code at the cursor (and the selected
+      region) and suggests fixes and next steps.
+  q   Question: write it in a window of its own, as many lines as
+      you like; C-c r sends it.
+  d   Discussion: a conversation in a window that stays open; C-c t
+      there inserts the snippet under the cursor into your file.
+  s   Set-up: is Claude installed and logged in?
+
+  Any other key closes this menu.  Claude only reads: C-c y inserts
+  the code it proposes, after you confirm."
+  "The text of the C-c r menu.")
+
+(defvar *assistant-saved-context* nil
+  "The buffer around the cursor when the question window was opened.")
+
+(defun claude-compose (context origin)
+  "Open *claude-request* below ORIGIN, for a question of any length."
+  (setf *assistant-saved-context* context
+        *assistant-origin* origin)
+  (unless (string= (get-buffer-name) origin) (select-buffer origin))
+  (delete-other-windows)
+  (split-window)
+  (other-window)
+  (select-buffer *claude-request-buffer*)
+  (goto-char 0)
+  (delete-char (buffer-size))
+  (message "Write your question for Claude, then C-c r sends it (C-x o: back to ~A)" origin)
+  t)
+
+(defun claude-send-request ()
+  "Send the question written in *claude-request*."
+  (let ((question (trim (buffer-substring 0 (buffer-size)))))
+    (cond ((zerop (length question))
+           (message "Write a question first, then C-c r sends it"))
+          ((null *assistant-saved-context*)
+           (message "The file to ask about is unknown; start again from it with C-c r"))
+          (t (run-assistant :claude question *assistant-saved-context*
+                            (or *assistant-origin* "*scratch*"))))))
+
+(defun claude-menu ()
+  (let ((context (buffer-context))
+        (origin (get-buffer-name)))
+    (show-in-assistant-window "Ask Claude" *claude-menu*)
+    (set-buffer-hint *assistant-buffer* "h hints; q ask; d discuss; s set-up")
+    (message "Claude: h hints, q question, d discussion, s set-up; any other key closes the menu")
+    (update-display)
+    (let* ((k (get-key))
+           (choice (and (= (length k) 1) (char-downcase (char k 0)))))
+      (case choice
+        (#\h (run-assistant :claude "" context origin))
+        (#\q (claude-compose context origin))
+        (#\d (claude-discussion origin))
+        (#\s (assistant-status))
+        (t (close-assistant-windows)
+           (clear-message-line))))))
+
+(defun ask-claude ()
+  "C-c r: the menu; in *claude-request*, send the question; in the
+discussion, send what was written since the last answer."
+  (cond ((string= (get-buffer-name) *claude-request-buffer*) (claude-send-request))
+        ((string= (get-buffer-name) *claude-discussion-buffer*) (discussion-send))
+        (t (claude-menu))))
+
+
+
+;;; ------------------------------------------------------------------
+;;; Closing the assistants' windows (C-h and the menu use it)
+;;; ------------------------------------------------------------------
+
+(defparameter *assistant-buffer-names*
+  '("*assistant*" "*claude-request*" "*codex*" "*codex-request*")
+  "Buffers that belong to the assistants; help (C-h) closes their windows.")
+
+(defun assistant-buffer-p (name)
+  (member name *assistant-buffer-names* :test #'string=))
+
+(defun file-behind-assistant ()
+  "The buffer an assistant was asked from, if we know it."
+  (or (and (boundp '*assistant-origin*) (symbol-value '*assistant-origin*))
+      (and (boundp '*codex-origin-buffer*) (symbol-value '*codex-origin-buffer*))
+      "*scratch*"))
+
+(defcommand close-assistant-windows ()
+  "Close every window showing a Claude or Codex buffer."
+  (let ((origin (get-buffer-name)))
+    (loop repeat (* 2 (window-count))
+          while (> (window-count) 1)
+          do (if (assistant-buffer-p (get-buffer-name))
+                 (delete-window)
+                 (other-window)))
+    (when (assistant-buffer-p (get-buffer-name))
+      (select-buffer (file-behind-assistant)))
+    ;; back to the window that was selected, if it is still there
+    (loop repeat (window-count)
+          until (string= (get-buffer-name) origin)
+          do (other-window))
+    t))
+
 
 ;;; ------------------------------------------------------------------
 ;;; What is set up, and how to fix it
@@ -478,35 +633,186 @@ cursor stays where it was."
 (defun assistant-status ()
   "Show how the assistant would reach Claude (Esc-; (assistant-status))."
   (show-in-assistant-window "Assistant status" (assistant-status-text))
+  (set-buffer-hint *assistant-buffer* "C-x 1 close")
   t)
 
 ;;; ------------------------------------------------------------------
 ;;; Second Law: insert the proposed code, when told to
 ;;; ------------------------------------------------------------------
 
+(defun fence-line-p (line)
+  (let ((l (string-left-trim '(#\Space #\Tab) line)))
+    (and (>= (length l) 3) (string= "```" l :end2 3))))
+
+(defun fenced-blocks (text)
+  "The fenced code blocks of TEXT, as (start end body): START and END
+are the character offsets of the opening fence line and of the end of
+the closing one; BODY is the code without the fences."
+  (let ((blocks '()) (open nil) (pos 0))
+    (dolist (line (split-lines (or text "")) (nreverse blocks))
+      (let ((end (+ pos (length line))))
+        (when (fence-line-p line)
+          (if open
+              (progn
+                (push (list (car open) end
+                            (string-right-trim '(#\Newline #\Return)
+                                               (subseq text (min (length text) (1+ (cdr open)))
+                                                       (max (1+ (cdr open)) pos))))
+                      blocks)
+                (setf open nil))
+              (setf open (cons pos end))))
+        (setf pos (1+ end))))))
+
+(defun proposed-snippets (answer)
+  "Every fenced code block in ANSWER, without the fences."
+  (mapcar #'third (fenced-blocks answer)))
+
 (defun proposed-code (answer)
   "The first fenced code block in ANSWER, without the fences, or NIL."
-  (when answer
-    (let* ((open (search "```" answer))
-           (body-start (and open (position #\Newline answer :start open)))
-           (close (and body-start (search "```" answer :start2 (1+ body-start)))))
-      (when close
-        (string-right-trim '(#\Newline #\Return) (subseq answer (1+ body-start) close))))))
+  (first (proposed-snippets answer)))
+
+(defun snippet-at (text index)
+  "The body of the fenced block of TEXT around character INDEX, or NIL."
+  (third (find-if (lambda (b) (<= (first b) index (second b))) (fenced-blocks text))))
+
+(defun confirm-insert (code where)
+  "Ask, then insert CODE at the cursor.  True when inserted."
+  (let* ((lines (1+ (count #\Newline code)))
+         (yes (prompt (format nil "Insert ~D line~:P ~A? (y/n) " lines where) "")))
+    (if (string-equal (trim yes) "y")
+        (progn (insert code)
+               (message "Inserted ~D line~:P (C-u undoes it)" lines)
+               t)
+        (progn (message "Nothing inserted") nil))))
 
 (defun assistant-insert ()
-  "Insert the code the assistant proposed at the cursor, after asking."
-  (let ((code (proposed-code *assistant-last-answer*)))
-    (cond ((null code)
+  "C-c y: insert every snippet the last answer proposed at the cursor,
+after asking, and close the answer window."
+  (let ((snippets (proposed-snippets *assistant-last-answer*)))
+    (cond ((null snippets)
            (message "The last answer has no code to insert"))
-          ((string-equal (get-buffer-name) *assistant-buffer*)
-           (message "Go back to your buffer first (C-x o)"))
+          ((or (string= (get-buffer-name) *claude-discussion-buffer*)
+               (and (boundp '*codex-discussion-buffer*)
+                    (string= (get-buffer-name)
+                             (symbol-value '*codex-discussion-buffer*))))
+           (message "In the discussion, C-c t inserts the snippet under the cursor"))
           (t
-           (let* ((lines (1+ (count #\Newline code)))
-                  (yes (prompt (format nil "Insert ~D line~:P at the cursor? (y/n) " lines) "")))
-             (if (string-equal (trim yes) "y")
-                 (progn (insert code)
-                        (message "Inserted ~D line~:P (C-u undoes it)" lines))
-                 (message "Nothing inserted")))))))
+           ;; from the answer window too: the code goes into the file
+           (let* ((file (if (assistant-buffer-p (get-buffer-name))
+                            (file-behind-assistant)
+                            (get-buffer-name)))
+                  (code (format nil "~{~A~^~%~%~}" snippets))
+                  (where (format nil "~Ainto ~A at line ~~D"
+                                 (if (cdr snippets) (format nil "(~D snippets) " (length snippets)) "")
+                                 file))
+                  (done nil) (here 0))
+             (call-in-window-of file
+                                (lambda ()
+                                  (setf done (confirm-insert code (format nil where (line-number)))
+                                        here (point))))
+             (when done
+               (close-assistant-windows)
+               (loop repeat (window-count)
+                     until (string= (get-buffer-name) file)
+                     do (other-window))
+               (unless (string= (get-buffer-name) file) (select-buffer file))
+               (goto-char here)))))))
+
+;;; ------------------------------------------------------------------
+;;; A discussion: a window that stays open
+;;; ------------------------------------------------------------------
+
+
+(defparameter *you-marker* "You:")
+(defparameter *claude-marker* "Claude:")
+
+(defun call-in-window-of (buffer function)
+  "Call FUNCTION with BUFFER current: in a window that shows it if there
+is one, otherwise in this window for a moment.  Returns its value."
+  (let ((n (window-count)) (steps 0))
+    (loop while (and (< steps n) (not (string= (get-buffer-name) buffer)))
+          do (other-window) (incf steps))
+    (if (string= (get-buffer-name) buffer)
+        (unwind-protect (funcall function)
+          ;; back to the window we started from
+          (when (plusp steps)
+            (loop repeat (- n steps) do (other-window))))
+        (let ((here (get-buffer-name)))
+          (select-buffer buffer)
+          (unwind-protect (funcall function)
+            (select-buffer here))))))
+
+(defun claude-discussion (origin)
+  "Open (or go back to) the discussion about ORIGIN, below it."
+  (unless (string= (get-buffer-name) origin) (select-buffer origin))
+  (setf *discussion-origin* origin)
+  (delete-other-windows)
+  (split-window)
+  (other-window)
+  (progn
+    (select-buffer *claude-discussion-buffer*)
+    (when (zerop (buffer-size))
+      (insert (format nil "Discussion with Claude about ~A~%~
+                           C-c r sends what you write after the last ~A~%~
+                           C-c t inserts the snippet under the cursor into ~A~%~
+                           C-x 0 closes this window; C-c r, then d, brings it back~%~
+                           ~A~%~%~A~%"
+                      origin *you-marker* origin (make-string 70 :initial-element #\=)
+                      *you-marker*))))
+  (end-of-buffer)
+  (message "Write to Claude after \"~A\", then C-c r" *you-marker*)
+  t)
+
+(defun last-marker-position (text marker)
+  "Index just after the last line that is exactly MARKER, or NIL."
+  (let ((pos (search (format nil "~%~A~%" marker) text :from-end t)))
+    (and pos (+ pos (length marker) 2))))
+
+(defun discussion-send ()
+  "Send what was written after the last You: to Claude, with the whole
+discussion and the file around its cursor."
+  (let* ((text (buffer-substring 0 (buffer-size)))
+         (start (last-marker-position text *you-marker*))
+         (message-text (and start (trim (subseq text start)))))
+    (cond ((or (null message-text) (zerop (length message-text)))
+           (message "Write after the last \"~A\", then C-c r" *you-marker*))
+          ((null *discussion-origin*)
+           (message "The file is unknown; start the discussion from it (C-c r, then d)"))
+          (t
+           (let ((context (call-in-window-of *discussion-origin* #'buffer-context))
+                 (question (format nil "This is a discussion that continues; reply to the ~
+                                        user's last message.~%~%~A" text)))
+             (message "Claude is thinking ... (up to ~D s)" *assistant-timeout*)
+             (update-display)
+             (let ((answer (handler-case (claude-ask question context)
+                             (error (e) (format nil "(Claude could not be reached: ~A)" e)))))
+               (setf *assistant-last-answer* answer
+                     *assistant-origin* *discussion-origin*)
+               (end-of-buffer)
+               (insert (format nil "~:[~%~;~]~%~A~%~A~%~%~A~%"
+                               (and (plusp (length text)) (char= (char text (1- (length text))) #\Newline))
+                               *claude-marker* (trim (substitute #\Newline #\Return answer))
+                               *you-marker*))
+               (message "Claude answered.  C-c t on a snippet inserts it into ~A" *discussion-origin*)))))))
+
+(defun discussion-tangle ()
+  "C-c t in the discussion: insert the snippet under the cursor into the
+file, at its cursor, after asking."
+  (cond ((not (string= (get-buffer-name) *claude-discussion-buffer*))
+         (message "C-c t works in the discussion window (C-c r, then d)"))
+        ((null *discussion-origin*) (message "The file is unknown"))
+        (t
+         (let* ((octets (buffer-octets 0 (buffer-size)))
+                (text (sb-ext:octets-to-string octets :external-format '(:utf-8 :replacement #\?)))
+                (index (length (sb-ext:octets-to-string (subseq octets 0 (point))
+                                                        :external-format '(:utf-8 :replacement #\?))))
+                (code (snippet-at text index)))
+           (if (null code)
+               (message "Put the cursor on a snippet (between its ``` lines) first")
+               (call-in-window-of *discussion-origin*
+                                  (lambda ()
+                                    (confirm-insert code (format nil "into ~A at line ~D"
+                                                                 *discussion-origin* (line-number))))))))))
 
 ;;; ------------------------------------------------------------------
 ;;; Keys
@@ -514,3 +820,8 @@ cursor stays where it was."
 
 (global-set-key "C-c r" 'ask-claude)
 (global-set-key "C-c y" 'assistant-insert)
+
+;;; What the mode line of each assistant window says
+(set-buffer-hint *claude-request-buffer* "C-c r ask; C-x o back to file")
+(set-buffer-hint *claude-discussion-buffer* "C-c r send; C-c t code-tangle")
+(global-set-key "C-c t" 'discussion-tangle)

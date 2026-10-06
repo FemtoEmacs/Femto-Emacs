@@ -28,6 +28,42 @@ int count_string_list(string_list_t *list)
 
 
 /*
+ * Commands defined in Lisp, offered by Esc-x next to the C ones (Lisp
+ * registers them with fe_add_command_name; Esc-x runs them through the
+ * "command" event).
+ */
+static char **lisp_commands = NULL;
+static int n_lisp_commands = 0;
+static int lisp_commands_cap = 0;
+
+void fe_add_command_name(char *name)
+{
+	int i;
+	for (i = 0; i < n_lisp_commands; i++)
+		if (strcmp(lisp_commands[i], name) == 0)
+			return;
+	if (n_lisp_commands == lisp_commands_cap) {
+		lisp_commands_cap = lisp_commands_cap ? 2 * lisp_commands_cap : 64;
+		lisp_commands = realloc(lisp_commands, lisp_commands_cap * sizeof(char *));
+		assert(lisp_commands != NULL);
+	}
+	lisp_commands[n_lisp_commands++] = strdup(name);
+}
+
+static string_list_t *add_match(string_list_t *head, const char *name)
+{
+	string_list_t *sl;
+	for (sl = head; sl != NULL; sl = sl->next)  /* a Lisp command may shadow a C one */
+		if (strcmp(sl->string, name) == 0)
+			return head;
+	if ((sl = malloc(sizeof(*sl))) == NULL)
+		return head;
+	sl->string = strdup(name);
+	sl->next = head;
+	return sl;
+}
+
+/*
  * match possible function names
  */
 string_list_t *match_functions(const char *fname)
@@ -40,19 +76,14 @@ string_list_t *match_functions(const char *fname)
 	len = strlen(fname);
 	head = NULL;
 
-	for (fn = commands; fn->name != NULL; fn++) {
-		if (memcmp(fname, fn->name, len) == 0) {
-			if ((sl = malloc(sizeof(*sl))) == NULL) {
-				free_string_list(head);
-				return (NULL);
-			}
-
-			sl->string = strdup(fn->name);
-			sl->next = head;
-			head = sl;
-			count++;
-		}
-	}
+	(void) sl;
+	(void) count;
+	for (fn = commands; fn->name != NULL; fn++)
+		if (strncmp(fname, fn->name, len) == 0)
+			head = add_match(head, fn->name);
+	for (count = 0; count < n_lisp_commands; count++)
+		if (strncmp(fname, lisp_commands[count], len) == 0)
+			head = add_match(head, lisp_commands[count]);
 	return head;
 }
 
@@ -233,7 +264,7 @@ void execute_command()
 	cpos = strlen(command_name);
 
 	while (process_input) {
-		ch = screen_getch();
+		ch = read_key_byte();
 		/* ignore control keys other than C-g, TAB, backspace, del, CR, ESC */
 		if (ch < 32 && ch != 7 && ch != 9 && ch != 8 && ch != 13 && ch != 10 && ch != 27)
 			continue;
@@ -252,10 +283,16 @@ void execute_command()
 		case 13: /* CR, LF, only allow if there is 1 matched command waiting */
 		case 10:
 			cmd_list = match_functions(command_name);
-			if (1 != count_string_list(cmd_list)) {
+			/* one candidate, or one that is exactly what was typed */
+			for (sl = cmd_list; sl != NULL; sl = sl->next)
+				if (strcmp(sl->string, command_name) == 0)
+					break;
+			if (sl == NULL && 1 != count_string_list(cmd_list)) {
 				free_string_list(cmd_list);
 				continue;
 			}
+			if (sl == NULL)
+				strcpy(command_name, cmd_list->string);
 
 			free_string_list(cmd_list);
 			process_input = 0;
@@ -324,10 +361,11 @@ void execute_command()
 
 	/* attempt to execute matched command */
 	if (strlen(command_name) > 0) {
-		funct = name_to_function(command_name);
-
-		if (funct != NULL) {
-			(funct)();
+		/* a Lisp command of that name wins, as in the keymap */
+		if (!call_lisp_event("command", command_name)) {
+			funct = name_to_function(command_name);
+			if (funct != NULL)
+				(funct)();
 		}
 	}
 

@@ -51,7 +51,7 @@ void query_replace(void)
 
 		qprompt:
 			display(curwp, TRUE);
-			c = screen_getch();
+			c = read_key_byte();
 
 			switch (c) {
 			case 'y': /* yes, substitute */
@@ -79,7 +79,7 @@ void query_replace(void)
 		if (rlen > slen) {
 			movegap(curbp, found);
 			/*check enough space in gap left */
-			if (rlen - slen < curbp->b_egap - curbp->b_gap)
+			if (rlen - slen >= curbp->b_egap - curbp->b_gap)
 				growgap(curbp, rlen - slen);
 			/* shrink gap right by r - s */
 			curbp->b_gap = curbp->b_gap + (rlen - slen);
@@ -93,6 +93,8 @@ void query_replace(void)
 
 		/* now just overwrite the chars at point in the buffer */
 		l_point = curbp->b_point;
+		record_change(curbp, 'd', curbp->b_point, (char_t *) searchtext, slen);
+		record_change(curbp, 'i', curbp->b_point, (char_t *) replace, rlen);
 		memcpy(ptr(curbp, curbp->b_point), replace, rlen * sizeof (char_t));
 		add_mode(curbp, B_MODIFIED);
 		curbp->b_point = found - (slen - rlen); /* end of replcement */

@@ -129,7 +129,7 @@ int save_buffer(buffer_t *bp, char *fn)
 		return (FALSE);
 	}
 	delete_mode(bp, B_MODIFIED);
-	//bp->b_flags &= ~B_MODIFIED;
+	record_change(bp, 's', 0, NULL, 0);
 	msg(m_saved, fn, pos(bp, bp->b_ebuf));
 	return (TRUE);
 }
@@ -142,8 +142,11 @@ void clear_buffer()
 
 int load_file(char *fn)
 {
+	int ok;
 	clear_buffer();
-	return insert_file(fn, FALSE);
+	ok = insert_file(fn, FALSE);
+	record_change(curbp, 'r', 0, NULL, 0);  /* a fresh file: no history */
+	return ok;
 }
 
 /* reads file into buffer at point */
@@ -170,6 +173,7 @@ int insert_file(char *fn, int modflag)
 	curbp->b_point = movegap(curbp, curbp->b_point);
 	undoset();
 	curbp->b_gap += len = fread(curbp->b_gap, sizeof (char), (size_t) sb.st_size, fp);
+	record_change(curbp, 'i', curbp->b_point, curbp->b_gap - len, (long) len);
 
 	if (fclose(fp) != 0) {
 		msg(m_close, fn);
@@ -188,19 +192,6 @@ void undoset()
 	curbp->b_ubuf.u_egap = curbp->b_egap - curbp->b_buf;
 	curbp->b_ubuf.u_flags = curbp->b_flags;
 
-}
-
-/* Undo, deprecated, soon to be removed */
-void undo()
-{
-	undo_t tmp;
-
-	memcpy(&tmp, &(curbp->b_ubuf), sizeof (undo_t));
-	undoset();
-	curbp->b_point = tmp.u_point;
-	curbp->b_gap = curbp->b_buf + tmp.u_gap;
-	curbp->b_egap = curbp->b_buf + tmp.u_egap;
-	curbp->b_flags = tmp.u_flags;
 }
 
 /* additional support funtions not in original gap.c */

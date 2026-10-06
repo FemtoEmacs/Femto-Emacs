@@ -1,6 +1,58 @@
 # SBEmacs / Femto Emacs Change Log
 
 ## SBEmacs 2.0
+* Markdown (lisp/languages/markdown.lisp): headings, emphasis, strong,
+  code, links, quotations, lists, tables, rules and comments, with code
+  blocks coloured in their own language; RET continues lists, TAB nests
+  items, M-q refills list items and quotations.  New faces :heading,
+  :emphasis, :strong, :link; define-language takes :highlighter, and
+  define-indentation :levels and :newline.
+* A script whose compiled file no longer loads (after another script
+  changed a structure) is compiled again instead of failing.
+* Undo rewritten, in Lisp (lisp/undo.lisp).  The C core reports every
+  change to the text (insert or delete, with the bytes) through one hook;
+  changes are grouped by command (typing and deleting by runs of up to 20
+  characters), C-/ undoes a group at a time, C-M-_ (M-_) redoes, a new
+  change forgets the redo history, and undoing back to the saved text
+  clears the modified flag.  *undo-limit* bounds the memory per buffer.
+  The old undo in C, which undid one character per key, recorded its own
+  undoing, and missed query-replace and overwrite mode, is gone.
+* Help: C-h or F1 shows every key, one line each, on a page of its own;
+  the arrows scroll it, C-c r / C-c g ask Claude / ChatGPT, any other key
+  returns to the file and closes the assistants' windows
+  (lisp/extensions/help.lisp).  The mode line reads
+  "SBEmacs: Ctrl-h for help == file, L. N == Ctrl c r calls Claude;
+  Ctrl c g calls GPT" (set-mode-line-hints changes the hints).
+* C-c r opens a menu: h for hints, q for a question written in its own
+  window (C-c r sends it), d for a discussion, s for the set-up.
+* C-c y inserts every fenced snippet of the last answer, after asking,
+  and closes the answer window; it works from the answer window too.
+* Each assistant window's mode line says which keys apply there (C-c y
+  in an answer, C-c r in a question, C-c t in the discussion...);
+  set-buffer-hint sets such a hint for any buffer.
+* The discussion (*discussion*) stays open: C-c r there sends what was
+  written after the last "You:", and C-c t inserts the snippet under the
+  cursor into the file being discussed.
+* The GNU Emacs keys FemtoEmacs lacked, in lisp/extensions/emacs-keys.lisp:
+  sentence, paragraph, s-expression and defun motion; kill-word,
+  backward-kill-word, kill-sexp, kill-sentence, zap-to-char, joined kills,
+  yank-pop; transpose chars/words/lines; up/down/capitalize-word;
+  open-line, delete-indentation, delete-horizontal-space, just-one-space,
+  delete-blank-lines, fill-paragraph, comment-dwim; mark-whole-buffer,
+  exchange-point-and-mark, mark-paragraph/word/sexp; keyboard-quit;
+  switch-to-buffer, find-alternate-file, save-some-buffers, quoted-insert,
+  eval-expression (M-:), eval-defun, describe-key.  In C: keyboard macros
+  (C-x ( C-x ) C-x e, e repeats), delete-window (C-x 0), enlarge-window
+  (C-x ^), recenter (C-l).  M-x also runs Lisp commands.
+* Every key goes to the Lisp keymap first, and keys missing from the C
+  table get names (C-g, C-x h, esc d, esc C-f ...), so any key can be bound
+  from a script; global-set-key takes Emacs notation (M-d, C-M-f, M-DEL).
+* The region is shaded while active (C-SPC, a mouse drag, C-x h ...) and
+  deactivated by editing, M-w or C-g; new face :region.
+* The mouse in the terminal too (xterm SGR reporting), on by default
+  (--no-mouse turns it off): click to move or to select a window, drag to
+  select.  The window (--gui) drags the same way; the wheel no longer
+  scrolls.
 * An assistant: C-c r asks Claude about the code at the cursor (through
   the Claude Code CLI, or the Messages API with curl) and shows the
   answer in a window; C-c y inserts the proposed code after confirmation.

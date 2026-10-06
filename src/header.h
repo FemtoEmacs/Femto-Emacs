@@ -26,7 +26,7 @@
 #define FALSE 0
 #endif
 
-#define VERSION	 "SBEmacs 2.0 (FemtoEmacs on SBCL), Public Domain"
+#define VERSION	 "SBEmacs 2.0 (Steel Bank Emacs), Public Domain"
 #define EXIT_OK         0               /* Success */
 #define EXIT_ERROR      1               /* Unknown error. */
 #define EXIT_USAGE      2               /* Usage */
@@ -56,6 +56,11 @@
 #define ID_COLOR_COMMENTS  7
 #define ID_COLOR_BLOCK     8
 #define ID_COLOR_STRING    9
+#define ID_COLOR_REGION    10
+#define ID_COLOR_HEADING   11      /* prose: Markdown headings ... */
+#define ID_COLOR_EMPHASIS  12
+#define ID_COLOR_STRONG    13
+#define ID_COLOR_LINK      14
 
 /* undo types, in matched pairs */
 #define UNDO_T_NONE        0
@@ -113,16 +118,7 @@ typedef struct undo_t {
 	char u_flags;
 } undo_t;
 
-/*
- * This structure supports the unlimited undo feature
- * Its members must be kept to a minimum as each instance takes up to 32 bytes
- */
-typedef struct undo_tt {
-	point_t  u_point;
-	char_t  *u_string;
-	char_t   u_type;
-	struct undo_tt *u_prev;
-} undo_tt;
+
 
 typedef struct buffer_t
 {
@@ -146,8 +142,7 @@ typedef struct buffer_t
 	char b_bname[NBUFN];      /* buffer name */
 	buffer_flags_t b_flags;   /* buffer flags */
 	undo_t b_ubuf;            /* undoset */
-	undo_tt *b_utail;         /* recent end of undo list */
-	int b_ucnt;               /* count of how many chars to undo on current undo */
+	long b_id;                /* unique, never reused: undo history is kept by id */
 } buffer_t;
 
 typedef struct window_t
@@ -287,7 +282,6 @@ extern int load_file(char *);
 extern int insert_file(char *, int);
 extern void append_string(buffer_t *, char *);
 extern void undoset(void);
-extern void undo(void);
 extern void backsp(void);
 extern void set_mark(void);
 extern void unmark(void);
@@ -296,9 +290,19 @@ extern void copy_cut(int);
 extern void delete(void);
 extern void toggle_overwrite_mode(void);
 extern void down(void);
-extern void xdown(void);
+extern void mouse_event(void);
+extern int mouse_button, mouse_col, mouse_row, mouse_release;
+extern int mark_active;
+extern int read_key_byte(void);
+extern void kmacro_start(void);
+extern void kmacro_end(void);
+extern void kmacro_call(void);
+extern void delete_window(void);
+extern void enlarge_window(void);
+extern void recenter(void);
+extern int window_position(window_t *, int, int);
+extern int line_number(buffer_t *, point_t);
 extern void insert(void);
-extern void insert_at(void);
 extern void paste(void);
 extern void quit(void);
 extern int yesno(int);
@@ -369,7 +373,7 @@ extern void call_lisp(char *, char *, int);
 extern int call_lisp_event(char *, char *);
 extern int call_lisp_highlight(buffer_t *, char_t *, int, char_t *);
 extern void init_colors(void);
-extern void goto_screen_position(int, int);
+extern int goto_screen_position(int, int);
 extern void face_on(int);
 extern int fe_main(int, char **);
 extern void keyboardDefinition(void);
@@ -387,24 +391,10 @@ extern void resize_terminal();
 extern int match_string_position(string_list_t *, int);
 extern int shortest_string_len(string_list_t *);
 extern char *shortest_common_string(string_list_t *);
-extern undo_tt *new_undo();
-extern void add_undo(buffer_t *, char, point_t, char_t *);
-extern void free_undos(undo_tt *);
-extern void list_undos(void);
-extern void dump_undos(buffer_t *);
-extern int count_undos(buffer_t *);
-extern int get_total_undo_size(buffer_t *);
-extern int get_undo_size(undo_tt *);
-extern void list_undo_stats();
-extern void append_undo_char(undo_tt *, char);
-extern void append_undo_string(undo_tt *, char_t *);
 extern void undo_command(void);
-extern undo_tt *execute_undo(undo_tt *);
-extern int get_undo_again(void);
-extern char *get_undo_type_name(undo_tt *);
-extern void discard_buffer_undo_history(buffer_t *);
-extern int get_buf_utf8_size(char_t *, int);
-extern void debug_undo(char *, undo_tt *, buffer_t *);
+extern void list_undos(void);
+extern void list_undo_stats(void);
+extern void record_change(buffer_t *, int, point_t, const char_t *, long);
 
 /*
  * include public Femto interface functions definitions 

@@ -217,3 +217,58 @@ void disassociate_b(window_t *wp)
 	wp->w_bufp->b_cnt--;
 }
 
+
+/* C-x 0: delete the selected window; its lines go to the one above (or below) */
+void delete_window()
+{
+	window_t *wp, *prev = NULL;
+
+	if (wheadp->w_next == NULL) {
+		msg("Cannot delete the only window");
+		return;
+	}
+	for (wp = wheadp; wp != NULL && wp != curwp; wp = wp->w_next)
+		prev = wp;
+	if (prev != NULL) {
+		prev->w_next = curwp->w_next;
+		prev->w_rows += curwp->w_rows + 1;
+		wp = prev;
+	} else {
+		wheadp = curwp->w_next;
+		wheadp->w_top = curwp->w_top;
+		wheadp->w_rows += curwp->w_rows + 1;
+		wp = wheadp;
+	}
+	if (curwp->w_hijack != NULL)
+		restore_hijacked_window(curwp);
+	/* the remaining window keeps its own cursor, even on the same buffer */
+	if (wp->w_bufp->b_cnt > 1)
+		w2b(wp);
+	disassociate_b(curwp);
+	free(curwp);
+	curwp = wp;
+	curbp = wp->w_bufp;
+	mark_all_windows();
+}
+
+/* C-x ^: one more line for the selected window, taken from a neighbour */
+void enlarge_window()
+{
+	window_t *wp, *prev = NULL;
+
+	for (wp = wheadp; wp != NULL && wp != curwp; wp = wp->w_next)
+		prev = wp;
+	if (curwp->w_next != NULL && curwp->w_next->w_rows > 1) {
+		curwp->w_rows++;
+		curwp->w_next->w_top++;
+		curwp->w_next->w_rows--;
+	} else if (prev != NULL && prev->w_rows > 1) {
+		prev->w_rows--;
+		curwp->w_top--;
+		curwp->w_rows++;
+	} else {
+		msg("Cannot enlarge this window");
+		return;
+	}
+	mark_all_windows();
+}
