@@ -59,6 +59,7 @@
    #:buffer-menu #:kill-ring-menu #:insert-kill-ring #:dired
    #:grep-command #:next-grep
    #:ask-claude #:ask-codex #:codex-submit #:codex-status
+   #:codex-discussion #:codex-discussion-send
    #:assistant-insert #:assistant-status
    #:*claude-transport* #:*claude-model* #:*assistant-timeout*
    #:*codex-program* #:*codex-model* #:*codex-timeout*

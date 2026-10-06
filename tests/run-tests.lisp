@@ -168,6 +168,16 @@
 (check "C-c g opens or submits a Codex request"
        (key-binding "C-c g")
        'ask-codex)
+(check "Codex is registered in the common assistant machinery"
+       (assistant-name (find-assistant :codex))
+       "Codex")
+(check "C-c t dispatches both discussion windows"
+       (key-binding "C-c t")
+       'assistant-discussion-tangle)
+(check "Codex menu has question and discussion choices"
+       (list (not (null (search "Question:" *codex-menu*)))
+             (not (null (search "Discussion:" *codex-menu*))))
+       '(t t))
 (check "old Codex stub key is removed" (key-binding "C-c x") nil)
 (check "Codex prompt keeps request and saved source separate"
        (let ((*codex-saved-context* "SOURCE-CONTEXT"))

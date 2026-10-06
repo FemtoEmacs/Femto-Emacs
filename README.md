@@ -158,7 +158,19 @@ window, which stays open: write after the last `You:`, press `C-c r`, and
 Claude's answer is appended, followed by a new `You:`.  Each message sends
 the whole discussion and the file around its cursor.  `C-h` and `C-c y` do
 not close it; `C-x 0` does, and `C-c r d` brings it back as it was.
-| `C-c g` | open a lower window in which to write a request for Codex (`g` for GPT) |
+Codex has the same two forms of help.  Press `C-c g` for its menu:
+
+| Choice | |
+|--------|-|
+| `h` | hints about the code at the cursor |
+| `q` | a question in its own window; `C-c g` sends it |
+| `d` | a discussion that stays open; `C-c g` sends each turn |
+| `s` | installation and sign-in status |
+
+In a question answer, `C-c y` inserts every proposed snippet into the main
+window and closes the help window.  In a discussion, put the cursor inside
+one proposed snippet and press `C-c t`; the discussion remains open until
+you close it with `C-x 0`.
 
 The keys follow Asimov's Three Laws of Robotics; `r` is the "R." of his
 robots' names (R. Daneel Olivaw).
@@ -197,10 +209,9 @@ it and press `C-x C-r`.
 ### Codex inside the editor (`C-c g`)
 
 If the ChatGPT desktop application is installed on a Mac and the user is
-signed in, no Codex configuration should be necessary: `codex.lisp` finds the
-Codex executable inside the application automatically, and Codex reuses its
-cached ChatGPT authentication.  Press `C-c g`, write the request below, and
-press `C-c g` again.
+signed in, no path configuration should be necessary: `codex.lisp` finds the
+Codex executable inside the application automatically.  If Codex asks for
+authentication, run it once in a terminal and choose **Sign in with ChatGPT**.
 
 Otherwise, install the current
 [OpenAI Codex CLI](https://developers.openai.com/codex/cli).  The official
@@ -213,9 +224,9 @@ irm https://chatgpt.com/codex/install.ps1 | iex
 codex
 ```
 
-Open a source file and press `C-c g`.  SBEmacs splits the editor and puts
-the cursor in an empty `*codex-request*` buffer below the source.  Write what
-you want in ordinary language, for example:
+Open a source file, press `C-c g`, and choose `q`.  SBEmacs splits the editor
+and puts the cursor in an empty `*codex-request*` buffer below the source.
+Write what you want in ordinary language, for example:
 
 ```text
 Insert into my code a naive recursive Fibonacci definition with declarations for speed.

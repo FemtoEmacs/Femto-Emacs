@@ -439,7 +439,9 @@ where it was.  An open discussion window stays open."
     (if (buffer-shown-p *assistant-buffer*)
         (call-in-window-of *assistant-buffer* #'fill-buffer)
         (let ((origin (get-buffer-name)))
-          (unless (buffer-shown-p *claude-discussion-buffer*)
+          (unless (or (buffer-shown-p *claude-discussion-buffer*)
+                      (and (boundp '*codex-discussion-buffer*)
+                           (buffer-shown-p (symbol-value '*codex-discussion-buffer*))))
             (delete-other-windows))
           (split-window)
           (other-window)
@@ -478,7 +480,10 @@ the answer below the buffer ORIGIN."
       (error (e)
         (show-in-assistant-window
          (format nil "~A could not be reached" name)
-         (format nil "~A~%~%~A" (princ-to-string e) (assistant-status-text)))
+         (format nil "~A~%~%~A" (princ-to-string e)
+                 (if (and (eq key :codex) (fboundp 'codex-status-text))
+                     (funcall 'codex-status-text)
+                     (assistant-status-text))))
         (set-buffer-hint *assistant-buffer* "C-x 1 close")
         (message "~A could not be reached; see the window below" name)))))
 
@@ -686,7 +691,10 @@ after asking, and close the answer window."
   (let ((snippets (proposed-snippets *assistant-last-answer*)))
     (cond ((null snippets)
            (message "The last answer has no code to insert"))
-          ((string= (get-buffer-name) *claude-discussion-buffer*)
+          ((or (string= (get-buffer-name) *claude-discussion-buffer*)
+               (and (boundp '*codex-discussion-buffer*)
+                    (string= (get-buffer-name)
+                             (symbol-value '*codex-discussion-buffer*))))
            (message "In the discussion, C-c t inserts the snippet under the cursor"))
           (t
            ;; from the answer window too: the code goes into the file

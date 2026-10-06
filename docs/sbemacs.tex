@@ -128,7 +128,7 @@ C-M-f & Press \keys{Esc} and let go of it, then keep \keys{Ctrl} down and press 
 \end{tabular}}
 \vspace{7pt}
 
-\textbf{Help, Lisp and Claude}\\[1pt]
+\textbf{Help, Lisp and AI}\\[1pt]
 {\large
 \begin{tabular}{@{}>{\raggedright}p{2.35cm}@{\,}p{6.1cm}@{}}
 \texttt{C-h} & help with keybinding\\
@@ -137,7 +137,7 @@ C-M-f & Press \keys{Esc} and let go of it, then keep \keys{Ctrl} down and press 
 \texttt{C-x C-e} & eval Lisp before cursor\\
 \texttt{C-c r} & call Claude\\
 \texttt{C-c y} & insert Claude's code\\
-\texttt{C-c g} & ask ChatGPT\\
+\texttt{C-c g} & call Codex/ChatGPT\\
 \end{tabular}}
 \vspace{7pt}
 
@@ -1120,7 +1120,7 @@ a light or dark theme:
 \end{quote}
 
 %%% ------------------------------------------------------------------
-\section{Installing Claude}
+\section{Installing Claude and Codex}
 %%% ------------------------------------------------------------------
 
 SBEmacs can ask Claude, an artificial intelligence made by
@@ -1168,18 +1168,29 @@ the \path|~/.sbemacs/anthropic-api-key| file, or put it in the
 \verb|ANTHROPIC_API_KEY| environment variable. Never put the key in
 a file that you share or send to GitHub.
 
-\paragraph{ChatGPT.} The \verb|C-c g| command asks Codex, the
-assistant of OpenAI, which you reach with a ChatGPT subscription.
-Install the Codex program, for instance with
-\verb|npm install -g @openai/codex|, run \verb|codex| once and
-choose {\em Sign in with ChatGPT}.
+\paragraph{Codex and ChatGPT.} The \verb|C-c g| command asks Codex,
+OpenAI's programming assistant, using an eligible ChatGPT subscription.
+Install the current Codex program, for instance with
+\verb|npm install -g @openai/codex@latest|, run \verb|codex| once and
+choose {\em Sign in with ChatGPT}. On Windows, PowerShell can install it
+without npm:
+\begin{quote}
+\begin{verbatim}
+PS C:\Users\nia> irm https://chatgpt.com/codex/install.ps1 | iex
+PS C:\Users\nia> codex
+\end{verbatim}
+\end{quote}
+On a Macintosh, SBEmacs also looks for the copy of Codex inside the
+ChatGPT application. If that copy needs authentication, the same one-time
+terminal sign-in completes the set-up. The editor never asks for an API key.
 
-\paragraph{Checking.} Inside SBEmacs, press \verb|C-c r| and then
-\verb|s|. The editor tells whether it found Claude, where, and
-how to fix what is missing.
+\paragraph{Checking.} Inside SBEmacs, press \verb|C-c r s| to check
+Claude or \verb|C-c g s| to check Codex. The editor tells whether it
+found the corresponding program, where it found it, and how to fix what
+is missing.
 
 %%% ------------------------------------------------------------------
-\section{Using Claude}
+\section{Using Claude and Codex}
 %%% ------------------------------------------------------------------
 
 The keybinding that calls Claude was inspired by Isaac Asimov's
@@ -1263,9 +1274,36 @@ tangle; SBEmacs asks, then inserts the snippet at the cursor of the
 file. The \verb|C-x 0| command closes the discussion window, and
 \verb|C-c r d| brings it back as it was.
 
-\paragraph{ChatGPT.} The \verb|C-c g| command opens a window where Nia
-writes a request for Codex; \verb|C-c g| again sends it. As with
-Claude, \verb|C-c y| inserts the proposed code.
+\paragraph{Codex and ChatGPT.} Codex has the same distinction between a
+short question and a continuing discussion. Nia presses \verb|C-c g| and
+sees this menu:
+\begin{quote}
+\begin{verbatim}
+  h   Hints about the code at the cursor
+  q   Question in a window of its own; C-c g sends it
+  d   Discussion that stays open; C-c g sends each turn
+  s   Set-up: is Codex installed and signed in with ChatGPT?
+\end{verbatim}
+\end{quote}
+
+For a question, she chooses \verb|q|, writes as many lines as she needs,
+and presses \verb|C-c g|. The answer replaces the question window. If it
+contains fenced snippets, \verb|C-c y| asks for confirmation, inserts all
+of them at the cursor in the main file, and closes the help window.
+
+For a conversation, she chooses \verb|d|. She writes after the last
+\verb|You:| and presses \verb|C-c g| for every turn. Codex receives the
+discussion so far and a fresh view of the source around the cursor. The
+window deliberately remains open. To use one answer, she places the cursor
+inside that snippet and presses \verb|C-c t|. She closes the discussion
+herself with \verb|C-x 0| when she is satisfied; \verb|C-c g d| brings the
+same discussion back.
+
+Both forms are read-only until Nia explicitly accepts text. Codex runs in
+a read-only sandbox and an ephemeral command-line session. It cannot edit
+the project, and the instructions tell it to avoid the editor's C sources.
+The implementation is the Common Lisp script
+\path|lisp/extensions/codex.lisp|; no C code is needed for this feature.
 
 \paragraph{Help page.} The help page of \verb|C-h| has the same keys:
 from there, \verb|C-c r| asks Claude, and \verb|C-c g| asks ChatGPT.
