@@ -51,7 +51,7 @@ void query_replace(void)
 
 		qprompt:
 			display(curwp, TRUE);
-			c = screen_getch();
+			c = read_key_byte();
 
 			switch (c) {
 			case 'y': /* yes, substitute */

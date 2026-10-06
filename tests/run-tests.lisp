@@ -191,6 +191,68 @@
        (plusp (length (codex-installation-candidates)))
        t)
 
+;;; key names: Emacs notation -> the C core's names, and back
+(check "normalize M-d" (normalize-key "M-d") "esc d")
+(check "normalize C-M-f" (normalize-key "C-M-f") "esc C-f")
+(check "normalize M-DEL" (normalize-key "M-DEL") "esc backspace")
+(check "normalize C-x TAB" (normalize-key "C-x TAB") "C-x C-i")
+(check "normalize C-/" (normalize-key "C-/") "C-_")
+(check "normalize C-M-SPC" (normalize-key "C-M-SPC") "esc C-space")
+(check "normalize leaves core names" (normalize-key "esc [1;5C") "esc [1;5C")
+(check "display-key" (mapcar #'display-key '("esc C-f" "esc d" "C-x C-i" "esc backspace" "C-space"))
+       '("C-M-f" "M-d" "C-x TAB" "M-DEL" "C-SPC"))
+(check "every Emacs key in the keymap" 
+       (every (lambda (k) (gethash (normalize-key k) *keymap*))
+              '("M-d" "C-M-f" "M-;" "M-:" "C-h" "F1" "C-x h" "C-g" "M-q" "C-t" "C-o"))
+       t)
+
+;;; the Emacs editing scanners, on strings
+(defun at (function string i &rest args)
+  (let ((v (sb-ext:string-to-octets string :external-format :utf-8)))
+    (apply function (octets-get v) (length v) i args)))
+
+(check "forward word" (at #'forward-word-position "  foo bar" 0) 5)
+(check "backward word" (at #'backward-word-position "foo bar  " 9) 4)
+(check "words include UTF-8" (at #'forward-word-position "olá mundo" 0) 4)
+(check "forward sentence" (at #'forward-sentence-position "One. Two? Three" 0) 4)
+(check "forward sentence, last one" (at #'forward-sentence-position "One. Two" 5) 8)
+(check "backward sentence" (at #'backward-sentence-position "One. Two three" 10) 5)
+(check "backward sentence from a start" (at #'backward-sentence-position "One. Two" 5) 0)
+(check "forward paragraph" (at #'forward-paragraph-position (format nil "a~%b~%~%c~%") 0) 4)
+(check "backward paragraph" (at #'backward-paragraph-position (format nil "a~%~%b~%c") 6) 2)
+(check "forward sexp: list" (at #'forward-sexp-position "(a (b) \")\") x" 0 t) 11)
+(check "forward sexp: symbol" (at #'forward-sexp-position "  foo-bar)" 0 t) 9)
+(check "forward sexp: quote and #\\(" (at #'forward-sexp-position "'(a #\\( b)" 0 t) 10)
+(check "forward sexp: comment skipped" (at #'forward-sexp-position (format nil "; x (~%(y)") 0 t) 9)
+(check "forward sexp: end of list" (at #'forward-sexp-position "a)" 1 t) nil)
+(check "backward sexp: list" (at #'backward-sexp-position "x (a (b))" 9 t) 2)
+(check "backward sexp: quoted" (at #'backward-sexp-position "x '(a)" 6 t) 2)
+(check "backward sexp: string" (at #'backward-sexp-position "x \"a)\"" 6 t) 2)
+(check "up list" (up-list-position (octets-get (sb-ext:string-to-octets "(a (b c" :external-format :utf-8)) 6) 3)
+(check "down list" (at #'down-list-position "x (y)" 0) 3)
+(check "C braces" (at #'forward-sexp-position "{ a('}'); }" 0 nil) 11)
+(check "beginning of defun (Lisp)"
+       (at #'beginning-of-defun-position (format nil "(defun a ()~%  1)~%(defun b ()~%  2)") 25 t) 17)
+(check "end of defun (Lisp)"
+       (at #'end-of-defun-position (format nil "(defun a ()~%  1)~%(defun b ()~%  2)") 3 t) 17)
+(check "end of defun (C)"
+       (at #'end-of-defun-position (format nil "int f()~%{~%  x;~%}~%int g()") 2 nil) 17)
+(check "fill text" (fill-text '("aaa bbb" "ccc ddd eee") nil 11)
+       (format nil "aaa bbb ccc~%ddd eee"))
+(check "fill a comment keeps its prefix" (fill-text '("  ;; aaa bbb" "  ;; ccc") ";;" 14)
+       (format nil "  ;; aaa bbb~%  ;; ccc"))
+(check "fill prefix" (fill-prefix-of "    # foo" "#") "    # ")
+(check "help has one line per key"
+       (let ((text (help-text)))
+         (list (and (search "  C-x C-s     save" text) t)
+               (and (search "Ctrl-c r (hold down" text) t)
+               ;; no line wider than 80 columns
+               (every (lambda (l) (<= (length l) 80)) (split-lines text))))
+       '(t t t))
+(check "help scrolling stays inside the page"
+       (list (help-scroll 1 -1 100 20) (help-scroll 80 5 100 20) (help-scroll 10 1 100 20))
+       '(1 81 11))
+
 ;;; script loading
 (check "unchanged scripts are not loaded again"
        (load-scripts :files (script-files *script-directory*)

@@ -1,6 +1,32 @@
 # SBEmacs / Femto Emacs Change Log
 
 ## SBEmacs 2.0
+* Help: C-h or F1 shows every key, one line each, on a page of its own;
+  the arrows scroll it, C-c r / C-c g ask Claude / ChatGPT, any other key
+  returns to the file and closes the assistants' windows
+  (lisp/extensions/help.lisp).  The mode line reads
+  "SBEmacs: Ctrl-h or F1 for help == file, line N == Ctrl-c r calls
+  Claude; Ctrl-c g calls ChatGPT" (set-mode-line-hints changes the hints).
+* The GNU Emacs keys FemtoEmacs lacked, in lisp/extensions/emacs-keys.lisp:
+  sentence, paragraph, s-expression and defun motion; kill-word,
+  backward-kill-word, kill-sexp, kill-sentence, zap-to-char, joined kills,
+  yank-pop; transpose chars/words/lines; up/down/capitalize-word;
+  open-line, delete-indentation, delete-horizontal-space, just-one-space,
+  delete-blank-lines, fill-paragraph, comment-dwim; mark-whole-buffer,
+  exchange-point-and-mark, mark-paragraph/word/sexp; keyboard-quit;
+  switch-to-buffer, find-alternate-file, save-some-buffers, quoted-insert,
+  eval-expression (M-:), eval-defun, describe-key.  In C: keyboard macros
+  (C-x ( C-x ) C-x e, e repeats), delete-window (C-x 0), enlarge-window
+  (C-x ^), recenter (C-l).  M-x also runs Lisp commands.
+* Every key goes to the Lisp keymap first, and keys missing from the C
+  table get names (C-g, C-x h, esc d, esc C-f ...), so any key can be bound
+  from a script; global-set-key takes Emacs notation (M-d, C-M-f, M-DEL).
+* The region is shaded while active (C-SPC, a mouse drag, C-x h ...) and
+  deactivated by editing, M-w or C-g; new face :region.
+* The mouse in the terminal too (xterm SGR reporting), on by default
+  (--no-mouse turns it off): click to move or to select a window, drag to
+  select.  The window (--gui) drags the same way; the wheel no longer
+  scrolls.
 * An assistant: C-c r asks Claude about the code at the cursor (through
   the Claude Code CLI, or the Messages API with curl) and shows the
   answer in a window; C-c y inserts the proposed code after confirmation.

@@ -74,16 +74,37 @@ Pre-built archives for Linux, macOS and Windows are attached to each
 ## Using it
 
 ```
-sbemacs [--gui] [-q] [file] [+]
-  --gui, -g  open a window (also when started as sbemacs-gui)
-  -q         skip the init file
-  +          enable the mouse in the terminal
+sbemacs [--gui] [-q] [--no-mouse] [file]
+  --gui, -g   open a window (also when started as sbemacs-gui)
+  -q          skip the init file
+  --no-mouse  leave the mouse to the terminal (its own copy and paste)
 ```
 
-The usual Emacs keys work: `C-x C-f` find file, `C-x C-s` save, `C-x C-c` quit,
-`C-s`/`C-r` search, `Esc-r` query replace, `C-space` set mark, `C-w` kill
-region, `C-y` yank, `C-u` undo, `C-x 2` split window, `C-x o` other window.
-`Esc-l` lists every binding and `Esc-x` runs a command by name.
+**`C-h` or `F1` shows every key on one page** (the arrows scroll it, any
+other key returns to your file).  The mode line says so:
+
+```
+SBEmacs: Ctrl-h or F1 for help == teste.lisp, line 3 == Ctrl-c r calls Claude; Ctrl-c g calls ChatGPT
+```
+
+The GNU Emacs keys work, including words, sentences, paragraphs and
+s-expressions (`M-f`, `M-e`, `M-}`, `C-M-f`), killing them (`M-d`, `M-DEL`,
+`C-M-k`; consecutive kills join), `M-y` after `C-y`, `C-t`/`M-t`/`C-x C-t`,
+`M-u`/`M-l`/`M-c`, `M-q`, `M-;`, `C-x h`, `C-x C-x`, `C-g`, keyboard macros
+(`C-x (`, `C-x )`, `C-x e`, then `e`), `C-x 0`, `M-x` with `TAB` completion
+and `C-x ?` (describe a key).  `C-u` is still undo, as in FemtoEmacs; `C-/`
+and `C-x u` are too.
+
+The **region** between the mark (`C-SPC`) and the cursor is shaded, as in
+Emacs, until the text changes or `C-g`.  The **mouse** works in the terminal
+too: a click moves the cursor or selects a window, a drag selects a region
+(the wheel does nothing).  Hold Shift (Option in Terminal.app) to use the
+terminal's own selection instead, or start with `--no-mouse`.
+
+On macOS, tick *Use Option as Meta key* in Terminal → Settings → Profiles →
+Keyboard so that the Option key works as `Esc`.  `C-h` is help, not
+backspace: a terminal whose Backspace key sends `C-h` (rare today) needs
+`stty erase` or its settings changed to send `DEL`.
 
 On macOS, tick *Use Option as Meta key* in Terminal → Settings → Profiles →
 Keyboard so that the Option key works as `Esc`.
@@ -93,7 +114,7 @@ Keyboard so that the Option key works as `Esc`.
 The same editor, keys, Lisp and scripts, drawn with SDL2 in a window of its
 own: 24-bit colours, a proper font, the mouse and the system clipboard.
 
-* **Mouse:** click to move the cursor (in any window), the wheel scrolls,
+* **Mouse:** click to move the cursor (in any window), drag to select,
   the middle button pastes.
 * **Clipboard:** `Esc-w` / `C-w` also copy to the system clipboard;
   `Shift-Insert` pastes from it.  On a Mac, `Cmd-C`, `Cmd-X`, `Cmd-V`,
@@ -148,7 +169,7 @@ Claude is reached in one of two ways (`*claude-transport*`):
 * `:auto` (the default): `:cli` when `claude` is installed, `:api` otherwise.
 
 If Claude cannot be reached, the window below says why and how to fix it;
-`Esc-;` `(assistant-status)` shows the same check at any time.  The usual
+`M-:` `(assistant-status)` shows the same check at any time.  The usual
 fix is to install Claude Code and log in once in a terminal
 (`curl -fsSL https://claude.ai/install.sh | bash`, then `claude`).
 
@@ -201,7 +222,7 @@ and press `C-x C-r` to reload it; rebuilding Femto Emacs is unnecessary.
 
 `*codex-model*` selects a model (`NIL` uses the CLI default), and
 `*codex-timeout*` controls how long Femto Emacs waits.  Evaluate
-`(codex-status)` with `Esc-;` to check whether the CLI was found.
+`(codex-status)` with `M-:` to check whether the CLI was found.
 
 Discovery checks, in order: `*codex-program*` when explicitly set, `codex` on
 `PATH`, the official standalone-install directory, the usual Windows npm
@@ -217,8 +238,9 @@ manual path is therefore only a fallback; when needed it can be placed in
 
 * `C-x C-e` evaluates the expression just before the cursor and shows its
   value on the message line, as in GNU Emacs.
-* `Esc-;` reads a Lisp expression on the message line and shows the result.
+* `M-:` reads a Lisp expression on the message line and shows the result.
   Long results open the `*lisp_output*` buffer.
+* `C-M-x` evaluates the top-level form around the cursor.
 * `Esc-]` evaluates the parenthesised block at the cursor (or the one just
   behind it) and inserts the result below it.
 
@@ -239,11 +261,13 @@ line; they never take the editor down.
 | `C-x C-u` / `C-x C-l` | `upcase-region` / `downcase-region` | |
 | `C-c a` `C-c b` `C-c c` | `html-p` `html-h1` `html-pp` | HTML helpers |
 | `C-c z`   | `insert-day` | turns a region `(2016 9 3)` into `Saturday` |
-| `C-t` / `C-o` | `indent-two` / `deindent-two` | |
+| `C-x >` / `C-x <` | `indent-two` / `deindent-two` | (were `C-t` / `C-o`, now Emacs's) |
 | `C-x C-r` | `reload-scripts` | reload edited Lisp scripts (see below) |
 | `TAB` | `indent-line` | indent the line for its language (see [Indentation](#indentation)) |
 | `RET` | `newline-and-indent` | new line, already indented |
-| `C-x C-i` | `indent-region` | indent the lines between mark and cursor |
+| `C-x C-i` | `indent-region` | indent the lines between mark and cursor (also `C-M-\`) |
+| `C-h`, `F1` | `help` | every key, one line each; `C-c r` / `C-c g` from there ask the assistants |
+| (all of GNU Emacs's) | | `lisp/extensions/emacs-keys.lisp` |
 
 dired and grep are written in portable Common Lisp, so they behave the same
 on every platform.
@@ -288,7 +312,7 @@ The init file is ordinary Common Lisp.  It is optional.  See [`samples/init.lisp
             (declare (ignore s m h))
             (format nil "~D-~2,'0D-~2,'0D" y mo d))))
 
-(global-set-key "C-c d" 'insert-date)       ; any key Esc-l shows as user-defined-function
+(global-set-key "C-c d" 'insert-date)       ; any key, in Emacs notation: "M-o", "C-M-y", "F1"
 
 (set-color :keyword :blue :default :bold)   ; face, foreground, background, attributes
 (set-color :comment 244)                    ; 0-255 on 256-colour terminals
@@ -343,7 +367,7 @@ Haskell, OCaml/ML, TeX, Prolog and Lean.  `define-language` options:
 
 Every language that has colours is also indented: `TAB` indents the
 current line, `RET` starts the next line at the right column, and
-`C-x C-i` re-indents a region (`indent-buffer` from `Esc-;` does the whole
+`C-x C-i` re-indents a region (`indent-buffer` from `M-:` does the whole
 file).  Closing tokens re-indent their line as you type them: `}` in C,
 `else:` / `elif` / `except` / `finally` in Python, `end` in Ruby, `\end` in
 TeX.
@@ -436,7 +460,14 @@ build.lisp      compiles the engine and scripts, saves the sbemacs executable
 * `(define (f) ...)` becomes `(defun f () ...)`, `set!` becomes `setf`,
   `#t`/`#f` become `t`/`nil`, `string-append` becomes `concatenate 'string`
   (or `format nil`).
-* `global-set-key` takes a symbol: `(global-set-key "C-c a" 'html-p)`.
+* `global-set-key` takes a symbol: `(global-set-key "C-c a" 'html-p)`, and
+  any key: every key reaches the Lisp keymap before the C core's.
+* Keys that changed to match GNU Emacs: `Esc-;` is now `M-;` (comment; the
+  Lisp prompt moved to `M-:`), `Esc-d` kills a word, `Esc-c` capitalizes,
+  `Esc-l` lower-cases a word (the binding list is `C-h`), `Esc-m` goes to
+  the indentation, `Esc-a` is backward-sentence (apropos stays on `M-x`),
+  `Esc-k` kills a sentence, `C-t` transposes, `C-o` opens a line, `C-k` at
+  the end of a line joins the next one and repeated kills accumulate.
 
 ## Credits
 

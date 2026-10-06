@@ -56,6 +56,7 @@
 #define ID_COLOR_COMMENTS  7
 #define ID_COLOR_BLOCK     8
 #define ID_COLOR_STRING    9
+#define ID_COLOR_REGION    10
 
 /* undo types, in matched pairs */
 #define UNDO_T_NONE        0
@@ -296,7 +297,18 @@ extern void copy_cut(int);
 extern void delete(void);
 extern void toggle_overwrite_mode(void);
 extern void down(void);
-extern void xdown(void);
+extern void mouse_event(void);
+extern int mouse_button, mouse_col, mouse_row, mouse_release;
+extern int mark_active;
+extern int read_key_byte(void);
+extern void kmacro_start(void);
+extern void kmacro_end(void);
+extern void kmacro_call(void);
+extern void delete_window(void);
+extern void enlarge_window(void);
+extern void recenter(void);
+extern int window_position(window_t *, int, int);
+extern int line_number(buffer_t *, point_t);
 extern void insert(void);
 extern void insert_at(void);
 extern void paste(void);
@@ -369,7 +381,7 @@ extern void call_lisp(char *, char *, int);
 extern int call_lisp_event(char *, char *);
 extern int call_lisp_highlight(buffer_t *, char_t *, int, char_t *);
 extern void init_colors(void);
-extern void goto_screen_position(int, int);
+extern int goto_screen_position(int, int);
 extern void face_on(int);
 extern int fe_main(int, char **);
 extern void keyboardDefinition(void);

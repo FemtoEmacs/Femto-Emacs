@@ -650,6 +650,7 @@ static const char *special_key(SDL_Keycode k)
 	case SDLK_KP_ENTER:  return "\r";
 	case SDLK_TAB:       return "\t";
 	case SDLK_ESCAPE:    return "\x1b";
+	case SDLK_F1:        return "\x1bOP";
 	default:             return NULL;
 	}
 }
@@ -717,7 +718,8 @@ static void key_down(SDL_KeyboardEvent *e)
 	}
 
 	if (seq) {
-		if (meta) push_byte(0x1b);
+		/* C-backspace is M-backspace (backward-kill-word) */
+		if (meta || (ctrl && k == SDLK_BACKSPACE)) push_byte(0x1b);
 		push_string(seq);
 		suppress_text = 1;
 		return;
@@ -756,19 +758,25 @@ static void key_down(SDL_KeyboardEvent *e)
 	}
 }
 
-/* a mouse event in the xterm X10 encoding the core already understands */
-static void push_mouse(int button, int px, int py)
+/* a mouse event in the xterm SGR encoding the core understands (key.c) */
+static int mouse_last_row = -1, mouse_last_col = -1;
+
+static void push_mouse(int button, int px, int py, int release)
 {
+	char buf[48];
 	int col = ((int) (px * scale) - pad) / cell_w;
 	int row = ((int) (py * scale) - pad) / cell_h;
 	if (col < 0) col = 0;
 	if (row < 0) row = 0;
-	if (col > 222) col = 222;
-	if (row > 222) row = 222;
-	push_string("\x1b[M");
-	push_byte(button);
-	push_byte(col + 33);
-	push_byte(row + 33);
+	if (col >= cols) col = cols - 1;
+	if (row >= rows) row = rows - 1;
+	if (button & 32) {              /* motion: only when the cell changes */
+		if (row == mouse_last_row && col == mouse_last_col) return;
+	}
+	mouse_last_row = row;
+	mouse_last_col = col;
+	snprintf(buf, sizeof(buf), "\x1b[<%d;%d;%d%c", button, col + 1, row + 1, release ? 'm' : 'M');
+	push_string(buf);
 }
 
 static void handle(SDL_Event *e)
@@ -812,17 +820,18 @@ static void handle(SDL_Event *e)
 		break;
 	case SDL_MOUSEBUTTONDOWN:
 		if (e->button.button == SDL_BUTTON_LEFT)
-			push_mouse(32, e->button.x, e->button.y);
+			push_mouse(0, e->button.x, e->button.y, 0);
 		else if (e->button.button == SDL_BUTTON_MIDDLE)
 			paste_clipboard();
 		break;
-	case SDL_MOUSEWHEEL: {
-		int n = e->wheel.y, i;
-		if (e->wheel.direction == SDL_MOUSEWHEEL_FLIPPED) n = -n;
-		for (i = 0; i < 3 * (n < 0 ? -n : n); i++)
-			push_mouse(n > 0 ? 96 : 97, 0, 0);
+	case SDL_MOUSEMOTION:
+		if (e->motion.state & SDL_BUTTON_LMASK)
+			push_mouse(32, e->motion.x, e->motion.y, 0);
 		break;
-	}
+	case SDL_MOUSEBUTTONUP:
+		if (e->button.button == SDL_BUTTON_LEFT)
+			push_mouse(0, e->button.x, e->button.y, 1);
+		break;
 	}
 }
 

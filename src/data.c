@@ -6,6 +6,7 @@
 #include "header.h"
 
 int done;
+int mark_active = 0;           /* the region is active (shaded) */
 int result;
 int global_undo_mode = 0;
 point_t nscrap;

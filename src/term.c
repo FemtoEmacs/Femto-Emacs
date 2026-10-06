@@ -12,6 +12,19 @@
 #define MAX_FACE 16
 
 static int active = 0;
+static int mouse_on = 0;
+
+/*
+ * xterm mouse reporting: 1002 reports presses, releases and motion while
+ * a button is down; 1006 is the SGR encoding (ESC [ < b ; x ; y M/m),
+ * which has no 223-column limit.  key.c decodes it.  Most terminals still
+ * select text natively with Shift (Option in Terminal.app) held down.
+ */
+static void mouse_reporting(int on)
+{
+	fputs(on ? "\033[?1000h\033[?1002h\033[?1006h" : "\033[?1006l\033[?1002l\033[?1000l", stdout);
+	fflush(stdout);
+}
 static attr_t face_attrs[MAX_FACE + 1];
 
 const char *screen_backend(void) { return "terminal"; }
@@ -29,9 +42,12 @@ int screen_init(int mouse)
 		start_color();
 		use_default_colors();
 	}
-	if (mouse)
-		mousemask(ALL_MOUSE_EVENTS | REPORT_MOUSE_POSITION, NULL);
 	curs_set(1);
+	refresh();
+	if (mouse) {
+		mouse_reporting(1);
+		mouse_on = 1;
+	}
 	active = 1;
 	return 1;
 }
@@ -41,6 +57,10 @@ void screen_end(void)
 	if (!active) return;
 	move(LINES - 1, 0);
 	refresh();
+	if (mouse_on) {
+		mouse_reporting(0);
+		mouse_on = 0;
+	}
 	noraw();
 	endwin();
 	active = 0;

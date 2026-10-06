@@ -39,7 +39,7 @@ int yesno(int flag)
 
 	screen_addstr(flag ? str_yes : str_no);
 	screen_refresh();
-	ch = screen_getch();
+	ch = read_key_byte();
 	if (ch == '\r' || ch == '\n')
 		return (flag);
 	return (tolower(ch) == str_yes[1]);
@@ -106,19 +106,60 @@ void down()
 }
 
 /*
- * A mouse event in the xterm X10 encoding: ESC [ M, then button, column
- * and row, each + 32.  Wheel up/down move a line; a left click moves the
- * cursor to where it was clicked.
+ * The mouse (get_key has decoded the event into mouse_*): pressing the
+ * left button moves the cursor there, selecting the window clicked in;
+ * dragging selects a region, which stays active after the release.  The
+ * wheel is ignored.
  */
-void xdown()
-{
-	int button = screen_getch() & 0xFF;
-	int col = (screen_getch() & 0xFF) - 33;
-	int row = (screen_getch() & 0xFF) - 33;
+static int mouse_dragging = 0;
+static int mouse_moved = 0;
+static point_t mouse_old_mark = NOMARK;
 
-	if (button == 97) down();
-	else if (button == 96) up();
-	else if ((button & 3) == 0 && button < 64) goto_screen_position(row, col);
+void mouse_event()
+{
+	int b = mouse_button;
+
+	if (b & 64)                     /* wheel */
+		return;
+	if (mouse_release) {
+		if (mouse_dragging && !mouse_moved) {
+			/* a plain click: leave the mark as it was */
+			curbp->b_mark = mouse_old_mark;
+			mark_active = 0;
+		}
+		mouse_dragging = 0;
+		return;
+	}
+	if (b & 32) {                   /* motion with a button down */
+		if (!mouse_dragging || (b & 3) != 0)
+			return;
+		if (window_position(curwp, mouse_row, mouse_col)) {
+			mouse_moved = 1;
+			mark_active = (curbp->b_mark != NOMARK && curbp->b_mark != curbp->b_point);
+		}
+		return;
+	}
+	if ((b & 3) != 0)               /* only the left button */
+		return;
+	if (!goto_screen_position(mouse_row, mouse_col))
+		return;
+	mouse_old_mark = curbp->b_mark;
+	curbp->b_mark = curbp->b_point;
+	mark_active = 0;
+	mouse_dragging = 1;
+	mouse_moved = 0;
+}
+
+/* put the line with the cursor in the middle of the window */
+void recenter()
+{
+	point_t p = segstart(curbp, lnstart(curbp, curbp->b_point), curbp->b_point);
+	int i = curwp->w_rows / 2;
+
+	while (i-- > 0 && p > 0)
+		p = upup(curbp, p);
+	curbp->b_page = p;
+	redraw();
 }
 
 void lnbegin()
@@ -399,9 +440,20 @@ void killbuffer()
 	delete_buffer(kill_bp);
 }
 
+/*
+ * C-space: set the mark where the cursor is and make the region active
+ * (it is shaded until the text changes or C-g).  Again at the same place
+ * deactivates the region.
+ */
 void i_set_mark()
 {
-	set_mark();
+	if (curbp->b_mark == curbp->b_point && mark_active) {
+		mark_active = 0;
+		msg("Mark deactivated");
+		return;
+	}
+	curbp->b_mark = curbp->b_point;
+	mark_active = 1;
 	msg(str_mark);
 }
 
@@ -452,6 +504,7 @@ int i_check_region()
 void copy() {
 	if (i_check_region() == FALSE) return;
 	copy_cut(FALSE);
+	mark_active = 0;
 }
 
 void cut() {
@@ -787,9 +840,13 @@ char *get_version_string()
 char *whatKey= "";
 
 /* Keys bound to "user-defined-function" are dispatched to the Lisp keymap */
+/*
+ * Every key is offered to the Lisp keymap first (see main.c); a key that
+ * ends up here has no binding in Lisp and none in C.
+ */
 void keyboardDefinition()
 {
-	call_lisp_event("key", whatKey);
+	msg("%s is not bound", whatKey);
 }
 
 /* let Lisp know that a region was killed in buffer bufname */

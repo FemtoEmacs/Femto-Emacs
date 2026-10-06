@@ -76,10 +76,10 @@
 ;;; Indentation and case
 ;;; ------------------------------------------------------------------
 
-;; C-t
+;; C-x >
 (defun indent-two () (insert "  "))
 
-;; C-o
+;; C-x <
 (defun deindent-two () (backward-delete-char 2))
 
 (defun transform-region (function)
@@ -178,5 +178,5 @@ inserts the value into the buffer."
 (global-set-key "C-x C-e" 'eval-last-sexp)
 (global-set-key "C-x C-i" 'indent-region)
 
-(global-set-key "C-o" 'deindent-two)
-(global-set-key "C-t" 'indent-two)
+(global-set-key "C-x >" 'indent-two)        ; C-o and C-t are Emacs's again
+(global-set-key "C-x <" 'deindent-two)       ; (lisp/extensions/emacs-keys.lisp)

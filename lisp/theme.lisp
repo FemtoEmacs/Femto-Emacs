@@ -45,13 +45,18 @@
       (theme-face :digits        (c :number))
       (theme-face :comment       (c :comment))
       (theme-face :block-comment (c :comment))
-      (theme-face :string        (c :string)))))
+      (theme-face :string        (c :string))
+      (theme-face :region        (c :foreground) (c :selection)))))
 
 (defun terminal-theme (colors)
   (theme-face :symbol   :default)
   (theme-face :alpha    :default)
   (theme-face :modeline :default :default :reverse)
   (theme-face :brace    :black :cyan)
+  ;; the selected region: black on light grey reads on any background
+  (if (>= colors 256)
+      (theme-face :region 16 252)
+      (theme-face :region :default :default :reverse))
   (if (>= colors 256)
       (progn
         ;; picked to stay readable on both white and black backgrounds

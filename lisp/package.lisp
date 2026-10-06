@@ -14,7 +14,8 @@
    #:beginning-of-line #:end-of-line #:beginning-of-buffer #:end-of-buffer
    #:goto-line #:point #:goto-char #:mark #:set-mark #:buffer-size
    #:char-after #:current-line-text #:buffer-octets #:buffer-substring
-   #:line-start #:line-end
+   #:line-start #:line-end #:line-number
+   #:push-mark #:clear-mark #:region-active-p #:activate-mark #:deactivate-mark
    ;; editing
    #:insert #:backward-delete-char #:backwards-delete-char #:delete-char
    #:kill-region #:copy-region #:yank #:kill-line #:undo
@@ -28,6 +29,8 @@
    ;; windows and display
    #:delete-other-windows #:other-window #:split-window #:update-display
    #:refresh-screen #:screen-rows #:screen-columns
+   #:delete-window #:window-count #:window-rows #:recenter #:set-mode-line-hints
+   #:set-window-start
    ;; message line, keyboard, prompts
    #:message #:clear-message-line #:log-debug #:log-message
    #:get-key #:get-key-name #:get-key-binding #:prompt
@@ -36,6 +39,8 @@
    #:trim #:home #:config-file
    ;; customisation
    #:global-set-key #:global-unset-key #:key-binding #:*keymap*
+   #:normalize-key #:display-key #:*last-key* #:*this-key* #:*last-command* #:*this-command*
+   #:defcommand #:register-command #:*commands* #:execute-builtin #:builtin-command-names
    #:*kill-hook* #:*startup-hook* #:*self-insert-hook* #:*kill-ring* #:*kill-ring-max*
    #:set-color #:terminal-colors #:show-startup-message
    #:theme-face #:*color-theme* #:default-theme

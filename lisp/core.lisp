@@ -12,25 +12,123 @@
 (defvar *keymap* (make-hash-table :test 'equal)
   "Key name (\"C-x C-b\") -> function designator.")
 
+(defun normalize-key-token (token)
+  "One key in Emacs notation (M-d, C-M-f, M-DEL, C-/ ...) -> the C core's
+names (esc d, esc C-f, esc backspace, C-_ ...); may return two tokens."
+  (flet ((simple (k)
+           (cond ((member k '("DEL" "<backspace>" "BS") :test #'string=) "backspace")
+                 ((string= k "<delete>") "DEL")
+                 ((string= k "TAB") "C-i")
+                 ((string= k "RET") "C-m")
+                 ((string= k "ESC") "esc")
+                 ((member k '("C-SPC" "C-@") :test #'string=) "C-space")
+                 ((member k '("C-/" "C--") :test #'string=) "C-_")
+                 ((string= k "<f1>") "F1")
+                 ((and (= (length k) 3) (string= (subseq k 0 2) "C-")
+                       (upper-case-p (char k 2)))
+                  (format nil "C-~C" (char-downcase (char k 2))))
+                 (t k))))
+    (cond ((or (and (> (length token) 4) (string= (subseq token 0 4) "C-M-"))
+               (and (> (length token) 4) (string= (subseq token 0 4) "M-C-")))
+           (list "esc" (simple (concatenate 'string "C-" (subseq token 4)))))
+          ((and (> (length token) 2) (string= (subseq token 0 2) "M-"))
+           (list "esc" (simple (subseq token 2))))
+          (t (list (simple token))))))
+
+(defun normalize-key (key)
+  "KEY in Emacs notation (\"M-d\", \"C-x C-f\", \"C-M-\\\\\") or as the C core
+names it (\"esc d\") -> the core's name."
+  (let ((tokens (loop with start = 0
+                      for pos = (position #\Space key :start start)
+                      for tok = (subseq key start pos)
+                      when (plusp (length tok)) collect tok
+                      while pos do (setf start (1+ pos)))))
+    (format nil "~{~A~^ ~}" (mapcan #'normalize-key-token tokens))))
+
+(defun display-key (name)
+  "The core's key name in Emacs notation, for help: esc C-f -> C-M-f."
+  (cond ((string= name "esc [1;5C") (return-from display-key "C-right"))
+        ((string= name "esc [1;5D") (return-from display-key "C-left")))
+  (let* ((tokens (loop with start = 0
+                       for pos = (position #\Space name :start start)
+                       collect (subseq name start pos)
+                       while pos do (setf start (1+ pos))))
+         (out '()))
+    (loop while tokens
+          do (let ((tok (pop tokens)))
+               (cond ((and (string= tok "esc") tokens)
+                      (let ((next (pop tokens)))
+                        (push (cond ((string= next "backspace") "M-DEL")
+                                    ((and (> (length next) 2) (string= (subseq next 0 2) "C-"))
+                                     (concatenate 'string "C-M-" (subseq next 2)))
+                                    (t (concatenate 'string "M-" next)))
+                              out)))
+                     ((string= tok "C-space") (push "C-SPC" out))
+                     ((string= tok "C-i") (push "TAB" out))
+                     (t (push tok out)))))
+    (format nil "~{~A~^ ~}" (nreverse out))))
+
 (defun global-set-key (key function)
   "Bind KEY to FUNCTION (a symbol or a function of no arguments).
 
-Only keys that the C core marks as user-defined can be bound: C-o, C-q,
-C-t, C-z, most C-x C-<letter>, C-x !, and C-c a ... C-c z.  Esc-x
-list-bindings shows them as \"user-defined-function\"."
-  (setf (gethash key *keymap*) function))
+Any key can be bound, in Emacs notation: \"C-c a\", \"C-x h\", \"M-d\",
+\"C-M-f\", \"M-DEL\", \"F1\".  A Lisp binding takes precedence over the C
+core's; GLOBAL-UNSET-KEY gives the key back to the core."
+  (when (symbolp function) (register-command function))
+  (setf (gethash (normalize-key key) *keymap*) function))
 
 (defun global-unset-key (key)
-  (remhash key *keymap*))
+  (remhash (normalize-key key) *keymap*))
 
 (defun key-binding (key)
-  (gethash key *keymap*))
+  (gethash (normalize-key key) *keymap*))
+
+(defvar *last-key* ""
+  "The name of the key that ran the previous command (\"self-insert\" for
+typed text).  Commands such as yank-pop look at it.")
+
+(defvar *this-key* ""
+  "The name of the key running the current command.")
+
+(defvar *last-command* nil
+  "The previous command: its function symbol, or the key name when the C
+core ran it, or SELF-INSERT.  Kill commands set *THIS-COMMAND* to
+KILL-REGION so that consecutive kills join, as in Emacs.")
+
+(defvar *this-command* nil
+  "The command running now; a command may change it (see *LAST-COMMAND*).")
 
 (defun run-key (key)
+  "Run the Lisp binding of KEY.  Returns NIL when KEY has none (the C
+core then runs its own)."
   (let ((fn (gethash key *keymap*)))
-    (if fn
-        (funcall fn)
-        (message "~A is not bound" key))))
+    (when fn
+      (funcall fn)
+      t)))
+
+;;; Commands: what M-x offers, besides the C core's own
+
+(defvar *commands* (make-hash-table :test 'equal)
+  "Command name -> function symbol, for M-x.")
+
+(defun register-command (symbol)
+  (let ((name (string-downcase (symbol-name symbol))))
+    (setf (gethash name *commands*) symbol)
+    ;; Esc-x completes over these too
+    (when *library-path* (ignore-errors (%add-command-name name)))
+    symbol))
+
+(defun announce-commands ()
+  "Tell the C core (Esc-x) about every Lisp command; at start-up the
+scripts compiled into the image are not loaded again."
+  (maphash (lambda (name symbol) (declare (ignore symbol)) (%add-command-name name))
+           *commands*))
+
+(defmacro defcommand (name args &body body)
+  "DEFUN, and make NAME available to M-x."
+  `(progn (defun ,name ,args ,@body)
+          (register-command ',name)
+          ',name))
 
 ;;; ------------------------------------------------------------------
 ;;; Hooks
@@ -158,8 +256,27 @@ installs itself here.")
          (result
            (handler-case
                (with-editor-environment ()
-                 (cond ((string= event "key") (run-key arg))
-                       ((string= event "self-insert") (setf handled (run-self-insert arg)))
+                 (cond ((string= event "key")
+                        (let ((fn (gethash arg *keymap*)))
+                          (setf *this-key* arg
+                                *this-command* (or fn arg))
+                          ;; a bound key counts as handled even if its
+                          ;; command fails: C must not run its own
+                          (when fn (setf handled :key))
+                          (unwind-protect (run-key arg)
+                            (setf *last-key* arg
+                                  *last-command* *this-command*))))
+                       ((string= event "command")
+                        (let ((fn (gethash arg *commands*)))
+                          (when (and fn (fboundp fn))
+                            (setf handled :key
+                                  *this-command* fn)
+                            (unwind-protect (funcall fn)
+                              (setf *last-command* *this-command*)))))
+                       ((string= event "self-insert")
+                        (setf *last-key* "self-insert"
+                              *last-command* 'self-insert)
+                        (setf handled (run-self-insert arg)))
                        ((string= event "kill") (dolist (f *kill-hook*) (funcall f arg)))
                        ((string= event "startup") (run-startup))
                        ((string= event "colors") (apply-color-theme (parse-integer arg))))
@@ -168,7 +285,7 @@ installs itself here.")
     (when (stringp result)
       (ignore-errors (message "~A" result))
       ;; an error in a self-insert function must not swallow the key
-      (setf handled nil))
+      (unless (eq handled :key) (setf handled nil)))
     (if handled 1 0)))
 
 (sb-alien:define-alien-callable lisp-highlight sb-alien:void
@@ -242,7 +359,7 @@ installs itself here.")
 ;;; ------------------------------------------------------------------
 
 (defun usage ()
-  (format t "Usage: sbemacs [--gui] [-q] [file] [+]~%~%  --gui, -g  open a window (SDL2) instead of using the terminal;~%             also when started as sbemacs-gui~%  -q         do not load ~~/.sbemacs/init.lisp~%  +          enable the mouse in the terminal~%  --version  print the version and exit~%"))
+  (format t "Usage: sbemacs [--gui] [-q] [--no-mouse] [file]~%~%  --gui, -g   open a window (SDL2) instead of using the terminal;~%              also when started as sbemacs-gui~%  -q          do not load ~~/.sbemacs/init.lisp~%  --no-mouse  leave the mouse to the terminal (its own text selection)~%  --version   print the version and exit~%"))
 
 (defmacro with-foreign-float-traps (&body body)
   "C libraries (SDL, FreeType, graphics drivers) may compute with
@@ -303,14 +420,18 @@ otherwise the terminal library.  Returns the backend in use."
           ((or (member "--help" args :test #'string=) (member "-h" args :test #'string=))
            (usage)
            (sb-ext:exit :code 0)))
-    (let ((want-gui (gui-requested-p args)))
-      (setf args (remove-if (lambda (a) (member a '("--gui" "-g") :test #'string=)) args))
+    (let ((want-gui (gui-requested-p args))
+          (no-mouse (member "--no-mouse" args :test #'string=)))
+      (setf args (remove-if (lambda (a) (member a '("--gui" "-g" "--no-mouse" "+") :test #'string=)) args))
+      ;; fe_main takes a final "-" as "no mouse"
+      (when no-mouse (setf args (append args (list "-"))))
       (handler-case (choose-backend want-gui)
         (error (e)
           (format *error-output* "sbemacs: ~A~%" e)
           (sb-ext:exit :code 1 :abort t))))
     (install-hooks)
     (start-scripts)
+    (announce-commands)
     (setf *init-errors* (reverse *script-errors*))
     (unless no-init (load-user-init))
     (when *undo-mode* (add-mode-global "undo"))

@@ -89,6 +89,9 @@ moved together."
 (defcore %set-point "fe_set_point" sb-alien:void (p sb-alien:long))
 (defcore %buffer-size "fe_buffer_size" sb-alien:long)
 (defcore %set-mark "fe_set_mark" sb-alien:void)
+(defcore %set-mark-at "fe_set_mark_at" sb-alien:void (p sb-alien:long))
+(defcore %mark-active "fe_mark_active" sb-alien:int)
+(defcore %set-mark-active "fe_set_mark_active" sb-alien:void (on sb-alien:int))
 (defcore %char-at "fe_char_at" sb-alien:int (p sb-alien:long))
 (defcore %line-start "fe_line_start" sb-alien:long (p sb-alien:long))
 (defcore %copy-text "fe_copy_text" sb-alien:long
@@ -125,6 +128,17 @@ moved together."
 (defcore %split-window "fe_split_window" sb-alien:void)
 (defcore %update-display "fe_update_display" sb-alien:void)
 (defcore %refresh "fe_refresh" sb-alien:void)
+(defcore %delete-window "fe_delete_window" sb-alien:void)
+(defcore %window-count "fe_window_count" sb-alien:int)
+(defcore %window-rows "fe_window_rows" sb-alien:int)
+(defcore %recenter "fe_recenter" sb-alien:void)
+(defcore %line-number "fe_line_number" sb-alien:int (p sb-alien:long))
+(defcore %execute-command "fe_execute_command" sb-alien:int (name sb-alien:c-string))
+(defcore %command-name "fe_command_name" sb-alien:c-string (i sb-alien:int))
+(defcore %add-command-name "fe_add_command_name" sb-alien:void (name sb-alien:c-string))
+(defcore %set-window-start "fe_set_window_start" sb-alien:void (p sb-alien:long))
+(defcore %set-modeline-hints "fe_set_modeline_hints" sb-alien:void
+  (help sb-alien:c-string) (tail sb-alien:c-string))
 
 (defcore %message "fe_message" sb-alien:void (s sb-alien:c-string))
 (defcore %clear-message-line "fe_clear_message_line" sb-alien:void)
@@ -196,7 +210,20 @@ moved together."
 (defun goto-char (p) "Move the cursor to byte offset P." (%set-point p) (%get-point))
 (defun mark () "Byte offset of the mark, or NIL when no mark is set."
   (let ((m (%get-mark))) (if (minusp m) nil m)))
-(defun set-mark () (%set-mark) t)
+(defun set-mark (&optional (position (point)))
+  "Set the mark at POSITION (default: the cursor) and activate the region,
+which is shaded until the text changes or C-g."
+  (%set-mark-at position)
+  (%set-mark-active 1)
+  t)
+(defun push-mark (&optional (position (point)))
+  "Set the mark at POSITION without activating the region."
+  (%set-mark-at position)
+  t)
+(defun clear-mark () (%set-mark-at -1) (%set-mark-active 0) t)
+(defun region-active-p () (= 1 (%mark-active)))
+(defun activate-mark () (when (mark) (%set-mark-active 1)) t)
+(defun deactivate-mark () (%set-mark-active 0) t)
 
 (defun buffer-octets (start end)
   "The bytes of the current buffer from START to END, as an octet vector."
@@ -278,6 +305,30 @@ the buffer)."
 (defun split-window () (%split-window) t)
 (defun update-display () (%update-display) t)
 (defun refresh-screen () (%refresh) t)
+(defun delete-window () (%delete-window) t)
+(defun window-count () (%window-count))
+(defun window-rows () "Text lines in the selected window." (%window-rows))
+(defun recenter () (%recenter) t)
+(defun set-window-start (p)
+  "Show the selected window from offset P, which should start a line."
+  (%set-window-start p)
+  t)
+(defun line-number (&optional (p (point))) "1-based line of offset P." (%line-number p))
+(defun set-mode-line-hints (help tail)
+  "The two hints on the mode line, e.g. \"Ctrl-h or F1 for help\" and
+\"Ctrl-c r calls Claude; Ctrl-c g calls ChatGPT\"."
+  (%set-modeline-hints (text help) (text tail))
+  t)
+
+(defun execute-builtin (name)
+  "Run the C core's command NAME (\"query-replace\", \"exec-lisp-command\"...).
+Returns NIL if there is no such command."
+  (= 1 (%execute-command (text name))))
+
+(defun builtin-command-names ()
+  (loop for i from 0
+        for name = (%command-name i)
+        while name collect name))
 (defun screen-rows () (%screen-rows))
 (defun screen-columns () (%screen-cols))
 
@@ -319,7 +370,8 @@ which case GET-KEY-NAME and GET-KEY-BINDING describe it."
 
 (defparameter *color-ids*
   '((:symbol . 1) (:modeline . 2) (:brace . 3) (:keyword . 4) (:alpha . 5)
-    (:digits . 6) (:comment . 7) (:block-comment . 8) (:string . 9)))
+    (:digits . 6) (:comment . 7) (:block-comment . 8) (:string . 9)
+    (:region . 10)))
 
 ;; the eight basic colours; :default is the terminal's own colour, and
 ;; an integer 0-255 picks from the 256-colour palette
@@ -361,7 +413,8 @@ which case GET-KEY-NAME and GET-KEY-BINDING describe it."
                                               ; :reverse :dim :italic
 
 Faces: :keyword :comment :block-comment :string :digits :alpha (identifiers)
-:symbol (everything else) :brace (matching paren) :modeline."
+:symbol (everything else) :brace (matching paren) :modeline :region
+(the selected text)."
   (= 1 (%set-color (color-id face) (color-number foreground) (color-number background)
                    (attribute-bits attributes))))
 
