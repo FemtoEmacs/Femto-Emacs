@@ -114,6 +114,9 @@ scripts start in package SBEMACS, the user's in SBEMACS-USER."
         (when (or (not (probe-file fasl))
                   (> (file-write-date path) (file-write-date fasl)))
           (ensure-directories-exist fasl)
+          ;; a stale fasl we may not overwrite (left by a build run as
+          ;; another user) can still be removed from our own directory
+          (when (probe-file fasl) (ignore-errors (delete-file fasl)))
           (multiple-value-bind (output warnings-p failure-p)
               (compile-file path :output-file fasl :external-format :utf-8)
             (declare (ignore warnings-p))
