@@ -1,4 +1,4 @@
-\documentclass[a4paper,12pt]{book}
+\documentclass[a4paper,12pt,openany]{book}
 \usepackage[english]{babel}
 \usepackage[utf8]{inputenc}
 \usepackage{graphicx}
@@ -12,6 +12,9 @@
 \usepackage{fancyvrb}
 \usepackage{fvextra}
 \usepackage{url}
+\usepackage{geometry}
+\usepackage{multicol}
+\usepackage{array}
 % long lines of programs and commands wrap instead of leaving the page
 \RecustomVerbatimEnvironment{verbatim}{Verbatim}{fontsize=\small,breaklines,breakanywhere}
 
@@ -24,101 +27,136 @@
 
 \makeindex
 
-\title{SBEmacs\\
-{\large Steel Bank Emacs}\\[1ex]
-{\normalsize (Content not checked for grammar and spelling errors)}}
-\author{Eduardo Costa}
-\date{}
 
 \begin{document}
-\frontmatter
-\maketitle
+\newgeometry{margin=1.4cm,top=1.1cm,bottom=1.2cm}
 \thispagestyle{empty}
+\begin{center}
+{\LARGE\bfseries SBEmacs commands}
+\end{center}
+\vspace{-4pt}
+{\small
+\noindent\textbf{How to type a command.}
+\verb|C-| is the \keys{Ctrl} key and \verb|M-| is the \keys{Esc} key.\par
+\vspace{3pt}\noindent
+\begin{tabular}{@{}>{\ttfamily}p{1.6cm}@{\,}p{15.2cm}@{}}
+C-f & Keep \keys{Ctrl} down and press \keys{f}. Then let go of both.\\
+M-f & Press \keys{Esc} and let go of it, then press \keys{f}. Or keep \keys{Alt}
+      (\keys{Option} on a Mac) down and press \keys{f}.\\
+C-x C-s & Keep \keys{Ctrl} down and press \keys{x}, then \keys{s}. Then let go of \keys{Ctrl}.\\
+C-x b & Keep \keys{Ctrl} down and press \keys{x}. Let go of \keys{Ctrl}, then press \keys{b}.\\
+C-M-f & Press \keys{Esc} and let go of it, then keep \keys{Ctrl} down and press \keys{f}.\\
+\end{tabular}
+}
+\vspace{2pt}
+\hrule
+\vspace{6pt}
+\begin{multicols}{2}
+\small
+\setlength{\parindent}{0pt}
+\textbf{Files}\\[1pt]
+\begin{tabular}{@{}>{\raggedright}p{2.35cm}@{\,}p{6.1cm}@{}}
+\texttt{C-x C-f} & open a file\\
+\texttt{C-x C-s} & save\\
+\texttt{C-x C-w} & save with another name\\
+\texttt{C-x i} & insert a file at the cursor\\
+\texttt{C-x C-c} & quit\\
+\end{tabular}
+\vspace{7pt}
 
-\chapter*{Preface}
+\textbf{Moving}\\[1pt]
+\begin{tabular}{@{}>{\raggedright}p{2.35cm}@{\,}p{6.1cm}@{}}
+\texttt{C-f\,\,C-b} & forward, back one character\\
+\texttt{C-n\,\,C-p} & next, previous line\\
+\texttt{M-f\,\,M-b} & forward, back one word\\
+\texttt{C-a\,\,C-e} & beginning, end of the line\\
+\texttt{C-v\,\,M-v} & next, previous screen\\
+\texttt{M-<\,\,M->} & beginning, end of the file\\
+\texttt{M-g} & go to a line number\\
+\end{tabular}
+\vspace{7pt}
 
-SBEmacs, Steel Bank Emacs, is a tiny Emacs clone,
-originally derived from a minimalist
-editor called Atto. Although built
-upon the C Atto codebase, SBEmacs can
-be customized using Lisp: Steel Bank Common Lisp,
-or SBCL for short. Its predecessor, FemtoEmacs,
-used a Lisp of its own, femtolisp.
+\textbf{Editing}\\[1pt]
+\begin{tabular}{@{}>{\raggedright}p{2.35cm}@{\,}p{6.1cm}@{}}
+\texttt{DEL} & delete the character before the cursor\\
+\texttt{C-d} & delete the character under the cursor\\
+\texttt{C-k} & kill to the end of the line\\
+\texttt{C-/} & undo; again: undo more\\
+\texttt{C-M-\_} & redo what undo took back\\
+\texttt{TAB} & indent the line\\
+\texttt{M-q} & refill the paragraph\\
+\texttt{M-;} & comment the line or the region\\
+\end{tabular}
+\vspace{7pt}
 
-The fundamental paradigm of Emacs is that it
-rests on a small core, but can be
-extended and customized through
-the Lisp programming language.
+\textbf{Keyboard macros}\\[1pt]
+\begin{tabular}{@{}>{\raggedright}p{2.35cm}@{\,}p{6.1cm}@{}}
+\texttt{C-x (} & start recording the keys you type\\
+\texttt{C-x )} & stop recording\\
+\texttt{C-x e} & replay them; then \texttt{e} replays again\\
+\end{tabular}
+\vspace{7pt}
 
-Instead of requiring from the programmer a compile,
-build, test and fix cycle ---
-Lisp offers a Read, Eval, Print Loop (REPL).
-\begin{enumerate}
-\item {\bf Read.} The REPL reads
-a symbolic expression
-such as \verb|(+ 42 13 4)| from
-a text terminal. The symbolic expression -- sexpr --
-always has the form: $(\textrm{operation}\;a_1\;a_2\ldots a_n)$,
-where $a_1$, $a_2$\ldots $a_n$ are the arguments of
-the operation.
-\item {\bf Eval.} The compiler translates the symbolic
-expression to machine language, then executes the
-generated code and calculates the corresponding
-value.
-\item {\bf Print.} The value produced in step 2 is printed.
-\item {\bf Loop.} The REPL returns to step 1.
-\end{enumerate}
+\columnbreak
 
-Femtolisp, the Lisp of FemtoEmacs, did not generate
-native code, but compiled symbolic expressions
-to a virtual machine language. SBCL, on the other hand,
-compiles every expression to the machine language of
-your computer, so the scripts that colour and indent
-your programs run as fast as the C core of the editor.
+\textbf{Region (shaded)}\\[1pt]
+\begin{tabular}{@{}>{\raggedright}p{2.35cm}@{\,}p{6.1cm}@{}}
+\texttt{C-Spc} & set the mark, then move the cursor\\
+\texttt{mouse} & drag to select; click to move\\
+\texttt{C-w} & kill (cut) the region\\
+\texttt{M-w} & copy the region\\
+\texttt{C-y} & yank (paste)\\
+\texttt{M-y} & after C-y: an earlier kill\\
+\texttt{C-g} & unselect; cancel any command\\
+\end{tabular}
+\vspace{7pt}
 
-The REPL approach enables fast prototyping
-of extensions as each idea can be tested
-individually on the command line inside
-the editor with an immediate result check.
-In SBEmacs, this is true of the editor itself:
-syntax colouring, indentation, the key bindings and the
-assistants are Lisp scripts. If you edit one of them
-and press \verb|C-x C-r|, the editor reloads it;
-there is no need to build the program again.
+\textbf{Searching}\\[1pt]
+\begin{tabular}{@{}>{\raggedright}p{2.35cm}@{\,}p{6.1cm}@{}}
+\texttt{C-s} & search forward; C-s again: next\\
+\texttt{C-r} & search backward\\
+\texttt{M-\%} & replace, asking each time\\
+\end{tabular}
+\vspace{7pt}
 
-For historical reasons, the reference GNU
-Emacs implementation uses a specialised version of
-lisp known as Emacs Lisp.  However, the Emacs Lisp
-dialect is not standard lisp, being used
-only by the GNU Emacs editor and its
-derivatives.
+\textbf{Buffers and windows}\\[1pt]
+\begin{tabular}{@{}>{\raggedright}p{2.35cm}@{\,}p{6.1cm}@{}}
+\texttt{C-x b} & switch to a buffer by name\\
+\texttt{C-x C-b} & buffer menu\\
+\texttt{C-x 2} & split the window\\
+\texttt{C-x o} & other window (or click it)\\
+\texttt{C-x 0\,\,C-x 1} & close this, the other windows\\
+\end{tabular}
+\vspace{7pt}
 
-Common Lisp was chosen
-as the extension language
-for SBEmacs for the following reasons:
-\begin{enumerate}
-\item SBCL is open source.
-\item Common Lisp is an ANSI standard. One can use
-classical Common Lisp tutorials and books to learn
-how to configure and customize SBEmacs.
-\item SBCL is fast.
-\item SBCL runs on Linux, Macintosh and Windows.
-\end{enumerate}
+\textbf{Help, Lisp and Claude}\\[1pt]
+\begin{tabular}{@{}>{\raggedright}p{2.35cm}@{\,}p{6.1cm}@{}}
+\texttt{C-h} & every key, one per line (also F1)\\
+\texttt{M-x} & run a command by name\\
+\texttt{M-:} & evaluate a Lisp expression\\
+\texttt{C-x C-e} & evaluate the Lisp before the cursor\\
+\texttt{C-c r} & Claude: h hints, q question, d discussion\\
+\texttt{C-c y} & insert the code Claude proposed\\
+\texttt{C-c g} & ask ChatGPT (Codex)\\
+\end{tabular}
+\vspace{7pt}
 
-The present text is based on {\em An introduction to femtolisp},
-by Eduardo Costa and Vernon Sipple.
-
+\end{multicols}
+\vspace{-6pt}
+{\footnotesize\noindent The rest of this document explains every command, the
+installation, and how to program SBEmacs in Lisp.}
+\restoregeometry
+\clearpage
 \tableofcontents
-
 \mainmatter
 
+
 %%% ==================================================================
-\chapter{SBEmacs commands}
+\chapter{The commands in detail}
 %%% ==================================================================
 
-In the next chapter, you will learn how to install
-SBEmacs. To give you a head start, this chapter
-lists the basic commands you need to edit a file.
+This chapter explains the commands of the first page in more detail.
+The next chapter shows how to install SBEmacs.
 
 In the following cheat sheet, \verb|Spc| denotes
 the space bar, \verb|C-| is the \keys{Ctrl} prefix, \verb|M-| represents
@@ -131,7 +169,7 @@ the page; any other key takes you back to the file you are editing.
 The status line, at the bottom of each window, reminds you of this:
 \begin{quote}
 \begin{verbatim}
-SBEmacs: Ctrl-h for help == fib.lisp, L. 5 == Ctrl c r calls Claude; ...
+SBEmacs: Ctrl-h for help == fib.lisp, L. 5 == Ctrl c r calls ...
 \end{verbatim}
 \end{quote}
 Besides the name of the file, the status line shows the line
@@ -144,8 +182,8 @@ that the file has been modified, but not saved.
 \caption{The help page, \texttt{C-h}}
 \end{figure}
 
-\paragraph{Basic commands.} \verb|C-|$\kappa$ -- Press and release \keys{Ctrl}
-and \keys{$\kappa$} simultaneously
+\paragraph{Basic commands.} \verb|C-|$\kappa$ -- Keep \keys{Ctrl} down
+and press \keys{$\kappa$}
 \begin{quote}
  \verb|C-s| then type some text, and press \verb|C-s| again
   -- search a text.\\
@@ -173,7 +211,7 @@ and \keys{$\kappa$} simultaneously
 \end{quote}
 
 \paragraph{Control-x commands.} \verb|C-x C-|$\kappa$ -- Keep \keys{Ctrl}
-down and press \keys{x} and  \keys{$\kappa$}
+down and press \keys{x}, then \keys{$\kappa$}
 \begin{quote}
   \verb|C-x C-f| -- open a file into a new buffer.\\
   \verb|C-x C-w| -- write file with new name.\\
@@ -193,8 +231,8 @@ just like the \verb|ls| example.
 than one window on the screen. Below, you will
 find commands that cope with this situation.
 \begin{itemize}
-\item \verb|C-x |$\kappa$ -- Press and release \keys{Ctrl}
-and \keys{x} together, then press \keys{$\kappa$}
+\item \verb|C-x |$\kappa$ -- Keep \keys{Ctrl} down and press \keys{x};
+let go of \keys{Ctrl}, then press \keys{$\kappa$}
 \begin{quote}
 \verb|C-x b| -- switch to a buffer, by name.\\
 \verb|C-x n| -- next buffer.\\
@@ -208,7 +246,7 @@ and \keys{x} together, then press \keys{$\kappa$}
 \verb|C-x 0| -- close the cursor window.\\
 \verb|C-x ^| -- make the cursor window taller.
 \end{quote}
-\item \verb|Esc| $\kappa$ -- Press and release the \keys{Esc} key,
+\item \verb|Esc| $\kappa$ -- Press the \keys{Esc} key and let go of it,
 then press the \keys{$\kappa$} key.
 \begin{quote}
 \verb|Esc >| -- go to the end of buffer.\\
@@ -1827,5 +1865,82 @@ description: Nia's way of writing Common Lisp. Use for any
 Keep a skill short and specific. Claude reads it when it applies,
 so a long skill costs time on every task of that kind, and a vague
 description makes Claude use the skill at the wrong moments, or never.
+
+\chapter*{About SBEmacs}
+\addcontentsline{toc}{chapter}{About SBEmacs}
+
+SBEmacs, Steel Bank Emacs, is a tiny Emacs clone,
+originally derived from a minimalist
+editor called Atto. Although built
+upon the C Atto codebase, SBEmacs can
+be customized using Lisp: Steel Bank Common Lisp,
+or SBCL for short. Its predecessor, FemtoEmacs,
+used a Lisp of its own, femtolisp.
+
+The fundamental paradigm of Emacs is that it
+rests on a small core, but can be
+extended and customized through
+the Lisp programming language.
+
+Instead of requiring from the programmer a compile,
+build, test and fix cycle ---
+Lisp offers a Read, Eval, Print Loop (REPL).
+\begin{enumerate}
+\item {\bf Read.} The REPL reads
+a symbolic expression
+such as \verb|(+ 42 13 4)| from
+a text terminal. The symbolic expression -- sexpr --
+always has the form: $(\textrm{operation}\;a_1\;a_2\ldots a_n)$,
+where $a_1$, $a_2$\ldots $a_n$ are the arguments of
+the operation.
+\item {\bf Eval.} The compiler translates the symbolic
+expression to machine language, then executes the
+generated code and calculates the corresponding
+value.
+\item {\bf Print.} The value produced in step 2 is printed.
+\item {\bf Loop.} The REPL returns to step 1.
+\end{enumerate}
+
+Femtolisp, the Lisp of FemtoEmacs, did not generate
+native code, but compiled symbolic expressions
+to a virtual machine language. SBCL, on the other hand,
+compiles every expression to the machine language of
+your computer, so the scripts that colour and indent
+your programs run as fast as the C core of the editor.
+
+The REPL approach enables fast prototyping
+of extensions as each idea can be tested
+individually on the command line inside
+the editor with an immediate result check.
+In SBEmacs, this is true of the editor itself:
+syntax colouring, indentation, the key bindings and the
+assistants are Lisp scripts. If you edit one of them
+and press \verb|C-x C-r|, the editor reloads it;
+there is no need to build the program again.
+
+For historical reasons, the reference GNU
+Emacs implementation uses a specialised version of
+lisp known as Emacs Lisp.  However, the Emacs Lisp
+dialect is not standard lisp, being used
+only by the GNU Emacs editor and its
+derivatives.
+
+Common Lisp was chosen
+as the extension language
+for SBEmacs for the following reasons:
+\begin{enumerate}
+\item SBCL is open source.
+\item Common Lisp is an ANSI standard. One can use
+classical Common Lisp tutorials and books to learn
+how to configure and customize SBEmacs.
+\item SBCL is fast.
+\item SBCL runs on Linux, Macintosh and Windows.
+\end{enumerate}
+
+The present text is based on {\em An introduction to femtolisp},
+by Eduardo Costa and Vernon Sipple.
+
+SBEmacs was written by Eduardo Costa, on top of FemtoEmacs by Hugh Barney
+and its contributors.
 
 \end{document}
