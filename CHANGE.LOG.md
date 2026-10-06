@@ -36,6 +36,7 @@
   their line.  Styles :lisp, :c, :python, :prolog and :block.
 * C-e on the last line of a file without a final newline now goes to the
   real end of the line.
+* C-x C-e evaluates the Lisp expression before the cursor (eval-last-sexp).
 * Errors in Esc-; and Esc-] are reported, never fatal.
 * New colour scheme on the terminal's own background (FemtoEmacs forced a
   black one, which hid the cursor on light terminal themes); 256-colour

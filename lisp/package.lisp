@@ -56,7 +56,7 @@
    ;; default user commands (formerly in init.lsp)
    #:*undo-mode* #:read-string #:weekday #:what-day #:insert-day
    #:html-p #:html-h1 #:html-pp #:indent-two #:deindent-two
-   #:upcase-region #:downcase-region #:transform-region
+   #:upcase-region #:downcase-region #:transform-region #:eval-last-sexp
    ;; entry point
    #:main))
 

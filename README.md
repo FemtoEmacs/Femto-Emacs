@@ -119,6 +119,8 @@ says so and runs in the terminal.
 
 ### Lisp interaction
 
+* `C-x C-e` evaluates the expression just before the cursor and shows its
+  value on the message line, as in GNU Emacs.
 * `Esc-;` reads a Lisp expression on the message line and shows the result.
   Long results open the `*lisp_output*` buffer.
 * `Esc-]` evaluates the parenthesised block at the cursor (or the one just

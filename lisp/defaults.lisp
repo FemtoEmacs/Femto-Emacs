@@ -95,6 +95,68 @@
 (defun downcase-region () (transform-region #'string-downcase))
 
 ;;; ------------------------------------------------------------------
+;;; C-x C-e: evaluate the Lisp expression before the cursor
+;;; ------------------------------------------------------------------
+
+(defun sexp-before (text end)
+  "Start index of the Lisp expression that ends just before END in TEXT
+(an octet vector), or NIL.  Strings, ; comments and #\\ characters are
+skipped while matching parentheses."
+  (let ((i end))
+    ;; skip blanks back to the end of the expression
+    (loop while (and (> i 0) (member (aref text (1- i)) '(32 9 10 13))) do (decf i))
+    (when (zerop i) (return-from sexp-before nil))
+    (if (member (aref text (1- i)) '(41 93))
+        ;; a list: scan forward from the start, pairing parentheses
+        (let ((stack '()) (k 0) (start nil) (stop i))
+          (loop while (< k stop)
+                do (let ((b (aref text k)))
+                     (cond ((= b 59) (setf k (or (position 10 text :start k :end stop) stop)))
+                           ((= b 34)
+                            (incf k)
+                            (loop while (and (< k stop) (/= (aref text k) 34))
+                                  do (incf k (if (= (aref text k) 92) 2 1)))
+                            (incf k))
+                           ((and (= b 35) (< (1+ k) stop) (= (aref text (1+ k)) 92))
+                            (incf k 3))
+                           ((member b '(40 91)) (push k stack) (incf k))
+                           ((member b '(41 93))
+                            (let ((open (pop stack)))
+                              (when (= k (1- stop)) (setf start open)))
+                            (incf k))
+                           (t (incf k)))))
+          ;; include a quote or #' in front of the list
+          (when start
+            (loop while (and (> start 0) (member (aref text (1- start)) '(39 96 44 35)))
+                  do (decf start)))
+          start)
+        ;; an atom
+        (let ((j i))
+          (loop while (and (> j 0)
+                           (not (member (aref text (1- j)) '(32 9 10 13 40 41 91 93 34 59))))
+                do (decf j))
+          j))))
+
+(defun eval-last-sexp ()
+  "Evaluate the Lisp expression before the cursor and show its value on
+the message line (C-x C-e, as in GNU Emacs).  Esc-] does the same but
+inserts the value into the buffer."
+  (let* ((end (point))
+         (from (max 0 (- end 65536)))
+         (text (buffer-octets from end))
+         (start (sexp-before text (length text))))
+    (if (null start)
+        (message "No expression before the cursor")
+        (let* ((form (sb-ext:octets-to-string text :start start
+                                                  :external-format '(:utf-8 :replacement #\?)))
+               (value (with-editor-environment (:output out)
+                        (let ((v (let ((*package* (find-package '#:sbemacs-user)))
+                                   (eval-string form)))
+                              (printed (get-output-stream-string out)))
+                          (format nil "~@[~A => ~]~S" (and (plusp (length printed)) printed) v)))))
+          (message "~A" (substitute #\Space #\Newline value))))))
+
+;;; ------------------------------------------------------------------
 ;;; Key bindings
 ;;; ------------------------------------------------------------------
 
@@ -113,6 +175,7 @@
 (global-set-key "C-c z" 'insert-day)
 
 (global-set-key "C-x C-r" 'reload-scripts)
+(global-set-key "C-x C-e" 'eval-last-sexp)
 (global-set-key "C-x C-i" 'indent-region)
 
 (global-set-key "C-o" 'deindent-two)
