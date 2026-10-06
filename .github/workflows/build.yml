@@ -6,7 +6,7 @@ name: build
 
 on:
   push:
-    branches: [ master, main, sbcl ]
+    branches: [ master, main, sbcl, windows ]
     tags: [ 'v*' ]
   pull_request:
   workflow_dispatch:
