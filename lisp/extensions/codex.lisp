@@ -13,8 +13,8 @@
 
 (in-package #:sbemacs)
 
-(defvar *codex-program* "codex"
-  "Name of the OpenAI Codex CLI executable.")
+(defvar *codex-program* nil
+  "Codex executable override, or NIL to discover it automatically.")
 
 (defvar *codex-model* nil
   "Codex model name, or NIL to use the CLI default.")
@@ -101,6 +101,45 @@ an editor window."
   (format nil "~A~%~%USER REQUEST~%============~%~A~%~%SOURCE CONTEXT~%==============~%~A"
           *codex-instructions* request *codex-saved-context*))
 
+(defun codex-installation-candidates ()
+  "Likely Codex executables not already covered by PATH."
+  (remove
+   nil
+   (list
+    ;; Codex bundled with the ChatGPT desktop application on macOS.
+    #+darwin #p"/Applications/ChatGPT.app/Contents/Resources/codex"
+    #+darwin (merge-pathnames
+              "Applications/ChatGPT.app/Contents/Resources/codex"
+              (user-homedir-pathname))
+    ;; Defaults used by the official standalone installers.
+    #-win32 (merge-pathnames ".local/bin/codex" (user-homedir-pathname))
+    #+win32 (let ((local (sb-ext:posix-getenv "LOCALAPPDATA")))
+              (and local
+                   (merge-pathnames "Programs/OpenAI/Codex/bin/codex.exe"
+                                    (pathname (concatenate 'string
+                                                           (string-right-trim "/\\" local)
+                                                           "/")))))
+    ;; npm's usual per-user command shim on Windows.
+    #+win32 (let ((appdata (sb-ext:posix-getenv "APPDATA")))
+              (and appdata
+                   (merge-pathnames "npm/codex.cmd"
+                                    (pathname (concatenate 'string
+                                                           (string-right-trim "/\\" appdata)
+                                                           "/"))))))))
+
+(defun codex-explicit-program (name)
+  "Resolve NAME as a path or as a command on PATH."
+  (when (and name (plusp (length name)))
+    (if (find-if (lambda (character) (find character "/\\")) name)
+        (probe-file (pathname name))
+        (find-program name))))
+
+(defun find-codex-program ()
+  "Find an explicit, PATH, standalone, npm, or ChatGPT-bundled Codex."
+  (or (codex-explicit-program *codex-program*)
+      (find-program "codex")
+      (find-if #'probe-file (codex-installation-candidates))))
+
 (defun codex-exec-arguments ()
   (append (list "exec"
                 "--sandbox" "read-only"
@@ -130,8 +169,8 @@ are returned unchanged.  Elsewhere this is a no-op."
 
 (defun codex-cli-ask (request)
   "Return the final response from a read-only, ephemeral Codex CLI run."
-  (let ((program (or (find-program *codex-program*)
-                     (error "the Codex CLI was not found; install @openai/codex and run codex login"))))
+  (let ((program (or (find-codex-program)
+                     (error "Codex was not found. Install the official Codex CLI or the ChatGPT desktop app, then sign in with ChatGPT."))))
     (multiple-value-bind (launcher arguments)
         (codex-windows-command program (codex-exec-arguments))
       (multiple-value-bind (out err code)
@@ -185,12 +224,14 @@ are returned unchanged.  Elsewhere this is a no-op."
       (codex-compose)))
 
 (defun codex-status-text ()
-  (let ((program (find-program *codex-program*)))
+  (let ((program (find-codex-program)))
     (format nil "Codex CLI: ~:[NOT FOUND~;~:*~A~]~%~
                  Model: ~:[CLI default~;~:*~A~]~%~
                  Sandbox: read-only~%Session: ephemeral~%~%~
-                 Install on Windows:~%  npm install -g @openai/codex@latest~%~
-                 Then authenticate once in a terminal:~%  codex login"
+                 Femto Emacs checks PATH, the official standalone-install~%~
+                 directories, npm on Windows, and the macOS ChatGPT app.~%~
+                 If authentication is needed, run Codex once and choose~%~
+                 Sign in with ChatGPT."
             (and program (native program)) *codex-model*)))
 
 (defun codex-status ()

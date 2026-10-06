@@ -161,12 +161,21 @@ it and press `C-x C-r`.
 
 ### Codex inside the editor (`C-c g`)
 
-Install the current [OpenAI Codex CLI](https://developers.openai.com/codex/cli)
-and authenticate it once in a Windows terminal:
+If the ChatGPT desktop application is installed on a Mac and the user is
+signed in, no Codex configuration should be necessary: `codex.lisp` finds the
+Codex executable inside the application automatically, and Codex reuses its
+cached ChatGPT authentication.  Press `C-c g`, write the request below, and
+press `C-c g` again.
+
+Otherwise, install the current
+[OpenAI Codex CLI](https://developers.openai.com/codex/cli).  The official
+standalone installer puts it in a location that `codex.lisp` checks
+automatically.  Run `codex` once in a terminal and choose **Sign in with
+ChatGPT**.  On Windows, the official installation command is:
 
 ```powershell
-npm install -g @openai/codex@latest
-codex login
+irm https://chatgpt.com/codex/install.ps1 | iex
+codex
 ```
 
 Open a source file and press `C-c g`.  Femto Emacs splits the editor and puts
@@ -193,6 +202,16 @@ and press `C-x C-r` to reload it; rebuilding Femto Emacs is unnecessary.
 `*codex-model*` selects a model (`NIL` uses the CLI default), and
 `*codex-timeout*` controls how long Femto Emacs waits.  Evaluate
 `(codex-status)` with `Esc-;` to check whether the CLI was found.
+
+Discovery checks, in order: `*codex-program*` when explicitly set, `codex` on
+`PATH`, the official standalone-install directory, the usual Windows npm
+directory, and the Codex executable bundled with the macOS ChatGPT app.  A
+manual path is therefore only a fallback; when needed it can be placed in
+`~/.sbemacs/init.lisp` without package-internal syntax:
+
+```lisp
+(setf *codex-program* "/an/unusual/location/codex")
+```
 
 ### Lisp interaction
 
