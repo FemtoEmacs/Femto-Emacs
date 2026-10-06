@@ -288,6 +288,9 @@ installs itself here.")
       (unless (eq handled :key) (setf handled nil)))
     (if handled 1 0)))
 
+;; defined in lisp/highlight.lisp, a script loaded after the engine
+(declaim (ftype (function (t t t t) t) highlight-buffer-text))
+
 (sb-alien:define-alien-callable lisp-highlight sb-alien:void
     ((fname sb-alien:c-string) (bname sb-alien:c-string)
      (text sb-alien:system-area-pointer) (len sb-alien:int)
