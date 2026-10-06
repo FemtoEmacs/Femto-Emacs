@@ -28,7 +28,9 @@
 
 (defvar *codex-request-buffer* "*codex-request*")
 (defvar *codex-answer-buffer* "*codex*")
-(defparameter *codex-discussion-buffer* "*codex-discussion*")
+;; The C core stores at most 16 buffer-name characters (NBUFN is 17).
+;; A longer name is silently truncated and cannot be recognized afterward.
+(defparameter *codex-discussion-buffer* "*codex-chat*")
 (defvar *codex-origin-buffer* nil)
 (defvar *codex-saved-context* nil)
 (defvar *codex-working-directory* nil)

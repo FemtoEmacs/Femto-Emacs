@@ -178,6 +178,9 @@
        (list (not (null (search "Question:" *codex-menu*)))
              (not (null (search "Discussion:" *codex-menu*))))
        '(t t))
+(check "Codex discussion buffer name fits the C core"
+       (<= (length *codex-discussion-buffer*) 16)
+       t)
 (check "old Codex stub key is removed" (key-binding "C-c x") nil)
 (check "Codex prompt keeps request and saved source separate"
        (let ((*codex-saved-context* "SOURCE-CONTEXT"))
