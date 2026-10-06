@@ -35,13 +35,14 @@ needs SDL2, and everything written in Lisp works the same in both.
 
 ### Windows users
 
-Download `Femto-Emacs-2.0-Windows-x86_64-Setup.exe` from the latest
-[release](../../releases), double-click it, and follow the installer.  The
-installer creates a normal Start-menu shortcut and can create a desktop
-shortcut.  It includes the editor, its SBCL runtime, both the terminal and
-graphical libraries, SDL2, SDL2_ttf, and their runtime libraries.  It does not
-require MSYS2, a C compiler, `make`, SBCL, or administrator privileges.
-The Windows release is built and checked with SBCL 2.6.9.
+First install the official 64-bit Windows release of
+[SBCL 2.6.9](https://www.sbcl.org/platform-table.html).  Then download
+`Femto-Emacs-2.0-Windows-x86_64-Setup.exe` from the latest
+[Femto Emacs release](../../releases), double-click it, and follow the
+installer.  It verifies SBCL 2.6.9, installs the precompiled editor libraries,
+SDL2, SDL2_ttf, and the Lisp files, and asks SBCL to create `sbemacs.exe`.
+It also creates a normal Start-menu shortcut and can create a desktop shortcut.
+No MSYS2, C compiler, `make`, or administrator privileges are required.
 
 The installer shortcut starts the SDL2 window.  The terminal interface remains
 available by running `sbemacs.exe` without `--gui` in a terminal.
@@ -75,7 +76,8 @@ sudo make uninstall
 
 These requirements apply to developers who rebuild the native code.  On
 Windows run `make` from the *MSYS2 MINGW64* shell, with SBCL on the `PATH`.
-Ordinary Windows users should use the installer above and do not need MSYS2.
+Ordinary Windows users should install SBCL 2.6.9 and then use the installer
+above; they do not need MSYS2.
 
 `sbemacs` is a saved SBCL image.  It finds the libraries next to itself
 (or set `SBEMACS_LIB` / `SBEMACS_GUI_LIB` to their full paths), so keep the

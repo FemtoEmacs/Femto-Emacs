@@ -35,7 +35,9 @@ VersionInfoProductName={#AppName}
 VersionInfoProductVersion={#AppVersion}
 
 [Files]
-Source: "{#StagingDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+; The release executable is deliberately omitted.  configure.ps1 creates it
+; with the user's separately installed SBCL 2.6.9.
+Source: "{#StagingDir}\*"; DestDir: "{app}"; Excludes: "sbemacs.exe"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\Femto Emacs"; Filename: "{app}\{#AppExeName}"; Parameters: "--gui"; WorkingDir: "{userdocs}"
@@ -46,3 +48,23 @@ Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription:
 
 [Run]
 Filename: "{app}\{#AppExeName}"; Parameters: "--gui"; Description: "Launch Femto Emacs"; Flags: nowait postinstall skipifsilent
+
+[Code]
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  ResultCode: Integer;
+  PowerShell, Arguments: String;
+begin
+  if CurStep = ssPostInstall then
+  begin
+    PowerShell := ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe');
+    Arguments := '-NoProfile -ExecutionPolicy Bypass -File "' +
+      ExpandConstant('{app}\windows\configure.ps1') + '"';
+    if not Exec(PowerShell, Arguments, ExpandConstant('{app}'),
+      SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+      RaiseException('Could not start SBCL configuration.');
+    if ResultCode <> 0 then
+      RaiseException('Femto Emacs could not be created with SBCL 2.6.9. ' +
+        'Install the official 64-bit SBCL 2.6.9 release and run this installer again.');
+  end;
+end;

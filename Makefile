@@ -95,6 +95,9 @@ dist: all
 	mkdir -p dist/$(DISTNAME)
 	cp sbemacs$(EXE) $(LIBS) README.md CHANGE.LOG.md dist/$(DISTNAME)/
 	cp -R lisp samples dist/$(DISTNAME)/
+	cp build.lisp dist/$(DISTNAME)/
+	mkdir -p dist/$(DISTNAME)/windows
+	cp windows/configure.ps1 dist/$(DISTNAME)/windows/
 
 install: all
 	install -d $(DESTDIR)$(PREFIX)/bin $(DESTDIR)$(PREFIX)/lib/sbemacs

@@ -131,7 +131,15 @@ jobs:
           }
           & $compiler "/DStagingDir=$staging" "/DOutputDir=$output" windows\installer.iss
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          Get-Item dist\Femto-Emacs-*-Setup.exe
+          $setup = Get-Item dist\Femto-Emacs-*-Setup.exe
+          $installTest = Join-Path $env:RUNNER_TEMP 'femto-emacs-install-test'
+          $process = Start-Process $setup.FullName -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/DIR=$installTest" -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "Installer smoke test exited with code $($process.ExitCode)" }
+          $installedVersion = & "$installTest\sbemacs.exe" --version
+          if ($installedVersion -notcontains 'SBCL 2.6.9') {
+            throw "Installed editor does not use SBCL 2.6.9: $($installedVersion -join ' ')"
+          }
+          $setup
 
       - uses: actions/upload-artifact@v4
         with:
