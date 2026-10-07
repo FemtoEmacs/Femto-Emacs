@@ -484,6 +484,12 @@
   (check "complete: a folder that does not exist"
          (file-name-completions "nowhere/a" dir) '()))
 
+(check "mode line: a window with buttons of its own"
+       (list (mode-line-string "*shell-command*" 1 1 120)
+             (mapcar #'third (decoded-mode-line "*shell-command*" 1 1 120)))
+       (list "SBEmacs: *shell-command*, L. 1 == [SEND - C-c s] [CLOSE - C-x 1]"
+             '(nil t nil t)))
+
 ;;; M-! (shell.lisp)
 
 (check "shell: one line stays as it is"

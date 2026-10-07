@@ -102,7 +102,7 @@ C-c s runs it."
     (select-buffer *shell-command-buffer*)
     (goto-char 0)
     (delete-char (buffer-size))
-    (message "Write the command (Enter for another line); C-c s runs it; C-x 1 closes"))
+    (message "Write the command (Enter for another line); [SEND] or C-c s runs it"))
   t)
 
 (declaim (ftype (function (string string (or null integer)) (values string &optional))
@@ -141,7 +141,7 @@ C-c s runs it."
                 (delete-char (buffer-size))
                 (insert (shell-transcript command output code))
                 (goto-char 0)
-                (message "~:[Done~;~:*The command failed (exit status ~D)~]; M-! another command, C-x 1 closes"
+                (message "~:[Done~;~:*The command failed (exit status ~D)~]"
                          (and code (/= code 0) code)))))))
   t)
 
@@ -159,8 +159,36 @@ C-c s runs it."
     (goto-char 0))
   t)
 
-(set-buffer-hint *shell-command-buffer* "C-c s run; C-x 1 close")
-(set-buffer-hint *shell-output-buffer* "M-! another; C-x 1 close")
+;;; Closing.  In these windows the cursor is in the shell window, so C-x 1
+;;; ("keep only this window") would keep it and close the file; here C-x 1
+;;; closes them and keeps the file.  Elsewhere C-x 1 is what it always was.
+
+(declaim (ftype (function (string) (values boolean &optional)) shell-buffer-p))
+(defun shell-buffer-p (name)
+  (and (member name (list *shell-command-buffer* *shell-output-buffer*) :test #'string=) t))
+
+(defcommand shell-close ()
+  "Close the shell command window; the file it was called from stays."
+  (delete-other-windows)
+  (when (and *shell-origin* (shell-buffer-p (get-buffer-name)))
+    (select-buffer *shell-origin*))
+  (clear-message-line)
+  t)
+
+(defcommand one-window ()
+  "C-x 1: keep only this window -- but in the shell windows, close them."
+  (if (shell-buffer-p (get-buffer-name))
+      (shell-close)
+      (execute-builtin "delete-other-windows"))
+  t)
+
+;;; The windows' own buttons (menu.lisp), clicked or typed alike
+(set-buffer-menu *shell-command-buffer* '(("SEND - C-c s" "C-c s") ("CLOSE - C-x 1" "C-x 1")))
+(set-buffer-menu *shell-output-buffer* '(("NEW - M-!" "M-!") ("CLOSE - C-x 1" "C-x 1")))
+(set-buffer-hint *shell-command-buffer* "")
+(set-buffer-hint *shell-output-buffer* "")
+
+(global-set-key "C-x 1" 'one-window)
 
 (global-set-key "M-!" 'shell-command-window)
 (global-set-key "C-x @" 'shell-command-window)

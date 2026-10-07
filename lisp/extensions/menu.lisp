@@ -64,6 +64,19 @@ every window."
   "Function of a buffer name returning its window's buttons, as in
 *MODE-LINE-MENU*.  Replace it to order the buttons by use, say.")
 
+(defvar *buffer-menus* (make-hash-table :test 'equal)
+  "Buffer name -> the buttons of its own windows, in place of the main
+menu: the shell command window has [SEND - C-c s] [CLOSE - C-x 1].")
+
+(declaim (ftype (function (string list) (values list &optional)) set-buffer-menu))
+(defun set-buffer-menu (buffer-name buttons)
+  "Give the windows of BUFFER-NAME their own BUTTONS, as in
+*MODE-LINE-MENU*; NIL takes them away."
+  (if buttons
+      (setf (gethash buffer-name *buffer-menus*) buttons)
+      (remhash buffer-name *buffer-menus*))
+  buttons)
+
 (defvar *button-usage* (make-hash-table :test 'equal)
   "Button label -> how many times it was clicked, this session.")
 
@@ -136,9 +149,19 @@ or NIL for the C core's own mode line."
                         (and (logtest flags 2) (not (logtest flags 8)))
                         (logtest flags 4)))
          (where (format nil "~A, L. ~D" marks line))
+         (own (gethash bname *buffer-menus*))
          (hint (gethash bname *buffer-hints*))
          (buttons (and (null hint) (funcall *mode-line-buttons-function* bname))))
     (cond
+      ;; a window with buttons of its own:
+      ;;   SBEmacs: *shell-command*, L. 1 == [SEND - C-c s] [CLOSE - C-x 1]
+      (own
+       (encode-pieces
+        (append (list (list (format nil "SBEmacs: ~A~A ~A " name where lch) :modeline nil))
+                (loop for (label action) in own
+                      for i from 0
+                      when (plusp i) collect (list " " :modeline nil)
+                      collect (list (format nil "[~A]" label) :menu action)))))
       ;; the assistants' windows: their own keys matter more than the menu
       (hint
        (encode-pieces (list (list "SBEmacs: " :modeline nil)

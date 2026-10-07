@@ -33,7 +33,7 @@
    #:refresh-screen #:screen-rows #:screen-columns
    #:delete-window #:window-count #:window-rows #:recenter #:set-mode-line-hints #:run-key-as-typed
    #:*mode-line-menu* #:*mode-line-buttons-function* #:mode-line-buttons
-   #:file-info #:*command-usage* #:*button-usage* #:usage-statistics
+   #:file-info #:set-buffer-menu #:*command-usage* #:*button-usage* #:usage-statistics
    #:set-window-start #:set-buffer-hint
    ;; message line, keyboard, prompts
    #:message #:clear-message-line #:log-debug #:log-message
