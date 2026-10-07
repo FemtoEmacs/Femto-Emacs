@@ -22,14 +22,31 @@ jobs:
           - os: ubuntu-24.04-arm
           - os: macos-latest    # Apple silicon
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
       - name: Install SBCL and ncurses (Linux)
         if: runner.os == 'Linux'
+        timeout-minutes: 10
         run: |
-          sudo apt-get update
-          sudo apt-get install -y sbcl libncurses-dev pkg-config \
+          # The x86 runner's Azure mirror can stall while fetching packages.
+          # Keep ARM's ports mirror; use Ubuntu's main mirror on x86 only.
+          if [ "$(uname -m)" = x86_64 ]; then
+            sudo python3 - <<'PYTHON'
+          from pathlib import Path
+          for pattern in ('*.list', '*.sources'):
+              for path in Path('/etc/apt').rglob(pattern):
+                  original = path.read_text()
+                  updated = original.replace('http://azure.archive.ubuntu.com/ubuntu', 'https://archive.ubuntu.com/ubuntu')
+                  updated = updated.replace('https://azure.archive.ubuntu.com/ubuntu', 'https://archive.ubuntu.com/ubuntu')
+                  if updated != original:
+                      path.write_text(updated)
+          PYTHON
+          fi
+          apt_options=(-o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o Acquire::Retries=3 -o DPkg::Lock::Timeout=120)
+          sudo apt-get "${apt_options[@]}" -o APT::Update::Error-Mode=any update
+          sudo env DEBIAN_FRONTEND=noninteractive apt-get "${apt_options[@]}" install -y sbcl libncurses-dev pkg-config \
             libsdl2-dev libsdl2-ttf-dev fonts-dejavu-core xvfb
 
       - name: Install SBCL (macOS)
