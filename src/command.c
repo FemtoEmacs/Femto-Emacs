@@ -115,7 +115,7 @@ static int mouse_dragging = 0;
 static int mouse_moved = 0;
 static point_t mouse_old_mark = NOMARK;
 
-/* the mode line button under a pressed mouse button, or -1 */
+/* the id of the mode line button under a pressed mouse button, or -1 */
 static int menu_down_row = -1, menu_down_index = -1;
 
 void editor_mouse_event()
@@ -170,8 +170,8 @@ void editor_mouse_event()
 		return;
 	{
 		/*
-		 * a button of the mode line menu: the press selects that window
-		 * and lights the button; the release runs it (see above)
+		 * a button of the mode line: the press selects that window and
+		 * lights the button; the release runs it (see above)
 		 */
 		int index = menu_hit(mouse_row, mouse_col);
 		if (index >= 0) {

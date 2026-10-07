@@ -106,6 +106,21 @@ core then runs its own)."
       (funcall fn)
       t)))
 
+(defvar *command-usage* (make-hash-table :test 'equal)
+  "Command name -> how many times it ran in this session, from a key or a
+button.  Commands of the C core are counted by their key (\"C-x C-s\").
+For menus ordered by use (see *MODE-LINE-BUTTONS-FUNCTION* in menu.lisp).")
+
+(declaim (ftype (function (t) (values null &optional)) note-command-use))
+(defun note-command-use (command)
+  (let ((name (typecase command
+                (null nil)
+                (symbol (string-downcase (symbol-name command)))
+                (string command)
+                (t nil))))
+    (when name (incf (the fixnum (gethash name *command-usage* 0)))))
+  nil)
+
 (declaim (ftype (function (&optional t) t) command-boundary))
 (declaim (ftype (function (string) (values boolean &optional)) run-key-as-typed))
 (defun run-key-as-typed (key)
@@ -120,6 +135,7 @@ buttons and menus.  False when KEY is bound to nothing."
     (unwind-protect
          (cond (fn (funcall fn) t)
                (t (= 1 (%run-c-key k))))
+      (note-command-use *this-command*)
       (setf *last-key* k
             *last-command* *this-command*))))
 
@@ -304,6 +320,7 @@ installs itself here.")
                           ;; command fails: C must not run its own
                           (when fn (setf handled :key))
                           (unwind-protect (run-key arg)
+                            (note-command-use *this-command*)
                             (setf *last-key* arg
                                   *last-command* *this-command*))))
                        ((string= event "command")
@@ -320,7 +337,7 @@ installs itself here.")
                         (setf handled (run-self-insert arg)))
                        ((string= event "menu")
                         (setf handled :key)
-                        (run-mode-line-menu (parse-integer arg)))
+                        (run-mode-line-button (parse-integer arg)))
                        ((string= event "kill") (dolist (f *kill-hook*) (funcall f arg)))
                        ((string= event "startup") (run-startup))
                        ((string= event "colors") (apply-color-theme (parse-integer arg))))
@@ -333,7 +350,7 @@ installs itself here.")
     (if handled 1 0)))
 
 ;; defined in lisp/extensions/menu.lisp, a script
-(declaim (ftype (function (integer) t) run-mode-line-menu))
+(declaim (ftype (function (integer) t) run-mode-line-button))
 
 ;; defined in lisp/highlight.lisp, a script loaded after the engine
 (declaim (ftype (function (t t t t) t) highlight-buffer-text))
@@ -367,11 +384,40 @@ changes a command makes undo together."
   (when (fboundp 'undo-boundary)
     (ignore-errors (undo-boundary key))))
 
+;;; The mode line: the C core asks Lisp for each window's, and paints it.
+;;; MODE-LINE-PIECES (lisp/extensions/menu.lisp, a script) composes it; the
+;;; encoding is described in src/display.c.  Whatever goes wrong, C draws
+;;; its own mode line: the callback returns 0.
+
+(declaim (ftype (function (string string string integer integer integer)
+                          (values (or null string) &optional))
+                mode-line-pieces))
+
+(sb-alien:define-alien-callable lisp-modeline sb-alien:int
+    ((name sb-alien:c-string) (fname sb-alien:c-string) (bname sb-alien:c-string)
+     (line sb-alien:int) (flags sb-alien:int) (cols sb-alien:int)
+     (out sb-alien:system-area-pointer) (outlen sb-alien:int))
+  (or (ignore-errors
+       (when (fboundp 'mode-line-pieces)
+         (let ((text (mode-line-pieces name fname bname line flags cols)))
+           (when text
+             (let* ((octets (sb-ext:string-to-octets text :external-format :utf-8))
+                    (n (min (length octets) (1- outlen))))
+               ;; never cut a UTF-8 character in two
+               (loop while (and (plusp n) (< n (length octets))
+                                (= (logand (aref octets n) #xC0) #x80))
+                     do (decf n))
+               (dotimes (i n) (setf (sb-sys:sap-ref-8 out i) (aref octets i)))
+               (setf (sb-sys:sap-ref-8 out n) 0)
+               1)))))
+      0))
+
 (defun install-hooks ()
   (%set-hooks (sb-alien:alien-sap (sb-alien:alien-callable-function 'lisp-eval))
               (sb-alien:alien-sap (sb-alien:alien-callable-function 'lisp-event))
               (sb-alien:alien-sap (sb-alien:alien-callable-function 'lisp-highlight)))
-  (%set-change-hook (sb-alien:alien-sap (sb-alien:alien-callable-function 'lisp-change))))
+  (%set-change-hook (sb-alien:alien-sap (sb-alien:alien-callable-function 'lisp-change)))
+  (%set-modeline-hook (sb-alien:alien-sap (sb-alien:alien-callable-function 'lisp-modeline))))
 
 ;;; ------------------------------------------------------------------
 ;;; Start-up

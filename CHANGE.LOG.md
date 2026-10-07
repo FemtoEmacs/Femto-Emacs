@@ -2,12 +2,16 @@
 
 ## SBEmacs 2.0
 * The mode line is a menu: [HELP] [SAVE] [OPEN] [COPY] [PASTE] [UNDO]
-  [AI HELP] [BUFFERS], clicked with the mouse in the terminal or the
+  [AI HELP] [BUFFERS] [QUIT], clicked with the mouse in the terminal or the
   window.  A button lights up while pressed (faces :menu, :menu-pressed)
   and, on release, does exactly what its key does (run-key-as-typed).
-  [AI HELP] shows what Claude (C-c r) and Codex (C-c g) can do.  The list
-  is a script, lisp/extensions/menu.lisp; set-mode-line-menu.  Narrow
-  windows drop the spaces, then the word SBEmacs, then buttons.
+  [AI HELP] shows what Claude (C-c r) and Codex (C-c g) can do.  The file
+  name is a button: its full name, lines, words, size, language, saved or
+  not.  The whole mode line is composed in Lisp (lisp/extensions/menu.lisp,
+  *mode-line-menu*, *mode-line-buttons-function*); C only paints the
+  pieces.  Narrow windows drop the spaces, the word SBEmacs, the ==, the
+  front of a long name, and only then buttons.  *command-usage* and
+  *button-usage* count what is used (usage-statistics).
 * The kill ring and the system clipboard work together, in the terminal
   too: every kill or copy goes to the clipboard (pbcopy, wl-copy, xclip or
   xsel; OSC 52 when none is there), and C-y first takes in what another
