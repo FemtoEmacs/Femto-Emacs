@@ -392,5 +392,64 @@
                  (faces "one two" "x.zz2"))))
        '(1 ((4 . "two"))))
 
+;;; The mode line (lisp/extensions/menu.lisp): decode what C would paint
+
+(defun decoded-mode-line (name line flags cols)
+  "The pieces as (TEXT FACE-ID CLICKABLE)."
+  (let ((encoded (mode-line-pieces name "" name line flags cols)))
+    (and encoded
+         (mapcar (lambda (piece)
+                   (let* ((a (position (code-char #x1F) piece))
+                          (b (position (code-char #x1F) piece :start (1+ a))))
+                     (list (subseq piece (1+ b))
+                           (parse-integer piece :end a)
+                           (plusp (parse-integer piece :start (1+ a) :end b)))))
+                 (split-sequence-simple (code-char #x1E) encoded)))))
+
+(defun split-sequence-simple (char string)
+  (loop with start = 0
+        for pos = (position char string :start start)
+        collect (subseq string start pos)
+        while pos do (setf start (1+ pos))))
+
+(defun mode-line-string (name line flags cols)
+  (apply #'concatenate 'string (mapcar #'first (decoded-mode-line name line flags cols))))
+
+(check "mode line: wide window, everything spaced, with QUIT"
+       (mode-line-string "teste.lisp" 3 1 120)
+       "teste.lisp, L. 3 == SBEmacs: [HELP] [SAVE] [OPEN] [COPY] [PASTE] [UNDO] [AI HELP] [BUFFERS] [QUIT]")
+(check "mode line: 80 columns, all buttons, QUIT included"
+       (mode-line-string "teste.lisp" 3 1 80)
+       "teste.lisp, L. 3 [HELP][SAVE][OPEN][COPY][PASTE][UNDO][AI HELP][BUFFERS][QUIT]")
+(check "mode line: 95 columns, no spaces, but SBEmacs and =="
+       (mode-line-string "teste.lisp" 3 1 95)
+       "teste.lisp, L. 3 == SBEmacs: [HELP][SAVE][OPEN][COPY][PASTE][UNDO][AI HELP][BUFFERS][QUIT]")
+(check "mode line: a long name is shortened at the front, buttons kept"
+       (let ((s (mode-line-string "/home/nia/projects/fibonacci/src/fib.lisp" 1 3 90)))
+         (list (subseq s 0 3) (not (null (search "fib.lisp*, L. 1 [HELP]" s)))
+               (not (null (search "[QUIT]" s))) (<= (length s) 90)))
+       (list "..." t t t))
+(check "mode line: a narrow window drops buttons from the right"
+       (let ((s (mode-line-string "teste.lisp" 1 1 60)))
+         (list (not (null (search "[HELP]" s))) (null (search "[QUIT]" s)) (<= (length s) 60)))
+       '(t t t))
+(check "mode line: the name and the buttons are clickable, the rest is not"
+       (mapcar #'third (subseq (decoded-mode-line "a.txt" 1 1 120) 0 4))
+       '(t nil t nil))
+(check "mode line: modified and other window marks"
+       (subseq (mode-line-string "a.txt" 7 2 120) 0 17)
+       "a.txt*, L. 7 -- S")
+(check "mode line: a buffer with a hint shows the hint, no buttons"
+       (let ((*buffer-hints* (make-hash-table :test 'equal)))
+         (setf (gethash "*x*" *buffer-hints*) "C-c t tangle")
+         (mode-line-string "*x*" 2 1 120))
+       "SBEmacs: *x*, L. 2 == C-c t tangle ")
+(check "mode line: no buttons, the C core's mode line"
+       (let ((*mode-line-menu* nil)) (mode-line-pieces "a" "" "a" 1 1 80))
+       nil)
+(check "file info: lines and words"
+       (multiple-value-list (count-lines-words (format nil "one two~%three~%four five six")))
+       '(3 6))
+
 (format t "~&~D/~D tests passed~%" (- *count* *failures*) *count*)
 (sb-ext:exit :code (if (zerop *failures*) 0 1))

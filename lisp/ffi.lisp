@@ -148,7 +148,7 @@ moved together."
   (name sb-alien:c-string) (hint sb-alien:c-string))
 (defcore %set-modeline-hints "fe_set_modeline_hints" sb-alien:void
   (help sb-alien:c-string) (tail sb-alien:c-string))
-(defcore %set-modeline-menu "fe_set_modeline_menu" sb-alien:void (labels sb-alien:c-string))
+(defcore %set-modeline-hook "fe_set_modeline_hook" sb-alien:void (hook sb-alien:system-area-pointer))
 (defcore %run-c-key "fe_run_c_key" sb-alien:int (name sb-alien:c-string))
 
 (defcore %message "fe_message" sb-alien:void (s sb-alien:c-string))
@@ -337,17 +337,6 @@ when it is empty or cannot be read."
   "The two hints on the mode line, e.g. \"Ctrl-h for help\" and
 \"Ctrl c r calls Claude; Ctrl c g calls GPT\"."
   (%set-modeline-hints (text help) (text tail))
-  t)
-
-(declaim (ftype (function (list) (values (eql t) &optional)) set-mode-line-menu))
-(defun set-mode-line-menu (labels)
-  "The buttons of the mode line, e.g. (\"HELP\" \"SAVE\"); NIL removes them
-and brings back the hints.  A click on button I raises the \"menu\" event
-with I (see RUN-MODE-LINE-MENU in lisp/extensions/menu.lisp)."
-  (dolist (l labels)
-    (check-type l string)
-    (when (find #\Newline l) (error "A menu label cannot hold a newline: ~S" l)))
-  (%set-modeline-menu (text (format nil "~{~A~^~%~}" labels)))
   t)
 
 (defvar *buffer-hints* (make-hash-table :test 'equal)

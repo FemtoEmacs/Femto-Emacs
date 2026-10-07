@@ -186,16 +186,31 @@ learns the keys, and learn them from the buttons:
 \verb|[PASTE]|   & \verb|C-y|     & paste\\
 \verb|[UNDO]|    & \verb|C-/|     & undo\\
 \verb|[AI HELP]| &                & how to ask Claude or Codex\\
-\verb|[BUFFERS]| & \verb|C-x b|   & switch to another open file
+\verb|[BUFFERS]| & \verb|C-x b|   & switch to another open file\\
+\verb|[QUIT]|    & \verb|C-x C-c| & leave SBEmacs
 \end{tabular}
 \end{quote}
+The name of the file is a button too. A click on it opens a window
+with the full name of the file (a long name is shortened on the
+status line), its number of lines, words, characters and bytes, the
+line of the cursor, the language, and whether and when it was saved.
+\verb|C-x 1| closes that window.
 To copy, Nia drags the mouse over the text and clicks
 \verb|[COPY]|; she then clicks where the copy should go, and clicks
 \verb|[PASTE]|. A button lights up while she presses it, and acts
 when she lets it go; if she changes her mind, she moves the mouse
-off the button before letting go. The list of buttons is a script,
-\verb|lisp/extensions/menu.lisp|, which says how to add or remove
-buttons.
+off the button before letting go. If Nia leaves SBEmacs with
+\verb|[QUIT]| while a file is not saved, SBEmacs asks first.
+
+The whole status line is written in Lisp, in
+\verb|lisp/extensions/menu.lisp|. The buttons are a list,
+\verb|*mode-line-menu*|, which Nia can change in her init file:
+\begin{quote}
+\begin{verbatim}
+(setf *mode-line-menu*
+      (append *mode-line-menu* '(("KILL" "C-x k"))))
+\end{verbatim}
+\end{quote}
 
 \begin{figure}[ht]
 \centering

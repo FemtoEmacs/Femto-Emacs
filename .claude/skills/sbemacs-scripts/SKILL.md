@@ -71,9 +71,11 @@ extensions and `init.lisp`.
 - Talking to the user: `message` `clear-message-line` `prompt`
   `update-display` `get-key` (returns the typed text, or "" for a bound
   key, then `get-key-name` gives its name) `set-buffer-hint` (text at the
-  end of a buffer's mode line) `set-mode-line-menu` (the clickable
-  buttons; the list is `*mode-line-menu*` in `lisp/extensions/menu.lisp`,
-  entries `(LABEL KEY-OR-COMMAND)`, then `(install-mode-line-menu)`)
+  end of a buffer's mode line) `*mode-line-menu*` (the mode line's
+  clickable buttons, entries `(LABEL KEY-OR-COMMAND)`; the whole mode line
+  is composed in `lisp/extensions/menu.lisp`, `mode-line-pieces`)
+  `*mode-line-buttons-function*` (choose the buttons per buffer)
+  `usage-statistics` (`*command-usage*`, `*button-usage*`)
 - Keys and commands: `global-set-key` `global-unset-key` `key-binding`
   `defcommand` `execute-builtin` (runs a command of the C core by name)
   `run-key-as-typed` (does what typing a key does, Lisp or C binding)

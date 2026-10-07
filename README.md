@@ -86,7 +86,7 @@ sbemacs [--gui] [-q] [--no-mouse] [file]
 click a button and it does what its key does.
 
 ```
-teste.lisp, L. 3 == SBEmacs: [HELP] [SAVE] [OPEN] [COPY] [PASTE] [UNDO] [AI HELP] [BUFFERS]
+teste.lisp, L. 3 == SBEmacs: [HELP] [SAVE] [OPEN] [COPY] [PASTE] [UNDO] [AI HELP] [BUFFERS] [QUIT]
 ```
 
 | Button | Key | Does |
@@ -99,12 +99,28 @@ teste.lisp, L. 3 == SBEmacs: [HELP] [SAVE] [OPEN] [COPY] [PASTE] [UNDO] [AI HELP
 | `[UNDO]` | `C-/` | undo |
 | `[AI HELP]` | | what Claude (`C-c r`) and Codex (`C-c g`) can do |
 | `[BUFFERS]` | `C-x b` | switch to another open file |
+| `[QUIT]` | `C-x C-c` | leave SBEmacs (it asks first if something is not saved) |
+| the file name | | its full name, lines, words, size, cursor, language, when it was saved |
 
 The button lights up while it is pressed and acts when it is released
 (moving off it first cancels).  In a narrow window the spaces between the
-buttons go first, then the word SBEmacs, then the buttons on the right.
-The buttons are a list in [`lisp/extensions/menu.lisp`](lisp/extensions/menu.lisp),
-a script: add your own or remove some there, or in your init file.
+buttons go first, then the word SBEmacs, then the `==`, then the front of a
+long file name (`...rc/fib.lisp`), and only then the buttons on the right.
+
+The whole mode line is written in Lisp, in
+[`lisp/extensions/menu.lisp`](lisp/extensions/menu.lisp), a script; the C
+core only paints it.  The buttons are the list `*mode-line-menu*`, of
+`(LABEL KEY-OR-COMMAND)`:
+
+```lisp
+;; ~/.sbemacs/init.lisp
+(setf *mode-line-menu* (append *mode-line-menu* '(("KILL" "C-x k"))))
+```
+
+To choose the buttons otherwise, by how often they are used say, set
+`*mode-line-buttons-function*`.  SBEmacs counts, for the session, how many
+times each command ran (`*command-usage*`) and each button was clicked
+(`*button-usage*`); `(usage-statistics)` lists the most used.
 
 **`C-h` or `F1` shows every key on one page** (the arrows scroll it, any
 other key returns to your file).
@@ -501,7 +517,7 @@ optional and default to 1.
 | Editing | `insert` `backward-delete-char` `delete-char` `kill-region` `copy-region` `yank` `kill-line` `undo` `redo` `cut-region` `get-clipboard` `set-clipboard` `system-clipboard` `current-line-text` |
 | Search | `search-forward` `search-backward` (return true when found) |
 | Buffers | `get-buffer-name` `get-buffer-count` `buffer-filename` `buffer-modified-p` `select-buffer` `kill-buffer` `save-buffer` `find-file` `list-buffers` `rename-buffer` |
-| Windows | `split-window` `other-window` `delete-other-windows` `update-display` `refresh-screen` `set-mode-line-menu` `run-key-as-typed` |
+| Windows | `split-window` `other-window` `delete-other-windows` `update-display` `refresh-screen` `run-key-as-typed` `usage-statistics` |
 | Interaction | `message` (accepts `format` arguments) `clear-message-line` `prompt` `get-key` `get-key-name` `get-key-binding` |
 | Misc | `shell-command` `log-message` `log-debug` `trim` `home` `get-version-string` `quit-editor` |
 | Customising | `global-set-key` `global-unset-key` `define-language` `define-indentation` `define-indent-style` `indent-line` `indent-region` `indent-buffer` `set-color` `*kill-hook*` `*startup-hook*` `*kill-ring*` `*undo-mode*` |
