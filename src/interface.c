@@ -399,6 +399,12 @@ void fe_set_clipboard(char *str)
 	screen_set_clipboard(str);
 }
 
+/* put STR on the system clipboard only: what C-y inserts is unchanged */
+void fe_set_system_clipboard(char *str)
+{
+	screen_set_clipboard(str);
+}
+
 /* what other programs put on the system clipboard, or NULL; Lisp copies
  * the string at once, and it is freed at the next call */
 char *fe_get_system_clipboard(void)

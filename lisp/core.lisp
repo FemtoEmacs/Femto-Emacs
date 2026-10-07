@@ -173,6 +173,10 @@ scripts compiled into the image are not loaded again."
 (defvar *startup-hook* '()
   "Functions called with no arguments once the editor screen is up.")
 
+(defvar *select-hook* '()
+  "Functions called with no arguments when a mouse drag has just selected
+text (the region).  COPY-ON-SELECT, in defaults.lisp, is one.")
+
 (defvar *kill-ring* '()
   "Killed regions, most recent first.")
 
@@ -338,6 +342,7 @@ installs itself here.")
                        ((string= event "menu")
                         (setf handled :key)
                         (run-mode-line-button (parse-integer arg)))
+                       ((string= event "select") (dolist (f *select-hook*) (funcall f)))
                        ((string= event "kill") (dolist (f *kill-hook*) (funcall f arg)))
                        ((string= event "startup") (run-startup))
                        ((string= event "colors") (apply-color-theme (parse-integer arg))))

@@ -414,6 +414,15 @@ terminal, SBEmacs reaches the clipboard through \verb|pbcopy| and
 \verb|xclip| on Linux (install one of them); in a window, it needs
 nothing.
 
+When Nia selects text by dragging the mouse, SBEmacs copies it to the
+clipboard at once: \keys{Cmd-V} pastes it in her browser, and she
+never needs \keys{Cmd-C}. In fact, in a terminal \keys{Cmd-C} finds
+nothing to copy, because SBEmacs takes the mouse for itself (that is
+how the buttons of the status line work); iTerm2 then complains that
+mouse reporting has prevented making a selection. The text is
+already on the clipboard. If Nia wants the terminal's own selection,
+she keeps \keys{Option} down while she drags.
+
 Nia noticed that there are two equivalent ways to
 issue an \verb|M-|$\kappa$ command. She can
 press and release the \keys{Esc} key, then

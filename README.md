@@ -164,9 +164,15 @@ works is explained at the top of `lisp/undo.lisp`.
 
 The **region** between the mark (`C-SPC`) and the cursor is shaded, as in
 Emacs, until the text changes or `C-g`.  The **mouse** works in the terminal
-too: a click moves the cursor or selects a window, a drag selects a region
-(the wheel does nothing).  Hold Shift (Option in Terminal.app) to use the
-terminal's own selection instead, or start with `--no-mouse`.
+too: a click moves the cursor, selects a window or presses a button of the
+mode line, and a drag selects a region **and copies it to the clipboard**,
+so Cmd-V (Ctrl-V) pastes it in any other program; there is no need for
+Cmd-C.  Because SBEmacs takes the mouse, the terminal makes no selection of
+its own: iTerm2, if you press Cmd-C anyway, says that "mouse reporting has
+prevented making a selection" -- the text is already on the clipboard.
+Hold Option (iTerm2, Terminal.app) or Shift (most Linux terminals) while
+dragging to use the terminal's own selection instead, or start with
+`--no-mouse`.  `(setf *copy-on-select* nil)` turns the copying off.
 
 On macOS, tick *Use Option as Meta key* in Terminal → Settings → Profiles →
 Keyboard so that the Option key works as `Esc`.  `C-h` is help, not
