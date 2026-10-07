@@ -817,6 +817,16 @@ static void handle(SDL_Event *e)
 		key_down(&e->key);
 		break;
 	case SDL_TEXTINPUT:
+		/* macOS may deliver Option-produced text (for example Option-w as
+		 * U+2211) before the matching KEYDOWN.  When Option is Meta, discard
+		 * that text regardless of event order; KEYDOWN queues ESC plus the
+		 * physical key. */
+#if defined(__APPLE__)
+		if (option_is_meta && (SDL_GetModState() & KMOD_ALT)) {
+			suppress_text = 0;
+			break;
+		}
+#endif
 		if (suppress_text) suppress_text = 0;
 		else push_string(e->text.text);
 		break;
