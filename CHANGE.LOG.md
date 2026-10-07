@@ -1,6 +1,12 @@
 # SBEmacs / Femto Emacs Change Log
 
 ## SBEmacs 2.0
+* The kill ring and the system clipboard work together, in the terminal
+  too: every kill or copy goes to the clipboard (pbcopy, wl-copy, xclip or
+  xsel; OSC 52 when none is there), and C-y first takes in what another
+  program copied, which joins the kill ring.  *use-system-clipboard*.
+* The window shows the prompts of the C core (C-x C-f, C-s, query-replace);
+  before, it seemed frozen while they waited for a key.
 * Markdown (lisp/languages/markdown.lisp): headings, emphasis, strong,
   code, links, quotations, lists, tables, rules and comments, with code
   blocks coloured in their own language; RET continues lists, TAB nests

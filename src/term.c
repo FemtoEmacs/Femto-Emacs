@@ -6,6 +6,8 @@
  */
 
 #include <curses.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "screen.h"
 
@@ -159,8 +161,131 @@ void screen_face(int id)
 		attrset(face_attrs[id]);
 }
 
-/* nothing to do in a terminal */
+/*
+ * The system clipboard, from a terminal.  A terminal program cannot reach
+ * the clipboard by itself, so it asks the system's own tools, through a
+ * pipe: the text goes to their standard input, or comes from their
+ * standard output, never through a shell command line.  LC_CTYPE=UTF-8
+ * makes pbcopy and pbpaste take the bytes as UTF-8 even when the locale is
+ * unset.  When no tool is there (over ssh, say), the copy is sent to the
+ * terminal itself as an OSC 52 escape, which iTerm2, kitty, WezTerm,
+ * foot, Windows Terminal and tmux (set-clipboard on) understand; OSC 52
+ * cannot be read back, so pasting from other programs then needs the
+ * terminal's own paste key.
+ */
+#ifndef _WIN32
+/* NEEDS: an environment variable that must be set; PROGRAM: must exist */
+struct clip_tool { const char *needs, *program, *copy, *paste; };
+
+static const struct clip_tool clip_tools[] = {
+#ifdef __APPLE__
+	{ NULL, "pbcopy", "LC_CTYPE=UTF-8 pbcopy", "LC_CTYPE=UTF-8 pbpaste" },
+#endif
+	{ "WAYLAND_DISPLAY", "wl-copy", "wl-copy 2>/dev/null", "wl-paste --no-newline 2>/dev/null" },
+	{ "DISPLAY", "xclip", "xclip -selection clipboard -in 2>/dev/null",
+	             "xclip -selection clipboard -out 2>/dev/null" },
+	{ "DISPLAY", "xsel", "xsel --clipboard --input 2>/dev/null", "xsel --clipboard --output 2>/dev/null" },
+	{ NULL, NULL, NULL, NULL }
+};
+
+/* the first tool whose program exists (and whose display is set); once */
+static const struct clip_tool *clip_tool(void)
+{
+	static int searched = 0;
+	static const struct clip_tool *found = NULL;
+	const struct clip_tool *t;
+	char probe[128];
+
+	if (searched) return found;
+	searched = 1;
+	for (t = clip_tools; t->program; t++) {
+		if (t->needs && !getenv(t->needs)) continue;
+		snprintf(probe, sizeof probe, "command -v %s >/dev/null 2>&1", t->program);
+		if (system(probe) == 0) { found = t; break; }
+	}
+	return found;
+}
+
+static void osc52_copy(const char *text)
+{
+	static const char b64[] =
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+	const unsigned char *p = (const unsigned char *) text;
+	size_t len = strlen(text), i;
+
+	if (len > 74994) return;           /* terminals cap OSC 52 near 100 kB */
+	fputs("\033]52;c;", stdout);
+	for (i = 0; i + 2 < len; i += 3) {
+		putchar(b64[p[i] >> 2]);
+		putchar(b64[((p[i] & 3) << 4) | (p[i+1] >> 4)]);
+		putchar(b64[((p[i+1] & 15) << 2) | (p[i+2] >> 6)]);
+		putchar(b64[p[i+2] & 63]);
+	}
+	if (i < len) {
+		putchar(b64[p[i] >> 2]);
+		if (i + 1 < len) {
+			putchar(b64[((p[i] & 3) << 4) | (p[i+1] >> 4)]);
+			putchar(b64[(p[i+1] & 15) << 2]);
+		} else {
+			putchar(b64[(p[i] & 3) << 4]);
+			putchar('=');
+		}
+		putchar('=');
+	}
+	fputs("\a", stdout);
+	fflush(stdout);
+}
+
+void screen_set_clipboard(const char *text)
+{
+	const struct clip_tool *t;
+	FILE *f;
+
+	if (!text || !*text) return;
+	t = clip_tool();
+	if (t && (f = popen(t->copy, "w")) != NULL) {
+		fputs(text, f);
+		if (pclose(f) == 0) return;
+	}
+	osc52_copy(text);
+}
+
+char *screen_get_clipboard(void)
+{
+	const struct clip_tool *t = clip_tool();
+	FILE *f;
+	char *buf = NULL, *bigger;
+	size_t len = 0, cap = 0;
+	int c, prev = 0, status;
+
+	if (!t || (f = popen(t->paste, "r")) == NULL) return NULL;
+	while ((c = getc(f)) != EOF) {
+		if (len + 2 > cap) {
+			cap = cap ? 2 * cap : 4096;
+			if ((bigger = realloc(buf, cap)) == NULL) {
+				free(buf);
+				pclose(f);
+				return NULL;
+			}
+			buf = bigger;
+		}
+		/* CRLF and CR line ends become LF */
+		if (c == '\n' && prev == '\r') { prev = c; continue; }
+		buf[len++] = (char) (c == '\r' ? '\n' : c);
+		prev = c;
+	}
+	status = pclose(f);
+	if (status != 0 || buf == NULL) { free(buf); return NULL; }
+	buf[len] = '\0';
+	return buf;
+}
+#else
+/* the Windows build has only the window, which uses SDL's clipboard */
 void screen_set_clipboard(const char *text) { (void) text; }
+char *screen_get_clipboard(void) { return NULL; }
+#endif
+
+/* nothing to do in a terminal */
 void screen_set_font(const char *path, int points) { (void) path; (void) points; }
 void screen_set_default_colors(long fg, long bg, long cursor) { (void) fg; (void) bg; (void) cursor; }
 void screen_set_title(const char *title) { (void) title; }

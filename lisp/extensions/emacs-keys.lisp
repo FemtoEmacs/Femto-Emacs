@@ -479,9 +479,10 @@ only blank space before it.  Consecutive C-k's join in the kill ring."
 (defvar *yank-index* 0)
 
 (defcommand yank-command ()
-  "C-y: insert the last killed text; M-y right after replaces it with
-earlier kills."
+  "C-y: insert the last killed text, or what another program copied since;
+M-y right after replaces it with earlier kills."
   (let ((start (point)))
+    (adopt-system-clipboard)
     (yank)
     (setf *yank-start* start *yank-end* (point) *yank-index* 0)
     (push-mark start)

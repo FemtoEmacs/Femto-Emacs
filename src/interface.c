@@ -378,7 +378,8 @@ char *fe_get_clipboard(void)
 	return p == NULL ? empty : p;
 }
 
-void fe_set_clipboard(char *str)
+/* the text C-y inserts, without touching the system clipboard */
+void fe_set_scrap(char *str)
 {
 	/*
 	 * the string belongs to Lisp, take a malloc'd copy so that the
@@ -389,8 +390,23 @@ void fe_set_clipboard(char *str)
 	assert(p != NULL);
 	memcpy(p, str, len + 1);
 	set_scrap(p);
-	/* Keep Lisp-originated copies and the GUI's system clipboard in sync. */
+}
+
+/* the text C-y inserts, also put on the system clipboard */
+void fe_set_clipboard(char *str)
+{
+	fe_set_scrap(str);
 	screen_set_clipboard(str);
+}
+
+/* what other programs put on the system clipboard, or NULL; Lisp copies
+ * the string at once, and it is freed at the next call */
+char *fe_get_system_clipboard(void)
+{
+	static char *last = NULL;
+	free(last);
+	last = screen_get_clipboard();
+	return last;
 }
 
 /* searching: returns 1 when found (and moves there), 0 otherwise */

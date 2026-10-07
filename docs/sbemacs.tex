@@ -364,6 +364,17 @@ issues the \verb|C-y| command. If she wants an earlier kill,
 she presses \verb|M-y| right after \verb|C-y|, and SBEmacs replaces
 the yanked text with the kill before it.
 
+The kill ring and the system clipboard work together, as in
+Emacs. Whatever Nia kills or copies with \verb|C-w|, \verb|M-w| or
+\verb|C-k| also goes to the clipboard, so she can paste it into any
+other program. And when she copies something in another program,
+say a paragraph in her browser, \verb|C-y| inserts it, and it joins
+the kill ring; \verb|M-y| then goes on to her older kills. In a
+terminal, SBEmacs reaches the clipboard through \verb|pbcopy| and
+\verb|pbpaste| on the Macintosh, and through \verb|wl-copy| or
+\verb|xclip| on Linux (install one of them); in a window, it needs
+nothing.
+
 Nia noticed that there are two equivalent ways to
 issue an \verb|M-|$\kappa$ command. She can
 press and release the \keys{Esc} key, then
