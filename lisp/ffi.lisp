@@ -116,6 +116,8 @@ moved together."
 (defcore %set-scrap "fe_set_scrap" sb-alien:void (s sb-alien:c-string))
 (defcore %get-system-clipboard "fe_get_system_clipboard" sb-alien:c-string)
 (defcore %set-system-clipboard "fe_set_system_clipboard" sb-alien:void (s sb-alien:c-string))
+(defcore %set-completions "fe_set_completions" sb-alien:void (names sb-alien:c-string))
+(defcore %clipboard-tool "fe_clipboard_tool" sb-alien:c-string)
 
 (defcore %search-forward "fe_search_forward" sb-alien:int (s sb-alien:c-string))
 (defcore %search-backward "fe_search_backward" sb-alien:int (s sb-alien:c-string))

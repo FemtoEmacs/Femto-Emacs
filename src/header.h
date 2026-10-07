@@ -374,6 +374,7 @@ extern void match_paren_backwards(buffer_t *, char, char);
 extern void call_lisp(char *, char *, int);
 extern int call_lisp_event(char *, char *);
 extern int menu_hit(int row, int col);
+extern void fe_set_completions(char *names);
 extern void menu_press(int row, int index);
 extern int call_lisp_highlight(buffer_t *, char_t *, int, char_t *);
 extern void init_colors(void);

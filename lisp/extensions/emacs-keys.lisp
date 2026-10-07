@@ -484,6 +484,7 @@ M-y right after replaces it with earlier kills."
   (let ((start (point)))
     (adopt-system-clipboard)
     (yank)
+    (clipboard-helper-missing-notice)
     (setf *yank-start* start *yank-end* (point) *yank-index* 0)
     (push-mark start)
     (setf *this-command* 'yank)))

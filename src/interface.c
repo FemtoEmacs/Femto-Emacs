@@ -399,6 +399,12 @@ void fe_set_clipboard(char *str)
 	screen_set_clipboard(str);
 }
 
+/* how the system clipboard is reached (screen.h) */
+char *fe_clipboard_tool(void)
+{
+	return (char *) screen_clipboard_tool();
+}
+
 /* put STR on the system clipboard only: what C-y inserts is unchanged */
 void fe_set_system_clipboard(char *str)
 {

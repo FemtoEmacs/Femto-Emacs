@@ -168,7 +168,7 @@ goes to the system clipboard, so other programs can paste it.  When another
 program copies something, `C-y` inserts it and it joins the kill ring;
 `M-y` then goes on to the older kills.  In a terminal SBEmacs uses
 `pbcopy`/`pbpaste` on macOS, and `wl-copy`/`wl-paste`, `xclip` or `xsel` on
-Linux (install one).  With none of them, over ssh say, copies still reach
+Linux (install one; the first `C-y` says so when none is there).  With none of them, over ssh say, copies still reach
 your own computer's clipboard through the terminal (OSC 52: iTerm2, kitty,
 WezTerm, Windows Terminal; tmux with `set-clipboard on`), but pasting from
 other programs then needs the terminal's paste key.  To keep the kill ring

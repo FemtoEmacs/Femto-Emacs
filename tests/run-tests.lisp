@@ -459,5 +459,30 @@
        (multiple-value-list (count-lines-words (format nil "one two~%three~%four five six")))
        '(3 6))
 
+;;; File name completion (defaults.lisp): no shell, the same everywhere
+
+(let ((dir (merge-pathnames "build/test-complete/" cl-user::*root*)))
+  (ensure-directories-exist (merge-pathnames "sub/x.lisp" dir))
+  (ensure-directories-exist (merge-pathnames ".hidden/x" dir))
+  (dolist (f '("a.lisp" "ab.txt" "Makefile" "with space.md" ".dot" "sub/x.lisp"))
+    (with-open-file (o (merge-pathnames f dir) :direction :output :if-exists :supersede)
+      (write-line "x" o)))
+  (check "complete: a prefix"
+         (file-name-completions "a" dir) '("a.lisp" "ab.txt"))
+  (check "complete: everything, folders end in /, hidden names left out"
+         (file-name-completions "" dir) '("Makefile" "a.lisp" "ab.txt" "sub/" "with space.md"))
+  (check "complete: hidden names when a dot is typed"
+         (file-name-completions "." dir) '(".dot" ".hidden/"))
+  (check "complete: inside a folder"
+         (file-name-completions "sub/" dir) '("sub/x.lisp"))
+  (check "complete: wild cards"
+         (file-name-completions "*.lisp" dir) '("a.lisp"))
+  (check "complete: a name with a space"
+         (file-name-completions "wi" dir) '("with space.md"))
+  (check "complete: nothing"
+         (file-name-completions "zz" dir) '())
+  (check "complete: a folder that does not exist"
+         (file-name-completions "nowhere/a" dir) '()))
+
 (format t "~&~D/~D tests passed~%" (- *count* *failures*) *count*)
 (sb-ext:exit :code (if (zerop *failures*) 0 1))

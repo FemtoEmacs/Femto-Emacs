@@ -211,3 +211,69 @@ clipboard at once.")
   nil)
 
 (pushnew 'copy-on-select *select-hook*)
+
+;;; File name completion: TAB in the prompts of C-x C-f, C-x i, C-x C-w.
+;;; The C core asks for the names (src/complete.c); they are found here
+;;; with SBCL's DIRECTORY, so no shell is needed, on any system.  * and ?
+;;; are wild cards; ~/ is the home folder.  Hidden names (.git, say) are
+;;; offered only when what was typed starts with a dot.
+
+(defparameter *completion-limit* 500
+  "At most this many names are offered.")
+
+(declaim (ftype (function (simple-string simple-string fixnum fixnum) (values boolean &optional))
+                wild-match-at))
+(defun wild-match-at (pattern name p n)
+  "Does PATTERN from P match NAME from N?  * any run of characters, ? one."
+  (declare (type fixnum p n))
+  (cond ((= p (length pattern)) (= n (length name)))
+        ((char= (char pattern p) #\*)
+         (loop for k from n to (length name)
+               thereis (wild-match-at pattern name (1+ p) k)))
+        ((= n (length name)) nil)
+        ((or (char= (char pattern p) #\?)
+             (char-equal-for-files (char pattern p) (char name n)))
+         (wild-match-at pattern name (1+ p) (1+ n)))
+        (t nil)))
+
+(declaim (ftype (function (character character) (values boolean &optional)) char-equal-for-files))
+(defun char-equal-for-files (a b)
+  "Case matters in file names on Linux, not on macOS or Windows."
+  #+(or darwin win32) (char-equal a b)
+  #-(or darwin win32) (char= a b))
+
+(declaim (ftype (function (string string) (values boolean &optional)) file-name-matches-p))
+(defun file-name-matches-p (typed name)
+  "Does the file NAME complete TYPED (a prefix, or a pattern with * or ?)?"
+  (if (find-if (lambda (c) (member c '(#\* #\?))) typed)
+      (wild-match-at (coerce typed 'simple-string) (coerce name 'simple-string) 0 0)
+      (and (<= (length typed) (length name))
+           (every #'char-equal-for-files typed (subseq name 0 (length typed))))))
+
+(defun file-name-completions (typed &optional (default-directory *default-pathname-defaults*))
+  "The names that complete TYPED, as typed (with its folder part), sorted;
+a folder ends in /."
+  (let* ((cut (position-if (lambda (c) (or (char= c #\/) #+win32 (char= c #\\))) typed
+                           :from-end t))
+         (folder (if cut (subseq typed 0 (1+ cut)) ""))
+         (stem (if cut (subseq typed (1+ cut)) typed))
+         (real (cond ((and (>= (length folder) 2) (string= (subseq folder 0 2) "~/"))
+                      (merge-pathnames (subseq folder 2) (user-homedir-pathname)))
+                     ((string= folder "") default-directory)
+                     (t (merge-pathnames (sb-ext:parse-native-namestring folder) default-directory))))
+         (names '()))
+    (dolist (p (ignore-errors
+                (directory (merge-pathnames (make-pathname :name :wild :type :wild) real)
+                           :resolve-symlinks nil)))
+      (let ((name (if (and (null (pathname-name p)) (null (pathname-type p)))
+                      (let ((dirs (pathname-directory p)))
+                        (and (consp dirs) (stringp (car (last dirs)))
+                             (concatenate 'string (car (last dirs)) "/")))
+                      (file-namestring (native p)))))
+        (when (and name
+                   (or (zerop (length name)) (char/= (char name 0) #\.)
+                       (and (plusp (length stem)) (char= (char stem 0) #\.)))
+                   (file-name-matches-p stem name))
+          (push (concatenate 'string folder name) names))))
+    (let ((sorted (sort names #'string<)))
+      (subseq sorted 0 (min *completion-limit* (length sorted))))))

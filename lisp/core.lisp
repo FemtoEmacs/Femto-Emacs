@@ -202,6 +202,18 @@ text (the region).  COPY-ON-SELECT, in defaults.lisp, is one.")
   "When true, C-y takes in what other programs copied.  Set it to NIL to
 keep the kill ring to yourself (kills still reach the clipboard).")
 
+(defvar *clipboard-notice-shown* nil)
+
+(declaim (ftype (function () (values boolean &optional)) clipboard-helper-missing-notice))
+(defun clipboard-helper-missing-notice ()
+  "Once a session, when a terminal on Linux has no program to reach the
+clipboard: say what to install.  True if the notice was shown."
+  (let ((tool (ignore-errors (%clipboard-tool))))
+    (when (and (not *clipboard-notice-shown*) (equal tool ""))
+      (setf *clipboard-notice-shown* t)
+      (message "To paste what other programs copy, install xclip (X11) or wl-clipboard (Wayland)")
+      t)))
+
 (declaim (ftype (function () (values (or null string) &optional)) adopt-system-clipboard))
 (defun adopt-system-clipboard ()
   "If the system clipboard holds text that is not the newest kill, push it
@@ -343,6 +355,9 @@ installs itself here.")
                         (setf handled :key)
                         (run-mode-line-button (parse-integer arg)))
                        ((string= event "select") (dolist (f *select-hook*) (funcall f)))
+                       ((string= event "complete-file")
+                        (%set-completions
+                         (text (format nil "~{~A~^~%~}" (file-name-completions arg)))))
                        ((string= event "kill") (dolist (f *kill-hook*) (funcall f arg)))
                        ((string= event "startup") (run-startup))
                        ((string= event "colors") (apply-color-theme (parse-integer arg))))
@@ -353,6 +368,9 @@ installs itself here.")
       ;; an error in a self-insert function must not swallow the key
       (unless (eq handled :key) (setf handled nil)))
     (if handled 1 0)))
+
+;; defined in lisp/defaults.lisp, a script
+(declaim (ftype (function (string &optional t) (values list &optional)) file-name-completions))
 
 ;; defined in lisp/extensions/menu.lisp, a script
 (declaim (ftype (function (integer) t) run-mode-line-button))
