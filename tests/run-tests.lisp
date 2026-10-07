@@ -224,6 +224,29 @@
        (plusp (length (codex-installation-candidates)))
        t)
 
+#+darwin
+(check "Codex candidates include the current ChatGPT bundle"
+       (not (null (member #p"/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex"
+                          (codex-installation-candidates) :test #'equal)))
+       t)
+(check "Codex discovers a bundled executable without PATH"
+       (let ((original-find (symbol-function 'find-program))
+             (original-candidates (symbol-function 'codex-installation-candidates))
+             (*codex-program* "")
+             (expected (truename *load-truename*)))
+         (unwind-protect
+              (progn
+                (setf (symbol-function 'find-program) (lambda (name) (declare (ignore name)) nil)
+                      (symbol-function 'codex-installation-candidates) (lambda () (list expected)))
+                (equal (find-codex-program) expected))
+           (setf (symbol-function 'find-program) original-find
+                 (symbol-function 'codex-installation-candidates) original-candidates)))
+       t)
+(check "Codex explicit executable overrides discovery"
+       (let ((*codex-program* (native (truename *load-truename*))))
+         (equal (find-codex-program) (truename *load-truename*)))
+       t)
+
 ;;; key names: Emacs notation -> the C core's names, and back
 (check "normalize M-d" (normalize-key "M-d") "esc d")
 (check "normalize C-M-f" (normalize-key "C-M-f") "esc C-f")

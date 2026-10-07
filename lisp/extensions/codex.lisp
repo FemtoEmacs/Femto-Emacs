@@ -135,7 +135,17 @@ A relative buffer name such as teste.lisp must not become the empty string."
   (remove
    nil
    (list
-    ;; Codex bundled with the ChatGPT desktop application on macOS.
+    ;; Current ChatGPT bundles keep the CLI inside a nested application.
+    ;; Keep the legacy locations too: GUI launches need not inherit shell PATH.
+    #+darwin #p"/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex"
+    #+darwin (merge-pathnames
+              "Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex"
+              (user-homedir-pathname))
+    #+darwin #p"/Applications/Codex.app/Contents/Resources/codex"
+    #+darwin (merge-pathnames
+              "Applications/Codex.app/Contents/Resources/codex"
+              (user-homedir-pathname))
+    ;; Codex bundled with older ChatGPT desktop applications on macOS.
     #+darwin #p"/Applications/ChatGPT.app/Contents/Resources/codex"
     #+darwin (merge-pathnames
               "Applications/ChatGPT.app/Contents/Resources/codex"
@@ -165,7 +175,8 @@ A relative buffer name such as teste.lisp must not become the empty string."
 
 (defun find-codex-program ()
   "Find an explicit, PATH, standalone, npm, or ChatGPT-bundled Codex."
-  (or (codex-explicit-program *codex-program*)
+  (or (codex-explicit-program (or *codex-program*
+                                  (sb-ext:posix-getenv "SBEMACS_CODEX_PROGRAM")))
       (find-program "codex")
       (find-if #'probe-file (codex-installation-candidates))))
 
@@ -281,6 +292,8 @@ are returned unchanged.  Elsewhere this is a no-op."
                  Sandbox: read-only~%Session: ephemeral~%~%~
                  SBEmacs checks PATH, the official standalone-install~%~
                  directories, npm on Windows, and the macOS ChatGPT app.~%~
+                 Override discovery with *codex-program* in init.lisp~%~
+                 or the SBEMACS_CODEX_PROGRAM environment variable.~%~
                  If authentication is needed, run Codex once and choose~%~
                  Sign in with ChatGPT."
             (and program (native program)) *codex-model*)))
