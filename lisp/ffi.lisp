@@ -398,7 +398,14 @@ which case GET-KEY-NAME and GET-KEY-BINDING describe it."
   (or (%prompt (text question) (text initial)) ""))
 
 ;; misc
-(defun shell-command (command) (%shell-command (text command)) t)
+(declaim (ftype (function (string) t) shell-command-to-output))
+(defun shell-command (command)
+  "Run COMMAND with the system's shell and show what it printed in *output*
+(lisp/extensions/shell.lisp; the C core's version before scripts load)."
+  (if (fboundp 'shell-command-to-output)
+      (shell-command-to-output command)
+      (%shell-command (text command)))
+  t)
 (defun add-mode-global (mode) (= 1 (%add-mode-global (text mode))))
 (defun get-version-string () (%version))
 (defun quit-editor () (%quit) t)

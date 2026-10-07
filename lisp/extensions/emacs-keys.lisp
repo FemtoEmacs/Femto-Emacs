@@ -1104,7 +1104,7 @@ function returns."
 
 (global-set-key "M-%" 'query-replace-command)
 (global-set-key "M-:" 'eval-expression)
-(global-set-key "M-!" 'shell-command-command)
+; M-! and C-x @: the shell command window, in shell.lisp
 (global-set-key "C-M-x" 'eval-defun)
 
 (global-set-key "C-x b" 'switch-to-buffer)

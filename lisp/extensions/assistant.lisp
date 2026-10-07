@@ -161,7 +161,9 @@ TIMEOUT seconds."
                                    :input :stream :output :stream :error :stream
                                    :wait nil :search nil
                                    :environment (child-environment)
-                                   :external-format :utf-8))
+                                   :external-format :utf-8
+                                   ;; no console window flashing on Windows
+                                   #+win32 :window #+win32 :hide))
          (out (make-string-output-stream))
          (err (make-string-output-stream))
          (deadline (+ (get-universal-time) timeout)))

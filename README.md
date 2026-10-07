@@ -160,6 +160,17 @@ Option key* to *Esc+*.  You may leave Right Option as *Normal* for typing
 macOS symbols.  These settings make `Option-w` reach textual SBEmacs as
 `M-w`; otherwise macOS sends the character `∑` before the editor sees it.
 
+### Shell commands
+
+`M-!` (or `C-x @`) opens a window below the file for a command of the
+operating system; `C-c s` runs it, in the folder of the file.  The window
+then shows the command and, below it, what it printed (and the exit status
+when it failed).  A command may take several lines: Enter breaks the line,
+and the breaks become continuations -- ` \` and a break for `sh` on Linux
+and macOS, a space for `cmd.exe` on Windows, where the command runs without
+flashing a console window.  The command reads no input, so it cannot wait
+for the keyboard.  [`lisp/extensions/shell.lisp`](lisp/extensions/shell.lisp).
+
 ### The clipboard
 
 The kill ring and the system clipboard work together, as in Emacs, in the

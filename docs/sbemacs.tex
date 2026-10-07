@@ -621,13 +621,23 @@ C-x C-e      evaluate the expression before the cursor
 C-M-x        evaluate the top-level form around the cursor
 M-:          evaluate an expression typed at the bottom
 M-]          evaluate the block and insert the value
-M-!          run a shell command
+M-!          a window for a shell command; C-c s runs it
 C-x C-r      reload the Lisp scripts (no rebuild needed)
 C-c r        Claude: hints, a question or a discussion
 C-c y        insert the code of the last answer
 C-c t        in the discussion: insert the snippet under the cursor
 C-c g        write a request for ChatGPT (Codex)
 \end{verbatim}
+
+\paragraph{Shell commands.} \verb|M-!| opens a window below the file,
+where Nia writes a command for the operating system, say
+\verb|ls -l| or \verb|sbcl --script fib.lisp|. A long command may
+take several lines: \keys{Enter} breaks the line, and SBEmacs joins
+the lines again as the system expects (with \verb|\| at the end of
+each line on Linux and the Macintosh). \verb|C-c s| runs the command
+in the folder of her file. The window then shows the command and,
+below it, what the command printed; if it failed, its exit status
+too. \verb|C-x 1| closes the window.
 
 %%% CHAPTER2
 %%% ==================================================================
