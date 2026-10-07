@@ -435,10 +435,21 @@ changes a command makes undo together."
                1)))))
       0))
 
+(declaim (ftype (function (string t integer integer) integer) markdown-wrap-row))
+
+(sb-alien:define-alien-callable lisp-wrap-row sb-alien:int
+    ((fname sb-alien:c-string) (text sb-alien:system-area-pointer)
+     (len sb-alien:int) (cols sb-alien:int))
+  ;; A failed callback disables wrapping rather than escaping through C.
+  (handler-case
+      (if (fboundp 'markdown-wrap-row) (markdown-wrap-row fname text len cols) 0)
+    (serious-condition () 0)))
+
 (defun install-hooks ()
   (%set-hooks (sb-alien:alien-sap (sb-alien:alien-callable-function 'lisp-eval))
               (sb-alien:alien-sap (sb-alien:alien-callable-function 'lisp-event))
               (sb-alien:alien-sap (sb-alien:alien-callable-function 'lisp-highlight)))
+  (%set-wrap-hook (sb-alien:alien-sap (sb-alien:alien-callable-function 'lisp-wrap-row)))
   (%set-change-hook (sb-alien:alien-sap (sb-alien:alien-callable-function 'lisp-change)))
   (%set-modeline-hook (sb-alien:alien-sap (sb-alien:alien-callable-function 'lisp-modeline))))
 
