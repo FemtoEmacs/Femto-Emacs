@@ -426,7 +426,7 @@
        "teste.lisp, L. 3 == SBEmacs: [HELP][SAVE][OPEN][COPY][PASTE][UNDO][AI HELP][BUFFERS][QUIT]")
 (check "mode line: a long name is shortened at the front, buttons kept"
        (let ((s (mode-line-string "/home/nia/projects/fibonacci/src/fib.lisp" 1 3 90)))
-         (list (subseq s 0 3) (not (null (search "fib.lisp*, L. 1 [HELP]" s)))
+         (list (subseq s 0 3) (not (null (search "src/fib.lisp*, L. 1" s)))
                (not (null (search "[QUIT]" s))) (<= (length s) 90)))
        (list "..." t t t))
 (check "mode line: a narrow window drops buttons from the right"
@@ -444,6 +444,14 @@
          (setf (gethash "*x*" *buffer-hints*) "C-c t tangle")
          (mode-line-string "*x*" 2 1 120))
        "SBEmacs: *x*, L. 2 == C-c t tangle ")
+(check "mode line: a name over 18 characters is always shortened"
+       (let ((s (mode-line-string "a-rather-long-name.lisp" 1 1 200)))
+         (subseq s 0 (position #\, s)))
+       "...-long-name.lisp")
+(check "mode line: a name of 18 characters is not"
+       (let ((s (mode-line-string "eighteen-chars.txt" 1 1 200)))
+         (subseq s 0 (position #\, s)))
+       "eighteen-chars.txt")
 (check "mode line: no buttons, the C core's mode line"
        (let ((*mode-line-menu* nil)) (mode-line-pieces "a" "" "a" 1 1 80))
        nil)

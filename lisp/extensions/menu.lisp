@@ -116,9 +116,13 @@ separated by RS."
                      (if action (action-id action) 0) (code-char #x1F)
                      (piece-text text)))))
 
+(defparameter *mode-line-name-maximum* 18
+  "A file name longer than this is shown shortened at the front
+\(\"...src/fib.lisp\"); a click on it shows the whole name.")
+
 (defparameter *mode-line-name-minimum* 12
-  "A long file name is shortened, at the front, down to this width before
-any button is left out.")
+  "In a narrow window a file name is shortened further, down to this
+width, before any button is left out.")
 
 (defun mode-line-pieces (name fname bname line flags cols)
   "The mode line of a window (called by the C core at every redisplay):
@@ -154,7 +158,8 @@ or NIL for the C core's own mode line."
                      (reduce #'+ (subseq widths 0 count))
                      (if spaced (max 0 (1- count)) 0))))
            (let ((count (length buttons)) (brand t) (marker t) (spaced t)
-                 (name-width (length name)))
+                 (name-width (min (length name)
+                                  (max *mode-line-name-minimum* *mode-line-name-maximum*))))
              (loop
                (let ((over (- (width name-width brand marker spaced count) cols)))
                  (cond ((<= over 0) (return))
@@ -259,8 +264,13 @@ the mode line)."
   (let ((file (or (buffer-filename) (get-buffer-name))))
     (show-in-assistant-window (format nil "About ~A" (file-namestring file))
                               (file-info-text))
-    (set-buffer-hint *assistant-buffer* "C-x 1 close")
-    (message "~A" file))
+    (set-buffer-hint *assistant-buffer* "any key closes this window")
+    (message "~A   (any key closes the window)" file)
+    (update-display)
+    ;; like the help page: the next key (or click) only closes it
+    (unwind-protect (get-key)
+      (close-assistant-windows)
+      (clear-message-line)))
   t)
 
 ;;; ------------------------------------------------------------------

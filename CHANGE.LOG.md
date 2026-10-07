@@ -6,8 +6,8 @@
   window.  A button lights up while pressed (faces :menu, :menu-pressed)
   and, on release, does exactly what its key does (run-key-as-typed).
   [AI HELP] shows what Claude (C-c r) and Codex (C-c g) can do.  The file
-  name is a button: its full name, lines, words, size, language, saved or
-  not.  The whole mode line is composed in Lisp (lisp/extensions/menu.lisp,
+  name, shortened at the front past 18 characters, is a button: its full
+  name, lines, words, size, language, saved or not; any key closes it.  The whole mode line is composed in Lisp (lisp/extensions/menu.lisp,
   *mode-line-menu*, *mode-line-buttons-function*); C only paints the
   pieces.  Narrow windows drop the spaces, the word SBEmacs, the ==, the
   front of a long name, and only then buttons.  *command-usage* and
