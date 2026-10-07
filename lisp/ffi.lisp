@@ -151,6 +151,8 @@ moved together."
   (name sb-alien:c-string) (hint sb-alien:c-string))
 (defcore %set-modeline-hints "fe_set_modeline_hints" sb-alien:void
   (help sb-alien:c-string) (tail sb-alien:c-string))
+(defcore %set-wrap-hook "fe_set_wrap_hook" sb-alien:void (hook sb-alien:system-area-pointer))
+
 (defcore %set-modeline-hook "fe_set_modeline_hook" sb-alien:void (hook sb-alien:system-area-pointer))
 (defcore %run-c-key "fe_run_c_key" sb-alien:int (name sb-alien:c-string))
 

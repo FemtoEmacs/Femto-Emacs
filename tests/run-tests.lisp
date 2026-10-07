@@ -247,6 +247,37 @@
          (equal (find-codex-program) (truename *load-truename*)))
        t)
 
+;;; Markdown wrapping changes display boundaries, never the source bytes.
+(defun wrap-test-rows (text width)
+  (let ((octets (sb-ext:string-to-octets text :external-format :utf-8)) (rows nil))
+    (loop while (plusp (length octets))
+          for end = (markdown-wrap-end octets width)
+          do (assert (<= 1 end (length octets)))
+             (push (sb-ext:octets-to-string (subseq octets 0 end) :external-format :utf-8) rows)
+             (setf octets (subseq octets end)))
+    (nreverse rows)))
+
+(check "Markdown wraps before a word" (wrap-test-rows "one two three" 9) '("one two " "three"))
+(check "Markdown splits only words wider than the window" (wrap-test-rows "abcdefghij" 4) '("abcd" "efgh" "ij"))
+(check "Markdown UTF-8 wraps on character boundaries" (wrap-test-rows "café ação" 6) '("café " "ação"))
+(check "Markdown exact-width line includes its newline"
+       (wrap-test-rows (format nil "abcd~%ef") 4) (list (format nil "abcd~%") "ef"))
+(check "Markdown blank lines survive" (wrap-test-rows (format nil "a~%~%b") 4)
+       (list (format nil "a~%") (string #\Newline) "b"))
+(check "Markdown tabs use tab stops" (wrap-test-rows (format nil "a~Cb cd" #\Tab) 9)
+       (list (format nil "a~Cb" #\Tab) " cd"))
+(check "Markdown CRLF survives" (wrap-test-rows (format nil "abcd~C~%ef" #\Return) 4)
+       (list (format nil "abcd~C~%" #\Return) "ef"))
+(check "Markdown wrapping is enabled only for Markdown filenames"
+       (mapcar (lambda (name) (markdown-wrap-row name (sb-sys:int-sap 0) 0 20))
+               '("a.md" "a.markdown" "a.mdown" "a.mkd" "a.lisp" "a.c" "a.txt" ""))
+       '(-1 -1 -1 -1 0 0 0 0))
+(check "Markdown rows preserve all source bytes at every width"
+       (let ((text (format nil "# café~%~%  - ação and averylongword~%```yaml~%~Ca: b~%```~%" #\Tab)))
+         (loop for width from 1 to 35
+               always (string= text (apply #'concatenate 'string (wrap-test-rows text width)))))
+       t)
+
 ;;; key names: Emacs notation -> the C core's names, and back
 (check "normalize M-d" (normalize-key "M-d") "esc d")
 (check "normalize C-M-f" (normalize-key "C-M-f") "esc C-f")

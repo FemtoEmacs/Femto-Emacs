@@ -5,6 +5,41 @@
 
 #include "header.h"
 
+/* Lisp chooses display-only row boundaries; 0 opts out of word wrapping.
+ * The bounded copy also works when a row crosses the gap. */
+typedef int (*fe_wrap_hook_t)(const char *, const char_t *, int, int);
+static fe_wrap_hook_t wrap_hook = NULL;
+
+void fe_set_wrap_hook(fe_wrap_hook_t hook)
+{
+	wrap_hook = hook;
+}
+
+static point_t wrap_row_end(buffer_t *bp, point_t start)
+{
+	static char_t *text = NULL;
+	static int capacity = 0;
+	point_t size = document_size(bp), i;
+	int cols = screen_cols(), len, count;
+
+	if (wrap_hook == NULL || cols <= 0 ||
+	    wrap_hook(bp->b_fname, NULL, 0, cols) != -1)
+		return NOMARK;
+	if (start >= size) return size;
+	/* Four bytes per UTF-8 cell, plus the next character/newline. */
+	len = (int) ((size - start < (point_t) cols * 4 + 4) ?
+	             size - start : (point_t) cols * 4 + 4);
+	if (capacity < len) {
+		char_t *grown = realloc(text, len);
+		if (grown == NULL) return NOMARK;
+		text = grown;
+		capacity = len;
+	}
+	for (i = 0; i < len; ++i) text[i] = *ptr(bp, start + i);
+	count = wrap_hook(bp->b_fname, text, len, cols);
+	return count > 0 && count <= len ? start + count : NOMARK;
+}
+
 /* Reverse scan for start of logical line containing offset */
 point_t lnstart(buffer_t *bp, register point_t off)
 {
@@ -24,7 +59,16 @@ point_t segstart(buffer_t *bp, point_t start, point_t finish)
 	char_t *p;
 	int c = 0;
 	point_t scan = start;
+	point_t next = wrap_row_end(bp, start);
 
+	if (next != NOMARK) {
+		while (next > start && next <= finish) {
+			start = next;
+			next = wrap_row_end(bp, start);
+			if (next == NOMARK) break;
+		}
+		return start;
+	}
 	while (scan < finish) {
 		p = ptr(bp, scan);
 		if (*p == '\n') {
@@ -47,6 +91,8 @@ point_t segnext(buffer_t *bp, point_t start, point_t finish)
 	int c = 0;
 
 	point_t scan = segstart(bp, start, finish);
+	point_t next = wrap_row_end(bp, scan);
+	if (next != NOMARK) return next;
 	for (;;) {
 		p = ptr(bp, scan);
 		if (bp->b_ebuf <= p || screen_cols() <= c)
@@ -82,6 +128,20 @@ point_t lncolumn(buffer_t *bp, point_t offset, int column)
 {
 	int c = 0;
 	char_t *p;
+	point_t end = wrap_row_end(bp, offset);
+	if (end != NOMARK) {
+		/* Clamp to this visual row; count a UTF-8 character as one cell. */
+		while (offset < end && (p = ptr(bp, offset)) < bp->b_ebuf &&
+		       *p != '\n' && c < column) {
+			int bytes = utf8_size(*p);
+			int width = *p == '\r' ? 0 : (*p == '\t' ? 8 - (c & 7) :
+			            (*p < 128 && !isprint(*p) ? (int) strlen(screen_unctrl(*p)) : 1));
+			if (offset + bytes == end && end < document_size(bp) && *p != '\r') break;
+			c += width;
+			offset += bytes;
+		}
+		return offset;
+	}
 	while ((p = ptr(bp, offset)) < bp->b_ebuf && *p != '\n' && c < column) {
 		c += *p == '\t' ? 8 - (c & 7) : 1;
 		++offset;
@@ -217,6 +277,11 @@ void display(window_t *wp, int flag)
 	char_t *p;
 	int i, j, k, nch;
 	buffer_t *bp = wp->w_bufp;
+	point_t wrap_end;
+
+	/* Recompute the visual row start after resizing or editing. */
+	if (wrap_row_end(bp, bp->b_page) != NOMARK)
+		bp->b_page = segstart(bp, lnstart(bp, bp->b_page), bp->b_page);
 
 	/* find start of screen, handle scroll up off page or top of file  */
 	/* point is always within b_page and b_epage */
@@ -246,33 +311,58 @@ void display(window_t *wp, int flag)
 	i = wp->w_top;
 	j = 0;
 	bp->b_epage = bp->b_page;
+	wrap_end = wrap_row_end(bp, bp->b_epage);
 
 	/* paint screen from top of page until we hit maxline */
 	while (1) {
 		/* reached point - store the cursor position */
 		if (bp->b_point == bp->b_epage) {
 			bp->b_row = i;
-			bp->b_col = j;
+			bp->b_col = wrap_end != NOMARK && j >= screen_cols() ? screen_cols() - 1 : j;
 		}
 		p = ptr(bp, bp->b_epage);
 		nch = 1;
 		if (wp->w_top + wp->w_rows <= i || bp->b_ebuf <= p) /* maxline */
 			break;
-		if (*p != '\r') {
+		if (wrap_end != NOMARK && *p == '\n') {
+			/* A visual break never inserts a newline into the buffer. */
+			if (j < screen_cols()) screen_clrtoeol();
+		} else if (*p != '\r') {
 			nch = utf8_size(*p);
 			if ( nch > 1) {
 				j++;
 				face_on(face_for(bp, p));
 				display_utf8(bp, *p, nch);
 				face_on(ID_COLOR_SYMBOL);
+			} else if (wrap_end != NOMARK && *p == '\t') {
+				int spaces = 8 - (j & 7);
+				if (spaces > screen_cols() - j) spaces = screen_cols() - j;
+				face_on(face_for(bp, p));
+				while (spaces-- > 0) { screen_addch(' '); ++j; }
+				face_on(ID_COLOR_SYMBOL);
 			} else if (isprint(*p) || *p == '\t' || *p == '\n') {
 				j += *p == '\t' ? 8-(j&7) : 1;
 				display_char(bp, p);
 			} else {
 				const char *ctrl = screen_unctrl(*p);
-				j += (int) strlen(ctrl);
-				screen_addstr(ctrl);
+				if (wrap_end != NOMARK) {
+					while (*ctrl && j < screen_cols()) { screen_addch(*ctrl++); ++j; }
+				} else {
+					j += (int) strlen(ctrl);
+					screen_addstr(ctrl);
+				}
 			}
+		}
+		if (wrap_end != NOMARK) {
+			bp->b_epage += nch;
+			if (bp->b_epage >= wrap_end) {
+				if (j < screen_cols()) screen_clrtoeol();
+				j = 0;
+				++i;
+				screen_move(i, 0);
+				wrap_end = wrap_row_end(bp, bp->b_epage);
+			}
+			continue;
 		}
 		if (*p == '\n' || screen_cols() <= j) {
 			j -= screen_cols();
@@ -781,6 +871,16 @@ int window_position(window_t *wp, int row, int col)
 	i = wp->w_top;
 	j = 0;
 
+	if (wrap_row_end(bp, p) != NOMARK) {
+		while (i < row && p < end) {
+			point_t next = wrap_row_end(bp, p);
+			if (next == NOMARK || next <= p) break;
+			p = next;
+			++i;
+		}
+		bp->b_point = lncolumn(bp, p, col);
+		return TRUE;
+	}
 	while (p < end) {
 		c = ptr(bp, p);
 		if (*c == '\t')

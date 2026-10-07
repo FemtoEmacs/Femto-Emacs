@@ -473,6 +473,14 @@ language.  The prose faces are `:heading`, `:emphasis`, `:strong` and
 on an empty item ends the list; `TAB` nests an item under the one above;
 `M-q` refills a paragraph, a list item (keeping its marker) or a quotation.
 
+Markdown files (`.md`, `.markdown`, `.mdown`, `.mkd`) also wrap visually at
+word boundaries to fit the window. The Lisp Markdown script chooses the
+breaks; the display uses them for drawing, scrolling, cursor movement and
+mouse selection. Resizing recalculates the rows. This includes fenced code;
+a word or URL wider than the window is split across rows. Visual wrapping
+does not insert newlines or modify the file. Other file types retain their
+existing display behavior.
+
 ### Indentation
 
 Every language that has colours is also indented: `TAB` indents the

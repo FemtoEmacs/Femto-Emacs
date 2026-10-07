@@ -474,3 +474,45 @@ Returns NIL (do the usual RET) elsewhere, and inside blocks of code."
   :cycle t
   :levels 'markdown-levels
   :newline 'markdown-newline)
+
+
+;;; Visual word wrapping. Positions are UTF-8 byte offsets, as in the C core.
+;;; No buffer text is changed, including fenced code, links and list markers.
+
+(defun markdown-wrap-end (octets columns)
+  "Number of bytes in one visual row. Keep words together where they fit.
+Tabs use eight-column stops; every UTF-8 character occupies one screen cell."
+  (declare (type (simple-array (unsigned-byte 8) (*)) octets)
+           (type (integer 1 *) columns))
+  (let ((pos 0) (column 0) (boundary nil) (size (length octets)))
+    (loop while (< pos size)
+          for byte = (aref octets pos)
+          for bytes = (cond ((<= #xC2 byte #xDF) 2)
+                            ((<= #xE0 byte #xEF) 3)
+                            ((<= #xF0 byte #xF4) 4)
+                            (t 1))
+          for width = (cond ((= byte 13) 0)
+                            ((= byte 9) (- 8 (mod column 8)))
+                            ((or (< byte 32) (= byte 127)) 2)
+                            (t 1))
+          do (when (= byte 10) (return-from markdown-wrap-end (1+ pos)))
+             (when (> (+ column width) columns)
+               (return-from markdown-wrap-end
+                 (if (and (plusp pos) (member byte '(9 32)))
+                     pos
+                     (or boundary (if (plusp pos) pos (min size bytes))))))
+             (incf column width)
+             (incf pos (min bytes (- size pos)))
+             (when (member byte '(9 32)) (setf boundary pos)))
+    pos))
+
+(defun markdown-wrap-row (filename text-sap len columns)
+  "C display callback: -1 enables Markdown wrapping; 0 retains fixed rows."
+  (declare (type string filename) (type integer len columns))
+  (let ((language (language-for-file filename)))
+    (cond ((or (null language) (not (string= (language-name language) "Markdown"))
+               (not (plusp columns))) 0)
+          ((zerop len) -1)
+          (t (let ((octets (make-array len :element-type '(unsigned-byte 8))))
+               (sb-kernel:copy-ub8-from-system-area text-sap 0 octets 0 len)
+               (markdown-wrap-end octets columns))))))
