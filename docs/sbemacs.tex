@@ -164,15 +164,38 @@ the  \keys{Alt} prefix and  $\kappa$ can be any key.
 SBEmacs shows all its keybindings on a page of their own,
 one key per line. The arrows, \verb|C-n| and \verb|C-p| scroll
 the page; any other key takes you back to the file you are editing.
-The status line, at the bottom of each window, reminds you of this:
+
+\paragraph{The status line is a menu.} At the bottom of each window,
+the status line shows the name of the file and the line where the
+cursor is. An asterisk after the file name means that the file has
+been modified, but not saved. Then come buttons that the mouse can
+click:
 \begin{quote}
 \begin{verbatim}
-SBEmacs: Ctrl-h for help == fib.lisp, L. 5 == Ctrl c r calls ...
+fib.lisp*, L. 5 == SBEmacs: [HELP] [SAVE] [OPEN] [COPY] ...
 \end{verbatim}
 \end{quote}
-Besides the name of the file, the status line shows the line
-where the cursor is. An asterisk after the file name means
-that the file has been modified, but not saved.
+A button does what its key does, so Nia can work before she
+learns the keys, and learn them from the buttons:
+\begin{quote}
+\begin{tabular}{lll}
+\verb|[HELP]|    & \verb|C-h|     & every key on one page\\
+\verb|[SAVE]|    & \verb|C-x C-s| & save the file\\
+\verb|[OPEN]|    & \verb|C-x C-f| & open a file\\
+\verb|[COPY]|    & \verb|M-w|     & copy the selection\\
+\verb|[PASTE]|   & \verb|C-y|     & paste\\
+\verb|[UNDO]|    & \verb|C-/|     & undo\\
+\verb|[AI HELP]| &                & how to ask Claude or Codex\\
+\verb|[BUFFERS]| & \verb|C-x b|   & switch to another open file
+\end{tabular}
+\end{quote}
+To copy, Nia drags the mouse over the text and clicks
+\verb|[COPY]|; she then clicks where the copy should go, and clicks
+\verb|[PASTE]|. A button lights up while she presses it, and acts
+when she lets it go; if she changes her mind, she moves the mouse
+off the button before letting go. The list of buttons is a script,
+\verb|lisp/extensions/menu.lisp|, which says how to add or remove
+buttons.
 
 \begin{figure}[ht]
 \centering

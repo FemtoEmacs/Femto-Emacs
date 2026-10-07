@@ -589,6 +589,12 @@ static void render(void)
 
 void screen_refresh(void) { render(); }
 
+void screen_pause(int ms)
+{
+	if (dirty) render();
+	SDL_Delay((Uint32) ms);
+}
+
 void screen_set_title(const char *t)
 {
 	char full[300];

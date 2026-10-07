@@ -148,6 +148,8 @@ moved together."
   (name sb-alien:c-string) (hint sb-alien:c-string))
 (defcore %set-modeline-hints "fe_set_modeline_hints" sb-alien:void
   (help sb-alien:c-string) (tail sb-alien:c-string))
+(defcore %set-modeline-menu "fe_set_modeline_menu" sb-alien:void (labels sb-alien:c-string))
+(defcore %run-c-key "fe_run_c_key" sb-alien:int (name sb-alien:c-string))
 
 (defcore %message "fe_message" sb-alien:void (s sb-alien:c-string))
 (defcore %clear-message-line "fe_clear_message_line" sb-alien:void)
@@ -337,6 +339,17 @@ when it is empty or cannot be read."
   (%set-modeline-hints (text help) (text tail))
   t)
 
+(declaim (ftype (function (list) (values (eql t) &optional)) set-mode-line-menu))
+(defun set-mode-line-menu (labels)
+  "The buttons of the mode line, e.g. (\"HELP\" \"SAVE\"); NIL removes them
+and brings back the hints.  A click on button I raises the \"menu\" event
+with I (see RUN-MODE-LINE-MENU in lisp/extensions/menu.lisp)."
+  (dolist (l labels)
+    (check-type l string)
+    (when (find #\Newline l) (error "A menu label cannot hold a newline: ~S" l)))
+  (%set-modeline-menu (text (format nil "~{~A~^~%~}" labels)))
+  t)
+
 (defvar *buffer-hints* (make-hash-table :test 'equal)
   "Buffer name -> its mode line hint; given to the C core at start-up.")
 
@@ -406,7 +419,8 @@ which case GET-KEY-NAME and GET-KEY-BINDING describe it."
 (defparameter *color-ids*
   '((:symbol . 1) (:modeline . 2) (:brace . 3) (:keyword . 4) (:alpha . 5)
     (:digits . 6) (:comment . 7) (:block-comment . 8) (:string . 9)
-    (:region . 10) (:heading . 11) (:emphasis . 12) (:strong . 13) (:link . 14)))
+    (:region . 10) (:heading . 11) (:emphasis . 12) (:strong . 13) (:link . 14)
+    (:menu . 15) (:menu-pressed . 16)))
 
 ;; the eight basic colours; :default is the terminal's own colour, and
 ;; an integer 0-255 picks from the 256-colour palette
@@ -449,8 +463,8 @@ which case GET-KEY-NAME and GET-KEY-BINDING describe it."
 
 Faces: :keyword :comment :block-comment :string :digits :alpha (identifiers)
 :symbol (everything else) :brace (matching paren) :modeline :region
-(the selected text), and for prose (Markdown) :heading :emphasis :strong
-:link."
+(the selected text), :menu and :menu-pressed (the buttons of the mode
+line), and for prose (Markdown) :heading :emphasis :strong :link."
   (= 1 (%set-color (color-id face) (color-number foreground) (color-number background)
                    (attribute-bits attributes))))
 

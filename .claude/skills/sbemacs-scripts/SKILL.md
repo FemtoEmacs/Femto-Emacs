@@ -24,7 +24,8 @@ and then remind them to run `make && sudo make install`.
 `SBEMACS-USER` uses `COMMON-LISP` and `SBEMACS`, so only exported symbols
 are available there; do not reach into `sbemacs::` internals from a user
 script.  Load order: `highlight`, `indent`, `theme`, `undo`, `gui`,
-`languages/*`, `defaults`, `extensions/*`, then the user's languages,
+`languages/*`, `defaults`, `extensions/*` (among them `menu`, the mode
+line's buttons), then the user's languages,
 extensions and `init.lisp`.
 
 ## Rules
@@ -70,12 +71,16 @@ extensions and `init.lisp`.
 - Talking to the user: `message` `clear-message-line` `prompt`
   `update-display` `get-key` (returns the typed text, or "" for a bound
   key, then `get-key-name` gives its name) `set-buffer-hint` (text at the
-  end of a buffer's mode line)
+  end of a buffer's mode line) `set-mode-line-menu` (the clickable
+  buttons; the list is `*mode-line-menu*` in `lisp/extensions/menu.lisp`,
+  entries `(LABEL KEY-OR-COMMAND)`, then `(install-mode-line-menu)`)
 - Keys and commands: `global-set-key` `global-unset-key` `key-binding`
   `defcommand` `execute-builtin` (runs a command of the C core by name)
+  `run-key-as-typed` (does what typing a key does, Lisp or C binding)
 - Looks: `set-color` (faces `:keyword` `:comment` `:block-comment`
   `:string` `:digits` `:alpha` `:symbol` `:brace` `:modeline` `:region`,
-  and for prose `:heading` `:emphasis` `:strong` `:link`;
+  `:menu` `:menu-pressed` (the mode line's buttons), and for prose
+  `:heading` `:emphasis` `:strong` `:link`;
   colours `:red`..., 0-255 or `"#rrggbb"`)
 - Languages: `define-language` (`:extensions` `:line-comment`
   `:block-comment` `:strings` `:keywords` `:escape` `:char-prefix`

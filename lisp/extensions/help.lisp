@@ -68,6 +68,7 @@ file you are editing.")
     ("Selecting (the region is shaded)"
      ("C-SPC" "set the mark: the region runs from it to the cursor")
      ("mouse" "click to move the cursor or choose a window; drag to select")
+     ("[SAVE] ..." "the buttons of the mode line do what their keys do")
      ("C-x h" "select the whole file")
      ("M-h" "select the paragraph")
      ("M-@" "select to the end of the word")

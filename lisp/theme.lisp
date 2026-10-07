@@ -52,7 +52,10 @@
       (theme-face :heading       (c :brace) :default :bold)
       (theme-face :emphasis      (c :foreground) :default :italic)
       (theme-face :strong        (c :foreground) :default :bold)
-      (theme-face :link          (c :link) :default :underline))))
+      (theme-face :link          (c :link) :default :underline)
+      ;; the mode line menu: yellow buttons, lit when clicked
+      (theme-face :menu          (c :cursor) (c :selection) :bold)
+      (theme-face :menu-pressed  (c :background) (c :cursor) :bold))))
 
 (defun terminal-theme (colors)
   (theme-face :symbol   :default)
@@ -68,6 +71,9 @@
   (theme-face :emphasis :default :default :italic)
   (theme-face :strong   :default :default :bold)
   (theme-face :link     (if (>= colors 256) 30 :cyan) :default :underline)
+  ;; the mode line menu: yellow on black, black on yellow when clicked
+  (theme-face :menu         (if (>= colors 256) 226 :yellow) :black :bold)
+  (theme-face :menu-pressed :black (if (>= colors 256) 226 :yellow) :bold)
   (if (>= colors 256)
       (progn
         ;; picked to stay readable on both white and black backgrounds

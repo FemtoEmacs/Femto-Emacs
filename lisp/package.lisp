@@ -30,7 +30,8 @@
    ;; windows and display
    #:delete-other-windows #:other-window #:split-window #:update-display
    #:refresh-screen #:screen-rows #:screen-columns
-   #:delete-window #:window-count #:window-rows #:recenter #:set-mode-line-hints
+   #:delete-window #:window-count #:window-rows #:recenter #:set-mode-line-hints #:set-mode-line-menu #:install-mode-line-menu #:run-key-as-typed
+   #:*mode-line-menu*
    #:set-window-start #:set-buffer-hint
    ;; message line, keyboard, prompts
    #:message #:clear-message-line #:log-debug #:log-message

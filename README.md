@@ -107,12 +107,32 @@ sbemacs [--gui] [-q] [--no-mouse] [file]
   --no-mouse  leave the mouse to the terminal (its own copy and paste)
 ```
 
-**`C-h` or `F1` shows every key on one page** (the arrows scroll it, any
-other key returns to your file).  The mode line says so:
+**The mode line is also a menu**, for those who do not know the keys yet:
+click a button and it does what its key does.
 
 ```
-SBEmacs: Ctrl-h for help == teste.lisp, L. 3 == Ctrl c r calls Claude; Ctrl c g calls GPT
+teste.lisp, L. 3 == SBEmacs: [HELP] [SAVE] [OPEN] [COPY] [PASTE] [UNDO] [AI HELP] [BUFFERS]
 ```
+
+| Button | Key | Does |
+|---|---|---|
+| `[HELP]` | `C-h` | every key on one page |
+| `[SAVE]` | `C-x C-s` | save the file |
+| `[OPEN]` | `C-x C-f` | open a file |
+| `[COPY]` | `M-w` | copy the selection (drag the mouse to select) |
+| `[PASTE]` | `C-y` | paste |
+| `[UNDO]` | `C-/` | undo |
+| `[AI HELP]` | | what Claude (`C-c r`) and Codex (`C-c g`) can do |
+| `[BUFFERS]` | `C-x b` | switch to another open file |
+
+The button lights up while it is pressed and acts when it is released
+(moving off it first cancels).  In a narrow window the spaces between the
+buttons go first, then the word SBEmacs, then the buttons on the right.
+The buttons are a list in [`lisp/extensions/menu.lisp`](lisp/extensions/menu.lisp),
+a script: add your own or remove some there, or in your init file.
+
+**`C-h` or `F1` shows every key on one page** (the arrows scroll it, any
+other key returns to your file).
 
 The GNU Emacs keys work, including words, sentences, paragraphs and
 s-expressions (`M-f`, `M-e`, `M-}`, `C-M-f`), killing them (`M-d`, `M-DEL`,
@@ -506,7 +526,7 @@ optional and default to 1.
 | Editing | `insert` `backward-delete-char` `delete-char` `kill-region` `copy-region` `yank` `kill-line` `undo` `redo` `cut-region` `get-clipboard` `set-clipboard` `system-clipboard` `current-line-text` |
 | Search | `search-forward` `search-backward` (return true when found) |
 | Buffers | `get-buffer-name` `get-buffer-count` `buffer-filename` `buffer-modified-p` `select-buffer` `kill-buffer` `save-buffer` `find-file` `list-buffers` `rename-buffer` |
-| Windows | `split-window` `other-window` `delete-other-windows` `update-display` `refresh-screen` |
+| Windows | `split-window` `other-window` `delete-other-windows` `update-display` `refresh-screen` `set-mode-line-menu` `run-key-as-typed` |
 | Interaction | `message` (accepts `format` arguments) `clear-message-line` `prompt` `get-key` `get-key-name` `get-key-binding` |
 | Misc | `shell-command` `log-message` `log-debug` `trim` `home` `get-version-string` `quit-editor` |
 | Customising | `global-set-key` `global-unset-key` `define-language` `define-indentation` `define-indent-style` `indent-line` `indent-region` `indent-buffer` `set-color` `*kill-hook*` `*startup-hook*` `*kill-ring*` `*undo-mode*` |

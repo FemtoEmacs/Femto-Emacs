@@ -285,6 +285,8 @@ void screen_set_clipboard(const char *text) { (void) text; }
 char *screen_get_clipboard(void) { return NULL; }
 #endif
 
+void screen_pause(int ms) { refresh(); napms(ms); }
+
 /* nothing to do in a terminal */
 void screen_set_font(const char *path, int points) { (void) path; (void) points; }
 void screen_set_default_colors(long fg, long bg, long cursor) { (void) fg; (void) bg; (void) cursor; }

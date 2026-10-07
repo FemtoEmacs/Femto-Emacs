@@ -1,6 +1,13 @@
 # SBEmacs / Femto Emacs Change Log
 
 ## SBEmacs 2.0
+* The mode line is a menu: [HELP] [SAVE] [OPEN] [COPY] [PASTE] [UNDO]
+  [AI HELP] [BUFFERS], clicked with the mouse in the terminal or the
+  window.  A button lights up while pressed (faces :menu, :menu-pressed)
+  and, on release, does exactly what its key does (run-key-as-typed).
+  [AI HELP] shows what Claude (C-c r) and Codex (C-c g) can do.  The list
+  is a script, lisp/extensions/menu.lisp; set-mode-line-menu.  Narrow
+  windows drop the spaces, then the word SBEmacs, then buttons.
 * The kill ring and the system clipboard work together, in the terminal
   too: every kill or copy goes to the clipboard (pbcopy, wl-copy, xclip or
   xsel; OSC 52 when none is there), and C-y first takes in what another
