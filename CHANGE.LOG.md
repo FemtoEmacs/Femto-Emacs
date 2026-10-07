@@ -1,6 +1,12 @@
 # SBEmacs / Femto Emacs Change Log
 
 ## SBEmacs 2.0
+* The kill ring and the system clipboard work together, in the terminal
+  too: every kill or copy goes to the clipboard (pbcopy, wl-copy, xclip or
+  xsel; OSC 52 when none is there), and C-y first takes in what another
+  program copied, which joins the kill ring.  *use-system-clipboard*.
+* The window shows the prompts of the C core (C-x C-f, C-s, query-replace);
+  before, it seemed frozen while they waited for a key.
 * Windows: one setup program, SBEmacs-2.0-Windows-x86_64-Setup.exe
   (Next, Install, Finish).  It needs no SBCL, no PowerShell, no MSYS2 and
   no administrator: sbemacs.exe carries SBCL, opens its window without a

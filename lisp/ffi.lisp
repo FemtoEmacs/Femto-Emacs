@@ -113,6 +113,8 @@ moved together."
 (defcore %discard-undo-history "fe_discard_undo_history" sb-alien:void)
 (defcore %get-clipboard "fe_get_clipboard" sb-alien:c-string)
 (defcore %set-clipboard "fe_set_clipboard" sb-alien:void (s sb-alien:c-string))
+(defcore %set-scrap "fe_set_scrap" sb-alien:void (s sb-alien:c-string))
+(defcore %get-system-clipboard "fe_get_system_clipboard" sb-alien:c-string)
 
 (defcore %search-forward "fe_search_forward" sb-alien:int (s sb-alien:c-string))
 (defcore %search-backward "fe_search_backward" sb-alien:int (s sb-alien:c-string))
@@ -285,6 +287,12 @@ the buffer)."
 (defun discard-undo-history () (%discard-undo-history) t)
 (defun get-clipboard () (or (%get-clipboard) ""))
 (defun set-clipboard (s) (%set-clipboard (text s)) s)
+(declaim (ftype (function () (values (or null string) &optional)) system-clipboard))
+(defun system-clipboard ()
+  "The text on the system clipboard (what another program copied), or NIL
+when it is empty or cannot be read."
+  (let ((s (%get-system-clipboard)))
+    (and s (plusp (length s)) s)))
 (defun cut-region ()
   "Kill the region and return it as a string."
   (kill-region)

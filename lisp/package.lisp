@@ -20,6 +20,7 @@
    #:insert #:backward-delete-char #:backwards-delete-char #:delete-char
    #:kill-region #:copy-region #:yank #:kill-line #:undo #:redo #:*undo-limit*
    #:discard-undo-history #:get-clipboard #:set-clipboard #:cut-region
+   #:system-clipboard #:adopt-system-clipboard #:*use-system-clipboard*
    ;; searching
    #:search-forward #:search-backward #:search-backwards
    ;; buffers and files

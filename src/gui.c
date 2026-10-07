@@ -603,34 +603,49 @@ void screen_set_clipboard(const char *text)
 	if (active && text) SDL_SetClipboardText(text);
 }
 
+/* CRLF and CR line ends become LF, in place */
+static void unix_line_ends(char *t)
+{
+	char *s, *d;
+	for (s = t, d = t; *s; s++) {
+		if (*s == '\r') {
+			*d++ = '\n';
+			if (s[1] == '\n') s++;
+		} else {
+			*d++ = *s;
+		}
+	}
+	*d = '\0';
+}
+
+char *screen_get_clipboard(void)
+{
+	char *text, *copy;
+
+	if (!active || !SDL_HasClipboardText()) return NULL;
+	text = SDL_GetClipboardText();
+	if (!text) return NULL;
+	copy = malloc(strlen(text) + 1);
+	if (copy) {
+		strcpy(copy, text);
+		unix_line_ends(copy);
+	}
+	SDL_free(text);
+	return copy;
+}
+
 /* paste the system clipboard: put it in the editor's scrap and yank */
 static void paste_clipboard(void)
 {
-	char *text, *copy, *s, *d;
+	char *copy = screen_get_clipboard();
 
-	if (!SDL_HasClipboardText()) return;
-	text = SDL_GetClipboardText();
-	if (!text) return;
-	copy = malloc(strlen(text) + 1);
-	if (copy) {
-		/* CRLF and CR line ends become LF */
-		for (s = text, d = copy; *s; s++) {
-			if (*s == '\r') {
-				*d++ = '\n';
-				if (s[1] == '\n') s++;
-			} else {
-				*d++ = *s;
-			}
-		}
-		*d = '\0';
-		if (copy[0]) {
-			set_scrap((unsigned char *) copy);
-			push_byte(0x19);            /* C-y */
-		} else {
-			free(copy);
-		}
+	if (!copy) return;
+	if (copy[0]) {
+		set_scrap((unsigned char *) copy);
+		push_byte(0x19);            /* C-y */
+	} else {
+		free(copy);
 	}
-	SDL_free(text);
 }
 
 /* ------------------------------------------------------------------ */

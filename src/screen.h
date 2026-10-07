@@ -70,8 +70,14 @@ extern int  screen_colors(void);           /* 8, 256, or 16777216 for 24-bit */
 extern int  screen_getch(void);            /* blocks; returns one byte */
 extern void screen_flushinp(void);        /* discard pending input */
 
-/* the system clipboard (no-op in a terminal) */
+/*
+ * The system clipboard.  In the window, through SDL; in a terminal,
+ * through pbcopy/pbpaste (macOS), wl-copy/wl-paste (Wayland) or xclip/xsel
+ * (X11), and otherwise an OSC 52 escape, which only writes.
+ * screen_get_clipboard returns malloc'd text (LF line ends), or NULL.
+ */
 extern void screen_set_clipboard(const char *text);
+extern char *screen_get_clipboard(void);
 
 /* GUI settings, no-ops in a terminal */
 extern void screen_set_font(const char *path, int points);

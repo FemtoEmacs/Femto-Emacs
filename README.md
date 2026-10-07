@@ -142,6 +142,20 @@ Option key* to *Esc+*.  You may leave Right Option as *Normal* for typing
 macOS symbols.  These settings make `Option-w` reach textual SBEmacs as
 `M-w`; otherwise macOS sends the character `∑` before the editor sees it.
 
+### The clipboard
+
+The kill ring and the system clipboard work together, as in Emacs, in the
+terminal and in the window.  Every kill or copy (`C-w`, `M-w`, `C-k`) also
+goes to the system clipboard, so other programs can paste it.  When another
+program copies something, `C-y` inserts it and it joins the kill ring;
+`M-y` then goes on to the older kills.  In a terminal SBEmacs uses
+`pbcopy`/`pbpaste` on macOS, and `wl-copy`/`wl-paste`, `xclip` or `xsel` on
+Linux (install one).  With none of them, over ssh say, copies still reach
+your own computer's clipboard through the terminal (OSC 52: iTerm2, kitty,
+WezTerm, Windows Terminal; tmux with `set-clipboard on`), but pasting from
+other programs then needs the terminal's paste key.  To keep the kill ring
+to yourself, put `(setf *use-system-clipboard* nil)` in your init file.
+
 ### The window (`sbemacs --gui`)
 
 The same editor, keys, Lisp and scripts, drawn with SDL2 in a window of its
@@ -149,9 +163,9 @@ own: 24-bit colours, a proper font, the mouse and the system clipboard.
 
 * **Mouse:** click to move the cursor (in any window), drag to select,
   the middle button pastes.
-* **Clipboard:** `Esc-w` / `C-w` also copy to the system clipboard;
-  `Shift-Insert` pastes from it.  On a Mac, `Cmd-C`, `Cmd-X`, `Cmd-V`,
-  `Cmd-Z`, `Cmd-S` and `Cmd-Q` work as usual.
+* **Clipboard:** see *The clipboard* below; `Shift-Insert` also pastes
+  from it.  On a Mac, `Cmd-C`, `Cmd-X`, `Cmd-V`, `Cmd-Z`, `Cmd-S` and
+  `Cmd-Q` work as usual.
 * **Font size:** `Ctrl-+` / `Ctrl--` (`Cmd-+` / `Cmd--` on a Mac).
 * **Meta:** Alt (Option on a Mac) works as `Esc`.  Set `*option-is-meta*`
   to `nil` to type accents with Option instead.
@@ -489,7 +503,7 @@ optional and default to 1.
 |-|-|
 | Text | `point` `line-start` `line-end` `buffer-substring` `buffer-octets` `current-line-text` |
 | Movement | `forward-char` `backward-char` `forward-word` `backward-word` `next-line` `previous-line` `forward-page` `backward-page` `beginning-of-line` `end-of-line` `beginning-of-buffer` `end-of-buffer` `goto-line` `goto-char` `point` `mark` `set-mark` `buffer-size` `char-after` |
-| Editing | `insert` `backward-delete-char` `delete-char` `kill-region` `copy-region` `yank` `kill-line` `undo` `redo` `cut-region` `get-clipboard` `set-clipboard` `current-line-text` |
+| Editing | `insert` `backward-delete-char` `delete-char` `kill-region` `copy-region` `yank` `kill-line` `undo` `redo` `cut-region` `get-clipboard` `set-clipboard` `system-clipboard` `current-line-text` |
 | Search | `search-forward` `search-backward` (return true when found) |
 | Buffers | `get-buffer-name` `get-buffer-count` `buffer-filename` `buffer-modified-p` `select-buffer` `kill-buffer` `save-buffer` `find-file` `list-buffers` `rename-buffer` |
 | Windows | `split-window` `other-window` `delete-other-windows` `update-display` `refresh-screen` |

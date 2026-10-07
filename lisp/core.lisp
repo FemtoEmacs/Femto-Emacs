@@ -155,6 +155,28 @@ scripts compiled into the image are not loaded again."
 
 (pushnew 'remember-kill *kill-hook*)
 
+;;; The system clipboard and the kill ring, as in Emacs: every kill or copy
+;;; goes to the system clipboard (the C core does it), and C-y first looks
+;;; at the clipboard.  If another program copied something since, that
+;;; text joins the kill ring and is what C-y inserts; M-y then goes on to
+;;; the older kills.
+
+(defvar *use-system-clipboard* t
+  "When true, C-y takes in what other programs copied.  Set it to NIL to
+keep the kill ring to yourself (kills still reach the clipboard).")
+
+(declaim (ftype (function () (values (or null string) &optional)) adopt-system-clipboard))
+(defun adopt-system-clipboard ()
+  "If the system clipboard holds text that is not the newest kill, push it
+on the kill ring and make it what C-y inserts.  Returns the text, or NIL."
+  (let ((text (and *use-system-clipboard* (system-clipboard))))
+    (when (and text (not (equal text (first *kill-ring*))))
+      (push text *kill-ring*)
+      (when (> (length *kill-ring*) *kill-ring-max*)
+        (setf *kill-ring* (subseq *kill-ring* 0 *kill-ring-max*)))
+      (%set-scrap (text text))
+      text)))
+
 (defvar *undo-mode* t
   "Unlimited undo for ordinary buffers.  Set to NIL in your init file on
 machines with little memory: the undo history of every modified buffer is

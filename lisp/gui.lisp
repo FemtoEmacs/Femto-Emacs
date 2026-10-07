@@ -10,8 +10,9 @@
 ;;;;
 ;;;; In the window: Ctrl-+ / Ctrl-- (Cmd-+ / Cmd-- on a Mac) change the
 ;;;; font size, the mouse moves the cursor and scrolls, Shift-Insert or the
-;;;; middle button pastes the system clipboard, and copying or killing a
-;;;; region (Esc-w, C-w) also puts it on the system clipboard.  On a Mac,
+;;;; middle button pastes the system clipboard, and every kill or copy
+;;;; also goes to the system clipboard (C-y takes in what other programs
+;;;; copied: see ADOPT-SYSTEM-CLIPBOARD in core.lisp).  On a Mac,
 ;;;; Cmd-C, Cmd-X, Cmd-V, Cmd-Z, Cmd-S and Cmd-Q do what they usually do.
 
 (in-package #:sbemacs)
