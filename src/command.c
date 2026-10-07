@@ -115,12 +115,39 @@ static int mouse_dragging = 0;
 static int mouse_moved = 0;
 static point_t mouse_old_mark = NOMARK;
 
+/* the mode line button under a pressed mouse button, or -1 */
+static int menu_down_row = -1, menu_down_index = -1;
+
 void editor_mouse_event()
 {
 	int b = mouse_button;
 
 	if (b & 64)                     /* wheel */
 		return;
+	if (menu_down_index >= 0 && (mouse_release || (b & 32))) {
+		/*
+		 * A button of the mode line menu acts when it is released, as
+		 * buttons do: a page that waits for a key (help, say) must not
+		 * take the release for one, and moving off before letting go
+		 * cancels.  It stays lit a moment, even after a quick click.
+		 */
+		if (mouse_release) {
+			int index = menu_down_index;
+			int same = (mouse_row == menu_down_row &&
+				    menu_hit(mouse_row, mouse_col) == index);
+			menu_down_index = -1;
+			update_display();
+			screen_pause(120);
+			menu_press(-1, -1);
+			update_display();
+			if (same) {
+				char arg[16];
+				snprintf(arg, sizeof arg, "%d", index);
+				call_lisp_event("menu", arg);
+			}
+		}
+		return;
+	}
 	if (mouse_release) {
 		if (mouse_dragging && !mouse_moved) {
 			/* a plain click: leave the mark as it was */
@@ -141,6 +168,21 @@ void editor_mouse_event()
 	}
 	if ((b & 3) != 0)               /* only the left button */
 		return;
+	{
+		/*
+		 * a button of the mode line menu: the press selects that window
+		 * and lights the button; the release runs it (see above)
+		 */
+		int index = menu_hit(mouse_row, mouse_col);
+		if (index >= 0) {
+			(void) goto_screen_position(mouse_row, mouse_col);
+			mouse_dragging = 0;
+			menu_press(mouse_row, index);
+			menu_down_row = mouse_row;
+			menu_down_index = index;
+			return;
+		}
+	}
 	if (!goto_screen_position(mouse_row, mouse_col))
 		return;
 	mouse_old_mark = curbp->b_mark;

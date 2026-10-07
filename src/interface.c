@@ -462,6 +462,19 @@ int  fe_line_number(long p)          { return line_number(curbp, p); }
  * Run a command of the C core by name ("query-replace", "exec-lisp-command"
  * ...).  Returns 0 when there is no such command.
  */
+/* run the C core's binding of the key NAME ("C-x C-s"); 0 if it has none */
+int fe_run_c_key(char *name)
+{
+	keymap_t *k;
+	for (k = keymap; k->key_name != NULL; k++)
+		if (strcmp(k->key_name, name) == 0) {
+			whatKey = k->key_name;
+			(k->func)();
+			return 1;
+		}
+	return 0;
+}
+
 int fe_execute_command(char *name)
 {
 	command_t *fn;

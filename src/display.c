@@ -395,6 +395,108 @@ static char *buffer_hint(buffer_t *bp)
 	return NULL;
 }
 
+/*
+ * The mode line menu: buttons such as [SAVE] that the mouse can click.
+ * Lisp gives the labels (lisp/extensions/menu.lisp) and is told which one
+ * was clicked (the "menu" event, with its index); the C side only draws
+ * them and remembers where each one is, row by row.
+ */
+#define MAX_MENU 16
+#define MAX_MENU_ROWS 64
+
+static char menu_labels[MAX_MENU][24];
+static int menu_count = 0;
+static int pressed_row = -1, pressed_index = -1;
+
+static struct {
+	int row, n;                     /* row -1: a free entry */
+	short start[MAX_MENU], end[MAX_MENU];   /* columns, end excluded */
+} menu_rows[MAX_MENU_ROWS];
+
+/* LABELS: the buttons' names, one per line; "" removes the menu */
+void fe_set_modeline_menu(char *labels)
+{
+	char *p = labels;
+	int i;
+
+	menu_count = 0;
+	while (*p && menu_count < MAX_MENU) {
+		size_t n = strcspn(p, "\n");
+		if (n > 0) {
+			if (n >= sizeof(menu_labels[0])) n = sizeof(menu_labels[0]) - 1;
+			memcpy(menu_labels[menu_count], p, n);
+			menu_labels[menu_count][n] = '\0';
+			menu_count++;
+		}
+		p += strcspn(p, "\n");
+		if (*p == '\n') p++;
+	}
+	for (i = 0; i < MAX_MENU_ROWS; i++)
+		menu_rows[i].row = -1;
+	mark_all_windows();
+}
+
+/* the entry of ROW, emptied, or NULL when the table is full */
+static int menu_row_entry(int row)
+{
+	int i, free_slot = -1;
+	for (i = 0; i < MAX_MENU_ROWS; i++) {
+		if (menu_rows[i].row == row) break;
+		if (menu_rows[i].row < 0 && free_slot < 0) free_slot = i;
+	}
+	if (i == MAX_MENU_ROWS) i = free_slot;
+	if (i >= 0) {
+		menu_rows[i].row = row;
+		menu_rows[i].n = 0;
+	}
+	return i;
+}
+
+/* the index of the button at ROW, COL, or -1 */
+int menu_hit(int row, int col)
+{
+	window_t *wp;
+	int i, k;
+
+	/* the row must still be a mode line */
+	for (wp = wheadp; wp != NULL; wp = wp->w_next)
+		if (wp->w_top + wp->w_rows == row) break;
+	if (wp == NULL) return -1;
+	for (i = 0; i < MAX_MENU_ROWS; i++)
+		if (menu_rows[i].row == row)
+			for (k = 0; k < menu_rows[i].n; k++)
+				if (col >= menu_rows[i].start[k] && col < menu_rows[i].end[k])
+					return k;
+	return -1;
+}
+
+/* light button INDEX of the mode line at ROW; menu_press(-1, -1): none */
+void menu_press(int row, int index)
+{
+	pressed_row = row;
+	pressed_index = index;
+	mark_all_windows();
+}
+
+/* add the UTF-8 text S at the cursor, at most up to column COLS; N counts
+ * the columns used so far */
+static void add_cells(const char *s, int *n, int cols)
+{
+	char buf[1024];
+	int i, k = *n;
+
+	for (i = 0; s[i] != '\0' && i < (int) sizeof(buf) - 1; i++) {
+		if (((unsigned char) s[i] & 0xC0) != 0x80) {
+			if (k == cols) break;
+			k++;
+		}
+		buf[i] = s[i];
+	}
+	buf[i] = '\0';
+	screen_addstr(buf);
+	*n = k;
+}
+
 /* 1-based line number of offset OFF */
 int line_number(buffer_t *bp, point_t off)
 {
@@ -438,6 +540,59 @@ void modeline(window_t *wp)
 	 *   SBEmacs: *discussion*, L. 8 == C-c r send; C-c t code-tangle
 	 */
 	hint = buffer_hint(wp->w_bufp);
+	{
+		int row = wp->w_top + wp->w_rows;
+		int e = menu_row_entry(row);
+
+		/*
+		 *   teste.lisp, L. 1 == SBEmacs: [HELP] [SAVE] [OPEN] ... =====
+		 * The buttons that do not fit are left out, whole.
+		 */
+		if (hint == NULL && menu_count > 0) {
+			/*
+			 * In a narrow window, first the spaces between the
+			 * buttons go, then the word SBEmacs, and only then the
+			 * buttons that still do not fit.
+			 */
+			int k, buttons = 0, spaced, branded, prefix;
+			char *p;
+
+			for (k = 0; k < menu_count; k++)
+				buttons += (int) strlen(menu_labels[k]) + 2;
+			snprintf(modeline_buf, sizeof(modeline_buf), "%s%s%s, L. %d %c%c SBEmacs:",
+				 name, mch == '*' ? "*" : "", och == 'O' ? " [overwrite]" : "",
+				 line_number(wp->w_bufp, point), lch, lch);
+			for (prefix = 0, p = modeline_buf; *p; p++)
+				if (((unsigned char) *p & 0xC0) != 0x80) prefix++;
+			spaced = (prefix + buttons + menu_count <= cols);
+			branded = spaced || (prefix + 1 + buttons <= cols);
+			if (!branded)                   /* " SBEmacs:" off the end */
+				modeline_buf[strlen(modeline_buf) - 9] = '\0';
+			n = 0;
+			add_cells(modeline_buf, &n, cols);
+			for (k = 0; k < menu_count; k++) {
+				int w = (int) strlen(menu_labels[k]) + 2;
+				int gap = (spaced || k == 0) ? 1 : 0;
+				if (n + gap + w > cols) break;
+				if (gap) add_cells(" ", &n, cols);
+				face_on(row == pressed_row && k == pressed_index
+					? ID_COLOR_MENU_PRESSED : ID_COLOR_MENU);
+				snprintf(modeline_buf, sizeof(modeline_buf), "[%s]", menu_labels[k]);
+				if (e >= 0) {
+					menu_rows[e].start[k] = (short) n;
+					menu_rows[e].end[k] = (short) (n + w);
+					menu_rows[e].n = k + 1;
+				}
+				add_cells(modeline_buf, &n, cols);
+				face_on(ID_COLOR_MODELINE);
+			}
+			if (n < cols) add_cells(" ", &n, cols);
+			for (; n < cols; n++)
+				screen_addch(lch);
+			face_on(ID_COLOR_SYMBOL);
+			return;
+		}
+	}
 	if (hint != NULL)
 		snprintf(modeline_buf, sizeof(modeline_buf), "SBEmacs: %s%s%s, L. %d %c%c %s ",
 			 name, mch == '*' ? "*" : "", och == 'O' ? " [overwrite]" : "",

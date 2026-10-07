@@ -61,6 +61,8 @@
 #define ID_COLOR_EMPHASIS  12
 #define ID_COLOR_STRONG    13
 #define ID_COLOR_LINK      14
+#define ID_COLOR_MENU      15      /* the buttons of the mode line menu */
+#define ID_COLOR_MENU_PRESSED 16   /* a button while it is clicked */
 
 /* undo types, in matched pairs */
 #define UNDO_T_NONE        0
@@ -371,6 +373,8 @@ extern void match_paren_forwards(buffer_t *, char, char);
 extern void match_paren_backwards(buffer_t *, char, char);
 extern void call_lisp(char *, char *, int);
 extern int call_lisp_event(char *, char *);
+extern int menu_hit(int row, int col);
+extern void menu_press(int row, int index);
 extern int call_lisp_highlight(buffer_t *, char_t *, int, char_t *);
 extern void init_colors(void);
 extern int goto_screen_position(int, int);

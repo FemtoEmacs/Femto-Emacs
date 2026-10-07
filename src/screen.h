@@ -66,6 +66,9 @@ extern void screen_face(int id);
 extern void screen_set_face(int id, long fg, long bg, int attrs);
 extern int  screen_colors(void);           /* 8, 256, or 16777216 for 24-bit */
 
+/* wait MS milliseconds (a clicked button stays lit that long) */
+extern void screen_pause(int ms);
+
 /* input */
 extern int  screen_getch(void);            /* blocks; returns one byte */
 extern void screen_flushinp(void);        /* discard pending input */

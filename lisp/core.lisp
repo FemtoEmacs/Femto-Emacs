@@ -106,6 +106,23 @@ core then runs its own)."
       (funcall fn)
       t)))
 
+(declaim (ftype (function (&optional t) t) command-boundary))
+(declaim (ftype (function (string) (values boolean &optional)) run-key-as-typed))
+(defun run-key-as-typed (key)
+  "Do what typing KEY (Emacs notation, \"C-x C-s\") does: its Lisp binding,
+or else the C core's, with the same undo grouping and *LAST-COMMAND*.  For
+buttons and menus.  False when KEY is bound to nothing."
+  (let* ((k (normalize-key key))
+         (fn (gethash k *keymap*)))
+    (command-boundary k)
+    (setf *this-key* k
+          *this-command* (or fn k))
+    (unwind-protect
+         (cond (fn (funcall fn) t)
+               (t (= 1 (%run-c-key k))))
+      (setf *last-key* k
+            *last-command* *this-command*))))
+
 ;;; Commands: what M-x offers, besides the C core's own
 
 (defvar *commands* (make-hash-table :test 'equal)
@@ -301,6 +318,9 @@ installs itself here.")
                         (setf *last-key* "self-insert"
                               *last-command* 'self-insert)
                         (setf handled (run-self-insert arg)))
+                       ((string= event "menu")
+                        (setf handled :key)
+                        (run-mode-line-menu (parse-integer arg)))
                        ((string= event "kill") (dolist (f *kill-hook*) (funcall f arg)))
                        ((string= event "startup") (run-startup))
                        ((string= event "colors") (apply-color-theme (parse-integer arg))))
@@ -311,6 +331,9 @@ installs itself here.")
       ;; an error in a self-insert function must not swallow the key
       (unless (eq handled :key) (setf handled nil)))
     (if handled 1 0)))
+
+;; defined in lisp/extensions/menu.lisp, a script
+(declaim (ftype (function (integer) t) run-mode-line-menu))
 
 ;; defined in lisp/highlight.lisp, a script loaded after the engine
 (declaim (ftype (function (t t t t) t) highlight-buffer-text))
