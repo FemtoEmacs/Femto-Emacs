@@ -103,6 +103,12 @@
        (buffer-picker-common-prefix '("alpha.lisp" "alphabet.txt" "Alpine"))
        "alp")
 (check "buffer picker empty completion" (buffer-picker-common-prefix nil) "")
+(check "buffer picker accepts CR from the SDL Return key"
+       (buffer-picker-key-action (string #\Return))
+       :accept)
+(check "buffer picker accepts LF from a terminal Return key"
+       (buffer-picker-key-action (string #\Newline))
+       :accept)
 
 ;;; the evaluator used by Esc-; and Esc-]
 (check "eval-string evaluates every form"

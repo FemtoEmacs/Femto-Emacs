@@ -890,16 +890,21 @@ function returns."
 (defun render-buffer-picker (query matches selected)
   (select-buffer *buffer-picker-buffer*)
   (delete-region 0 (buffer-size))
-  (insert "Switch to buffer\n"
-          "Type to filter; TAB completes; arrows select; RET opens; C-g cancels.\n\n"
-          "Filter: " query "\n\n")
-  (if matches
-      (loop for name in matches
-            for i from 0
-            do (insert (if (= i selected) "> " "  ") name "\n"))
-      (insert "  No matching buffers\n"))
-  (goto-char (buffer-size))
-  (update-display))
+  ;; Common Lisp does not interpret \n as a newline: use FORMAT's ~%.
+  (insert (format nil "Switch to buffer~%Type to filter; TAB completes; arrows select; RET opens; C-g cancels.~%~%Filter: ~A"
+                  query))
+  (let ((input-point (point)))
+    (insert (format nil "~%~%"))
+    (if matches
+        (loop for name in matches
+              for i from 0
+              do (insert (format nil "~A~A~%"
+                                 (if (= i selected) "> " "  ") name)))
+        (insert (format nil "  No matching buffers~%")))
+    ;; The modal picker reads keys itself, but leave the visible cursor where
+    ;; typed filter text appears rather than at the end of the choices.
+    (goto-char input-point)
+    (update-display)))
 
 (defun buffer-picker-bound-action ()
   (let ((name (get-key-name))
