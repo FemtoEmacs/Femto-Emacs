@@ -30,14 +30,18 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     # The C compiler (MinGW-w64).  SBCL, SDL2, SDL2_ttf and the font are
     # downloaded by the build script, each checked by its SHA-256.
     - name: Install MSYS2 and the C compiler
       uses: msys2/setup-msys2@v2
       with:
+        # MINGW64 builds against msvcrt.dll, the C runtime that SDL2's own
+        # MinGW DLLs and the Linux cross-compiler use; UCRT64 would mix two
+        # runtimes in one program.  So we keep it, knowingly.
         msystem: MINGW64
+        suppress-deprecation-warnings: msystem-mingw64
         update: false
         path-type: inherit    # so that powershell, msiexec and NSIS are found
         install: >-

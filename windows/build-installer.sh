@@ -171,7 +171,8 @@ rm -rf "$S/build" "$S/build.lisp"
 say "Making the setup program (NSIS)"
 if [ $ON_WINDOWS = 1 ]; then
     # Windows paths, left alone by MSYS2's path conversion
-    MSYS2_ARG_CONV_EXCL='*' makensis -V2 -DVERSION="$VERSION" -DSTAGE="$(cygpath -w "$S")" \
+    MSYS2_ARG_CONV_EXCL='*' makensis -V2 -DTARGET=x86-unicode \
+        -DVERSION="$VERSION" -DSTAGE="$(cygpath -w "$S")" \
         -DOUTDIR="$(cygpath -w "$WORK")" "$(cygpath -w "$TOP/windows/sbemacs.nsi")"
 else
     makensis -V2 -DVERSION="$VERSION" -DSTAGE="$S" -DOUTDIR="$WORK" "$TOP/windows/sbemacs.nsi"

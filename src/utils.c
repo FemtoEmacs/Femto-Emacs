@@ -31,26 +31,21 @@ void make_buffer_name(char *bname, char *fname)
 
 void make_buffer_name_uniq(char *bname)
 {
-	int num = 0;
-	char basen[NBUFN];
+	int num;
 	char bufn[NBUFN];
 
 	if (NULL == find_buffer(bname, FALSE))
 		return;
 
-	strcpy(basen, bname);
-	basen[14] = '\0';
-	basen[15] = '\0';
-
-	while(TRUE) {
-		sprintf(bufn, "%s%d", basen, num++);
-		
+	/* at most 14 bytes of the name and 2 digits: always fits in NBUFN */
+	for (num = 0; num < 100; num++) {
+		snprintf(bufn, sizeof bufn, "%.14s%d", bname, num);
 		if (NULL == find_buffer(bufn, FALSE)) {
 			strcpy(bname, bufn);
 			return;
 		}
-		assert(num < 100); /* fail after 100 */
 	}
+	assert(!"no unique buffer name after 100 tries");
 }
 
 /*

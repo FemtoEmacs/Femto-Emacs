@@ -6,7 +6,7 @@
 int getfilename(char *prompt, char *buf, int nbuf)
 {
 	int cpos = 0;	/* current character position in string */
-	int c, ocpos, n, nskip = 0, didtry = 0, iswild = 0, result = 0;
+	int c, ocpos, n, nskip = 0, didtry = 0, iswild = 0;
 
 	char sys_command[255];
 	char *output_file = get_temp_file();
@@ -57,8 +57,10 @@ int getfilename(char *prompt, char *buf, int nbuf)
 			/* first time retrieval */
 			if (nskip < 0) {
 				buf[ocpos] = 0;
-				if (fp != NULL)
+				if (fp != NULL) {
 					fclose(fp);
+					fp = NULL;
+				}
 				strcpy(sys_command, "echo ");
 				strcat(sys_command, buf);
 				if (!iswild)
@@ -67,9 +69,14 @@ int getfilename(char *prompt, char *buf, int nbuf)
 				output_file = get_temp_file();
 				strcat(sys_command, output_file);
 				strcat(sys_command, " 2>&1");
-				result = system(sys_command);
-				result++; /* stop compiler warning about not used */
-				fp = fopen(output_file, "r");
+				if (system(sys_command) == -1 ||
+				    (fp = fopen(output_file, "r")) == NULL) {
+					/* no list of names: leave the text as it was */
+					fp = NULL;
+					cpos = ocpos;
+					didtry = 0;
+					break;
+				}
 				nskip = 0;
 			}
 

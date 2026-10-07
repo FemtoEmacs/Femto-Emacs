@@ -10,7 +10,13 @@
 ; Python's per-user installers.
 
 Unicode true
-Target amd64-unicode           ; a 64-bit setup for a 64-bit program
+; A 64-bit setup where NSIS has 64-bit stubs (the Linux package does);
+; the official Windows NSIS has only 32-bit ones, and build-installer.sh
+; passes -DTARGET=x86-unicode there.  Either runs on 64-bit Windows.
+!ifndef TARGET
+  !define TARGET amd64-unicode
+!endif
+Target ${TARGET}
 SetCompressor /SOLID lzma
 ManifestDPIAware true
 
@@ -77,8 +83,21 @@ LangString RunNow ${LANG_ENGLISH} "Run SBEmacs now"
 LangString RunNow ${LANG_PORTUGUESEBR} "Abrir o SBEmacs agora"
 LangString DesktopIcon ${LANG_ENGLISH} "Put a shortcut on the desktop"
 LangString DesktopIcon ${LANG_PORTUGUESEBR} "Criar um atalho na área de trabalho"
+LangString Needs64 ${LANG_ENGLISH} "SBEmacs needs 64-bit Windows."
+LangString Needs64 ${LANG_PORTUGUESEBR} "O SBEmacs precisa do Windows de 64 bits."
 LangString Manual ${LANG_ENGLISH} "The SBEmacs manual"
 LangString Manual ${LANG_PORTUGUESEBR} "O manual do SBEmacs"
+
+!if ${TARGET} == x86-unicode
+!include "x64.nsh"
+Function .onInit
+  ; a 32-bit setup also starts on 32-bit Windows, where SBEmacs cannot run
+  ${IfNot} ${RunningX64}
+    MessageBox MB_ICONSTOP "$(Needs64)"
+    Abort
+  ${EndIf}
+FunctionEnd
+!endif
 
 Function DesktopShortcut
   SetOutPath "$PROFILE"
