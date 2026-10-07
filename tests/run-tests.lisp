@@ -484,5 +484,29 @@
   (check "complete: a folder that does not exist"
          (file-name-completions "nowhere/a" dir) '()))
 
+;;; M-! (shell.lisp)
+
+(check "shell: one line stays as it is"
+       (shell-command-line "ls -l") "ls -l")
+(check "shell: line breaks become continuations"
+       (shell-command-line (format nil "echo one~%  two~%three"))
+       (format nil "echo one \\~%  two \\~%three"))
+(check "shell: a line ending in \\ is not doubled; blank lines go"
+       (shell-command-line (format nil "echo a \\~%~%b~%"))
+       (format nil "echo a \\~%b"))
+(check "shell: a continued command runs as one"
+       (multiple-value-list (run-shell (shell-command-line (format nil "echo one~%two")) nil))
+       (list (format nil "one two~%") 0))
+(check "shell: a failure keeps its message and status"
+       (multiple-value-bind (out code) (run-shell "ls /no/such/folder" nil)
+         (list (not (null (search "no/such" out))) (/= code 0)))
+       '(t t))
+(check "shell: the transcript shows the command, then the output"
+       (shell-transcript (format nil "echo a \\~%b") (format nil "a b~%") 0)
+       (format nil "$ echo a \\~%  b~%a b~%"))
+(check "shell: and the exit status of a failure"
+       (shell-transcript "false" "" 1)
+       (format nil "$ false~%[exit status 1]~%"))
+
 (format t "~&~D/~D tests passed~%" (- *count* *failures*) *count*)
 (sb-ext:exit :code (if (zerop *failures*) 0 1))

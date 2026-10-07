@@ -1,6 +1,13 @@
 # SBEmacs / Femto Emacs Change Log
 
 ## SBEmacs 2.0
+* M-! opens a window for a shell command of one or more lines; C-c s runs
+  it in the file's folder and shows the command, then its output, then the
+  exit status if it failed (before, a failing command showed nothing, and
+  a command was limited to about 230 characters).  Line breaks become
+  continuations: " \" for sh, a space for cmd.exe.  On Windows no console
+  window flashes, for shell commands and for Claude and Codex
+  (run-program :window :hide).  Scripts' shell-command uses it too.
 * File name completion (TAB in C-x C-f and the other file prompts) is done
   in Lisp with SBCL's DIRECTORY instead of a shell's echo: it works on
   Windows, and with names that hold spaces.  The first TAB fills in what
