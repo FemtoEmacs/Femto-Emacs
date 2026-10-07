@@ -37,8 +37,8 @@ needs SDL2, and everything written in Lisp works the same in both.
 
 ### Windows users
 
-Download `SBEmacs-2.0-Windows-x86_64-Setup.exe` from the latest
-[release](../../releases) and double-click it: Next, Install, Finish.
+Download **[SBEmacs-2.0-Windows-x86_64-Setup.exe](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/windows-installer/SBEmacs-2.0-Windows-x86_64-Setup.exe)**
+and double-click it: Next, Install, Finish.
 Nothing else is needed: no SBCL (it is inside `sbemacs.exe`), no PowerShell
 script, no MSYS2, no administrator rights.  SBEmacs goes to
 `%LOCALAPPDATA%\Programs\SBEmacs`; the Start menu gets *SBEmacs* and
@@ -50,9 +50,11 @@ Windows may say that it protected your PC, because the setup program is not
 signed: click *More info*, then *Run anyway*.
 
 The Windows program always opens its window (it has no terminal version).
-To make the setup program yourself, on Linux, see
-[windows/build-installer.sh](windows/build-installer.sh) or run
-`make windows-installer`.
+Nobody needs to compile anything: at every push to the `windows` branch,
+GitHub builds the setup program on a Windows machine of its own, tries it,
+and replaces the file behind that link
+([.github/workflows/build-windows-installer.yml](.github/workflows/build-windows-installer.yml),
+[windows/build-installer.sh](windows/build-installer.sh)).
 
 ### Building from source
 

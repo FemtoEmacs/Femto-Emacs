@@ -627,12 +627,13 @@ Chapter~\ref{chapter:shell} first.
 %%% ------------------------------------------------------------------
 
 If you use Windows and only want to run the editor, you can skip
-the rest of this chapter. Download
-\verb|SBEmacs-2.0-Windows-x86_64-Setup.exe| from the Releases
-page of the repository,
+the rest of this chapter. Download the setup program:
 \begin{quote}
-\path|https://github.com/FemtoEmacs/Femto-Emacs/releases|
+\path|https://github.com/FemtoEmacs/Femto-Emacs/releases/|\\
+\path|  download/windows-installer/|\\
+\path|  SBEmacs-2.0-Windows-x86_64-Setup.exe|
 \end{quote}
+(the README of the repository has the same link, ready to click)
 and double-click it. Click {\em Next}, then {\em Install}, then
 {\em Finish}. That is all. You do not need SBCL, because
 \verb|sbemacs.exe| carries SBCL inside it; you do not need a
@@ -656,15 +657,22 @@ other systems (section~\ref{sec:lisp}). To remove SBEmacs, open
 {\em Settings}, then {\em Apps}, find SBEmacs, and choose
 {\em Uninstall}; your \verb|.sbemacs| folder stays.
 
-\paragraph{How the setup program is made.} Only a Windows SBCL can
-save a Windows program, and Windows users should not have to
-install compilers. So the setup program is made on Linux, by
-\verb|windows/build-installer.sh|, in three steps:
-the C core is compiled for Windows with MinGW-w64; the official
-Windows SBCL, running under Wine, loads the Lisp files and saves
+\paragraph{How the setup program is made.} Windows users should
+not have to install compilers, and they do not: GitHub does the
+work. Every time the authors push to the \verb|windows| branch,
+GitHub starts a clean Windows machine of its own, which runs
+\verb|windows/build-installer.sh| in three steps:
+the C core is compiled with MinGW-w64; the official
+Windows SBCL loads the Lisp files and saves
 \verb|sbemacs.exe|; and NSIS packs the program, SDL2, SDL2\_ttf,
 the Lisp scripts, a font and this manual into one \verb|.exe|.
-Anyone with a Debian or Ubuntu machine can repeat it:
+The machine then installs the result, opens the editor, uninstalls
+it, and, if all went well, puts the new setup program behind the
+link above. The recipe is in
+\verb|.github/workflows/build-windows-installer.yml|.
+
+A developer can repeat the build on Linux, where the Windows SBCL
+runs under Wine:
 \begin{quote}
 \begin{verbatim}
 ~$ sudo apt-get install gcc-mingw-w64-x86-64 wine

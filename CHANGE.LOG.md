@@ -8,7 +8,10 @@
   fonts.  Start menu, desktop shortcut, Open with, and removal from
   Settings > Apps.  Made on Linux by windows/build-installer.sh (MinGW-w64,
   the official Windows SBCL under Wine, NSIS), with every download pinned
-  by SHA-256; CI installs, runs and uninstalls it on Windows.  The
+  by SHA-256.  GitHub builds it on a clean Windows machine at every push
+  to the windows branch (.github/workflows/build-windows-installer.yml),
+  installs, runs and uninstalls it, and publishes it under a fixed link
+  (release tag windows-installer).  The script also runs on Linux.  The
   PowerShell script and the Inno Setup script are gone.
 * Markdown (lisp/languages/markdown.lisp): headings, emphasis, strong,
   code, links, quotations, lists, tables, rules and comments, with code

@@ -1,9 +1,17 @@
 #!/bin/sh
 # build-installer.sh -- make SBEmacs-<version>-Windows-x86_64-Setup.exe
 #
-# Run on Linux (Debian or Ubuntu) from the top of the sources:
+# Nobody installing SBEmacs runs this: GitHub runs it on a Windows machine
+# of its own at every push to the windows branch
+# (.github/workflows/build-windows-installer.yml) and publishes the result.
+# A developer can also run it, from the top of the sources, either
 #
+#   on Linux (Debian or Ubuntu):
 #     sudo apt-get install gcc-mingw-w64-x86-64 wine nsis msitools unzip curl
+#     sh windows/build-installer.sh
+#
+#   or on Windows, in the MSYS2 MINGW64 shell, with NSIS installed:
+#     pacman -S mingw-w64-x86_64-gcc unzip
 #     sh windows/build-installer.sh
 #
 # The result is in build/windows/: one .exe that a Windows user
@@ -15,10 +23,10 @@
 # save-lisp-and-die; the image carries the SBCL runtime, so the user does
 # not need SBCL.  But only a Windows SBCL saves a Windows image.  So:
 #
-#   1. the C core is cross-compiled into libsbemacs-gui.dll with MinGW-w64,
+#   1. the C core is compiled into libsbemacs-gui.dll with MinGW-w64,
 #      against the official SDL2 and SDL2_ttf MinGW packages;
-#   2. the official Windows SBCL runs under Wine, loads build.lisp and saves
-#      sbemacs.exe (a window program: no console opens with it);
+#   2. the official Windows SBCL (run under Wine on Linux) loads build.lisp
+#      and saves sbemacs.exe (a window program: no console opens with it);
 #   3. NSIS packs sbemacs.exe, the DLLs, the Lisp scripts, a font and the
 #      manual into the setup program.
 #
@@ -27,10 +35,23 @@
 
 set -eu
 
+case $(uname -s) in
+    MINGW*|MSYS*) ON_WINDOWS=1 ;;
+    *)            ON_WINDOWS=0 ;;
+esac
+
 TOP=$(cd "$(dirname "$0")/.." && pwd)
 WORK=${WORK:-$TOP/build/windows}
 DL=$WORK/downloads
-CC=${CC_WIN:-x86_64-w64-mingw32-gcc}
+if [ $ON_WINDOWS = 1 ]; then
+    CC=${CC_WIN:-gcc}
+    # NSIS installs itself here, without touching the PATH
+    PATH="$PATH:/c/Program Files (x86)/NSIS:/c/Program Files/NSIS"
+    NEEDED="unzip"
+else
+    CC=${CC_WIN:-x86_64-w64-mingw32-gcc}
+    NEEDED="wine msiextract unzip"
+fi
 
 SDL2_VERSION=2.32.10
 SDL2_TTF_VERSION=2.24.0
@@ -57,7 +78,7 @@ DEJAVU_SHA=7576310b219e04159d35ff61dd4a4ec4cdba4f35c00e002a136f00e96a908b0a
 say() { printf '\n== %s\n' "$*"; }
 die() { printf 'build-installer: %s\n' "$*" >&2; exit 1; }
 
-for tool in "$CC" wine makensis msiextract unzip curl sha256sum; do
+for tool in "$CC" makensis $NEEDED curl sha256sum; do
     command -v "$tool" >/dev/null 2>&1 || die "$tool is missing (see the top of this script)"
 done
 
@@ -88,7 +109,13 @@ tar xzf "$DL/$SDL2_TGZ" -C "$WORK/deps"
 tar xzf "$DL/$TTF_TGZ" -C "$WORK/deps"
 unzip -q "$DL/$DEJAVU_ZIP" -d "$WORK/deps"
 mkdir -p "$WORK/deps/sbcl"
-(cd "$WORK/deps/sbcl" && msiextract "$DL/$SBCL_MSI" >/dev/null)
+if [ $ON_WINDOWS = 1 ]; then
+    # an "administrative install" only unpacks the MSI; nothing is installed
+    powershell -NoProfile -Command "\$p = Start-Process msiexec.exe -Wait -PassThru -ArgumentList '/a','$(cygpath -w "$DL/$SBCL_MSI")','/qn','TARGETDIR=$(cygpath -w "$WORK/deps/sbcl")'; exit \$p.ExitCode" \
+        || die "msiexec could not unpack $SBCL_MSI"
+else
+    (cd "$WORK/deps/sbcl" && msiextract "$DL/$SBCL_MSI" >/dev/null)
+fi
 SBCL_EXE=$(find "$WORK/deps/sbcl" -name sbcl.exe | head -1)
 [ -n "$SBCL_EXE" ] || die "no sbcl.exe in $SBCL_MSI"
 SBCL_DIR=$(dirname "$SBCL_EXE")
@@ -125,17 +152,30 @@ cp "$TOP/docs/sbemacs.pdf" "$S/docs/"
 cp "$TOP/samples/init.lisp" "$TOP/samples/fib.lisp" "$S/samples/"
 cp "$TOP/README.md" "$TOP/CHANGE.LOG.md" "$S/"
 
-say "Saving sbemacs.exe with SBCL $SBCL_VERSION under Wine"
-export WINEPREFIX="$WORK/wine" WINEDEBUG=-all WINEDLLOVERRIDES="mscoree,mshtml="
-# Wine sees the Linux root as drive Z:
-(cd "$S" && SBEMACS_WINDOW_APP=1 SBCL_HOME="Z:$SBCL_DIR" \
-    wine "$SBCL_EXE" --core "Z:$SBCL_DIR/sbcl.core" --noinform --non-interactive \
-         --no-sysinit --no-userinit --load build.lisp)
+say "Saving sbemacs.exe with SBCL $SBCL_VERSION"
+if [ $ON_WINDOWS = 1 ]; then
+    WINDIR_SBCL=$(cygpath -w "$SBCL_DIR")
+    (cd "$S" && SBEMACS_WINDOW_APP=1 SBCL_HOME="$WINDIR_SBCL" \
+        "$SBCL_EXE" --core "$WINDIR_SBCL\\sbcl.core" --noinform --non-interactive \
+                    --no-sysinit --no-userinit --load build.lisp)
+else
+    export WINEPREFIX="$WORK/wine" WINEDEBUG=-all WINEDLLOVERRIDES="mscoree,mshtml="
+    # Wine sees the Linux root as drive Z:
+    (cd "$S" && SBEMACS_WINDOW_APP=1 SBCL_HOME="Z:$SBCL_DIR" \
+        wine "$SBCL_EXE" --core "Z:$SBCL_DIR/sbcl.core" --noinform --non-interactive \
+             --no-sysinit --no-userinit --load build.lisp)
+fi
 [ -f "$S/sbemacs.exe" ] || die "SBCL did not save sbemacs.exe"
 rm -rf "$S/build" "$S/build.lisp"
 
 say "Making the setup program (NSIS)"
-makensis -V2 -DVERSION="$VERSION" -DSTAGE="$S" -DOUTDIR="$WORK" "$TOP/windows/sbemacs.nsi"
+if [ $ON_WINDOWS = 1 ]; then
+    # Windows paths, left alone by MSYS2's path conversion
+    MSYS2_ARG_CONV_EXCL='*' makensis -V2 -DVERSION="$VERSION" -DSTAGE="$(cygpath -w "$S")" \
+        -DOUTDIR="$(cygpath -w "$WORK")" "$(cygpath -w "$TOP/windows/sbemacs.nsi")"
+else
+    makensis -V2 -DVERSION="$VERSION" -DSTAGE="$S" -DOUTDIR="$WORK" "$TOP/windows/sbemacs.nsi"
+fi
 SETUP=$WORK/SBEmacs-$VERSION-Windows-x86_64-Setup.exe
 [ -f "$SETUP" ] || die "makensis made nothing"
 say "Done: $SETUP ($(du -h "$SETUP" | cut -f1))"

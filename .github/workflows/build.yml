@@ -1,8 +1,9 @@
 name: build
 
-# Builds and tests SBEmacs on Linux, macOS and Windows.
+# Builds and tests SBEmacs on Linux and macOS.  The Windows installer has
+# its own workflow, build-windows-installer.yml.
 # Pushing a tag such as v2.0.0 also publishes a GitHub release with one
-# archive per platform.
+# archive for Linux and macOS.
 
 on:
   push:
@@ -64,63 +65,9 @@ jobs:
           name: sbemacs-${{ matrix.os }}
           path: dist/*.tar.gz
 
-  # The Windows setup program is made on Linux: MinGW-w64 compiles the C
-  # core, the official Windows SBCL saves sbemacs.exe under Wine, NSIS makes
-  # the setup .exe (windows/build-installer.sh explains why).
-  windows-installer:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install the tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-mingw-w64-x86-64 wine wine64 nsis msitools unzip
-
-      - name: Build the setup program
-        run: sh windows/build-installer.sh
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: sbemacs-windows-setup
-          path: build/windows/*-Setup.exe
-
-  # ... and tried on real Windows, the way a user would: install, run,
-  # uninstall, without administrator rights.
-  windows-test:
-    needs: windows-installer
-    runs-on: windows-latest
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: sbemacs-windows-setup
-
-      - name: Install, run, uninstall
-        shell: pwsh
-        run: |
-          $setup = (Get-ChildItem *-Setup.exe | Select-Object -First 1).FullName
-          $p = Start-Process $setup -ArgumentList '/S' -Wait -PassThru
-          if ($p.ExitCode -ne 0) { throw "setup exited with $($p.ExitCode)" }
-          $dir = "$env:LOCALAPPDATA\Programs\SBEmacs"
-          foreach ($f in 'sbemacs.exe','libsbemacs-gui.dll','SDL2.dll','SDL2_ttf.dll','lisp\core.lisp') {
-            if (-not (Test-Path "$dir\$f")) { throw "$f was not installed" }
-          }
-          if (-not (Test-Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\SBEmacs.lnk")) {
-            throw 'no Start menu shortcut'
-          }
-          # the window must open and stay open
-          $editor = Start-Process "$dir\sbemacs.exe" -ArgumentList "$dir\README.md" -PassThru
-          Start-Sleep -Seconds 15
-          if ($editor.HasExited) { throw "sbemacs.exe exited with $($editor.ExitCode)" }
-          Stop-Process -Id $editor.Id
-          Start-Sleep -Seconds 2
-          Start-Process "$dir\Uninstall SBEmacs.exe" -ArgumentList '/S' -Wait -PassThru
-          Start-Sleep -Seconds 5      # the uninstaller finishes from a copy of itself
-          if (Test-Path "$dir\sbemacs.exe") { throw 'the uninstaller left sbemacs.exe' }
-
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [ unix, windows-installer, windows-test ]
+    needs: [ unix ]
     runs-on: ubuntu-latest
     permissions:
       contents: write

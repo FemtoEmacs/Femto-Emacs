@@ -1,0 +1,107 @@
+name: Build Windows Installer
+
+# At every push to the windows branch, a clean Windows machine on GitHub's
+# servers builds SBEmacs-<version>-Windows-x86_64-Setup.exe, tries it
+# (install, run, uninstall) and publishes it on the release page under the
+# tag windows-installer, so the download link never changes:
+#
+#   https://github.com/FemtoEmacs/Femto-Emacs/releases/download/windows-installer/SBEmacs-2.0-Windows-x86_64-Setup.exe
+#
+# A version tag (v2.0.0, ...) also attaches it to that version's release.
+# What the build does is explained in windows/build-installer.sh.
+
+on:
+  push:
+    branches:
+      - windows
+    tags:
+      - 'v*'
+  workflow_dispatch:          # the Run workflow button of the Actions tab
+
+permissions:
+  contents: write             # to publish the release
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # The C compiler (MinGW-w64).  SBCL, SDL2, SDL2_ttf and the font are
+    # downloaded by the build script, each checked by its SHA-256.
+    - name: Install MSYS2 and the C compiler
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        update: false
+        path-type: inherit    # so that powershell, msiexec and NSIS are found
+        install: >-
+          curl
+          unzip
+          mingw-w64-x86_64-gcc
+
+    - name: Install NSIS
+      shell: pwsh
+      run: choco install nsis -y --no-progress
+
+    - name: Build sbemacs.exe and the installer
+      run: sh windows/build-installer.sh
+
+    # Like a user: install without administrator rights, open the editor,
+    # make sure its window stays up, uninstall.
+    - name: Try the installer
+      shell: pwsh
+      run: |
+        $setup = (Get-ChildItem build\windows\*-Setup.exe | Select-Object -First 1).FullName
+        $p = Start-Process $setup -ArgumentList '/S' -Wait -PassThru
+        if ($p.ExitCode -ne 0) { throw "setup exited with $($p.ExitCode)" }
+        $dir = "$env:LOCALAPPDATA\Programs\SBEmacs"
+        foreach ($f in 'sbemacs.exe','libsbemacs-gui.dll','SDL2.dll','SDL2_ttf.dll','lisp\core.lisp') {
+          if (-not (Test-Path "$dir\$f")) { throw "$f was not installed" }
+        }
+        if (-not (Test-Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\SBEmacs.lnk")) {
+          throw 'no Start menu shortcut'
+        }
+        $editor = Start-Process "$dir\sbemacs.exe" -ArgumentList "$dir\README.md" -PassThru
+        Start-Sleep -Seconds 15
+        if ($editor.HasExited) { throw "sbemacs.exe exited with $($editor.ExitCode)" }
+        Stop-Process -Id $editor.Id
+        Start-Sleep -Seconds 2
+        Start-Process "$dir\Uninstall SBEmacs.exe" -ArgumentList '/S' -Wait | Out-Null
+        Start-Sleep -Seconds 5      # the uninstaller finishes from a copy of itself
+        if (Test-Path "$dir\sbemacs.exe") { throw 'the uninstaller left sbemacs.exe' }
+
+    - name: Upload Installer Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: sbemacs-windows-installer
+        path: build/windows/*-Setup.exe
+
+    - name: Publish on the release page (windows branch)
+      if: github.ref == 'refs/heads/windows'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        git tag -f windows-installer
+        git push -f origin refs/tags/windows-installer
+        gh release view windows-installer >/dev/null 2>&1 ||
+          gh release create windows-installer --latest=false \
+            --title "SBEmacs for Windows (latest build)" \
+            --notes "Download SBEmacs-*-Windows-x86_64-Setup.exe below, double-click it, then click Next, Install, Finish. Windows may say that it protected your PC because the installer is not signed: click More info, then Run anyway."
+        gh release upload windows-installer build/windows/*-Setup.exe --clobber
+
+    - name: Publish on the version's release (v* tags)
+      if: startsWith(github.ref, 'refs/tags/v')
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 ||
+          gh release create "$GITHUB_REF_NAME" --generate-notes
+        gh release upload "$GITHUB_REF_NAME" build/windows/*-Setup.exe --clobber
