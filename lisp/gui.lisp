@@ -42,7 +42,11 @@ Set to NIL to type accented characters with Option instead.")
      #-(or darwin win32) (list (merge-pathnames ".local/share/fonts/" home)
                                (merge-pathnames ".fonts/" home)
                                #p"/usr/share/fonts/truetype/" #p"/usr/share/fonts/"
-                               #p"/usr/local/share/fonts/"))))
+                               #p"/usr/local/share/fonts/")
+     ;; last: a font that came with SBEmacs (the Windows installer brings
+     ;; DejaVu Sans Mono), in fonts/ next to the program
+     (let ((exe (ignore-errors (truename sb-ext:*runtime-pathname*))))
+       (and exe (list (merge-pathnames "fonts/" (make-pathname :name nil :type nil :defaults exe))))))))
 
 (defparameter *gui-font-candidates*
   ;; file names, looked for (recursively, one level) in the font directories

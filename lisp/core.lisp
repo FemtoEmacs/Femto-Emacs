@@ -489,8 +489,13 @@ infinities and NaNs; SBCL would turn that into a Lisp error."
   `(sb-int:with-float-traps-masked (:overflow :invalid :divide-by-zero :inexact :underflow)
      ,@body))
 
+(defvar *gui-by-default* nil
+  "True in the Windows installer's sbemacs.exe, a program without a console:
+it always opens a window.")
+
 (defun gui-requested-p (args)
-  (or (member "--gui" args :test #'string=)
+  (or *gui-by-default*
+      (member "--gui" args :test #'string=)
       (member "-g" args :test #'string=)
       (search "gui" (file-namestring (or (first sb-ext:*posix-argv*) "")))))
 

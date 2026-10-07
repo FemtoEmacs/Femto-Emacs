@@ -32,10 +32,16 @@
 ;; Load the core library first so that the foreign symbols resolve at
 ;; compile time.  It is loaded with :dont-save: the executable finds it
 ;; again at start-up, next to itself (see LOAD-CORE-LIBRARY).
+;;
+;; The Windows installer builds a program for the window only, without a
+;; console (windows/build-installer.sh): SBEMACS_WINDOW_APP=1.  It has no
+;; terminal library, so the window's library resolves the symbols.
+(defparameter *window-app* (equal (sb-ext:posix-getenv "SBEMACS_WINDOW_APP") "1"))
+
 (sb-alien:load-shared-object
  (sb-ext:native-namestring
-  (merge-pathnames #+darwin "libsbemacs-term.dylib" #+win32 "libsbemacs-term.dll"
-                   #-(or darwin win32) "libsbemacs-term.so"
+  (merge-pathnames (format nil "libsbemacs-~A.~A" (if *window-app* "gui" "term")
+                           #+darwin "dylib" #+win32 "dll" #-(or darwin win32) "so")
                    *root*))
  :dont-save t)
 
@@ -54,8 +60,12 @@
     (error "Scripts failed to load:~%~{  ~A~%~}" errors)))
 (setf sbemacs::*script-directory* nil)
 
+(when *window-app*
+  (setf sbemacs::*gui-by-default* t))
+
 (sb-ext:save-lisp-and-die
  (merge-pathnames #+win32 "sbemacs.exe" #-win32 "sbemacs" *root*)
  :executable t
+ #+win32 :application-type #+win32 (if *window-app* :gui :console)
  :save-runtime-options t
  :toplevel #'sbemacs:main)
