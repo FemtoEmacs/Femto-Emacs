@@ -827,7 +827,18 @@ static void handle(SDL_Event *e)
 			break;
 		}
 #endif
-		if (suppress_text) suppress_text = 0;
+		if (suppress_text) {
+			suppress_text = 0;
+		}
+#if defined(__APPLE__)
+		/* Some macOS keyboard/SDL combinations report Option-w only as the
+		 * composed U+2211 character, with no Alt modifier left to inspect.
+		 * In Meta mode that character cannot be literal input, so recover the
+		 * physical Emacs key M-w.  With Option-as-Meta disabled it remains ∑. */
+		else if (option_is_meta && strcmp(e->text.text, "\xE2\x88\x91") == 0) {
+			push_string("\x1bw");
+		}
+#endif
 		else push_string(e->text.text);
 		break;
 	case SDL_MOUSEBUTTONDOWN:
