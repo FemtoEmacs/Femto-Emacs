@@ -125,12 +125,13 @@ teste.lisp, L. 3 == SBEmacs: [HELP] [SAVE] [OPEN] [COPY] [PASTE] [UNDO] [AI HELP
 | `[AI HELP]` | | what Claude (`C-c r`) and Codex (`C-c g`) can do |
 | `[BUFFERS]` | `C-x b` | switch to another open file |
 | `[QUIT]` | `C-x C-c` | leave SBEmacs (it asks first if something is not saved) |
-| the file name | | its full name, lines, words, size, cursor, language, when it was saved |
+| the file name | | its full name, lines, words, size, cursor, language, when it was saved; any key closes the window |
 
 The button lights up while it is pressed and acts when it is released
 (moving off it first cancels).  In a narrow window the spaces between the
-buttons go first, then the word SBEmacs, then the `==`, then the front of a
-long file name (`...rc/fib.lisp`), and only then the buttons on the right.
+buttons go first, then the word SBEmacs, then the `==`, and only then the
+buttons on the right.  A file name longer than 18 characters is always
+shortened at the front (`...src/fib.lisp`); click it to see the whole name.
 
 The whole mode line is written in Lisp, in
 [`lisp/extensions/menu.lisp`](lisp/extensions/menu.lisp), a script; the C
