@@ -51,6 +51,22 @@ whose line breaks are continuations (see the top of this file)."
     #+win32
     (format nil "~{~A~^ ~}" lines)))
 
+#+win32
+(defun windows-command-interpreter ()
+  "Windows' own cmd.exe.  Not looked up in the PATH: there MSYS2 or Git
+for Windows may put a cmd of their own (a shell script) first.  COMSPEC
+names the real one."
+  (let ((comspec (sb-ext:posix-getenv "COMSPEC"))
+        (root (or (sb-ext:posix-getenv "SystemRoot") "C:\\Windows")))
+    (if (and comspec (probe-file comspec))
+        comspec
+        (concatenate 'string root "\\System32\\cmd.exe"))))
+
+(declaim (ftype (function (string) (values string &optional)) unix-line-ends))
+(defun unix-line-ends (text)
+  "TEXT with CR LF (cmd.exe's line ends) as LF."
+  (remove #\Return text))
+
 (declaim (ftype (function (string (or null pathname string))
                           (values string (or null integer) &optional))
                 run-shell))
@@ -68,14 +84,13 @@ errors too) and its exit status."
             #+win32
             ;; /s /c "...": cmd.exe drops the outer quotes and runs the rest
             ;; as written; :window :hide keeps its console window hidden
-            (sb-ext:run-program (or (ignore-errors (native (find-program "cmd")))
-                                    "C:\\Windows\\System32\\cmd.exe")
+            (sb-ext:run-program (windows-command-interpreter)
                                 (list "/d" "/s" "/c" (format nil "\"~A\"" command))
                                 :escape-arguments nil :window :hide
                                 :directory dir :input nil
                                 :output out :error :output :wait t
                                 :external-format '(:utf-8 :replacement #\?))))
-      (values (get-output-stream-string out)
+      (values (unix-line-ends (get-output-stream-string out))
               (sb-ext:process-exit-code process)))))
 
 (defcommand shell-command-window ()
