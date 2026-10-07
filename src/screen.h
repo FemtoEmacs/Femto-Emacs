@@ -81,6 +81,9 @@ extern void screen_flushinp(void);        /* discard pending input */
  */
 extern void screen_set_clipboard(const char *text);
 extern char *screen_get_clipboard(void);
+/* how the clipboard is reached: "SDL", "pbcopy", "xclip" ..., or "" when
+ * only OSC 52 is left (copies may still work, pasting from others not) */
+extern const char *screen_clipboard_tool(void);
 
 /* GUI settings, no-ops in a terminal */
 extern void screen_set_font(const char *path, int points);

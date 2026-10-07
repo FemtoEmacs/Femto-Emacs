@@ -624,6 +624,8 @@ static void unix_line_ends(char *t)
 	*d = '\0';
 }
 
+const char *screen_clipboard_tool(void) { return "SDL"; }
+
 char *screen_get_clipboard(void)
 {
 	char *text, *copy;

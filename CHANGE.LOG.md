@@ -1,6 +1,14 @@
 # SBEmacs / Femto Emacs Change Log
 
 ## SBEmacs 2.0
+* File name completion (TAB in C-x C-f and the other file prompts) is done
+  in Lisp with SBCL's DIRECTORY instead of a shell's echo: it works on
+  Windows, and with names that hold spaces.  The first TAB fills in what
+  the names share, the next ones cycle; after a single folder, TAB looks
+  inside it.  * and ? are wild cards, ~/ the home folder; hidden names
+  only after a dot.  Eight new tests.
+* A terminal on Linux with no xclip, xsel or wl-clipboard: the first C-y
+  says what to install to paste what other programs copy.
 * Copy on select: a mouse drag copies the selected text to the system
   clipboard at once, so Cmd-V pastes it elsewhere; in a terminal Cmd-C has
   nothing to copy while SBEmacs takes the mouse (iTerm2's "mouse reporting

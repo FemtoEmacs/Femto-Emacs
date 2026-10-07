@@ -279,8 +279,14 @@ char *screen_get_clipboard(void)
 	buf[len] = '\0';
 	return buf;
 }
+const char *screen_clipboard_tool(void)
+{
+	const struct clip_tool *t = clip_tool();
+	return t ? t->program : "";
+}
 #else
 /* the Windows build has only the window, which uses SDL's clipboard */
+const char *screen_clipboard_tool(void) { return ""; }
 void screen_set_clipboard(const char *text) { (void) text; }
 char *screen_get_clipboard(void) { return NULL; }
 #endif
