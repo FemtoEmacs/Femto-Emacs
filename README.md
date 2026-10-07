@@ -163,7 +163,9 @@ macOS symbols.  These settings make `Option-w` reach textual SBEmacs as
 ### Shell commands
 
 `M-!` (or `C-x @`) opens a window below the file for a command of the
-operating system; `C-c s` runs it, in the folder of the file.  The window
+operating system; `C-c s`, or a click on `[SEND - C-c s]` in its mode line,
+runs it in the folder of the file, and `C-x 1` or `[CLOSE - C-x 1]` closes
+the window (in these windows `C-x 1` keeps the file, not the shell window).  The window
 then shows the command and, below it, what it printed (and the exit status
 when it failed).  A command may take several lines: Enter breaks the line,
 and the breaks become continuations -- ` \` and a break for `sh` on Linux

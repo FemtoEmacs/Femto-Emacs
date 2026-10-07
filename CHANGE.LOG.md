@@ -7,7 +7,10 @@
   a command was limited to about 230 characters).  Line breaks become
   continuations: " \" for sh, a space for cmd.exe.  On Windows no console
   window flashes, for shell commands and for Claude and Codex
-  (run-program :window :hide).  Scripts' shell-command uses it too.
+  (run-program :window :hide).  Scripts' shell-command uses it too.  Its
+  mode line has buttons: [SEND - C-c s] [CLOSE - C-x 1] (set-buffer-menu
+  gives any buffer buttons of its own); there C-x 1 closes the shell
+  window and keeps the file.
 * File name completion (TAB in C-x C-f and the other file prompts) is done
   in Lisp with SBCL's DIRECTORY instead of a shell's echo: it works on
   Windows, and with names that hold spaces.  The first TAB fills in what
