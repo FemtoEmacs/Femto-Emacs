@@ -39,6 +39,8 @@ static int focused = 1;
 static int rows = 34, cols = 100;
 static cell_t *grid = NULL;
 static int cur_row = 0, cur_col = 0;
+/* the grid or the cursor changed since the window was last painted */
+static int dirty = 1;
 static int cur_face = 1;
 
 static int cell_w = 8, cell_h = 16, pad = PAD;
@@ -384,6 +386,7 @@ void screen_move(int row, int col)
 	if (col >= cols) col = cols - 1;
 	cur_row = row;
 	cur_col = col;
+	dirty = 1;
 }
 
 static void advance(void)
@@ -405,6 +408,7 @@ static void put(Uint32 cp, int reverse)
 	c->face = (unsigned char) cur_face;
 	c->reverse = (unsigned char) reverse;
 	advance();
+	dirty = 1;
 }
 
 void screen_clrtoeol(void)
@@ -412,6 +416,7 @@ void screen_clrtoeol(void)
 	int j;
 	for (j = cur_col; j < cols; j++)
 		blank(&grid[cur_row * cols + j]);
+	dirty = 1;
 }
 
 void screen_clear(void)
@@ -420,6 +425,7 @@ void screen_clear(void)
 	for (i = 0; i < rows * cols; i++)
 		blank(&grid[i]);
 	cur_row = cur_col = 0;
+	dirty = 1;
 }
 
 void screen_addch(int c)
@@ -578,6 +584,7 @@ static void render(void)
 		}
 	}
 	SDL_RenderPresent(renderer);
+	dirty = 0;
 }
 
 void screen_refresh(void) { render(); }
@@ -837,10 +844,17 @@ static void handle(SDL_Event *e)
 	}
 }
 
+/*
+ * Like curses' getch(), which refreshes the terminal before it waits: the
+ * prompts of the C core (C-x C-f, C-s, query-replace...) write to the
+ * grid and then wait for a key, without asking for a refresh.  Without
+ * this the window would show nothing of them, and seem frozen.
+ */
 int screen_getch(void)
 {
 	SDL_Event e;
 
+	if (queue_empty() && dirty) render();
 	while (queue_empty()) {
 		if (!SDL_WaitEvent(&e)) continue;
 		handle(&e);
