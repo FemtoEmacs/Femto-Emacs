@@ -134,8 +134,11 @@ Keyboard so that the Option key works as `Esc`.  `C-h` is help, not
 backspace: a terminal whose Backspace key sends `C-h` (rare today) needs
 `stty erase` or its settings changed to send `DEL`.
 
-On macOS, tick *Use Option as Meta key* in Terminal → Settings → Profiles →
-Keyboard so that the Option key works as `Esc`.
+In **Terminal.app**, tick *Use Option as Meta key* in Settings → Profiles →
+Keyboard.  In **iTerm2**, open Settings → Profiles → Keys and set *Left
+Option key* to *Esc+*.  You may leave Right Option as *Normal* for typing
+macOS symbols.  These settings make `Option-w` reach textual SBEmacs as
+`M-w`; otherwise macOS sends the character `∑` before the editor sees it.
 
 ### The window (`sbemacs --gui`)
 
