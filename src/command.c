@@ -149,12 +149,16 @@ void editor_mouse_event()
 		return;
 	}
 	if (mouse_release) {
+		int selected = (mouse_dragging && mouse_moved && mark_active);
 		if (mouse_dragging && !mouse_moved) {
 			/* a plain click: leave the mark as it was */
 			curbp->b_mark = mouse_old_mark;
 			mark_active = 0;
 		}
 		mouse_dragging = 0;
+		/* a drag selected text: Lisp may copy it (copy-on-select) */
+		if (selected)
+			call_lisp_event("select", "");
 		return;
 	}
 	if (b & 32) {                   /* motion with a button down */

@@ -1,6 +1,11 @@
 # SBEmacs / Femto Emacs Change Log
 
 ## SBEmacs 2.0
+* Copy on select: a mouse drag copies the selected text to the system
+  clipboard at once, so Cmd-V pastes it elsewhere; in a terminal Cmd-C has
+  nothing to copy while SBEmacs takes the mouse (iTerm2's "mouse reporting
+  has prevented making a selection").  *copy-on-select*, *select-hook*,
+  set-system-clipboard.
 * The mode line is a menu: [HELP] [SAVE] [OPEN] [COPY] [PASTE] [UNDO]
   [AI HELP] [BUFFERS] [QUIT], clicked with the mouse in the terminal or the
   window.  A button lights up while pressed (faces :menu, :menu-pressed)

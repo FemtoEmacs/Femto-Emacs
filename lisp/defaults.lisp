@@ -186,3 +186,28 @@ inserts the value into the buffer."
 
 (global-set-key "C-x >" 'indent-two)        ; C-o and C-t are Emacs's again
 (global-set-key "C-x <" 'deindent-two)       ; (lisp/extensions/emacs-keys.lisp)
+
+;;; Copy on select.  In a terminal, SBEmacs takes the mouse (so that clicks
+;;; move the cursor and press the mode line's buttons), and the terminal no
+;;; longer selects text itself: Cmd-C then has nothing to copy, and iTerm2
+;;; says "mouse reporting has prevented making a selection".  So a mouse
+;;; drag copies what it selects to the system clipboard at once, as many
+;;; terminals do: Cmd-V pastes it in any other program, and C-y here.  The
+;;; kill ring does not change until C-y takes it in.  (Holding Option while
+;;; dragging -- Shift on Linux -- still gives the terminal's own selection.)
+
+(defvar *copy-on-select* t
+  "When true, text selected by dragging the mouse goes to the system
+clipboard at once.")
+
+(declaim (ftype (function () (values null &optional)) copy-on-select))
+(defun copy-on-select ()
+  (let ((m (mark)) (p (point)))
+    (when (and *copy-on-select* m (/= m p))
+      (let ((text (buffer-substring (min m p) (max m p))))
+        (set-system-clipboard text)
+        (message "Copied ~:D character~:P to the clipboard: Cmd-V (Ctrl-V) pastes it elsewhere, C-y here"
+                 (length text)))))
+  nil)
+
+(pushnew 'copy-on-select *select-hook*)
