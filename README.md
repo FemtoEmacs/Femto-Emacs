@@ -37,21 +37,22 @@ needs SDL2, and everything written in Lisp works the same in both.
 
 ### Windows users
 
-First install a recent official 64-bit Windows release of
-[SBCL](https://www.sbcl.org/platform-table.html).  The SBCL project normally
-publishes a new version every month, so users should prefer the current release
-instead of retaining an old compiler indefinitely.  Femto Emacs currently
-requires SBCL 2.6.9 or newer, and its reproducible Windows build is tested with
-2.6.9.  Then download
-`Femto-Emacs-2.0-Windows-x86_64-Setup.exe` from the latest
-[Femto Emacs release](../../releases), double-click it, and follow the
-installer.  It verifies that SBCL is recent enough, installs the precompiled editor libraries,
-SDL2, SDL2_ttf, and the Lisp files, and asks SBCL to create `sbemacs.exe`.
-It also creates a normal Start-menu shortcut and can create a desktop shortcut.
-No MSYS2, C compiler, `make`, or administrator privileges are required.
+Download `SBEmacs-2.0-Windows-x86_64-Setup.exe` from the latest
+[release](../../releases) and double-click it: Next, Install, Finish.
+Nothing else is needed: no SBCL (it is inside `sbemacs.exe`), no PowerShell
+script, no MSYS2, no administrator rights.  SBEmacs goes to
+`%LOCALAPPDATA%\Programs\SBEmacs`; the Start menu gets *SBEmacs* and
+*SBEmacs manual*, the desktop a shortcut if you leave that box ticked, and
+*Open with* lists SBEmacs for text files.  Remove it from *Settings > Apps*.
+Your own `%USERPROFILE%\.sbemacs` folder is never touched.
 
-The installer shortcut starts the SDL2 window.  The terminal interface remains
-available by running `sbemacs.exe` without `--gui` in a terminal.
+Windows may say that it protected your PC, because the setup program is not
+signed: click *More info*, then *Run anyway*.
+
+The Windows program always opens its window (it has no terminal version).
+To make the setup program yourself, on Linux, see
+[windows/build-installer.sh](windows/build-installer.sh) or run
+`make windows-installer`.
 
 ### Building from source
 
@@ -82,8 +83,7 @@ sudo make uninstall
 
 These requirements apply to developers who rebuild the native code.  On
 Windows run `make` from the *MSYS2 MINGW64* shell, with SBCL on the `PATH`.
-Ordinary Windows users should install a recent SBCL and then use the installer
-above; they do not need MSYS2.
+Ordinary Windows users only need the setup program above.
 
 `sbemacs` is a saved SBCL image.  It finds the libraries next to itself
 (or set `SBEMACS_LIB` / `SBEMACS_GUI_LIB` to their full paths), so keep the
@@ -93,8 +93,8 @@ window without `--gui`.
 Only changes to the C code (`src/`) or to the Lisp engine need `make`.
 Everything else in `lisp/` is a *script*: see [Scripts](#scripts-no-rebuild-needed).
 
-Pre-built archives for Linux, macOS and Windows are attached to each
-[release](../../releases).
+Pre-built archives for Linux and macOS, and the Windows setup program, are
+attached to each [release](../../releases).
 
 ## Using it
 

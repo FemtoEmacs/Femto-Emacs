@@ -10,8 +10,6 @@
 #define IS_SPACE(chr) (chr == ' ' || chr == '\n' || chr == '\r'  || chr == '\t')
 
 
-extern int errno;
-
 
 /*
  * Take a file name, and fabricate a buffer name.

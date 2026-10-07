@@ -95,9 +95,6 @@ dist: all
 	mkdir -p dist/$(DISTNAME)
 	cp sbemacs$(EXE) $(LIBS) README.md CHANGE.LOG.md dist/$(DISTNAME)/
 	cp -R lisp samples dist/$(DISTNAME)/
-	cp build.lisp dist/$(DISTNAME)/
-	mkdir -p dist/$(DISTNAME)/windows
-	cp windows/configure.ps1 dist/$(DISTNAME)/windows/
 
 install: all
 	install -d $(DESTDIR)$(PREFIX)/bin $(DESTDIR)$(PREFIX)/lib/sbemacs
@@ -114,4 +111,8 @@ uninstall:
 clean:
 	rm -rf src/*.o libsbemacs*.* sbemacs sbemacs.exe build dist
 
-.PHONY: all test dist install uninstall clean
+# The Windows setup program, made on Linux (see the script)
+windows-installer:
+	sh windows/build-installer.sh
+
+.PHONY: all test dist install uninstall clean windows-installer

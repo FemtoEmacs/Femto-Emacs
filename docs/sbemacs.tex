@@ -621,6 +621,59 @@ If you never used a text terminal, read
 Chapter~\ref{chapter:shell} first.
 
 %%% ------------------------------------------------------------------
+\section{Windows: the setup program}\label{sec:windows}\index{Windows}
+%%% ------------------------------------------------------------------
+
+If you use Windows and only want to run the editor, you can skip
+the rest of this chapter. Download
+\verb|SBEmacs-2.0-Windows-x86_64-Setup.exe| from the Releases
+page of the repository,
+\begin{quote}
+\path|https://github.com/FemtoEmacs/Femto-Emacs/releases|
+\end{quote}
+and double-click it. Click {\em Next}, then {\em Install}, then
+{\em Finish}. That is all. You do not need SBCL, because
+\verb|sbemacs.exe| carries SBCL inside it; you do not need a
+C compiler, PowerShell scripts, nor administrator rights.
+
+Because the setup program is not signed, Windows may show a blue
+window saying that it protected your PC. Click {\em More info},
+then {\em Run anyway}.
+
+The setup program puts SBEmacs in your own programs folder,
+\begin{quote}
+\verb|%LOCALAPPDATA%\Programs\SBEmacs|
+\end{quote}
+so it is installed for you alone. It adds {\em SBEmacs} and {\em SBEmacs manual} to the
+Start menu, a shortcut on the desktop if you leave that box ticked,
+and SBEmacs to the {\em Open with} menu of text files. SBEmacs
+starts in your home folder, \verb|C:\Users\Nia|, say, and opens its
+own window; the Windows version has no text-terminal frontend. Your
+customisations go to \verb|C:\Users\Nia\.sbemacs|, exactly as on the
+other systems (section~\ref{sec:lisp}). To remove SBEmacs, open
+{\em Settings}, then {\em Apps}, find SBEmacs, and choose
+{\em Uninstall}; your \verb|.sbemacs| folder stays.
+
+\paragraph{How the setup program is made.} Only a Windows SBCL can
+save a Windows program, and Windows users should not have to
+install compilers. So the setup program is made on Linux, by
+\verb|windows/build-installer.sh|, in three steps:
+the C core is compiled for Windows with MinGW-w64; the official
+Windows SBCL, running under Wine, loads the Lisp files and saves
+\verb|sbemacs.exe|; and NSIS packs the program, SDL2, SDL2\_ttf,
+the Lisp scripts, a font and this manual into one \verb|.exe|.
+Anyone with a Debian or Ubuntu machine can repeat it:
+\begin{quote}
+\begin{verbatim}
+~$ sudo apt-get install gcc-mingw-w64-x86-64 wine
+~$ sudo apt-get install nsis msitools unzip
+~$ cd csand/sbemacs
+~/csand/sbemacs$ make windows-installer
+\end{verbatim}
+\end{quote}
+The result is in \verb|build/windows|.
+
+%%% ------------------------------------------------------------------
 \section{Cloning the GitHub repository}\label{sec:clone}
 %%% ------------------------------------------------------------------
 
@@ -689,8 +742,8 @@ has three branches:
   with femtolisp.
 \item \verb|sbcl| -- SBEmacs, the editor described in this text,
   for Linux, Macintosh and Windows.
-\item \verb|windows| -- SBEmacs with an installer for Windows,
-  so that Windows users do not need a C compiler.
+\item \verb|windows| -- SBEmacs and the script that makes its
+  setup program for Windows (section~\ref{sec:windows}).
 \end{itemize}
 The \verb|git branch -a| command lists the branches; an
 asterisk marks the one whose files you have in the folder.
@@ -718,10 +771,8 @@ Old versions of git do not know \verb|git switch|; use
 \verb|git checkout sbcl| instead.
 
 For the rest of this chapter, Nia stays in the \verb|sbcl| branch.
-If you use Windows and only want to run the editor, switch to
-the \verb|windows| branch and follow its \verb|README.md|: it
-explains how to install SBCL and run the installer, which needs
-neither a C compiler nor administrator privileges.
+If you use Windows and only want to run the editor, you need no
+branch at all: use the setup program of section~\ref{sec:windows}.
 
 %%% ------------------------------------------------------------------
 \section{Installing SBCL}
@@ -749,7 +800,9 @@ If you do not have Homebrew yet, the instructions are at
 \end{verbatim}
 \end{quote}
 
-\paragraph{Windows.} Download the installer of the most recent
+\paragraph{Windows.} You need SBCL only to build SBEmacs yourself;
+the setup program of section~\ref{sec:windows} has it inside.
+Download the installer of the most recent
 64-bit version from
 \path|https://www.sbcl.org/platform-table.html|,
 double-click it and follow the instructions.
@@ -914,9 +967,9 @@ SBEmacs needs a font. Most distributions come with the DejaVu fonts;
 if letters are missing in the window, install them
 (\verb|sudo apt-get install fonts-dejavu|).
 
-\paragraph{Windows.} If you install SBEmacs with the installer of the
-\verb|windows| branch, SDL2 and SDL2\_ttf come with it, and you have nothing
-to do. If you build SBEmacs yourself, install them in the {\em MSYS2
+\paragraph{Windows.} If you install SBEmacs with the setup program
+(section~\ref{sec:windows}), SDL2 and SDL2\_ttf come with it, and you
+have nothing to do. If you build SBEmacs yourself, install them in the {\em MSYS2
 MINGW64} shell:
 \begin{quote}
 \begin{verbatim}

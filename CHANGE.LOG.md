@@ -1,6 +1,15 @@
 # SBEmacs / Femto Emacs Change Log
 
 ## SBEmacs 2.0
+* Windows: one setup program, SBEmacs-2.0-Windows-x86_64-Setup.exe
+  (Next, Install, Finish).  It needs no SBCL, no PowerShell, no MSYS2 and
+  no administrator: sbemacs.exe carries SBCL, opens its window without a
+  console, and finds a bundled DejaVu Sans Mono if Windows has none of its
+  fonts.  Start menu, desktop shortcut, Open with, and removal from
+  Settings > Apps.  Made on Linux by windows/build-installer.sh (MinGW-w64,
+  the official Windows SBCL under Wine, NSIS), with every download pinned
+  by SHA-256; CI installs, runs and uninstalls it on Windows.  The
+  PowerShell script and the Inno Setup script are gone.
 * Markdown (lisp/languages/markdown.lisp): headings, emphasis, strong,
   code, links, quotations, lists, tables, rules and comments, with code
   blocks coloured in their own language; RET continues lists, TAB nests

@@ -64,97 +64,63 @@ jobs:
           name: sbemacs-${{ matrix.os }}
           path: dist/*.tar.gz
 
-  windows:
-    runs-on: windows-latest
-    defaults:
-      run:
-        shell: msys2 {0}
+  # The Windows setup program is made on Linux: MinGW-w64 compiles the C
+  # core, the official Windows SBCL saves sbemacs.exe under Wine, NSIS makes
+  # the setup .exe (windows/build-installer.sh explains why).
+  windows-installer:
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install SBCL 2.6.9
-        shell: pwsh
+      - name: Install the tools
         run: |
-          $msi = Join-Path $env:RUNNER_TEMP 'sbcl-2.6.9-x86-64-windows-binary.msi'
-          & curl.exe -L --fail --silent --show-error --output $msi 'https://downloads.sourceforge.net/project/sbcl/sbcl/2.6.9/sbcl-2.6.9-x86-64-windows-binary.msi'
-          if ($LASTEXITCODE -ne 0) { throw 'Could not download the official SBCL 2.6.9 MSI' }
-          $header = [System.IO.File]::ReadAllBytes($msi)[0..7]
-          $oleHeader = [byte[]](0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1)
-          if ((Compare-Object $header $oleHeader)) { throw 'The SBCL download is not an MSI file' }
-          $process = Start-Process msiexec.exe -ArgumentList '/i', $msi, '/qn', '/norestart' -Wait -PassThru
-          if ($process.ExitCode -ne 0) {
-            throw "SBCL installer exited with code $($process.ExitCode)"
-          }
-          $sbcl = Get-ChildItem "$env:ProgramFiles\Steel Bank Common Lisp" -Filter sbcl.exe -Recurse |
-            Select-Object -First 1
-          if (-not $sbcl) { throw 'The SBCL 2.6.9 executable was not found after installation' }
-          $version = & $sbcl.FullName --noinform --non-interactive --eval '(princ (lisp-implementation-version))' --quit
-          if ($version -notcontains '2.6.9') {
-            throw "Expected SBCL 2.6.9, found: $($version -join ' ')"
-          }
-          $sbcl.DirectoryName | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          sudo apt-get update
+          sudo apt-get install -y gcc-mingw-w64-x86-64 wine wine64 nsis msitools unzip
 
-      - uses: msys2/setup-msys2@v2
-        with:
-          msystem: MINGW64
-          path-type: inherit        # so that sbcl.exe from Chocolatey is found
-          install: >-
-            make
-            zip
-            mingw-w64-x86_64-gcc
-            mingw-w64-x86_64-ncurses
-            mingw-w64-x86_64-pkgconf
-            mingw-w64-x86_64-SDL2
-            mingw-w64-x86_64-SDL2_ttf
-
-      - name: Build
-        run: make
-
-      - name: Test
-        run: |
-          make test
-          ./sbemacs.exe --version
-          ./sbemacs.exe --version | grep -F 'SBCL 2.6.9'
-          ls libsbemacs-gui.dll
-
-      - name: Package
-        run: |
-          make dist
-          # the DLLs libsbemacs-gui.dll needs (SDL2, SDL2_ttf, FreeType, ...)
-          ldd libsbemacs-gui.dll | awk '/\/mingw64\// {print $3}' | xargs -r cp -t dist/sbemacs-windows-*/
-          cd dist && zip -qr sbemacs-windows-x86_64.zip sbemacs-windows-*/
-
-      - name: Build Windows installer
-        shell: pwsh
-        run: |
-          $staging = (Get-ChildItem dist -Directory -Filter 'sbemacs-windows-*' | Select-Object -First 1).FullName
-          $output = (Resolve-Path dist).Path
-          $compiler = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
-          if (-not (Test-Path $compiler)) {
-            throw "Inno Setup compiler not found at $compiler"
-          }
-          & $compiler "/DStagingDir=$staging" "/DOutputDir=$output" windows\installer.iss
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $setup = Get-Item dist\Femto-Emacs-*-Setup.exe
-          $installTest = Join-Path $env:RUNNER_TEMP 'femto-emacs-install-test'
-          $process = Start-Process $setup.FullName -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/DIR=$installTest" -Wait -PassThru
-          if ($process.ExitCode -ne 0) { throw "Installer smoke test exited with code $($process.ExitCode)" }
-          $installedVersion = & "$installTest\sbemacs.exe" --version
-          if ($installedVersion -notcontains 'SBCL 2.6.9') {
-            throw "Installed editor does not use SBCL 2.6.9: $($installedVersion -join ' ')"
-          }
-          $setup
+      - name: Build the setup program
+        run: sh windows/build-installer.sh
 
       - uses: actions/upload-artifact@v4
         with:
-          name: sbemacs-windows
-          path: |
-            dist/*.zip
-            dist/*-Setup.exe
+          name: sbemacs-windows-setup
+          path: build/windows/*-Setup.exe
+
+  # ... and tried on real Windows, the way a user would: install, run,
+  # uninstall, without administrator rights.
+  windows-test:
+    needs: windows-installer
+    runs-on: windows-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: sbemacs-windows-setup
+
+      - name: Install, run, uninstall
+        shell: pwsh
+        run: |
+          $setup = (Get-ChildItem *-Setup.exe | Select-Object -First 1).FullName
+          $p = Start-Process $setup -ArgumentList '/S' -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "setup exited with $($p.ExitCode)" }
+          $dir = "$env:LOCALAPPDATA\Programs\SBEmacs"
+          foreach ($f in 'sbemacs.exe','libsbemacs-gui.dll','SDL2.dll','SDL2_ttf.dll','lisp\core.lisp') {
+            if (-not (Test-Path "$dir\$f")) { throw "$f was not installed" }
+          }
+          if (-not (Test-Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\SBEmacs.lnk")) {
+            throw 'no Start menu shortcut'
+          }
+          # the window must open and stay open
+          $editor = Start-Process "$dir\sbemacs.exe" -ArgumentList "$dir\README.md" -PassThru
+          Start-Sleep -Seconds 15
+          if ($editor.HasExited) { throw "sbemacs.exe exited with $($editor.ExitCode)" }
+          Stop-Process -Id $editor.Id
+          Start-Sleep -Seconds 2
+          Start-Process "$dir\Uninstall SBEmacs.exe" -ArgumentList '/S' -Wait -PassThru
+          Start-Sleep -Seconds 5      # the uninstaller finishes from a copy of itself
+          if (Test-Path "$dir\sbemacs.exe") { throw 'the uninstaller left sbemacs.exe' }
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [ unix, windows ]
+    needs: [ unix, windows-installer, windows-test ]
     runs-on: ubuntu-latest
     permissions:
       contents: write
