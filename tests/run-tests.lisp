@@ -69,7 +69,7 @@
        '((8 . "#| x |#") (7 . "; y")))
 (check "Python triple quotes and single quotes"
        (faces "def f(): '''doc''' + 'x'" "a.py")
-       '((4 . "def") (9 . "'''doc'''") (9 . "'x'")))
+       '((4 . "def") (11 . "f") (9 . "'''doc'''") (9 . "'x'")))
 (check "TeX commands"
        (faces "\\section{A} % c" "a.tex")
        '((4 . "\\section") (7 . "% c")))
@@ -478,15 +478,12 @@
 (defun mode-line-string (name line flags cols)
   (apply #'concatenate 'string (mapcar #'first (decoded-mode-line name line flags cols))))
 
-(check "mode line: wide window, everything spaced, with QUIT"
-       (mode-line-string "teste.lisp" 3 1 120)
-       "teste.lisp, L. 3 == SBEmacs: [HELP] [SAVE] [OPEN] [COPY] [PASTE] [UNDO] [AI HELP] [BUFFERS] [QUIT]")
-(check "mode line: 80 columns, all buttons, QUIT included"
-       (mode-line-string "teste.lisp" 3 1 80)
-       "teste.lisp, L. 3 [HELP][SAVE][OPEN][COPY][PASTE][UNDO][AI HELP][BUFFERS][QUIT]")
-(check "mode line: 95 columns, no spaces, but SBEmacs and =="
-       (mode-line-string "teste.lisp" 3 1 95)
-       "teste.lisp, L. 3 == SBEmacs: [HELP][SAVE][OPEN][COPY][PASTE][UNDO][AI HELP][BUFFERS][QUIT]")
+(check "compact status: QUIT ends each width with a safe blank gap"
+       (loop for width in '(80 95 120)
+             for text = (mode-line-string "teste.lisp" 3 1 width)
+             always (and (= (length text) width)
+                         (search "[?][SAVE][UNDO][Select][MORE]" text)
+                         (equal (subseq text (- width 9)) "   [QUIT]"))) t)
 (check "mode line: a long name is shortened at the front, buttons kept"
        (let ((s (mode-line-string "/home/nia/projects/fibonacci/src/fib.lisp" 1 3 90)))
          (list (subseq s 0 3) (not (null (search "src/fib.lisp*, L. 1" s)))
@@ -494,19 +491,35 @@
        (list "..." t t t))
 (check "mode line: a narrow window drops buttons from the right"
        (let ((s (mode-line-string "teste.lisp" 1 1 60)))
-         (list (not (null (search "[HELP]" s))) (null (search "[QUIT]" s)) (<= (length s) 60)))
+         (list (not (null (search "[?]" s))) (not (null (search "[QUIT]" s))) (<= (length s) 60)))
        '(t t t))
+(check "mode line: QUIT remains visible in narrow windows"
+       (loop for width from 40 to 80
+             always (not (null (search "[QUIT]" (mode-line-string "test.py" 1 1 width)))))
+       t)
+(check "mode line: MORE survives growing line numbers"
+       (loop for line in '(1 99 100 999 1000 1000000)
+             always (loop for width from 40 to 80
+                          always (not (null (search "[MORE]" (mode-line-string "long-python-file.py" line 1 width))))))
+       t)
+(check "MORE content contains every supplied action"
+       (let ((text (more-menu-text '(("?" "C-h") ("QUIT" "C-x C-c") ("#" "M-;") ("DEF>" python-next-definition)))))
+         (every (lambda (s) (search s text)) '("Help" "Quit" "Comment / uncomment" "Next definition" "C-x C-c" "python-next-definition")))
+       t)
+(check "menu: QUIT uses the normal quit command"
+       (second (assoc "QUIT" *mode-line-menu* :test #'equal))
+       "C-x C-c")
 (check "mode line: the name and the buttons are clickable, the rest is not"
        (mapcar #'third (subseq (decoded-mode-line "a.txt" 1 1 120) 0 4))
-       '(t nil t nil))
+       '(t nil t t))
 (check "mode line: modified and other window marks"
-       (subseq (mode-line-string "a.txt" 7 2 120) 0 17)
-       "a.txt*, L. 7 -- S")
+       (subseq (mode-line-string "a.txt" 7 2 120) 0 12)
+       "a.txt*, L. 7")
 (check "mode line: a buffer with a hint shows the hint, no buttons"
        (let ((*buffer-hints* (make-hash-table :test 'equal)))
          (setf (gethash "*x*" *buffer-hints*) "C-c t tangle")
          (mode-line-string "*x*" 2 1 120))
-       "SBEmacs: *x*, L. 2 == C-c t tangle ")
+       "*x*, L. 2 [?] C-c t tangle")
 (check "mode line: a name over 18 characters is always shortened"
        (let ((s (mode-line-string "a-rather-long-name.lisp" 1 1 200)))
          (subseq s 0 (position #\, s)))
@@ -550,8 +563,47 @@
 (check "mode line: a window with buttons of its own"
        (list (mode-line-string "*shell-command*" 1 1 120)
              (mapcar #'third (decoded-mode-line "*shell-command*" 1 1 120)))
-       (list "SBEmacs: *shell-command*, L. 1 == [SEND - C-c s] [CLOSE - C-x 1]"
-             '(nil t nil t)))
+       (list "*shell-command*, L. 1 [?][SEND - C-c s][CLOSE - C-x 1]"
+             '(t nil t t t)))
+
+(check "selection status replaces Select with COPY and DELETE"
+       (let ((*menu-region* t)) (mapcar #'first (mode-line-buttons "a")))
+       '("?" "SAVE" "UNDO" "COPY" "DELETE" "MORE" "QUIT"))
+(check "help has exactly Keybindings, ChatGPT and Claude"
+       (let ((old (symbol-function 'choose-menu)) (captured nil))
+         (unwind-protect
+             (progn (setf (symbol-function 'choose-menu) (lambda (buttons) (setf captured buttons) nil))
+                    (help-menu) captured)
+           (setf (symbol-function 'choose-menu) old)))
+       '(("Keybindings" menu-keybindings) ("ChatGPT" menu-chatgpt) ("Claude" menu-claude)))
+
+(check "ChatGPT and Claude choices route to their existing assistants"
+       (let ((names '(get-buffer-name assistant-buffer-p call-in-window-of ask-codex ask-claude))
+             (saved nil) (calls nil))
+         (setf saved (mapcar (lambda (name) (cons name (symbol-function name))) names))
+         (unwind-protect
+             (progn
+               (setf (symbol-function 'get-buffer-name) (lambda () "test.py")
+                     (symbol-function 'assistant-buffer-p) (lambda (name) (declare (ignore name)) nil)
+                     (symbol-function 'call-in-window-of) (lambda (name fn) (declare (ignore name)) (funcall fn))
+                     (symbol-function 'ask-codex) (lambda () (push :codex calls))
+                     (symbol-function 'ask-claude) (lambda () (push :claude calls)))
+               (menu-chatgpt) (menu-claude) (reverse calls))
+           (dolist (entry saved) (setf (symbol-function (car entry)) (cdr entry)))))
+       '(:codex :claude))
+
+(check "AI request menu has SEND/CLOSE without global help"
+       (let ((*buffer-menus* (make-hash-table :test 'equal)))
+         (set-buffer-menu "*codex-request*" '(("SEND" "C-c g") ("CLOSE" close-assistant-windows)))
+         (let ((text (mode-line-string "*codex-request*" 1 1 80)))
+           (and (search "[SEND][CLOSE]" text) (not (search "[?]" text))))) t)
+(check "assistant chooser offers h/q/d only"
+       (let ((saved (symbol-function 'choose-menu)) (choices nil))
+         (unwind-protect
+             (progn (setf (symbol-function 'choose-menu) (lambda (buttons) (setf choices buttons) "q"))
+                    (list (choose-assistant-menu "Ask Claude") choices))
+           (setf (symbol-function 'choose-menu) saved)))
+       '("q" (("h Hints" "h") ("q Question" "q") ("d Discussion" "d"))))
 
 ;;; M-! (shell.lisp).  The shell differs: sh on Linux and macOS, cmd.exe on
 ;;; Windows, where line breaks become spaces and the prompt is ">".

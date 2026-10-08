@@ -13,6 +13,9 @@
 ;;;; but cannot edit the project.  Only the user can insert proposed text.
 
 (in-package #:sbemacs)
+(declaim (ftype (function () (values string t &optional)) assistant-menu-key)
+         (ftype (function (t) t) run-mode-line-action))
+
 
 (declaim (optimize (safety 3) (debug 2)))
 
@@ -130,6 +133,8 @@ A relative buffer name such as teste.lisp must not become the empty string."
   (split-window)
   (other-window)
   (select-buffer *codex-request-buffer*)
+  (set-buffer-menu *codex-request-buffer*
+                   '(("SEND" "C-c g") ("CLOSE" close-assistant-windows)))
   (codex-clear-current-buffer)
   (message "Describe the task, then press C-c g again to send it to Codex")
   t)
@@ -421,23 +426,15 @@ File redirection avoids pipe deadlocks; stdin is explicitly encoded as UTF-8."
     (run-assistant :codex request *codex-saved-context*
                    (or *codex-origin-buffer* "*scratch*"))))
 
+(declaim (ftype (function (string) (values string &optional)) choose-assistant-menu))
 (defun codex-menu ()
-  "Show the Codex menu and perform its one-key choice."
-  (let ((context (buffer-context))
-        (origin (get-buffer-name)))
+  "Choose Hints, Question or Discussion with the mouse or h/q/d."
+  (let ((context (buffer-context)) (origin (get-buffer-name)))
     (setf *codex-working-directory* (codex-source-directory))
-    (show-in-assistant-window "Ask Codex (ChatGPT)" *codex-menu*)
-    (set-buffer-hint *assistant-buffer* "h hints; q ask; d discuss; s set-up")
-    (message "Codex: h hints, q question, d discussion, s set-up; any other key closes the menu")
-    (update-display)
-    (let* ((key (get-key))
-           (choice (and (= (length key) 1) (char-downcase (char key 0)))))
-      (case choice
-        (#\h (run-assistant :codex "" context origin))
-        (#\q (codex-compose context origin))
-        (#\d (codex-discussion origin))
-        (#\s (codex-status))
-        (t (close-assistant-windows) (clear-message-line))))))
+    (let ((key (choose-assistant-menu "Ask Codex (ChatGPT)")))
+      (cond ((equal key "h") (run-assistant :codex "" context origin))
+            ((equal key "q") (codex-compose context origin))
+            ((equal key "d") (codex-discussion origin))))))
 
 (defun ask-codex ()
   "C-c g: menu; in a question or discussion window, send the request."

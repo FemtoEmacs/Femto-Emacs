@@ -5,7 +5,7 @@
 ;;;; Someone who has never used Emacs does not know that C-x C-s saves.
 ;;;; So every mode line is also a menu that the mouse can click:
 ;;;;
-;;;;   teste.lisp, L. 1 == SBEmacs: [HELP] [SAVE] [OPEN] ... [QUIT] =====
+;;;;   teste.lisp, L. 1 == SBEmacs: [?] [SAVE] [OPEN] ... [QUIT] =====
 ;;;;
 ;;;; The file name is a button too: it shows what there is to know about
 ;;;; the file (its full name, lines, words, size, when it was saved).
@@ -21,7 +21,7 @@
 ;;;; To change the buttons, change *MODE-LINE-MENU*, here or in
 ;;;; ~/.sbemacs/init.lisp:
 ;;;;
-;;;;   (setf *mode-line-menu* (remove "AI HELP" *mode-line-menu*
+;;;;   (setf *mode-line-menu* (remove "AI" *mode-line-menu*
 ;;;;                                  :key #'first :test #'string=))
 ;;;;   (setf *mode-line-menu* (append *mode-line-menu* '(("KILL" "C-x k"))))
 ;;;;
@@ -40,25 +40,46 @@
 ;;; ------------------------------------------------------------------
 
 (defparameter *mode-line-menu*
-  '(("HELP"    "C-h")
-    ("SAVE"    "C-x C-s")
-    ("OPEN"    "C-x C-f")
-    ("COPY"    "M-w")
-    ("PASTE"   "C-y")
-    ("UNDO"    "C-/")
-    ("AI HELP" ai-help)
-    ("BUFFERS" "C-x b")
-    ("QUIT"    "C-x C-c"))
-  "The mode line's buttons, left to right: (LABEL ACTION), ACTION a key or
-a command.  The ones that do not fit a narrow window are left out from the
-right, so the last ones should be the least needed.")
+  '(("?" help-menu) ("SAVE" "C-x C-s") ("UNDO" "C-/")
+    ("Select" menu-select) ("MORE" more-menu) ("QUIT" "C-x C-c")))
+(defparameter *full-menu*
+  '(("?" help-menu) ("SAVE" "C-x C-s") ("OPEN" "C-x C-f")
+    ("UNDO" "C-/") ("Select" menu-select) ("COPY" menu-copy)
+    ("DELETE" menu-delete) ("PASTE" "C-y") ("BUFS" "C-x b")
+    ("QUIT" "C-x C-c")))
+(defvar *menu-rendering* nil)
+(defvar *menu-filename* nil)
+(defvar *menu-region* nil)
+(defvar *menu-full* nil)
+(defvar *menu-popup-active* nil)
+(defvar *help-pending-menu-action* nil)
+(defvar *help-in-progress* nil)
+(defun menu-region-p ()
+  (and (region-active-p) (mark) (/= (mark) (point))))
+(defcommand menu-select ()
+  (set-mark)
+  (message "Move the cursor to select text; you can also drag with the mouse."))
+(defcommand menu-copy ()
+  (if (menu-region-p) (copy-region-command) (message "Select text first.")))
+(defcommand menu-delete ()
+  (if (menu-region-p)
+      (progn (delete-region (mark) (point)) (deactivate-mark))
+      (message "Select text first.")))
+(defcommand menu-indent ()
+  (if (and (menu-region-p) (python-mode-file-p (buffer-filename)))
+      (indent-region) (message "Select Python lines first.")))
 
 (declaim (ftype (function (string) (values list &optional)) mode-line-buttons))
 (defun mode-line-buttons (buffer-name)
   "The default *MODE-LINE-BUTTONS-FUNCTION*: *MODE-LINE-MENU*, the same in
 every window."
   (declare (ignore buffer-name))
-  *mode-line-menu*)
+  (let ((buttons (if *menu-full* *full-menu* *mode-line-menu*)))
+    (if (and *menu-region* (not *menu-full*))
+        (loop for button in buttons append
+          (if (equal (first button) "Select")
+              '(("COPY" menu-copy) ("DELETE" menu-delete)) (list button)))
+        buttons)))
 
 (defvar *mode-line-buttons-function* 'mode-line-buttons
   "Function of a buffer name returning its window's buttons, as in
@@ -137,75 +158,57 @@ separated by RS."
   "In a narrow window a file name is shortened further, down to this
 width, before any button is left out.")
 
+(declaim (ftype (function (string) t) ai-menu-buffer-p))
+(defun ai-menu-buffer-p (name)
+  (or (member name '("*assistant*" "*ai-options*") :test #'equal)
+      (search "*codex" name) (search "*claude" name)))
+
 (defun mode-line-pieces (name fname bname line flags cols)
   "The mode line of a window (called by the C core at every redisplay):
 NAME as shown (file or buffer name), FNAME its file (\"\" if none), BNAME
 the buffer, LINE the cursor's line, FLAGS 1 selected, 2 modified,
 4 overwrite, 8 special buffer; COLS the width.  Returns the encoded pieces,
 or NIL for the C core's own mode line."
-  (declare (ignore fname))
-  (let* ((lch (if (logtest flags 1) "==" "--"))
-         (marks (format nil "~:[~;*~]~:[~; [overwrite]~]"
-                        (and (logtest flags 2) (not (logtest flags 8)))
-                        (logtest flags 4)))
-         (where (format nil "~A, L. ~D" marks line))
+  (let* ((*menu-rendering* t) (*menu-filename* fname)
+         (*menu-region* (and (logtest flags 1) (plusp (window-count)) (menu-region-p)))
          (own (gethash bname *buffer-menus*))
          (hint (gethash bname *buffer-hints*))
-         (buttons (and (null hint) (funcall *mode-line-buttons-function* bname))))
-    (cond
-      ;; a window with buttons of its own:
-      ;;   SBEmacs: *shell-command*, L. 1 == [SEND - C-c s] [CLOSE - C-x 1]
-      (own
-       (encode-pieces
-        (append (list (list (format nil "SBEmacs: ~A~A ~A " name where lch) :modeline nil))
-                (loop for (label action) in own
-                      for i from 0
-                      when (plusp i) collect (list " " :modeline nil)
-                      collect (list (format nil "[~A]" label) :menu action)))))
-      ;; the assistants' windows: their own keys matter more than the menu
-      (hint
-       (encode-pieces (list (list "SBEmacs: " :modeline nil)
-                            (list name :modeline nil)
-                            (list (format nil "~A ~A ~A " where lch hint) :modeline nil))))
-      ((null buttons) nil)
-      (t
-       (let* ((labels (mapcar (lambda (b) (format nil "[~A]" (first b))) buttons))
-              (widths (mapcar #'length labels))
-              (fixed (length where)))
-         ;; the widest layout that fits: spaces between the buttons, the
-         ;; word SBEmacs, the == after the line number, the whole name; then
-         ;; without the spaces, without SBEmacs, without ==, with a shorter
-         ;; name; and only then with fewer buttons
-         (flet ((width (name-width brand marker spaced count)
-                  (+ name-width fixed (if marker 3 0) (if brand 9 0) 1
-                     (reduce #'+ (subseq widths 0 count))
-                     (if spaced (max 0 (1- count)) 0))))
-           (let ((count (length buttons)) (brand t) (marker t) (spaced t)
-                 (name-width (min (length name)
-                                  (max *mode-line-name-minimum* *mode-line-name-maximum*))))
-             (loop
-               (let ((over (- (width name-width brand marker spaced count) cols)))
-                 (cond ((<= over 0) (return))
-                       (spaced (setf spaced nil))
-                       (brand (setf brand nil))
-                       (marker (setf marker nil))
-                       ((> name-width *mode-line-name-minimum*)
-                        (setf name-width (max *mode-line-name-minimum* (- name-width over))))
-                       ((> count 0) (decf count))
-                       (t (return)))))
-             (encode-pieces
-              (append
-               (list (list (shorten-left name (max 1 name-width)) :menu 'file-info)
-                     (list (concatenate 'string where
-                                        (if marker (concatenate 'string " " lch) "")
-                                        (if brand " SBEmacs:" "")
-                                        " ")
-                           :modeline nil))
-               (loop for b in (subseq buttons 0 count)
-                     for label in labels
-                     for i from 0
-                     when (and spaced (plusp i)) collect (list " " :modeline nil)
-                     collect (list label :menu (second b))))))))))))
+         (buttons (cond (own (if (ai-menu-buffer-p bname) own
+                                  (cons '("?" help-menu) (remove "?" own :key #'first :test #'equal))))
+                        ((ai-menu-buffer-p bname) '(("CLOSE" close-assistant-windows)))
+                        (hint '(("?" help-menu)))
+                        (t (funcall *mode-line-buttons-function* bname))))
+         (quit (find "QUIT" buttons :key #'first :test #'equal))
+         (body (remove "QUIT" buttons :key #'first :test #'equal))
+         (prefix (format nil "~A~:[~;*~], L. ~D "
+                         (shorten-left name (min 18 (max 1 (length name))))
+                         (logtest flags 2) line))
+         (reserve (if quit 9 0)))
+    (unless buttons (return-from mode-line-pieces nil))
+    ;; Keep the controls ahead of the filename when space becomes scarce.
+    (loop while (> (+ (length prefix) reserve
+                         (loop for b in body sum (+ 2 (length (first b))))) cols)
+          do (cond ((> (length prefix) 1)
+                    (setf prefix (subseq prefix 1)))
+                   ((> (length body) 1)
+                    (let ((victim (or (find-if (lambda (b) (not (member (first b) '("?" "MORE") :test #'equal)))
+                                              (reverse body)) (car (last body)))))
+                      (setf body (remove victim body :test #'eq :count 1))))
+                   (t (return))))
+    (let* ((pieces (append (list (list (string-right-trim " " prefix) :menu 'file-info) (list " " :modeline nil))
+                           (loop for (label action) in body
+                                 collect (list (format nil "[~A]" label) :menu action))))
+           (used (loop for p in pieces sum (length (first p)))))
+      (when hint
+        (let ((room (- cols used)))
+          (when (> room 1)
+            (setf pieces (append pieces (list (list (subseq (concatenate 'string " " hint) 0
+                                                             (min room (1+ (length hint)))) :modeline nil)))))))
+      (when quit
+        (setf pieces (append pieces
+                            (list (list (make-string (max 3 (- cols used 6)) :initial-element #\Space) :modeline nil)
+                                  (list "[QUIT]" :menu (second quit))))))
+      (encode-pieces pieces))))
 
 ;;; ------------------------------------------------------------------
 ;;; Clicks
@@ -234,6 +237,151 @@ or NIL for the C core's own mode line."
           (incf (the fixnum (gethash (if entry (first entry) (princ-to-string action))
                                      *button-usage* 0)))
           (run-mode-line-action action)))))
+
+;;; ------------------------------------------------------------------
+;;; [MORE]: all actions for the current buffer, independent of line width
+;;; ------------------------------------------------------------------
+
+;; Mouse input is decoded by GET-KEY; dispatch it through the same existing
+;; C handler as the main editor loop. It is not a named builtin command.
+(sb-alien:define-alien-routine ("editor_mouse_event" %more-menu-mouse) sb-alien:void)
+
+(defparameter *more-menu-buffer* "*more-actions*")
+(defvar *more-menu-buttons* nil)
+(defvar *more-menu-choice* nil)
+(defvar *more-menu-stop* nil)
+(defvar *menu-title* "More actions")
+(defvar *menu-number-keys* nil)
+(defvar *menu-letter-keys* nil)
+(defparameter *more-menu-first-line* 4)
+
+(declaim (ftype (function (string) string) more-menu-label)
+         (ftype (function (list) string) more-menu-text))
+(defun more-menu-label (label)
+  (or (cdr (assoc label '(("?" . "Help") ("IND" . "Indent region")
+                          ("#" . "Comment / uncomment") ("DEF>" . "Next definition")
+                          ("<DEF" . "Previous definition") ("AI" . "AI help")
+                          ("BUFS" . "Buffers")) :test #'equal))
+      (if (member label '("ChatGPT" "Keybindings" "Claude") :test #'equal) label (string-capitalize label))))
+
+(defun more-menu-text (buttons)
+  (with-output-to-string (out)
+    (format out "~A~%~A~%~%" *menu-title* (if *menu-letter-keys* "h/q/d, arrows + Enter, or click an option then [RUN]. C-g closes." "Arrows + Enter, or click an option then [RUN]. q closes."))
+    (loop for (label action) in buttons for i from 1 do
+      (format out "~2D  ~A~25T~A~%" i (if *menu-letter-keys* label (more-menu-label label))
+              (if (or *menu-number-keys* *menu-letter-keys*) "" (if (stringp action) action (string-downcase (symbol-name action))))))))
+
+(defcommand more-menu-run ()
+  "Choose the current row of the More actions window."
+  (when (string= (get-buffer-name) *more-menu-buffer*)
+    (let ((index (- (line-number) *more-menu-first-line*)))
+      (when (<= 0 index (1- (length *more-menu-buttons*)))
+        (setf *more-menu-choice* (second (nth index *more-menu-buttons*))
+              *more-menu-stop* t)))))
+
+(defcommand more-menu-close ()
+  "Dismiss the More actions window."
+  (setf *more-menu-stop* t))
+
+(defun choose-menu (buttons)
+  "Show every current-buffer menu action, even those that do not fit."
+  (let* ((origin (get-buffer-name))
+         (*more-menu-buttons* (copy-tree buttons))
+         (*menu-popup-active* t)
+         (saved-point (point)) (saved-mark (mark)) (saved-active (region-active-p))
+         (*more-menu-choice* nil) (*more-menu-stop* nil)
+         (before (window-count)) (created nil))
+    (when (null *more-menu-buttons*) (return-from choose-menu nil))
+    (unwind-protect
+        (progn
+          (split-window)
+          (setf created (> (window-count) before))
+          (when created (other-window))
+          (select-buffer *more-menu-buffer*)
+          (goto-char 0) (delete-char (buffer-size))
+          (insert (more-menu-text *more-menu-buttons*))
+          (set-buffer-menu *more-menu-buffer* '(("RUN" more-menu-run) ("CLOSE" more-menu-close)))
+          (goto-line *more-menu-first-line*)
+          (loop until *more-menu-stop* do
+            (message "~A: ~Aarrows + Enter; click then RUN; ~A closes" *menu-title* (cond (*menu-letter-keys* "h/q/d; ") (*menu-number-keys* "1/2/3; ") (t "")) (if *menu-letter-keys* "C-g" "q"))
+            (update-display)
+            (let* ((key (get-key)) (name (if (equal key "") (get-key-name) ""))
+                   (binding (if (equal key "") (get-key-binding) "")))
+              (cond
+                ((and *menu-letter-keys* (find key *more-menu-buttons* :key #'second :test #'equal))
+                 (setf *more-menu-choice* key *more-menu-stop* t))
+                ((or (member key '("q" "Q") :test #'equal) (equal name "C-g"))
+                 (setf *more-menu-stop* t))
+                ((equal name "C-x C-c")
+                 (setf *more-menu-choice* "C-x C-c" *more-menu-stop* t))
+                ((and *menu-number-keys* (= (length key) 1)
+                      (digit-char-p (char key 0))
+                      (<= 1 (digit-char-p (char key 0)) (length *more-menu-buttons*)))
+                 (setf *more-menu-choice* (second (nth (1- (digit-char-p (char key 0))) *more-menu-buttons*))
+                       *more-menu-stop* t))
+                ((equal binding "mouse") (%more-menu-mouse))
+                (t
+                 ;; A click in the source window must not redirect a menu
+                 ;; selection or a navigation key into that source buffer.
+                 (call-in-window-of *more-menu-buffer*
+                   (lambda ()
+                   (cond
+                     ((or (member key (list (string #\Return) (string #\Newline)) :test #'equal)
+                          (member name '("RET" "C-m" "C-j") :test #'equal)) (more-menu-run))
+                     ((or (equal binding "next-line") (equal name "C-n"))
+                      (goto-line (min (+ *more-menu-first-line* (1- (length *more-menu-buttons*))) (1+ (line-number)))))
+                     ((or (equal binding "previous-line") (equal name "C-p"))
+                      (goto-line (max *more-menu-first-line* (1- (line-number)))))))))))))
+      (set-buffer-menu *more-menu-buffer* nil)
+      (when (buffer-shown-p *more-menu-buffer*)
+        (call-in-window-of *more-menu-buffer*
+                          (lambda () (if (and created (> (window-count) 1)) (delete-window) (select-buffer origin)))))
+      (unless (string= (get-buffer-name) origin) (select-buffer origin))
+      (goto-char saved-point)
+      (if saved-mark (set-mark saved-mark) (clear-mark))
+      (unless saved-active (deactivate-mark))
+      (clear-message-line)
+      (update-display))
+    ;; Execute after restoring the original buffer, so SAVE/IND/# act on
+    ;; the user's document and QUIT invokes its normal save confirmation.
+    *more-menu-choice*))
+
+(defun perform-menu-choice (action)
+  (when action
+    (cond (*menu-popup-active* (setf *more-menu-choice* action *more-menu-stop* t))
+          (*help-in-progress* (setf *help-pending-menu-action* action))
+          (t (run-mode-line-action action)))))
+(declaim (ftype (function (string) (values string &optional)) choose-assistant-menu))
+(defun choose-assistant-menu (title)
+  (let ((*more-menu-buffer* "*ai-options*") (*menu-title* title)
+        (*menu-letter-keys* t))
+    (or (choose-menu '(("h Hints" "h") ("q Question" "q") ("d Discussion" "d"))) "")))
+
+(defun assistant-menu-key ()
+  "Read a modal key while keeping [?] clickable; defer its action until closing."
+  (let ((*help-in-progress* t) (*help-pending-menu-action* nil))
+    (loop for key = (get-key) do
+      (if (equal (get-key-binding) "mouse")
+          (progn (%more-menu-mouse)
+                 (when *help-pending-menu-action*
+                   (return (values "" *help-pending-menu-action*))))
+          (return (values key nil))))))
+
+(defcommand more-menu ()
+  (let* ((*menu-full* t) (*menu-region* (menu-region-p))
+         (buttons (funcall *mode-line-buttons-function* (get-buffer-name))))
+    (perform-menu-choice (choose-menu buttons))))
+(defcommand menu-chatgpt ()
+  (call-in-window-of (if (assistant-buffer-p (get-buffer-name)) (file-behind-assistant) (get-buffer-name)) #'ask-codex))
+(defcommand menu-claude ()
+  (call-in-window-of (if (assistant-buffer-p (get-buffer-name)) (file-behind-assistant) (get-buffer-name)) #'ask-claude))
+(defcommand menu-keybindings () (unless *help-in-progress* (help)))
+(defcommand help-menu ()
+  (when (and *menu-popup-active* (string= (get-buffer-name) "*help-options*"))
+    (return-from help-menu (message "Choose 1 Keybindings, 2 ChatGPT, or 3 Claude.")))
+  (let ((*more-menu-buffer* "*help-options*") (*menu-title* "Help") (*menu-number-keys* t))
+    (perform-menu-choice (choose-menu '(("Keybindings" menu-keybindings)
+                                       ("ChatGPT" menu-chatgpt) ("Claude" menu-claude))))))
 
 ;;; ------------------------------------------------------------------
 ;;; The file name: what there is to know about the file
@@ -291,13 +439,16 @@ the mode line)."
     (message "~A   (any key closes the window)" file)
     (update-display)
     ;; like the help page: the next key (or click) only closes it
-    (unwind-protect (get-key)
-      (close-assistant-windows)
-      (clear-message-line)))
+    (let ((action nil))
+      (unwind-protect (multiple-value-bind (key chosen) (assistant-menu-key)
+                       (declare (ignore key)) (setf action chosen))
+        (close-assistant-windows)
+        (clear-message-line))
+      (when action (run-mode-line-action action))))
   t)
 
 ;;; ------------------------------------------------------------------
-;;; [AI HELP]: what the assistants can do, and which key calls which
+;;; [AI]: what the assistants can do, and which key calls which
 ;;; ------------------------------------------------------------------
 
 (defparameter *ai-help-text*
@@ -317,7 +468,7 @@ Each one then offers, in this window:
    s   set-up: is the assistant installed and signed in?
 
 C-x 1 closes this window."
-  "The page that [AI HELP] shows.")
+  "The page that [AI] shows.")
 
 (defcommand ai-help ()
   "Show what the assistants (Claude, Codex) can do and how to call them."

@@ -7,6 +7,9 @@
 ;;;; other key goes back to the file, closing the assistants' windows.
 
 (in-package #:sbemacs)
+(declaim (ftype (function () (values string t &optional)) assistant-menu-key)
+         (ftype (function (t) t) run-mode-line-action))
+
 
 (defvar *help-buffer* "*sbemacs-help*")
 
@@ -186,6 +189,8 @@ under \"Other keys\".")
   (beginning-of-line)
   (set-window-start (point)))
 
+(defvar *help-in-progress* nil)
+(defvar *help-pending-menu-action* nil)
 (defcommand help ()
   "C-h or F1: the keys, on a page of their own."
   (let* ((origin (get-buffer-name))
@@ -194,7 +199,8 @@ under \"Other keys\".")
          (text (help-text))
          (lines (1+ (count #\Newline text)))
          (top 1)
-         (action nil))
+         (action nil)
+         (*help-in-progress* t) (*help-pending-menu-action* nil))
     (select-buffer *help-buffer*)
     (goto-char 0)
     (delete-char (buffer-size))
@@ -207,7 +213,11 @@ under \"Other keys\".")
            (let* ((k (get-key))
                   (name (if (string= k "") (get-key-name) k))
                   (rows (max 1 (window-rows))))
-             (cond ((member name '("down" "C-n") :test #'string=)
+             (cond ((equal (get-key-binding) "mouse")
+                    (funcall '%more-menu-mouse)
+                    (when *help-pending-menu-action*
+                      (setf action *help-pending-menu-action*) (return)))
+                   ((member name '("down" "C-n") :test #'string=)
                     (setf top (help-scroll top 1 lines rows)))
                    ((member name '("up" "C-p") :test #'string=)
                     (setf top (help-scroll top -1 lines rows)))

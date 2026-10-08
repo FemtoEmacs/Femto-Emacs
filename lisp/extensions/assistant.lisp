@@ -41,6 +41,9 @@
 ;;;; seconds); the message line says so.
 
 (in-package #:sbemacs)
+(declaim (ftype (function () (values string t &optional)) assistant-menu-key)
+         (ftype (function (t) t) run-mode-line-action))
+
 
 ;;; ------------------------------------------------------------------
 ;;; Settings
@@ -530,6 +533,8 @@ the answer below the buffer ORIGIN."
   (split-window)
   (other-window)
   (select-buffer *claude-request-buffer*)
+  (set-buffer-menu *claude-request-buffer*
+                   '(("SEND" "C-c r") ("CLOSE" close-assistant-windows)))
   (goto-char 0)
   (delete-char (buffer-size))
   (message "Write your question for Claude, then C-c r sends it (C-x o: back to ~A)" origin)
@@ -545,22 +550,14 @@ the answer below the buffer ORIGIN."
           (t (run-assistant :claude question *assistant-saved-context*
                             (or *assistant-origin* "*scratch*"))))))
 
+(declaim (ftype (function (string) (values string &optional)) choose-assistant-menu))
 (defun claude-menu ()
-  (let ((context (buffer-context))
-        (origin (get-buffer-name)))
-    (show-in-assistant-window "Ask Claude" *claude-menu*)
-    (set-buffer-hint *assistant-buffer* "h hints; q ask; d discuss; s set-up")
-    (message "Claude: h hints, q question, d discussion, s set-up; any other key closes the menu")
-    (update-display)
-    (let* ((k (get-key))
-           (choice (and (= (length k) 1) (char-downcase (char k 0)))))
-      (case choice
-        (#\h (run-assistant :claude "" context origin))
-        (#\q (claude-compose context origin))
-        (#\d (claude-discussion origin))
-        (#\s (assistant-status))
-        (t (close-assistant-windows)
-           (clear-message-line))))))
+  "Choose Hints, Question or Discussion with the mouse or h/q/d."
+  (let ((context (buffer-context)) (origin (get-buffer-name)))
+    (let ((key (choose-assistant-menu "Ask Claude")))
+      (cond ((equal key "h") (run-assistant :claude "" context origin))
+            ((equal key "q") (claude-compose context origin))
+            ((equal key "d") (claude-discussion origin))))))
 
 (defun ask-claude ()
   "C-c r: the menu; in *claude-request*, send the question; in the
