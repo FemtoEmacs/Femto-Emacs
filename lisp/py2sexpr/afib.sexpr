@@ -1,0 +1,115 @@
+(:py2sexpr
+  :format-version 1
+  :python-version "3.9"
+  :filename "afib.py"
+  :tree (:module
+    :body (
+      (:function-def
+        :name "fib"
+        :args (:arguments
+          :posonlyargs ()
+          :args (
+            (:arg
+              :arg "n"
+              :annotation :none
+              :type-comment :none
+              :source (:line 1 :column 8 :end-line 1 :end-column 9)))
+          :vararg :none
+          :kwonlyargs ()
+          :kw-defaults ()
+          :kwarg :none
+          :defaults ())
+        :body (
+          (:if
+            :test (:compare
+              :left (:name
+                :id "n"
+                :ctx (:load)
+                :source (:line 2 :column 8 :end-line 2 :end-column 9))
+              :ops (
+                (:lt))
+              :comparators (
+                (:constant
+                  :value (:integer :value 2)
+                  :kind :none
+                  :source (:line 2 :column 12 :end-line 2 :end-column 13)))
+              :source (:line 2 :column 8 :end-line 2 :end-column 13))
+            :body (
+              (:return
+                :value (:constant
+                  :value (:integer :value 1)
+                  :kind :none
+                  :source (:line 3 :column 15 :end-line 3 :end-column 16))
+                :source (:line 3 :column 8 :end-line 3 :end-column 16)))
+            :orelse (
+              (:return
+                :value (:bin-op
+                  :left (:call
+                    :func (:name
+                      :id "fib"
+                      :ctx (:load)
+                      :source (:line 5 :column 15 :end-line 5 :end-column 18))
+                    :args (
+                      (:bin-op
+                        :left (:name
+                          :id "n"
+                          :ctx (:load)
+                          :source (:line 5 :column 19 :end-line 5 :end-column 20))
+                        :op (:sub)
+                        :right (:constant
+                          :value (:integer :value 1)
+                          :kind :none
+                          :source (:line 5 :column 21 :end-line 5 :end-column 22))
+                        :source (:line 5 :column 19 :end-line 5 :end-column 22)))
+                    :keywords ()
+                    :source (:line 5 :column 15 :end-line 5 :end-column 23))
+                  :op (:add)
+                  :right (:call
+                    :func (:name
+                      :id "fib"
+                      :ctx (:load)
+                      :source (:line 5 :column 24 :end-line 5 :end-column 27))
+                    :args (
+                      (:bin-op
+                        :left (:name
+                          :id "n"
+                          :ctx (:load)
+                          :source (:line 5 :column 28 :end-line 5 :end-column 29))
+                        :op (:sub)
+                        :right (:constant
+                          :value (:integer :value 2)
+                          :kind :none
+                          :source (:line 5 :column 30 :end-line 5 :end-column 31))
+                        :source (:line 5 :column 28 :end-line 5 :end-column 31)))
+                    :keywords ()
+                    :source (:line 5 :column 24 :end-line 5 :end-column 32))
+                  :source (:line 5 :column 15 :end-line 5 :end-column 32))
+                :source (:line 5 :column 8 :end-line 5 :end-column 32)))
+            :source (:line 2 :column 4 :end-line 5 :end-column 32)))
+        :decorator-list ()
+        :returns :none
+        :type-comment :none
+        :source (:line 1 :column 0 :end-line 5 :end-column 32))
+      (:expr
+        :value (:call
+          :func (:name
+            :id "print"
+            :ctx (:load)
+            :source (:line 7 :column 0 :end-line 7 :end-column 5))
+          :args (
+            (:call
+              :func (:name
+                :id "fib"
+                :ctx (:load)
+                :source (:line 7 :column 6 :end-line 7 :end-column 9))
+              :args (
+                (:constant
+                  :value (:integer :value 40)
+                  :kind :none
+                  :source (:line 7 :column 10 :end-line 7 :end-column 12)))
+              :keywords ()
+              :source (:line 7 :column 6 :end-line 7 :end-column 13)))
+          :keywords ()
+          :source (:line 7 :column 0 :end-line 7 :end-column 14))
+        :source (:line 7 :column 0 :end-line 7 :end-column 14)))
+    :type-ignores ()))

@@ -101,6 +101,8 @@ install: all
 	install -m 755 sbemacs $(DESTDIR)$(PREFIX)/lib/sbemacs/sbemacs
 	install -m 644 $(LIBS) $(DESTDIR)$(PREFIX)/lib/sbemacs/
 	cp -R lisp $(DESTDIR)$(PREFIX)/lib/sbemacs/
+	# Remove the retired script that cp -R leaves behind on upgrades.
+	if test ! -f lisp/languages/python.lisp; then rm -f "$(DESTDIR)$(PREFIX)/lib/sbemacs/lisp/languages/python.lisp"; fi
 	ln -sf ../lib/sbemacs/sbemacs $(DESTDIR)$(PREFIX)/bin/sbemacs
 	ln -sf ../lib/sbemacs/sbemacs $(DESTDIR)$(PREFIX)/bin/sbemacs-gui
 

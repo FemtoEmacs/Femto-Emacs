@@ -105,7 +105,15 @@ each \"caught ERROR\" or \"caught WARNING\" (the indented lines after it)."
             (file "theme.lisp")
             (file "undo.lisp")
             (file "gui.lisp")
-            (lisp-files (merge-pathnames "languages/" directory))
+            ;; Upgrades copy scripts over an existing installation. A retired
+            ;; languages/python.lisp may remain there and override the modern
+            ;; mode saved in the executable. Never load that stale definition
+            ;; when its replacement is present, even if other scripts are
+            ;; unchanged and therefore skipped by the content-hash cache.
+            (let ((languages (lisp-files (merge-pathnames "languages/" directory))))
+              (if (probe-file (merge-pathnames "modes/python-mode.lisp" directory))
+                  (remove "python.lisp" languages :key #'file-namestring :test #'string-equal)
+                  languages))
             (file "defaults.lisp")
             (lisp-files (merge-pathnames "extensions/" directory)))))
 
