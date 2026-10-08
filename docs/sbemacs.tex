@@ -1488,6 +1488,119 @@ new language is a file with two forms:
 Chapter~\ref{chapter:skill} explains how to ask Claude Code to
 write such scripts for you.
 
+\section{Editing and running Nim}\label{sec:nim-mode}
+\index{Nim}\index{Nim!mode}\index{Nim!compile and run}
+
+Nim mode lets Nia edit, compile and run a program without leaving
+SBEmacs. It provides syntax coloring, two-space indentation, comments,
+and navigation between procedures, functions, iterators, templates and
+macros. The terminal and GUI versions use the same Lisp callbacks.
+
+\paragraph{Installation and loading.}
+Install Nim and make sure its \verb|nim| command is on the path seen by
+SBEmacs. Press \verb|M-!|, type \verb|nim --version| and press
+\verb|C-c s| or click SEND. The lower window displays the compiler
+version. \verb|C-x 1| returns to the file. If macOS blocks a downloaded
+Nim executable, approve the trusted compiler with Open Anyway in System
+Settings, Privacy \& Security.
+
+Build and install the updated SBEmacs:
+\begin{verbatim}
+make
+sudo make install
+\end{verbatim}
+Restart the editor. Files ending in \verb|.nim|, \verb|.nims| and
+\verb|.nimble| automatically use Nim mode. Its implementation is
+\verb|lisp/modes/nim-mode.lisp|. To reload it, use \verb|M-x nim-mode|.
+Alternatively, run \verb|M-x load-mode|, enter \verb|nim| at the Load
+mode prompt, and press Enter. TAB completes names. Mode lookup starts
+in the editor's modes directory, independently of the shell directory.
+A personal copy in \verb|~/.sbemacs/modes/nim-mode.lisp| takes precedence
+when explicitly loading the mode.
+
+\paragraph{Writing a program.}
+Press \verb|C-x C-f| and enter \verb|~/wrk/hi.nim|. The folder must
+already exist. Write:
+\begin{verbatim}
+import os
+
+echo "Hello, ", paramStr(1)
+\end{verbatim}
+SAVE or \verb|C-x C-s| saves the source. TAB indents the current line;
+repeated TAB cycles alternative levels. Enter indents the new line.
+The \verb|#| button or \verb|M-;| comments or uncomments a line or
+selected region. \verb|C-x C-i| indents a selected region.
+
+Coloring recognizes nested comments, documentation comments, raw and
+triple-quoted strings, backtick identifiers, and numeric suffixes. It
+handles unfinished code while Nia types. Indentation is an editing aid,
+not a complete Nim parser. Macros can introduce syntax beyond its rules;
+use TAB to choose another level when necessary.
+
+\paragraph{Build and Run.}
+Click MORE and select Build or Run. Use arrows and Enter, or click the
+option and then RUN. The named commands are:
+\begin{verbatim}
+M-x nim-build                 save and compile
+M-x nim-run                   save, compile and run
+M-x nim-next-definition       next routine definition
+M-x nim-previous-definition   previous routine definition
+\end{verbatim}
+Build and Run work on \verb|.nim| files; coloring also covers
+\verb|.nims| and \verb|.nimble|. Both commands save the current source
+before compiling and stop if saving fails. Build calls \verb|nim c|.
+Run calls \verb|nim c -r| and reads arguments in the minibuffer.
+For \verb|hi.nim|, enter \verb|Edward| at
+\verb|Nim program arguments:|. The output window shows:
+\begin{verbatim}
+$ nim c -r --hints:off 'hi.nim' Edward
+Hello, Edward
+\end{verbatim}
+The command runs in the source file's directory. Compiler diagnostics
+and program output appear below the source; a failed command also shows
+its exit status. \verb|C-x 1| closes the output window and returns to
+the source. Edit and use Run again to test the changed program.
+
+\paragraph{Using the shell.}
+For additional compiler options, press \verb|M-!| or \verb|C-x @|
+from the source window and write:
+\begin{verbatim}
+nim c -r --hints:off --nimcache:xx hi.nim Edward
+\end{verbatim}
+SEND or \verb|C-c s| executes the command. Each submission starts a
+new shell: \verb|cd| does not change the directory of the next
+submission. On macOS and Linux, put dependent commands together:
+\begin{verbatim}
+cd "$HOME/wrk" && nim c -r hi.nim Edward
+\end{verbatim}
+Entered lines are joined as command continuations, not separate shell
+commands. Windows uses \verb|cmd.exe| and its own quoting conventions.
+
+Execution is synchronous: SBEmacs waits for the command to finish.
+Its shell capture supplies empty standard input and cannot accept
+interactive keystrokes or passwords. Supply arguments, a file, or a
+pipe. For example, on macOS or Linux:
+\begin{verbatim}
+printf '3 4 +\n' | ./rdwrt
+\end{verbatim}
+Arguments entered at the Nim prompt are shell text; quote filenames
+containing spaces. The output buffer does not interpret terminal colors
+or cursor-control sequences.
+
+\paragraph{The Nim tutorial.}
+The nimacros repository supplies the mode and installation instructions
+in \verb|sbemacs/|. Hello World, State Machines and Shell are the first
+three chapters in \verb|nimacros/chaps/nimdoc1.md|. They now use SBEmacs
+for editing and execution while retaining the author's explanations.
+The existing tutorial PDF has not been regenerated. These local changes
+must be published before GitHub shows the updated instructions:
+\begin{quote}
+\url{https://github.com/FemtoEmacs/nimacros}
+\end{quote}
+The compiler tests ran Hello World, Zeller's congruence, and both
+Fibonacci implementations. Zeller, run inside SBEmacs with arguments
+\verb|2016 8 31|, displayed \verb|3|, the number for Wednesday.
+
 %%% ==================================================================
 \chapter{Shell}\label{chapter:shell}
 %%% ==================================================================

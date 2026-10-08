@@ -132,3 +132,16 @@ ChatGPT (the Codex integration), and Claude in document and assistant views.
 Select sets the mark: move the cursor or drag the mouse to select text.
 A nonempty active region replaces Select with COPY and DELETE; Python also
 shows INDENT. These actions use the existing undo and indentation commands.
+
+## Nim
+
+Nim files (`.nim`, `.nims`, `.nimble`) now activate `nim-mode.lisp` at startup.
+The mode supplies nested-comment/string coloring, two-space indentation,
+comment commands, definition navigation, and Build/Run under MORE.
+`M-x nim-mode` reloads it; `M-x nim-build` saves and compiles the current
+`.nim` source, while `M-x nim-run` reads arguments and displays its output
+in the shell window. C-x 1 returns to the source. Nim must be on PATH.
+Execution uses the existing synchronous shell capture with empty standard
+input; use pipes or redirection for programs that read stdin.
+The tutorial and a distributable copy of the mode live in the nimacros
+repository's `sbemacs/` directory.
