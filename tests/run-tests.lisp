@@ -9,11 +9,16 @@
 (defparameter *root*
   (merge-pathnames "../" (make-pathname :name nil :type nil :defaults *load-truename*)))
 
+;; The editor's C library: the terminal one by default; SBEMACS_TEST_LIB
+;; names another (the Windows installer's build has only the window's)
 (sb-alien:load-shared-object
- (sb-ext:native-namestring
-  (merge-pathnames #+darwin "libsbemacs-term.dylib" #+win32 "libsbemacs-term.dll"
-                   #-(or darwin win32) "libsbemacs-term.so"
-                   *root*))
+ (let ((lib (sb-ext:posix-getenv "SBEMACS_TEST_LIB")))
+   (if (and lib (plusp (length lib)))
+       lib
+       (sb-ext:native-namestring
+        (merge-pathnames #+darwin "libsbemacs-term.dylib" #+win32 "libsbemacs-term.dll"
+                         #-(or darwin win32) "libsbemacs-term.so"
+                         *root*))))
  :dont-save t)
 
 (handler-bind ((warning #'muffle-warning))
@@ -571,6 +576,137 @@
 (check "shell: and the exit status of a failure"
        (shell-transcript "false" "" 1)
        (format nil "~A false~%[exit status 1]~%" #-win32 "$" #+win32 ">"))
+
+;;; ------------------------------------------------------------------
+;;; Windows: C-c g said "Execution of a form compiled with errors.  Form:
+;;; (FORMATTER ...)".  Git for Windows checked the scripts out with CR LF;
+;;; read as plain UTF-8, every format string continued with "~" and a
+;;; newline got "~" + CR, an unknown directive; COMPILE-FILE reported the
+;;; failure, nobody checked it, and the form was compiled into an error.
+;;; ------------------------------------------------------------------
+
+(defun test-dir (name)
+  (let ((dir (merge-pathnames (format nil "build/test-~A/" name) cl-user::*root*)))
+    (ensure-directories-exist dir)
+    dir))
+
+(defun write-script (dir name text &key crlf)
+  "A script file NAME in DIR holding TEXT, with CR LF line ends if CRLF."
+  (let ((path (merge-pathnames name dir)))
+    (with-open-file (o path :direction :output :if-exists :supersede
+                            :element-type '(unsigned-byte 8))
+      (write-sequence (sb-ext:string-to-octets
+                       (if crlf
+                           (with-output-to-string (s)
+                             (loop for c across text
+                                   do (when (char= c #\Newline) (write-char #\Return s))
+                                      (write-char c s)))
+                           text)
+                       :external-format :utf-8)
+                      o))
+    path))
+
+(defun strict-load (path cache)
+  "Load PATH as the release build does: the condition signalled, or NIL."
+  (let ((*release-build* t))
+    (handler-case (progn (load-script path cache) nil)
+      (script-compile-error (c) c))))
+
+(check "release build: every script compiles cleanly"
+       (let ((*release-build* t))
+         (nth-value 1 (load-scripts :files (script-files *script-directory*)
+                                    :cache-directory (test-dir "release-cache")
+                                    :force t)))
+       '())
+
+(check "release build: a function that does not compile stops it"
+       (let* ((dir (test-dir "bad"))
+              (c (strict-load (write-script dir "bad.lisp"
+                                            "(in-package #:sbemacs)
+(defun broken-on-purpose () (format nil \"~Q\"))
+")
+                              (merge-pathnames "cache/" dir))))
+         (list (typep c 'script-compile-error)
+               (not (null (search "Q" (princ-to-string c))))))
+       '(t t))
+
+(check "interactively: the failure is reported, not hidden"
+       (let* ((dir (test-dir "bad-interactive"))
+              (path (write-script dir "bad2.lisp"
+                                  "(in-package #:sbemacs)
+(defun broken-too () (format nil \"~Q\"))
+(defun fine-after-it () :fine)
+")))
+         (multiple-value-bind (loaded errors)
+             (load-scripts :files (list path) :cache-directory (merge-pathnames "cache/" dir)
+                           :force t)
+           ;; not marked as loaded; the error is in the list; the rest works
+           (list loaded (length errors) (funcall 'fine-after-it))))
+       '(() 1 :fine))
+
+(check "a script with CR LF line ends: right on Windows, refused elsewhere"
+       (let* ((dir (test-dir "crlf"))
+              (c (strict-load (write-script dir "crlf.lisp"
+                                            "(in-package #:sbemacs)
+(defun crlf-tilde-newline () (format nil \"one ~
+                                          two ~A\" \"é\"))
+" :crlf t)
+                              (merge-pathnames "cache/" dir))))
+         #+win32 (list c (funcall 'crlf-tilde-newline))
+         #-win32 (typep c 'script-compile-error))
+       #+win32 (list nil "one two é")
+       #-win32 t)
+
+;;; What C-c g sends: the description of the file (assistant-context-text)
+
+(check "context: no selection"
+       (assistant-context-text "fib.lisp" "Common Lisp" 3 "(defun " "fib (n))" nil nil)
+       (format nil "File: fib.lisp~%Language: Common Lisp~%Cursor: line 3~%Text:~%```~%(defun <<CURSOR>>fib (n))~%```"))
+(check "context: a selected region, and only part of the file shown"
+       (assistant-context-text "a.lisp" nil 1 "" "x" "(car l)" t)
+       (format nil "File: a.lisp~%Language: unknown~%Cursor: line 1~%The text shown is part of the file.~%Selected region:~%```~%(car l)~%```~%Text:~%```~%<<CURSOR>>x~%```"))
+(check "context: Unicode text, cursor at the very end"
+       (let ((c (assistant-context-text "notas.md" "Markdown" 2 (format nil "Ação: π ≈ 3,14~%") "" nil nil)))
+         (list (not (null (search "Ação: π ≈ 3,14" c)))
+               (not (null (search (format nil "<<CURSOR>>~%```") c)))))
+       '(t t))
+(check "context: an empty file"
+       (assistant-context-text "*scratch*" nil 1 "" "" nil nil)
+       (format nil "File: *scratch*~%Language: unknown~%Cursor: line 1~%Text:~%```~%<<CURSOR>>~%```"))
+(check "context: the text has no CR, even from a CR LF file"
+       (find #\Return (assistant-context-text "w.txt" nil 1 "a" "b" nil nil))
+       nil)
+
+;;; The rest of C-c g's path: the menu, set-up (s), the request, the command
+
+(check "C-c g: menu and instructions are plain LF text"
+       (list (find #\Return *codex-menu*) (find #\Return *codex-instructions*))
+       '(nil nil))
+(check "C-c g, s: the set-up page is made (the form that failed on Windows)"
+       (let ((text (codex-status-text)))
+         (list (not (null (search "Codex CLI:" text))) (find #\Return text)
+               (not (null (search "Sign in with ChatGPT." text)))))
+       '(t nil t))
+(check "C-c g, q: the request holds the instructions, the question and the context"
+       (let* ((*codex-saved-context* "File: f.lisp")
+              (p (codex-prompt "Why?")))
+         (list (not (null (search "USER REQUEST" p))) (not (null (search "Why?" p)))
+               (not (null (search "File: f.lisp" p)))))
+       '(t t t))
+(check "C-c g: the command line ends by reading the request from stdin"
+       (let ((*codex-working-directory* "/tmp/"))
+         (car (last (codex-exec-arguments))))
+       "-")
+(check "C-c g: a native codex program is run as it is"
+       (multiple-value-list (codex-windows-command #p"/opt/codex/bin/codex" '("exec")))
+       (list #p"/opt/codex/bin/codex" '("exec")))
+#+win32
+(check "C-c g: npm's codex.cmd runs through Windows' own cmd.exe"
+       (multiple-value-bind (launcher args)
+           (codex-windows-command #p"C:/Users/x/AppData/Roaming/npm/codex.cmd" '("exec" "-"))
+         (list (equal launcher (windows-command-interpreter))
+               (subseq args 0 3)))
+       '(t ("/d" "/s" "/c")))
 
 (format t "~&~D/~D tests passed~%" (- *count* *failures*) *count*)
 (sb-ext:exit :code (if (zerop *failures*) 0 1))

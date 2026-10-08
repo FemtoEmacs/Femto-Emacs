@@ -56,6 +56,31 @@ jobs:
     - name: Build sbemacs.exe and the installer
       run: sh windows/build-installer.sh
 
+    # The tests, with the Windows SBCL the build used, on the library it just
+    # made.  They go through C-c g's own code (the context sent to Codex, the
+    # set-up page, the request, the command line, codex.cmd through Windows'
+    # cmd.exe), compile every script as the release build does, and check
+    # that a script with CR LF line ends compiles right.  sbcl.exe sits in
+    # "Steel Bank Common Lisp", a name with spaces: hence the wrapper.
+    - name: Run the tests with the Windows SBCL
+      run: |
+        SBCL=$(find "$PWD/build/windows/deps/sbcl" -name sbcl.exe | head -1)
+        SBCL_DIR=$(cygpath -w "$(dirname "$SBCL")")
+        printf '#!/bin/sh\nSBCL_HOME="%s" exec "%s" --core "%s\\sbcl.core" "$@"\n' \
+          "$SBCL_DIR" "$SBCL" "$SBCL_DIR" > sbcl-windows
+        chmod +x sbcl-windows
+        export PATH="$PWD/build/windows/stage:$PATH"     # SDL2.dll for the library
+        SBEMACS_TEST_LIB="$(cygpath -w build/windows/stage/libsbemacs-gui.dll)" \
+          ./sbcl-windows --noinform --non-interactive --no-sysinit --no-userinit \
+                         --load tests/run-tests.lisp
+
+    # A script that does not compile must stop the release build (it used to
+    # be compiled into an error that surfaced only when the code ran).
+    - name: The build stops on a script that does not compile
+      run: |
+        SBEMACS_WINDOW_APP=1 SBEMACS_LIB_DIR="$PWD/build/windows/stage" \
+          sh tests/build-must-fail.sh "$PWD/sbcl-windows"
+
     # Like a user: install without administrator rights, open the editor,
     # make sure its window stays up, uninstall.
     - name: Try the installer

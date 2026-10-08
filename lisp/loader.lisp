@@ -32,6 +32,49 @@
 (defvar *script-errors* '()
   "Messages for scripts that failed to load, most recent first.")
 
+(defvar *release-build* nil
+  "True while build.lisp builds the executable (and in the tests that check
+it): a script that does not compile cleanly is then an error that stops
+the build.  Interactively (start-up, C-x C-r) such a script is still loaded
+from its source, so that the rest of it works, and the error is reported.")
+
+;;; The external format the scripts are read in.  On Windows, CR LF line
+;;; ends are read as LF: a file saved with them (by Notepad, or by Git for
+;;; Windows without .gitattributes) would otherwise keep a CR at the end of
+;;; every line, and a format string continued with "~" and a newline would
+;;; get "~" + CR, an unknown directive: the form is then compiled into an
+;;; error, raised only when it runs.  SBCL 2.6.9 on Windows reads both line
+;;; ends this way; older SBCLs elsewhere ignore :NEWLINE, so it is only used
+;;; there (checkouts get LF everywhere from .gitattributes).
+(defparameter *script-external-format*
+  #+win32 '(:utf-8 :newline :crlf)
+  #-win32 :utf-8)
+
+(defun compiler-diagnosis (report)
+  "The lines of the compiler's REPORT that say what went wrong: the body of
+each \"caught ERROR\" or \"caught WARNING\" (the indented lines after it)."
+  (let ((lines '()) (keep nil))
+    (with-input-from-string (in report)
+      (loop for line = (read-line in nil)
+            while line
+            do (let ((text (string-trim "; " line)))
+                 (cond ((or (search "caught ERROR" line) (search "caught WARNING" line))
+                        (setf keep t))
+                       ((not (and (>= (length line) 3) (string= ";  " line :end2 3)))
+                        (setf keep nil))
+                       ((and keep (plusp (length text))) (push text lines))))))
+    (let ((found (nreverse lines)))
+      (subseq found 0 (min 12 (length found))))))
+
+(define-condition script-compile-error (error)
+  ((path :initarg :path :reader script-compile-error-path)
+   (messages :initarg :messages :reader script-compile-error-messages))
+  (:report (lambda (c stream)
+             (format stream "~A does not compile:~{~%  ~A~}"
+                     (file-namestring (script-compile-error-path c))
+                     (or (script-compile-error-messages c)
+                         (list "(the compiler reported a failure)"))))))
+
 (defun script-directory-candidates ()
   (let ((env (sb-ext:posix-getenv "SBEMACS_LISP"))
         (exe (ignore-errors (make-pathname :name nil :type nil :version nil
@@ -110,6 +153,10 @@ scripts start in package SBEMACS, the user's in SBEMACS-USER."
         (*package* (find-package (if (system-script-p path) '#:sbemacs '#:sbemacs-user)))
         (*readtable* (copy-readtable nil))
         (sink (make-broadcast-stream)))
+    ;; The compiler's messages are kept off the screen (the editor owns it):
+    ;; they are collected, and shown only if the script does not compile.
+    ;; (An error in a form is handled inside COMPILE-FILE, which only prints
+    ;; it -- "caught ERROR" -- and reports the failure in its third value.)
     (handler-bind ((warning #'muffle-warning))
       (let ((*standard-output* sink) (*error-output* sink))
         (flet ((compile-it ()
@@ -117,14 +164,26 @@ scripts start in package SBEMACS, the user's in SBEMACS-USER."
                  ;; a stale fasl we may not overwrite (left by a build run as
                  ;; another user) can still be removed from our own directory
                  (when (probe-file fasl) (ignore-errors (delete-file fasl)))
-                 (multiple-value-bind (output warnings-p failure-p)
-                     (compile-file path :output-file fasl :external-format :utf-8)
-                   (declare (ignore warnings-p))
-                   (when (or (null output) failure-p)
-                     ;; load the source instead, so the real error is reported
-                     (ignore-errors (delete-file fasl))
-                     (return-from load-script
-                       (load path :external-format :utf-8))))))
+                 (let ((report (make-string-output-stream)))
+                   (multiple-value-bind (output warnings-p failure-p)
+                       (let ((*error-output* report) (*standard-output* report))
+                         (compile-file path :output-file fasl
+                                            :external-format *script-external-format*))
+                     (declare (ignore warnings-p))
+                     (when (or (null output) failure-p)
+                       (ignore-errors (delete-file fasl))
+                       (let ((failure (make-condition 'script-compile-error
+                                                      :path path
+                                                      :messages (compiler-diagnosis
+                                                                 (get-output-stream-string report)))))
+                         ;; building the executable: never ship a form compiled
+                         ;; into an error
+                         (when *release-build* (error failure))
+                         ;; interactively: load the source, so that the rest of
+                         ;; the script works, and report the failure (the
+                         ;; script is not marked as loaded: C-x C-r tries again)
+                         (load path :external-format *script-external-format*)
+                         (error failure)))))))
           (when (or (not (probe-file fasl))
                     (> (file-write-date path) (file-write-date fasl)))
             (compile-it))

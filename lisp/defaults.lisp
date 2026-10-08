@@ -277,3 +277,18 @@ a folder ends in /."
           (push (concatenate 'string folder name) names))))
     (let ((sorted (sort names #'string<)))
       (subseq sorted 0 (min *completion-limit* (length sorted))))))
+
+;;; Windows' command interpreter, for M-! (shell.lisp) and Codex's npm shim
+;;; (codex.lisp).  Not looked up in the PATH: there MSYS2 or Git for Windows
+;;; may put a cmd of their own -- a shell script, which Windows cannot start
+;;; ("not a valid Win32 application").  COMSPEC names the real one.
+
+#+win32
+(declaim (ftype (function () (values string &optional)) windows-command-interpreter))
+#+win32
+(defun windows-command-interpreter ()
+  (let ((comspec (sb-ext:posix-getenv "COMSPEC"))
+        (root (or (sb-ext:posix-getenv "SystemRoot") "C:\\Windows")))
+    (if (and comspec (probe-file comspec))
+        comspec
+        (concatenate 'string root "\\System32\\cmd.exe"))))

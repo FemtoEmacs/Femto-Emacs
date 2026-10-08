@@ -1,0 +1,21 @@
+# Line endings.  Without this file Git for Windows -- and GitHub's Windows
+# machines -- check text files out with CR LF.  A CR inside a Lisp format
+# string breaks it: "~" at the end of a line is a continuation only when a
+# newline follows it, and "~" + CR is an unknown directive, which made the
+# Windows build compile C-c g's code into an error (see lisp/loader.lisp).
+# Every text file is LF in the repository and in every checkout.
+* text=auto eol=lf
+
+# Windows batch files keep the line endings they have: cmd.exe is their reader
+*.cmd  -text
+*.bat  -text
+
+# Binary files: never touched
+*.pdf  binary
+*.png  binary
+*.jpg  binary
+*.ico  binary
+*.bmp  binary
+*.ttf  binary
+*.exe  binary
+*.dll  binary

@@ -51,16 +51,7 @@ whose line breaks are continuations (see the top of this file)."
     #+win32
     (format nil "~{~A~^ ~}" lines)))
 
-#+win32
-(defun windows-command-interpreter ()
-  "Windows' own cmd.exe.  Not looked up in the PATH: there MSYS2 or Git
-for Windows may put a cmd of their own (a shell script) first.  COMSPEC
-names the real one."
-  (let ((comspec (sb-ext:posix-getenv "COMSPEC"))
-        (root (or (sb-ext:posix-getenv "SystemRoot") "C:\\Windows")))
-    (if (and comspec (probe-file comspec))
-        comspec
-        (concatenate 'string root "\\System32\\cmd.exe"))))
+; WINDOWS-COMMAND-INTERPRETER (Windows' own cmd.exe) is in defaults.lisp
 
 (declaim (ftype (function (string) (values string &optional)) unix-line-ends))
 (defun unix-line-ends (text)

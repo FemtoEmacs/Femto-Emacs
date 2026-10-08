@@ -14,8 +14,6 @@
 
 (in-package #:sbemacs)
 
-(declaim (optimize (safety 3) (debug 2)))
-
 (defvar *codex-program* nil
   "Codex executable override, or NIL to discover it automatically.")
 
@@ -64,7 +62,6 @@ fenced code block.  Keep explanations short and use plain text suitable for
 an editor window."
   "Instructions prepended to every Codex request.")
 
-(declaim (ftype (function () (values string &optional)) codex-source-context))
 (defun codex-source-context ()
   "Describe a bounded part of the current source buffer, marking point."
   (let* ((p (point))
@@ -93,9 +90,8 @@ an editor window."
       (when region
         (format out "Selected text:~%```~%~A~%```~%" region))
       (format out "Source around the cursor:~%```~%~A<<CURSOR>>~A~%```"
-              before after))))
+              before after)))
 
-(declaim (ftype (function () (values string &optional)) codex-source-directory))
 (defun codex-source-directory ()
   "Absolute directory of the current file, or the editor's directory.
 A relative buffer name such as teste.lisp must not become the empty string."
@@ -109,7 +105,6 @@ A relative buffer name such as teste.lisp must not become the empty string."
                         *default-pathname-defaults*)))
     (native directory)))
 
-(declaim (ftype (function () (values string &optional)) codex-effective-working-directory))
 (defun codex-effective-working-directory ()
   "A nonempty directory for `codex exec --cd'."
   (let ((directory (trim (or *codex-working-directory* ""))))
@@ -134,12 +129,10 @@ A relative buffer name such as teste.lisp must not become the empty string."
   (message "Describe the task, then press C-c g again to send it to Codex")
   t)
 
-(declaim (ftype (function (string) (values string &optional)) codex-prompt))
 (defun codex-prompt (request)
   (format nil "~A~%~%USER REQUEST~%============~%~A~%~%SOURCE CONTEXT~%==============~%~A"
           *codex-instructions* request *codex-saved-context*))
 
-(declaim (ftype (function () (values list &optional)) codex-installation-candidates))
 (defun codex-installation-candidates ()
   "Likely Codex executables not already covered by PATH."
   (remove
@@ -176,8 +169,6 @@ A relative buffer name such as teste.lisp must not become the empty string."
                                                            (string-right-trim "/\\" appdata)
                                                            "/"))))))))
 
-(declaim (ftype (function ((or null string)) (values (or null pathname) &optional))
-                codex-explicit-program))
 (defun codex-explicit-program (name)
   "Resolve NAME as a path or as a command on PATH."
   (when (and name (plusp (length name)))
@@ -185,7 +176,6 @@ A relative buffer name such as teste.lisp must not become the empty string."
         (probe-file (pathname name))
         (find-program name))))
 
-(declaim (ftype (function () (values (or null pathname) &optional)) find-codex-program))
 (defun find-codex-program ()
   "Find an explicit, PATH, standalone, npm, or ChatGPT-bundled Codex."
   (or (codex-explicit-program (or *codex-program*
@@ -193,7 +183,6 @@ A relative buffer name such as teste.lisp must not become the empty string."
       (find-program "codex")
       (find-if #'probe-file (codex-installation-candidates))))
 
-(declaim (ftype (function () (values list &optional)) codex-exec-arguments))
 (defun codex-exec-arguments ()
   (append (list "exec"
                 "--sandbox" "read-only"
@@ -206,17 +195,14 @@ A relative buffer name such as teste.lisp must not become the empty string."
           (when *codex-model* (list "--model" *codex-model*))
           (list "-")))
 
-(declaim (ftype (function ((or pathname string) list)
-                          (values (or pathname string) list &optional))
-                codex-windows-command))
 (defun codex-windows-command (program arguments)
   "On Windows, run npm's codex.cmd through cmd.exe.  Native executables
 are returned unchanged.  Elsewhere this is a no-op."
   #+win32
   (if (member (string-downcase (or (pathname-type program) ""))
               '("cmd" "bat") :test #'string=)
-      ;; Windows' own cmd.exe, not a cmd found first on the PATH
-      (let ((cmd (windows-command-interpreter)))
+      (let ((cmd (or (find-program "cmd")
+                     #p"C:/Windows/System32/cmd.exe")))
         (values cmd
                 (list "/d" "/s" "/c"
                       (format nil "\"~A\" ~{\"~A\"~^ ~}"
@@ -302,7 +288,6 @@ are returned unchanged.  Elsewhere this is a no-op."
          (codex-discussion-send))
         (t (codex-menu))))
 
-(declaim (ftype (function () (values string &optional)) codex-status-text))
 (defun codex-status-text ()
   (let ((program (find-codex-program)))
     (format nil "Codex CLI: ~:[NOT FOUND~;~:*~A~]~%~

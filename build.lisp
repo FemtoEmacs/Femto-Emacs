@@ -22,12 +22,20 @@
 (declaim (sb-ext:muffle-conditions sb-ext:compiler-note))
 
 (defun build-file (name)
+  "Compile and load one engine file.  COMPILE-FILE's third value says
+whether the file compiled cleanly: a form it could not compile becomes code
+that signals \"Execution of a form compiled with errors\" only when it runs,
+so a failure must stop the build here, not surface in the user's hands."
   (let* ((source (merge-pathnames (concatenate 'string name ".lisp") *root*))
-         (output (merge-pathnames (concatenate 'string "build/" name ".fasl") *root*))
-         (fasl (progn (ensure-directories-exist output)
-                     (compile-file source :output-file output :verbose nil :print nil))))
-    (unless fasl (error "Compilation of ~A failed" source))
-    (load fasl)))
+         (output (merge-pathnames (concatenate 'string "build/" name ".fasl") *root*)))
+    (ensure-directories-exist output)
+    (multiple-value-bind (fasl warnings-p failure-p)
+        (compile-file source :output-file output :verbose nil :print nil
+                             :external-format #+win32 '(:utf-8 :newline :crlf) #-win32 :utf-8)
+      (declare (ignore warnings-p))
+      (when (or (null fasl) failure-p)
+        (error "Compilation of ~A failed (see the messages above)" source))
+      (load fasl))))
 
 ;; Load the core library first so that the foreign symbols resolve at
 ;; compile time.  It is loaded with :dont-save: the executable finds it
@@ -52,13 +60,17 @@
 ;; without lisp/.  Their contents are remembered: at start-up only scripts
 ;; that were edited since are loaded again.
 (setf sbemacs::*script-directory* (truename (merge-pathnames "lisp/" *root*)))
+;; *RELEASE-BUILD*: a script that does not compile cleanly is an error
+;; (lisp/loader.lisp), reported below, and the executable is not saved
+(setf sbemacs::*release-build* t)
 (multiple-value-bind (loaded errors)
     (sbemacs::load-scripts :files (sbemacs::script-files sbemacs::*script-directory*)
                            :cache-directory (merge-pathnames "build/scripts/" *root*))
   (format t "~&Compiled ~D scripts into the image~%" (length loaded))
   (when errors
     (error "Scripts failed to load:~%~{  ~A~%~}" errors)))
-(setf sbemacs::*script-directory* nil)
+(setf sbemacs::*script-directory* nil
+      sbemacs::*release-build* nil)
 
 (when *window-app*
   (setf sbemacs::*gui-by-default* t))

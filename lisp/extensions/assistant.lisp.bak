@@ -392,24 +392,6 @@ true/false/null T/NIL/:NULL."
 ;;; What is sent: the buffer around the cursor
 ;;; ------------------------------------------------------------------
 
-(declaim (ftype (function (string (or null string) (integer 1) string string
-                           (or null string) t)
-                          (values string &optional))
-                assistant-context-text))
-(defun assistant-context-text (file language line before after region partial)
-  "The description sent to an assistant (C-c r, C-c g): FILE, its LANGUAGE
-\(NIL: unknown), the cursor's LINE, the text BEFORE and AFTER the cursor,
-the selected REGION (NIL: none), and whether the text shown is only PART of
-the file.  Pure, so that it can be tested without an editor."
-  (with-output-to-string (out)
-    (format out "File: ~A~%Language: ~A~%Cursor: line ~D~%"
-            file (or language "unknown") line)
-    (when partial
-      (format out "The text shown is part of the file.~%"))
-    (when region
-      (format out "Selected region:~%```~%~A~%```~%" region))
-    (format out "Text:~%```~%~A<<CURSOR>>~A~%```" before after)))
-
 (defun buffer-context ()
   "A description of the current buffer for the assistant, with the
 cursor marked <<CURSOR>>."
@@ -426,9 +408,11 @@ cursor marked <<CURSOR>>."
          (region (let ((m (mark)))
                    (when (and m (/= m p) (< (abs (- m p)) *assistant-context-bytes*))
                      (buffer-substring (min m p) (max m p))))))
-    (assistant-context-text file (and lang (language-name lang)) line
-                            before after region
-                            (or (> start 0) (< end size)))))
+    (format nil "File: ~A~%Language: ~A~%Cursor: line ~D~:[~;, the text shown is part of the file~]~%~
+                 ~@[~%Selected region:~%```~%~A~%```~%~]~%Text:~%```~%~A<<CURSOR>>~A~%```"
+            file (if lang (language-name lang) "unknown") line
+            (or (> start 0) (< end size))
+            region before after)))
 
 ;;; ------------------------------------------------------------------
 ;;; The window with the answer

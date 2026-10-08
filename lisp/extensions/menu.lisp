@@ -252,7 +252,7 @@ or NIL for the C core's own mode line."
       (incf lines))
     (values lines words)))
 
-(defun format-date (universal-time)
+(defun file-info-date (universal-time)
   (multiple-value-bind (s mi h d mo y) (decode-universal-time universal-time)
     (declare (ignore s))
     (format nil "~D-~2,'0D-~2,'0D ~2,'0D:~2,'0D" y mo d h mi)))
@@ -277,7 +277,7 @@ or NIL for the C core's own mode line."
                (format out "On disk:    ~:D bytes, saved ~A~%"
                        (with-open-file (s on-disk :element-type '(unsigned-byte 8))
                          (file-length s))
-                       (format-date (file-write-date on-disk))))
+                       (file-info-date (file-write-date on-disk))))
               (file
                (format out "On disk:    not yet: [SAVE] creates it~%")))))))
 

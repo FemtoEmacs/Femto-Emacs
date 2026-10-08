@@ -62,6 +62,10 @@ jobs:
           ./sbemacs --version
           ls libsbemacs-gui.*               # the GUI library must have been built
 
+      # a script that does not compile must stop the release build
+      - name: The build stops on a script that does not compile
+        run: sh tests/build-must-fail.sh
+
       - name: GUI smoke test (Linux, virtual display)
         if: runner.os == 'Linux'
         run: |
