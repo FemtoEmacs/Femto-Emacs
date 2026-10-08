@@ -507,10 +507,10 @@ Tabs use eight-column stops; every UTF-8 character occupies one screen cell."
     pos))
 
 (defun markdown-wrap-row (filename text-sap len columns)
-  "C display callback: -1 enables Markdown wrapping; 0 retains fixed rows."
+  "C display callback: -1 enables Markdown/TeX wrapping; 0 retains fixed rows."
   (declare (type string filename) (type integer len columns))
   (let ((language (language-for-file filename)))
-    (cond ((or (null language) (not (string= (language-name language) "Markdown"))
+    (cond ((or (null language) (not (member (language-name language) '("Markdown" "TeX") :test #'string=))
                (not (plusp columns))) 0)
           ((zerop len) -1)
           (t (let ((octets (make-array len :element-type '(unsigned-byte 8))))

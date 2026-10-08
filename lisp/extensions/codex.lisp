@@ -14,6 +14,8 @@
 
 (in-package #:sbemacs)
 
+(declaim (optimize (safety 3) (debug 2)))
+
 (defvar *codex-program* nil
   "Codex executable override, or NIL to discover it automatically.")
 
@@ -62,6 +64,7 @@ fenced code block.  Keep explanations short and use plain text suitable for
 an editor window."
   "Instructions prepended to every Codex request.")
 
+(declaim (ftype (function () (values string &optional)) codex-source-context))
 (defun codex-source-context ()
   "Describe a bounded part of the current source buffer, marking point."
   (let* ((p (point))
@@ -82,13 +85,17 @@ an editor window."
          (region (and m (/= m p)
                       (< (abs (- m p)) *codex-context-bytes*)
                       (buffer-substring (min m p) (max m p)))))
-    (format nil "File: ~A~%Language: ~A~%Cursor line: ~D~%~
-                 Context truncated: ~:[no~;yes~]~%~
-                 ~@[Selected text:~%```~%~A~%```~%~]~%~
-                 Source around the cursor:~%```~%~A<<CURSOR>>~A~%```"
-            file (if language (language-name language) "unknown") line
-            (or (> start 0) (< end size)) region before after)))
+    (with-output-to-string (out)
+      (format out "File: ~A~%Language: ~A~%Cursor line: ~D~%"
+              file (if language (language-name language) "unknown") line)
+      (format out "Context truncated: ~A~%"
+              (if (or (> start 0) (< end size)) "yes" "no"))
+      (when region
+        (format out "Selected text:~%```~%~A~%```~%" region))
+      (format out "Source around the cursor:~%```~%~A<<CURSOR>>~A~%```"
+              before after))))
 
+(declaim (ftype (function () (values string &optional)) codex-source-directory))
 (defun codex-source-directory ()
   "Absolute directory of the current file, or the editor's directory.
 A relative buffer name such as teste.lisp must not become the empty string."
@@ -102,6 +109,7 @@ A relative buffer name such as teste.lisp must not become the empty string."
                         *default-pathname-defaults*)))
     (native directory)))
 
+(declaim (ftype (function () (values string &optional)) codex-effective-working-directory))
 (defun codex-effective-working-directory ()
   "A nonempty directory for `codex exec --cd'."
   (let ((directory (trim (or *codex-working-directory* ""))))
@@ -126,10 +134,12 @@ A relative buffer name such as teste.lisp must not become the empty string."
   (message "Describe the task, then press C-c g again to send it to Codex")
   t)
 
+(declaim (ftype (function (string) (values string &optional)) codex-prompt))
 (defun codex-prompt (request)
   (format nil "~A~%~%USER REQUEST~%============~%~A~%~%SOURCE CONTEXT~%==============~%~A"
           *codex-instructions* request *codex-saved-context*))
 
+(declaim (ftype (function () (values list &optional)) codex-installation-candidates))
 (defun codex-installation-candidates ()
   "Likely Codex executables not already covered by PATH."
   (remove
@@ -166,20 +176,49 @@ A relative buffer name such as teste.lisp must not become the empty string."
                                                            (string-right-trim "/\\" appdata)
                                                            "/"))))))))
 
+(defun codex-windows-program (program)
+  "Resolve npm's Unix shim to its Windows sibling; never execute a .ps1 directly."
+  (let* ((path (pathname program))
+         (type (string-downcase (or (pathname-type path) ""))))
+    (cond ((member type '("exe" "cmd" "bat") :test #'string=) (probe-file path))
+          ((member type '("" "ps1") :test #'string=)
+           (or (probe-file (make-pathname :type "exe" :defaults path))
+               (probe-file (make-pathname :type "cmd" :defaults path))))
+          (t (probe-file path)))))
+
+(defun codex-find-windows-program (name)
+  "Search Windows executable extensions before npm's extensionless shell shim."
+  (or (find-program (concatenate 'string name ".exe"))
+      (find-program (concatenate 'string name ".cmd"))
+      (find-program (concatenate 'string name ".bat"))))
+
+(declaim (ftype (function ((or null string)) (values (or null pathname) &optional))
+                codex-explicit-program))
 (defun codex-explicit-program (name)
   "Resolve NAME as a path or as a command on PATH."
   (when (and name (plusp (length name)))
+    #+win32
+    (if (find-if (lambda (character) (find character "/\\")) name)
+        (codex-windows-program name)
+        (if (pathname-type (pathname name))
+            (let ((found (find-program name)))
+              (and found (codex-windows-program found)))
+            (codex-find-windows-program name)))
+    #-win32
     (if (find-if (lambda (character) (find character "/\\")) name)
         (probe-file (pathname name))
         (find-program name))))
 
+(declaim (ftype (function () (values (or null pathname) &optional)) find-codex-program))
 (defun find-codex-program ()
   "Find an explicit, PATH, standalone, npm, or ChatGPT-bundled Codex."
   (or (codex-explicit-program (or *codex-program*
                                   (sb-ext:posix-getenv "SBEMACS_CODEX_PROGRAM")))
-      (find-program "codex")
+      #+win32 (codex-find-windows-program "codex")
+      #-win32 (find-program "codex")
       (find-if #'probe-file (codex-installation-candidates))))
 
+(declaim (ftype (function () (values list &optional)) codex-exec-arguments))
 (defun codex-exec-arguments ()
   (append (list "exec"
                 "--sandbox" "read-only"
@@ -192,36 +231,158 @@ A relative buffer name such as teste.lisp must not become the empty string."
           (when *codex-model* (list "--model" *codex-model*))
           (list "-")))
 
+(defun codex-npm-native-program (program)
+  "Find the Windows binary in npm's optional platform package or older vendor tree."
+  (let ((root (make-pathname :name nil :type nil :defaults (pathname program))))
+    (loop for package in '("codex-win32-x64" "codex-win32-arm64")
+          for target in '("x86_64-pc-windows-msvc" "aarch64-pc-windows-msvc")
+          append (list (format nil "node_modules/@openai/~A/vendor/~A/codex/codex.exe" package target)
+                       (format nil "node_modules/@openai/codex/node_modules/@openai/~A/vendor/~A/codex/codex.exe" package target)
+                       (format nil "node_modules/@openai/codex/vendor/~A/codex/codex.exe" target))
+          into candidates
+          finally (return (loop for relative in candidates
+                                for path = (probe-file (merge-pathnames relative root))
+                                when path return path)))))
+
+(defun codex-cmd-quoted-argument (text)
+  "Quote a cmd.exe argument. Refuse expansion characters instead of executing them."
+  (when (find-if (lambda (c) (find c '(#\" #\% #\! #\Return #\Newline #\Null))) text)
+    (error "Codex: this batch launcher cannot safely pass this path/argument; use a native codex.exe."))
+  (format nil "\"~A\"" text))
+
+(declaim (ftype (function ((or pathname string) list)
+                          (values (or pathname string) list &optional))
+                codex-windows-command))
 (defun codex-windows-command (program arguments)
-  "On Windows, run npm's codex.cmd through cmd.exe.  Native executables
-are returned unchanged.  Elsewhere this is a no-op."
+  "Prefer native Codex or Node, passing separate arguments without a command shell."
   #+win32
-  (if (member (string-downcase (or (pathname-type program) ""))
+  (if (member (string-downcase (or (pathname-type (pathname program)) ""))
               '("cmd" "bat") :test #'string=)
-      (let ((cmd (or (find-program "cmd")
-                     #p"C:/Windows/System32/cmd.exe")))
-        (values cmd
-                (list "/d" "/s" "/c"
-                      (format nil "\"~A\" ~{\"~A\"~^ ~}"
-                              (native program) arguments))))
+      (let* ((root (make-pathname :name nil :type nil :defaults (pathname program)))
+             (binary (codex-npm-native-program program))
+             (script (probe-file (merge-pathnames "node_modules/@openai/codex/bin/codex.js" root)))
+             (node (or (probe-file (merge-pathnames "node.exe" root))
+                       (find-program "node.exe"))))
+        (cond (binary (values binary arguments))
+              ((and script node) (values node (cons (native script) arguments)))
+              (t (values (windows-command-interpreter)
+                         (list "/d" "/s" "/c"
+                               ;; /s strips the outer pair; preserve the executable's quotes.
+                               (format nil "\"~A~{ ~A~}\""
+                                       (codex-cmd-quoted-argument (native (pathname program)))
+                                       (mapcar #'codex-cmd-quoted-argument arguments)))))))
       (values program arguments))
   #-win32
   (values program arguments))
 
+(defvar *codex-last-capture* nil
+  "Last stdout/stderr octets and exit status, kept in memory for diagnosis only.")
+
+(defun codex-new-capture-file ()
+  "Reserve a temporary file without overwriting an existing one."
+  (loop for path = (merge-pathnames
+                    (format nil "sbemacs-codex-~36R-~36R.tmp" (get-universal-time) (random (expt 2 64)))
+                    (temporary-directory))
+        for stream = (open path :direction :output :element-type '(unsigned-byte 8)
+                                :if-exists nil :if-does-not-exist :create)
+        when stream do (close stream)
+                       #-win32
+                       (progn
+                         (require :sb-posix)
+                         (funcall (find-symbol "CHMOD" "SB-POSIX") (native path) #o600))
+                       (return path)))
+
+(defun codex-read-octets (path)
+  (with-open-file (stream path :element-type '(unsigned-byte 8))
+    (let ((octets (make-array (file-length stream) :element-type '(unsigned-byte 8))))
+      (read-sequence octets stream)
+      octets)))
+
+(defun codex-capture-process (program arguments input &key (timeout *codex-timeout*))
+  "Capture each child output as bytes. No console/OEM encoding is guessed.
+File redirection avoids pipe deadlocks; stdin is explicitly encoded as UTF-8."
+  (let ((files nil) (process nil))
+    (setf *codex-last-capture* nil)
+    (unwind-protect
+         (let* ((in (car (push (codex-new-capture-file) files)))
+                (out (car (push (codex-new-capture-file) files)))
+                (err (car (push (codex-new-capture-file) files))))
+           (with-open-file (stream in :direction :output :element-type '(unsigned-byte 8)
+                                     :if-exists :overwrite)
+             (write-sequence (sb-ext:string-to-octets input :external-format :utf-8) stream))
+           (setf process (sb-ext:run-program program arguments
+                                           :input in :output out :error err
+                                           :if-output-exists :overwrite :if-error-exists :overwrite
+                                           :search nil :wait nil :environment (child-environment)
+                                           #+win32 :window #+win32 :hide))
+           (let ((deadline (+ (get-internal-real-time)
+                              (* timeout internal-time-units-per-second)))
+                 (timed-out nil))
+             (loop while (sb-ext:process-alive-p process)
+                   do (when (>= (get-internal-real-time) deadline)
+                        (setf timed-out t)
+                        (sb-ext:process-kill process 9)
+                        (return))
+                      (sleep 0.05))
+             (sb-ext:process-wait process)
+             (let ((stdout (codex-read-octets out))
+                   (stderr (codex-read-octets err))
+                   (code (sb-ext:process-exit-code process)))
+               (setf *codex-last-capture* (list :stdout stdout :stderr stderr :exit-code code
+                                               :timed-out timed-out))
+               (when timed-out (error "Codex: no answer after ~D seconds; raw streams captured separately." timeout))
+               (values stdout stderr code))))
+      (when process
+        (when (sb-ext:process-alive-p process) (ignore-errors (sb-ext:process-kill process 9)))
+        (ignore-errors (sb-ext:process-close process)))
+      (dolist (file files) (ignore-errors (delete-file file))))))
+
+(defun codex-decode-utf8 (octets stream-name)
+  "Decode only proven-valid UTF-8; retain invalid data in the raw capture."
+  (handler-case (sb-ext:octets-to-string octets :external-format :utf-8)
+    (error () (error "Codex: ~A is not valid UTF-8 (~D bytes, byte 130 at offset ~A). Raw data retained in *codex-last-capture*; no bytes discarded."
+                     stream-name (length octets) (position 130 octets)))))
+
+(defun codex-capture-summary ()
+  "Metadata only: never print the prompt, credential-bearing stderr, or raw bytes."
+  (loop for name in '(:stdout :stderr)
+        for octets = (getf *codex-last-capture* name)
+        collect (list name :bytes (length octets) :byte-130-offset (position 130 octets)
+                      :utf8-valid (handler-case
+                                      (progn (sb-ext:octets-to-string octets :external-format :utf-8) t)
+                                    (error () nil)))))
+
+(defun codex-report-exit-error (out err code)
+  "Report authentication distinctly without copying possible credentials to the panel."
+  (let* ((bytes (if (plusp (length err)) err out))
+         (detail (handler-case (sb-ext:octets-to-string bytes :external-format :utf-8)
+                   (error () nil)))
+         (authentication (and detail
+                              (some (lambda (term) (search term (string-downcase detail)))
+                                    '("unauthorized" "authentication" "not logged in" "401" "sign in" "codex login")))))
+    (if authentication
+        (error "Codex exited with code ~A: authentication failed. Run codex login and sign in with ChatGPT." code)
+        (error "Codex exited with code ~A (~D stdout bytes, ~D stderr bytes; error output ~A). Raw streams retained in *codex-last-capture*; use codex-capture-summary for metadata."
+               code (length out) (length err) (if detail "is UTF-8" "is not UTF-8")))))
+
 (defun codex-cli-ask (request &optional context)
-  "Return the final response from a read-only, ephemeral Codex CLI run."
+  "Return the final response, capturing transport diagnostics separately."
   (when context (setf *codex-saved-context* context))
   (let ((program (or (find-codex-program)
                      (error "Codex was not found. Install the official Codex CLI or the ChatGPT desktop app, then sign in with ChatGPT."))))
     (multiple-value-bind (launcher arguments)
         (codex-windows-command program (codex-exec-arguments))
       (multiple-value-bind (out err code)
-          (run-with-input (native launcher) arguments (codex-prompt request)
-                          :timeout *codex-timeout*)
-        (if (and code (zerop code) (plusp (length (trim out))))
-            (trim out)
-            (error "codex exited with code ~A: ~A"
-                   code (trim (if (plusp (length (trim err))) err out))))))))
+          (codex-capture-process (if (pathnamep launcher) (native launcher) launcher)
+                                 arguments (codex-prompt request))
+        ;; A successful CLI may send progress to stderr. Keep it as raw diagnostic
+        ;; data; only stdout is the response. Never transcode stderr as a guess.
+        (unless (and code (zerop code))
+          (codex-report-exit-error out err code))
+        (let ((answer (trim (codex-decode-utf8 out "stdout"))))
+          (when (zerop (length answer))
+            (error "Codex exited successfully but returned empty stdout (~D stderr bytes captured)." (length err)))
+          answer)))))
 
 (defun codex-ask (question context)
   "ASK function used by the common assistant window machinery."
@@ -285,6 +446,7 @@ are returned unchanged.  Elsewhere this is a no-op."
          (codex-discussion-send))
         (t (codex-menu))))
 
+(declaim (ftype (function () (values string &optional)) codex-status-text))
 (defun codex-status-text ()
   (let ((program (find-codex-program)))
     (format nil "Codex CLI: ~:[NOT FOUND~;~:*~A~]~%~

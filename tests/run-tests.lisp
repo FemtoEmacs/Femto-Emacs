@@ -268,10 +268,19 @@
        (list (format nil "a~Cb" #\Tab) " cd"))
 (check "Markdown CRLF survives" (wrap-test-rows (format nil "abcd~C~%ef" #\Return) 4)
        (list (format nil "abcd~C~%" #\Return) "ef"))
-(check "Markdown wrapping is enabled only for Markdown filenames"
+(check "Word wrapping is enabled for Markdown and TeX filenames"
        (mapcar (lambda (name) (markdown-wrap-row name (sb-sys:int-sap 0) 0 20))
-               '("a.md" "a.markdown" "a.mdown" "a.mkd" "a.lisp" "a.c" "a.txt" ""))
-       '(-1 -1 -1 -1 0 0 0 0))
+               '("a.md" "a.markdown" "a.mdown" "a.mkd" "a.tex" "a.sty" "a.bib" "a.lisp" "a.c" "a.txt" ""))
+       '(-1 -1 -1 -1 -1 -1 -1 0 0 0 0))
+(check "TeX display callback wraps words and preserves commands and source bytes"
+       (let* ((text "\\section{Introdução} café ação e texto")
+              (octets (sb-ext:string-to-octets text :external-format :utf-8)))
+         (sb-sys:with-pinned-objects (octets)
+           (let ((end (markdown-wrap-row "document.tex" (sb-sys:vector-sap octets)
+                                         (length octets) 26)))
+             (list (sb-ext:octets-to-string (subseq octets 0 end) :external-format :utf-8)
+                   (string= text (apply #'concatenate 'string (wrap-test-rows text 26)))))))
+       '("\\section{Introdução} café " t))
 (check "Markdown rows preserve all source bytes at every width"
        (let ((text (format nil "# café~%~%  - ação and averylongword~%```yaml~%~Ca: b~%```~%" #\Tab)))
          (loop for width from 1 to 35
