@@ -47,6 +47,44 @@ jobs:
     - name: Build sbemacs.exe and the installer
       run: sh windows/build-installer.sh
 
+    - name: Package the diagnostic editor as codemacs
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $stage = Join-Path $PWD 'build/windows/stage'
+        Rename-Item "$stage/sbemacs.exe" 'codemacs.exe'
+        $header = Get-Content src/header.h -Raw
+        $version = [regex]::Match($header, '#define VERSION[^"\r\n]*"SBEmacs ([0-9.]+)').Groups[1].Value
+        if (-not $version) { throw 'Cannot determine installer version' }
+        # A runner-only NSIS copy preserves the original product sources/assets.
+        $template = Get-Content windows/sbemacs.nsi -Raw
+        $template = $template.Replace('SBEmacs', 'codemacs').Replace('sbemacs.exe', 'codemacs.exe')
+        $generated = Join-Path $PWD 'windows/codemacs.generated.nsi'
+        [IO.File]::WriteAllText($generated, $template, [Text.UTF8Encoding]::new($false))
+        $nsis = Join-Path ${env:ProgramFiles(x86)} 'NSIS/makensis.exe'
+        & $nsis -V2 '-DTARGET=x86-unicode' "-DVERSION=$version" "-DSTAGE=$stage" "-DOUTDIR=$PWD/build/windows" $generated
+        if ($LASTEXITCODE -ne 0) { throw 'codemacs installer generation failed' }
+        Remove-Item build/windows/SBEmacs-*-Setup.exe
+
+    - name: Test installing and launching codemacs
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $setup = (Get-ChildItem build/windows/codemacs-*-Setup.exe | Select-Object -First 1).FullName
+        $p = Start-Process $setup -ArgumentList '/S' -Wait -PassThru
+        if ($p.ExitCode -ne 0) { throw 'codemacs installation failed' }
+        $dir = Join-Path $env:LOCALAPPDATA 'Programs/codemacs'
+        try {
+          if (-not (Test-Path "$dir/codemacs.exe")) { throw 'codemacs.exe missing' }
+          if (-not (Test-Path "$env:APPDATA/Microsoft/Windows/Start Menu/Programs/codemacs.lnk")) { throw 'codemacs shortcut missing' }
+          $editor = Start-Process "$dir/codemacs.exe" -ArgumentList "$dir/README.md" -PassThru
+          Start-Sleep -Seconds 5
+          if ($editor.HasExited) { throw 'codemacs exited unexpectedly' }
+          Stop-Process -Id $editor.Id
+        } finally {
+          Start-Process "$dir/Uninstall codemacs.exe" -ArgumentList '/S' -Wait | Out-Null
+        }
+
     # The tests, with the Windows SBCL the build used, on the library it just
     # made.  They go through C-c g's own code (the context sent to Codex, the
     # set-up page, the request, the command line, codex.cmd through Windows'
@@ -162,3 +200,11 @@ jobs:
           Remove-Item $auth -Force -ErrorAction SilentlyContinue
           Remove-Item Env:TEST_CODEX_AUTH_JSON, Env:TEST_OPENAI_API_KEY -ErrorAction SilentlyContinue
         }
+
+    - name: Upload the codemacs test installer
+      uses: actions/upload-artifact@v4
+      with:
+        name: codemacs-windows-test-installer
+        path: build/windows/codemacs-*-Setup.exe
+        if-no-files-found: error
+        retention-days: 7
