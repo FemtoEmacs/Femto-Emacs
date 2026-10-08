@@ -82,12 +82,15 @@ an editor window."
          (region (and m (/= m p)
                       (< (abs (- m p)) *codex-context-bytes*)
                       (buffer-substring (min m p) (max m p)))))
-    (format nil "File: ~A~%Language: ~A~%Cursor line: ~D~%~
-                 Context truncated: ~:[no~;yes~]~%~
-                 ~@[Selected text:~%```~%~A~%```~%~]~%~
-                 Source around the cursor:~%```~%~A<<CURSOR>>~A~%```"
-            file (if language (language-name language) "unknown") line
-            (or (> start 0) (< end size)) region before after)))
+    (with-output-to-string (out)
+      (format out "File: ~A~%Language: ~A~%Cursor line: ~D~%"
+              file (if language (language-name language) "unknown") line)
+      (format out "Context truncated: ~A~%"
+              (if (or (> start 0) (< end size)) "yes" "no"))
+      (when region
+        (format out "Selected text:~%```~%~A~%```~%" region))
+      (format out "Source around the cursor:~%```~%~A<<CURSOR>>~A~%```"
+              before after))))
 
 (defun codex-source-directory ()
   "Absolute directory of the current file, or the editor's directory.

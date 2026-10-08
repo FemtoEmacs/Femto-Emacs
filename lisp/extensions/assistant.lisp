@@ -408,11 +408,15 @@ cursor marked <<CURSOR>>."
          (region (let ((m (mark)))
                    (when (and m (/= m p) (< (abs (- m p)) *assistant-context-bytes*))
                      (buffer-substring (min m p) (max m p))))))
-    (format nil "File: ~A~%Language: ~A~%Cursor: line ~D~:[~;, the text shown is part of the file~]~%~
-                 ~@[~%Selected region:~%```~%~A~%```~%~]~%Text:~%```~%~A<<CURSOR>>~A~%```"
-            file (if lang (language-name lang) "unknown") line
-            (or (> start 0) (< end size))
-            region before after)))
+    (with-output-to-string (out)
+      (format out "File: ~A~%Language: ~A~%Cursor: line ~D~%"
+              file (if lang (language-name lang) "unknown") line)
+      (when (or (> start 0) (< end size))
+        (format out "The text shown is part of the file.~%"))
+      (when region
+        (format out "Selected region:~%```~%~A~%```~%" region))
+      (format out "Text:~%```~%~A<<CURSOR>>~A~%```"
+              before after))))
 
 ;;; ------------------------------------------------------------------
 ;;; The window with the answer
