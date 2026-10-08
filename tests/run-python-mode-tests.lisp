@@ -20,7 +20,7 @@
   (unless condition (error "Python mode check failed: ~A" description)))
 (mode-check (eq (language-highlighter (find "Python" *languages* :key #'language-name :test #'equal)) #'python-mode-highlight)
             "new Python highlighter is the startup default")
-(mode-check (equal *active-editing-modes* '("python")) "Python mode starts active")
+(mode-check (not (null (member "python" *active-editing-modes* :test #'equal))) "Python mode starts active")
 (mode-check (not (find "python.lisp" (script-files *script-directory*) :key #'file-namestring :test #'equal))
             "legacy Python is excluded from startup scan")
 (let* ((stale (pathname (sb-ext:posix-getenv "SBEMACS_MODE_STALE_INSTALL")))

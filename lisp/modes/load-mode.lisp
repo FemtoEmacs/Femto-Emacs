@@ -174,6 +174,8 @@ one buffer. Errors are signalled to callers; no buffer text is changed."
 (let ((path (and *editing-mode-directory* (probe-file (merge-pathnames "python-mode.lisp" *editing-mode-directory*)))))
   (when path
     (let ((*default-pathname-defaults* *editing-mode-directory*)) (load-script path))))
+(let ((path (and *editing-mode-directory* (probe-file (merge-pathnames "nim-mode.lisp" *editing-mode-directory*)))))
+  (when path (load-script path)))
 ;; Reapply active installers after a forced script reload restores defaults.
 (dolist (name *active-editing-modes*)
   (let ((installer (gethash name *editing-modes*)))

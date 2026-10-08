@@ -15,3 +15,6 @@
   (unless installer (error "The standard Python mode was not loaded"))
   (funcall installer)
   (pushnew "python" *active-editing-modes* :test #'equal))
+
+(let ((installer (gethash "nim" *editing-modes*)))
+  (when installer (funcall installer) (pushnew "nim" *active-editing-modes* :test #'equal)))
