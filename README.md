@@ -595,3 +595,6 @@ Femto Emacs by Hugh Barney, derived from Atto Emacs and Anthony Howe's editor
 FemtoEmacs contributors.  SBEmacs replaces femtolisp with SBCL.
 
 SBEmacs is in the public domain.
+
+The Nim editing mode can also run as a compiled Nim shared library. See
+[native Nim mode](native/nim-mode/README.md) for building, the C ABI, and FFI integration.

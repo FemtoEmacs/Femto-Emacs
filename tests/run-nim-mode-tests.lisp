@@ -88,5 +88,30 @@
                (nim-execute t) (reverse calls))
            (dolist (entry saved) (setf (symbol-function (car entry)) (cdr entry)))))
        (list '(:save "demo") :window (list :insert (nim-command-line "demo.nim" t "5")) :run))
+(when (sb-ext:posix-getenv "SBEMACS_TEST_NIM_NATIVE")
+  (check "native library actually loaded" (not (null (ensure-nim-native-library))) t)
+  (check "native ABI" (%nim-native-abi) 1)
+  (check "native rejects invalid indent offset"
+         (let ((raw (octets "x")))
+           (sb-sys:with-pinned-objects (raw)
+             (%nim-native-indent (sb-sys:vector-sap raw) 1 2 2))) -2)
+  (dolist (source (list "" "proc `++`(a: int) = a" "let café = \"你好\""
+                       "##[ outer #[ nested ]# ]## echo 0xff'u8"
+                       "r\"say \"\"hi\"\"\"" "1..3 p_roc Proc"
+                       (format nil "proc main() =~%  echo \"hello\" # comment~%")))
+    (let* ((raw (octets source))
+           (native (make-array (length raw) :element-type '(unsigned-byte 8)))
+           (fallback (copy-seq native)))
+      (nim-highlight nil raw (length raw) native)
+      (nim-lisp-highlight nil raw (length raw) fallback)
+      (check "native/Lisp coloring oracle" native fallback)))
+  ;; Exercise the renderer-facing Lisp -> Nim -> byte-face callback.
+  (let* ((raw (octets "proc café() = 42"))
+         (colors (make-array (length raw) :element-type '(unsigned-byte 8) :initial-element 0)))
+    (sb-sys:with-pinned-objects (raw colors)
+      (highlight-buffer-text "test.nim" (sb-sys:vector-sap raw) (length raw) (sb-sys:vector-sap colors)))
+    (check "renderer callback gets Nim faces" (subseq colors 0 4) #(4 4 4 4)))
+  (let ((*nim-native-enabled* nil))
+    (check "missing/disabled library fallback" (nim-test-indent (format nil "proc f() =~%echo 1")) 2)))
 (format t "~D/~D Nim mode tests passed~%" (- *count* *failures*) *count*)
 (sb-ext:exit :code (if (zerop *failures*) 0 1))
