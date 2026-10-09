@@ -12,6 +12,8 @@
 PREFIX  ?= /usr/local
 SBCL    ?= sbcl
 CC      ?= cc
+NIM     ?= nim
+NIM_AVAILABLE := $(shell command -v $(NIM) 2>/dev/null)
 CFLAGS  ?= -O2 -g
 CFLAGS  += -Wall -fPIC
 LDFLAGS ?=
@@ -60,8 +62,24 @@ LIBS     = $(TERM_LIB) $(if $(SDL_LIBS),$(GUI_LIB))
 CORE_SRCS = $(filter-out src/term.c src/gui.c,$(wildcard src/*.c))
 CORE_OBJS = $(CORE_SRCS:.c=.o)
 
-all: $(LIBS) sbemacs$(EXE)
+NIM_MODE_LIB = libsbemacs-nim-mode.$(LIBEXT)
+
+all: $(LIBS) $(if $(NIM_AVAILABLE),$(NIM_MODE_LIB)) sbemacs$(EXE)
 	@$(if $(SDL_LIBS),,echo "note: SDL2/SDL2_ttf not found, built the terminal version only")
+
+# Optional native mode; explicitly build with make nim-mode.
+nim-mode: $(NIM_MODE_LIB)
+
+$(NIM_MODE_LIB): native/nim-mode/nim_mode.nim
+	$(NIM) c --app:lib --mm:arc --threads:off -d:release --out:$@ $<
+
+build/nim-native-abi$(EXE): tests/nim-native-abi.c native/nim-mode/nim_mode.h $(NIM_MODE_LIB)
+	mkdir -p build
+	$(CC) tests/nim-native-abi.c -L. -lsbemacs-nim-mode -o $@
+
+test-nim-native: $(TERM_LIB) $(NIM_MODE_LIB) build/nim-native-abi$(EXE)
+	LD_LIBRARY_PATH="$(CURDIR):$$LD_LIBRARY_PATH" DYLD_LIBRARY_PATH="$(CURDIR):$$DYLD_LIBRARY_PATH" PATH="$(CURDIR):$$PATH" ./build/nim-native-abi$(EXE)
+	SBEMACS_TEST_NIM_NATIVE=1 $(SBCL) --noinform --non-interactive --no-sysinit --no-userinit --load tests/run-nim-mode-tests.lisp
 
 $(TERM_LIB): $(CORE_OBJS) src/term.o
 	$(CC) $(SHARED) $(LDFLAGS) -o $@ $(CORE_OBJS) src/term.o $(NCURSES_LIBS)
@@ -95,11 +113,13 @@ dist: all
 	mkdir -p dist/$(DISTNAME)
 	cp sbemacs$(EXE) $(LIBS) README.md CHANGE.LOG.md dist/$(DISTNAME)/
 	cp -R lisp samples dist/$(DISTNAME)/
+	if test -f $(NIM_MODE_LIB); then cp $(NIM_MODE_LIB) dist/$(DISTNAME)/; fi
 
 install: all
 	install -d $(DESTDIR)$(PREFIX)/bin $(DESTDIR)$(PREFIX)/lib/sbemacs
 	install -m 755 sbemacs $(DESTDIR)$(PREFIX)/lib/sbemacs/sbemacs
 	install -m 644 $(LIBS) $(DESTDIR)$(PREFIX)/lib/sbemacs/
+	if test -f $(NIM_MODE_LIB); then install -m 644 $(NIM_MODE_LIB) $(DESTDIR)$(PREFIX)/lib/sbemacs/; fi
 	cp -R lisp $(DESTDIR)$(PREFIX)/lib/sbemacs/
 	# Remove the retired script that cp -R leaves behind on upgrades.
 	if test ! -f lisp/languages/python.lisp; then rm -f "$(DESTDIR)$(PREFIX)/lib/sbemacs/lisp/languages/python.lisp"; fi
@@ -117,4 +137,4 @@ clean:
 windows-installer:
 	sh windows/build-installer.sh
 
-.PHONY: all test dist install uninstall clean windows-installer
+.PHONY: all test dist install uninstall clean windows-installer nim-mode test-nim-native
