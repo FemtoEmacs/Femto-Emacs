@@ -6,3 +6,11 @@ femto
 *.so
 *.a
 femtolisp/flisp
+
+# Local build-fix backups
+bkp/
+*.do
+
+legacy-src/femto
+legacy-src/femtolisp/flisp
+git/next-commit.txt

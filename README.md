@@ -1,6 +1,27 @@
 [![Join the chat at https://gitter.im/FemtoLisp/flisp](https://badges.gitter.im/FemtoLisp/flisp.svg)](https://gitter.im/FemtoLisp/flisp)
 
 # Femto-Emacs
+
+The original C editor and bundled Lisp implementation are in `legacy-src/`.
+Root makefiles forward builds into that directory and copy the editor executable
+back here beside its runtime scripts. This folder belongs only to the `legacy` branch.
+
+### Building this legacy checkout on current macOS
+
+```sh
+cd ~/codex-sand/FemtoEmacs/legacy
+make -f Makefile.macosx
+./femto your-file.txt
+```
+
+This build uses Apple's `cc` and system ncurses and supports Apple Silicon
+as well as Intel detection. No manually installed `/usr/local/lib/libncursesw.a`
+is needed. `make -f Makefile.macosx check` runs the bundled Lisp tests.
+Existing `~/init.lsp` and helper scripts take precedence; when absent, the
+editor uses the scripts bundled with this checkout. Building and running do
+not install files into your home directory. The notes below describe the
+historical installation layout.
+
 Tiny emacs clone that can be configured with femtolisp
 
 ## ncurses femtoemacs requires the `ncurses` library. This library

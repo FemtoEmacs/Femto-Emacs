@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>
+#include <unistd.h>
 #include "llt/llt.h"
 #include "flisp.h"
 
@@ -85,6 +86,8 @@ int init_lisp(int nheap_k)
 
 	value_t str = symbol_value(symbol("*install-dir*"));
 	char *exedir = (str == UNBOUND ? NULL : cvalue_data(str));
+    char installed_init[4096];
+    snprintf(installed_init, sizeof(installed_init), "%s/init.lsp", exedir ? exedir : ".");
 
 	if (exedir != NULL) {
 		strcat(fname_buf, exedir);
@@ -97,7 +100,7 @@ int init_lisp(int nheap_k)
 	fl_gc_handle(&args[1]);
 
 	FL_TRY_EXTERN {
-		char buff[200];
+		char config[4096];
 		
 		/* read system image file "femto.boot" */
 		args[0] = cvalue_static_cstring(fname_buf);
@@ -111,9 +114,14 @@ int init_lisp(int nheap_k)
 		(void)fl_applyn(1, symbol_value(symbol("__start")));
 
 		/* load init.lsp */
-		sprintf(buff, "(load \"%s/init.lsp\")", getenv("HOME"));
-		(void)call_lisp(buff);
-		/* FIXME we are no checking the output of call_lisp() here - we assume that it worked */
+		const char *home = getenv("HOME");
+        snprintf(config, sizeof(config), "%s/init.lsp", home ? home : ".");
+        if (access(config, R_OK) != 0)
+            snprintf(config, sizeof(config), "%s", installed_init);
+        args[0] = cvalue_static_cstring(config);
+        fl_gc_handle(&args[0]);
+        (void)fl_applyn(1, symbol_value(symbol("load")), args[0]);
+        fl_free_gc_handles(1);
 		
 	} FL_CATCH_EXTERN {
 		ios_puts("fatal error:\n", ios_stderr);

@@ -1,0 +1,35 @@
+# Original Femto-Emacs: native macOS terminal build (Apple Silicon or Intel).
+.DEFAULT_GOAL := all
+CC ?= cc
+CFLAGS ?= -O2 -Wall -std=gnu99
+CPPFLAGS += -Ifemtolisp/llt
+LIBS ?= -lncurses -lm
+LISPLIBS = femtolisp/libflisp.a femtolisp/llt/libllt.a
+OBJ = complete.o command.o data.o display.o gap.o key.o search.o buffer.o \
+ replace.o utils.o window.o funcmap.o undo.o main.o \
+ femtolisp/interface2editor.o femtolisp/flcall.o
+.PHONY: all runtime clean check install
+all: femto
+runtime:
+	$(MAKE) -C femtolisp -f Makefile.osx release CC="$(CC)"
+femto: $(OBJ) runtime
+	$(CC) $(LDFLAGS) -o $@ $(OBJ) $(LISPLIBS) $(LIBS)
+$(OBJ): header.h public.h femtolisp/llt/utils.h
+femtolisp/interface2editor.o femtolisp/flcall.o: femtolisp/flisp.h
+%.o: %.c
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+check: femto
+	$(MAKE) -C femtolisp -f Makefile.osx test CC="$(CC)"
+clean:
+	rm -f $(OBJ) femto
+	$(MAKE) -C femtolisp -f Makefile.osx clean
+	$(MAKE) -C femtolisp/llt -f Makefile.macosx clean
+# Explicit opt-in installation; building does not copy files to HOME.
+PREFIX ?= /usr/local
+install: femto
+	mkdir -p "$(DESTDIR)$(PREFIX)/bin"
+	cp femto ../femto.boot "$(DESTDIR)$(PREFIX)/bin/"
+	@for script in init.lsp r5rs.scm samples/bufmenu.scm samples/killring.scm samples/dired.scm; do \
+	  name=$$(basename "$$script"); \
+	  if [ ! -e "$(HOME)/$$name" ]; then cp "../$$script" "$(HOME)/$$name"; fi; \
+	done

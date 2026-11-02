@@ -5,8 +5,15 @@
 ;;
 
 ;; Compatibility with SICP
+;; Prefer existing user files; otherwise use this checkout's bundled scripts.
 (define (home f)
-   (string (os.getenv "HOME") "/" f))
+  (let ((user-file (string (or (os.getenv "HOME") ".") "/" f))
+        (bundled (string *install-dir* "/" f))
+        (sample (string *install-dir* "/samples/" f)))
+    (cond ((path.exists? user-file) user-file)
+          ((path.exists? bundled) bundled)
+          ((path.exists? sample) sample)
+          (else user-file))))
 
 (load (home "r5rs.scm"))
 

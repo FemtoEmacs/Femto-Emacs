@@ -1,5 +1,5 @@
 CC ?= gcc
-CARBON_HEADERS ?= "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.7.sdk/Developer/Headers"
+
 
 NAME = flisp
 SRCS = $(NAME).c builtins.c string.c equalhash.c table.c iostream.c
@@ -10,7 +10,7 @@ LIBTARGET = lib$(NAME)
 LLTDIR = llt
 LLT = $(LLTDIR)/libllt.a
 
-CONFIG = -DBITS64 -D__CPU__=686 -I$(CARBON_HEADERS)
+CONFIG =
 FLAGS = -falign-functions -Wall -Wno-strict-aliasing -I$(LLTDIR) $(CFLAGS) -DUSE_COMPUTED_GOTO $(CONFIG)
 LIBFILES = $(LLT)
 LIBS = $(LIBFILES) -lm -framework ApplicationServices
@@ -34,7 +34,7 @@ flmain.o: flmain.c flisp.h
 flmain.do: flmain.c flisp.h
 
 $(LLT):
-	cd $(LLTDIR) && make -f Makefile.macosx
+	$(MAKE) -C $(LLTDIR) -f Makefile.macosx CC="$(CC)"
 
 $(LIBTARGET).da: $(DOBJS)
 	rm -rf $@
@@ -49,11 +49,12 @@ debug: $(DOBJS) $(LIBFILES) $(LIBTARGET).da flmain.do
 	make test
 
 release: $(OBJS) $(LIBFILES) $(LIBTARGET).a flmain.o
-	$(CC) $(SHIPFLAGS) $(OBJS) flmain.o -o $(EXENAME) $(LIBS) $(LIBTARGET).a
+	$(CC) $(SHIPFLAGS) $(OBJS) flmain.o  \
+             -o $(EXENAME) $(LIBS) $(LIBTARGET).a
 
 clean:
 	rm -f *.o
 	rm -f *.do
 	rm -f $(EXENAME)
-	rm -f $(LIBTARGET).a
-	rm -f $(LIBTARGET).da
+	rm -f $(LIBTARGET).a llt/libllt.a
+	rm -f $(LIBTARGET).da llt/libllt.da
