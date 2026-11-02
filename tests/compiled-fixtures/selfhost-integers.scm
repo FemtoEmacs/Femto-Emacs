@@ -1,0 +1,5 @@
+(define minimum (string->number "-9223372036854775808"))
+(write (exact? minimum)) (newline)
+(display (number->string minimum)) (newline)
+(display (number->string minimum 16)) (newline)
+(write (read (open-input-string "-9223372036854775808"))) (newline)

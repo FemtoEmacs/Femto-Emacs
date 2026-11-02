@@ -1,0 +1,21 @@
+;; Browsered-only compiler adaptation. Schemer's R7RS semantics remain the
+;; default for user programs; legacy editing commands share interpreter globals.
+(define *browsered-globals* '())
+(define *browsered-defined* '())
+(define *browsered-legacy-command* #f)
+(define (browsered-rewrite-ir e)
+  (cond ((not (pair? e)) e)
+        ((eq? (car e) 'const) e)
+        ;; Legacy editor strings use byte offsets, unlike R7RS lists.
+        ((and *browsered-legacy-command* (equal? e '(gref length))
+              (not (memq 'length *browsered-defined*)))
+         '(gref schemer-legacy-length))
+        ((and (eq? (car e) 'gref) (memq (cadr e) *browsered-globals*)
+              (not (memq (cadr e) *browsered-defined*)))
+         (list 'call '(gref %editor-apply) '(const schemer-global-get)
+               (list 'call '(gref list) (list 'const (cadr e)))))
+        ((and (eq? (car e) 'gset) (memq (cadr e) *browsered-globals*)
+              (not (memq (cadr e) *browsered-defined*)))
+         (list 'call '(gref %editor-apply) '(const schemer-global-set!)
+               (list 'call '(gref list) (list 'const (cadr e)) (browsered-rewrite-ir (caddr e)))))
+        (else (map browsered-rewrite-ir e))))

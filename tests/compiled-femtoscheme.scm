@@ -1,0 +1,53 @@
+;;; compiled-femtoscheme.scm -- make check-library: femtoscheme's names
+;;; (compiled/femtoscheme.scm) and the scripts' forms (compiled/syntax.scm)
+(define failures 0)
+(define checks 0)
+(define (check name got expected)
+  (set! checks (+ checks 1))
+  (unless (equal? got expected)
+    (set! failures (+ failures 1))
+    (display "FAIL ") (display name) (display ": got ") (write got)
+    (display ", expected ") (write expected) (newline)))
+(define *registered* '())
+(define (register-command name) (set! *registered* (cons name *registered*)))
+
+(define t (table "a" 1 '(k) 2))
+(put! t "b" 3)
+(check "table, get" (list (get t "a") (get t '(k)) (get t "zz" 'none) (has? t "b") (has? t "zz")) '(1 2 none #t #f))
+(check "get with no default" (guard (e (#t 'error)) (get t "zz")) 'error)
+(del! t "a")
+(check "del!" (list (has? t "a") (table.count t)) '(#f 2))
+(check "table.foldl" (table.foldl (lambda (k v acc) (+ v acc)) 0 t) 5)
+(check "table.keys" (length (table.keys t)) 2)
+(check "put! gives the table" (eq? (put! t 1 1) t) #t)
+
+(define out (buffer))
+(io.write out "olá")
+(io.write out #\!)
+(check "io.tostring!" (io.tostring! out) "olá!")
+(io.write out "again")
+(check "io.tostring! empties" (io.tostring! out) "again")
+
+(check "trycatch" (trycatch (raise 'x) (lambda (e) (list 'caught e))) '(caught x))
+(check "trycatch, no error" (trycatch 42 (lambda (e) 0)) 42)
+
+(define *depth* 0)
+(check "with-bindings" (list (with-bindings ((*depth* 5)) *depth*) *depth*) '(5 0))
+(check "with-bindings, output"
+       (let ((p (buffer))) (with-bindings ((*output-stream* p)) (display "quiet")) (io.tostring! p)) "quiet")
+
+(defvar *thing* 7)
+(defcommand (hello-command n) (* n 2))
+(check "defvar" *thing* 7)
+(check "defcommand" (list (hello-command 4) *registered*) '(8 (hello-command)))
+(check "bound?" (list (bound? '*thing*) (bound? 'nothing-here)) '(#t #f))
+(check "function:name" (function:name hello-command) 'hello-command)
+
+(define path "/tmp/chezemax-compat-test.txt")
+(let ((f (file path :write :create :truncate))) (io.write f "line\n") (io.close f))
+(check "file" (call-with-input-file path read-line) "line")
+(delete-file path)
+
+(if (= failures 0)
+    (begin (display "PASS ") (display checks) (display " checks of femtoscheme's names") (newline))
+    (begin (display failures) (display " of ") (display checks) (display " checks failed") (newline)))

@@ -1,0 +1,471 @@
+"""Python editing mode for the future SBEmacs synpy compiler.
+
+The imports below name SBEmacs libraries, not third-party Python packages.
+The Python test harness supplies adapters; the Lisp backend must implement
+that same small bridge. No Python interpreter is required by the intended
+compiled extension. See ../py2sexpr/PYTHON_MODE.md for the bridge contract.
+"""
+
+import highlight
+import indent
+import theme
+import menu
+import editor
+
+
+KEYWORDS = {
+    "False", "None", "True", "and", "as", "assert", "async", "await",
+    "break", "class", "continue", "def", "del", "elif", "else", "except",
+    "finally", "for", "from", "global", "if", "import", "in", "is",
+    "lambda", "nonlocal", "not", "or", "pass", "raise", "return", "try",
+    "while", "with", "yield",
+}
+BUILTINS = {
+    "abs", "all", "any", "ascii", "bin", "bool", "breakpoint", "bytearray",
+    "bytes", "callable", "chr", "classmethod", "complex", "dict", "dir",
+    "divmod", "enumerate", "eval", "exec", "filter", "float", "format",
+    "frozenset", "getattr", "globals", "hasattr", "hash", "help", "hex",
+    "id", "input", "int", "isinstance", "issubclass", "iter", "len",
+    "list", "locals", "map", "max", "memoryview", "min", "next", "object",
+    "oct", "open", "ord", "pow", "print", "property", "range", "repr",
+    "reversed", "round", "set", "setattr", "slice", "sorted", "staticmethod",
+    "str", "sum", "super", "tuple", "type", "vars", "zip", "__import__",
+}
+PREFIXES = {"r", "u", "b", "f", "br", "rb", "fr", "rf", "t", "tr", "rt"}
+OPENERS = "([{"
+CLOSERS = ")]}"
+PAIRS = {"(": ")", "[": "]", "{": "}"}
+WIDTH = 4
+
+
+class Token:
+    def __init__(self, kind, start, end, value, prefix="", quote="", closed=True):
+        self.kind = kind
+        self.start = start
+        self.end = end
+        self.value = value
+        self.prefix = prefix
+        self.quote = quote
+        self.closed = closed
+
+
+def name_start(char):
+    return char == "_" or char.isidentifier()
+
+
+def name_part(char):
+    return ("_" + char).isidentifier()
+
+
+def string_end(source, opening):
+    quote = source[opening]
+    delimiter = quote * 3 if source.startswith(quote * 3, opening) else quote
+    cursor = opening + len(delimiter)
+    while cursor < len(source):
+        if source[cursor] == "\\":
+            cursor += 2
+        elif source.startswith(delimiter, cursor):
+            return cursor + len(delimiter), delimiter, True
+        elif source[cursor] in "\r\n" and len(delimiter) == 1:
+            return cursor, delimiter, False
+        else:
+            cursor += 1
+    return len(source), delimiter, False
+
+
+def number_end(source, start):
+    cursor = start
+    if source[start:start + 2].lower() in ("0x", "0o", "0b"):
+        base = source[start + 1].lower()
+        digits = {"x": "0123456789abcdefABCDEF_", "o": "01234567_", "b": "01_"}[base]
+        cursor += 2
+        while cursor < len(source) and source[cursor] in digits:
+            cursor += 1
+        return cursor
+    while cursor < len(source) and source[cursor] in "0123456789_":
+        cursor += 1
+    if cursor < len(source) and source[cursor] == ".":
+        cursor += 1
+        while cursor < len(source) and source[cursor] in "0123456789_":
+            cursor += 1
+    if cursor < len(source) and source[cursor] in "eE":
+        exponent = cursor + 1
+        if exponent < len(source) and source[exponent] in "+-":
+            exponent += 1
+        if exponent < len(source) and source[exponent].isdigit():
+            cursor = exponent + 1
+            while cursor < len(source) and source[cursor] in "0123456789_":
+                cursor += 1
+    if cursor < len(source) and source[cursor] in "jJ":
+        cursor += 1
+    return cursor
+
+
+def lex(source):
+    """Tolerant editor lexer: incomplete code is normal while typing."""
+    tokens = []
+    cursor = 0
+    while cursor < len(source):
+        start = cursor
+        char = source[cursor]
+        if char in " \t\r\f":
+            cursor += 1
+            continue
+        if char == "\n":
+            tokens.append(Token("newline", start, start + 1, char))
+            cursor += 1
+            continue
+        if char == "#":
+            cursor = source.find("\n", cursor)
+            if cursor < 0:
+                cursor = len(source)
+            tokens.append(Token("comment", start, cursor, source[start:cursor]))
+            continue
+        prefix = ""
+        opening = cursor
+        if name_start(char):
+            cursor += 1
+            while cursor < len(source) and name_part(source[cursor]):
+                cursor += 1
+            word = source[start:cursor]
+            if word.lower() in PREFIXES and cursor < len(source) and source[cursor] in "\"'":
+                prefix = word.lower()
+                opening = cursor
+            else:
+                tokens.append(Token("name", start, cursor, word))
+                continue
+        if source[opening] in "\"'":
+            cursor, quote, closed = string_end(source, opening)
+            tokens.append(Token("string", start, cursor, source[start:cursor], prefix, quote, closed))
+        elif char in "0123456789" or (char == "." and cursor + 1 < len(source) and source[cursor + 1] in "0123456789"):
+            cursor = number_end(source, start)
+            tokens.append(Token("number", start, cursor, source[start:cursor]))
+        else:
+            cursor = start + 1
+            tokens.append(Token("operator", start, cursor, char))
+    return tokens
+
+
+def line_start(source, position):
+    return source.rfind("\n", 0, position) + 1
+
+
+def column(source, position):
+    result = 0
+    for char in source[line_start(source, position):position]:
+        result = ((result // 8) + 1) * 8 if char == "\t" else result + 1
+    return result
+
+
+def indentation(source, position):
+    start = line_start(source, position)
+    cursor = start
+    while cursor < len(source) and source[cursor] in " \t":
+        cursor += 1
+    return column(source, cursor)
+
+
+def logical_statements(source, tokens):
+    """Return completed statements and still-open brackets/strings."""
+    statements = []
+    current = []
+    brackets = []
+    in_string = False
+    for token in tokens:
+        if token.kind == "comment":
+            continue
+        if token.kind == "newline":
+            if current and not brackets and current[-1].value != "\\":
+                statements.append(current)
+                current = []
+            elif current and current[-1].value == "\\":
+                current.pop()
+            continue
+        current.append(token)
+        if token.kind == "string":
+            in_string = not token.closed and (len(token.quote) == 3 or token.value.endswith("\\"))
+        elif token.value in OPENERS:
+            brackets.append(token)
+        elif token.value in CLOSERS and brackets:
+            if PAIRS[brackets[-1].value] == token.value:
+                brackets.pop()
+    return statements, current, brackets, in_string
+
+
+def field_end(source, start, end):
+    """Locate an interpolation's expression end, format spec and closing brace."""
+    cursor = start
+    stack = []
+    expression_end = end
+    while cursor < end:
+        char = source[cursor]
+        if char in "\"'":
+            cursor, _, _ = string_end(source, cursor)
+            continue
+        if char == "#":
+            newline = source.find("\n", cursor)
+            cursor = end if newline < 0 else newline + 1
+            continue
+        if char in OPENERS:
+            stack.append(char)
+        elif char in CLOSERS:
+            if stack and PAIRS[stack[-1]] == char:
+                stack.pop()
+            elif char == "}" and not stack:
+                return min(expression_end, cursor), cursor
+        elif not stack and (char == ":" or (char == "!" and source[cursor:cursor + 2] != "!=")):
+            expression_end = min(expression_end, cursor)
+        cursor += 1
+    return expression_end, end
+
+
+class PythonMode:
+    def __init__(self):
+        # Use the user's existing theme, rather than changing other modes' colors.
+        self.faces = {name: theme.color_id(name) for name in
+                      ("alpha", "keyword", "digits", "comment", "string", "symbol", "heading", "emphasis", "link")}
+
+    def colorize(self, language, text, length, colors):
+        """Exact SBEmacs highlighter signature; one face per UTF-8 byte."""
+        source = text[:length].decode("utf-8")
+        offsets = [0]
+        for char in source:
+            offsets.append(offsets[-1] + len(char.encode("utf-8")))
+        for index in range(length):
+            colors[index] = self.faces["alpha"]
+        self.paint_tokens(source, lex(source), offsets, colors)
+        return colors
+
+    def paint(self, start, end, face, offsets, colors):
+        for index in range(offsets[start], offsets[end]):
+            colors[index] = self.faces[face]
+
+    def paint_tokens(self, source, tokens, offsets, colors, origin=0):
+        expect_definition = False
+        decorator = False
+        significant = []
+        # Precompute lookahead and physical-line endings: no quadratic scans
+        # for every identifier in a large visible window.
+        next_values = [""] * len(tokens)
+        next_value = ""
+        header_ends = [False] * len(tokens)
+        line_end_value = ""
+        for index in range(len(tokens) - 1, -1, -1):
+            token = tokens[index]
+            next_values[index] = next_value
+            if token.kind == "newline":
+                next_value = ""
+                line_end_value = ""
+            elif token.kind != "comment":
+                next_value = token.value
+                if not line_end_value:
+                    line_end_value = token.value
+            header_ends[index] = line_end_value == ":"
+        for index, token in enumerate(tokens):
+            start, end = origin + token.start, origin + token.end
+            face = "alpha"
+            if token.kind == "newline":
+                decorator = False
+                expect_definition = False
+                significant = []
+            elif token.kind == "comment":
+                face = "comment"
+            elif token.kind == "string":
+                face = "string"
+            elif token.kind == "number":
+                face = "digits"
+            elif token.kind == "operator":
+                face = "symbol"
+                if token.value == "@" and not significant:
+                    decorator = True
+            elif token.kind == "name":
+                word = token.value
+                next_value = next_values[index]
+                block_header = header_ends[index]
+                if expect_definition:
+                    face = "heading"
+                    expect_definition = False
+                elif word in KEYWORDS:
+                    face = "keyword"
+                    expect_definition = word in ("def", "class")
+                elif not significant and word in ("match", "case") and block_header:
+                    face = "keyword"
+                elif not significant and word == "type" and next_value not in ("=", "(") and next_value and name_start(next_value[0]):
+                    face = "keyword"
+                elif decorator:
+                    face = "link"
+                elif word in BUILTINS and next_value == "(" and (not significant or significant[-1].value != "."):
+                    face = "emphasis"
+            self.paint(start, end, face, offsets, colors)
+            if token.kind == "string" and ("f" in token.prefix or "t" in token.prefix):
+                opening = start + len(token.prefix) + len(token.quote)
+                closing = end - len(token.quote) if token.closed else end
+                self.paint_fields(source, opening, closing, offsets, colors)
+            if token.kind not in ("comment", "newline"):
+                significant.append(token)
+
+    def paint_fields(self, source, start, end, offsets, colors):
+        cursor = start
+        while cursor < end:
+            if source[cursor:cursor + 2] in ("{{", "}}"):
+                cursor += 2
+            elif source[cursor] == "{":
+                expression_end, close = field_end(source, cursor + 1, end)
+                self.paint(cursor, cursor + 1, "symbol", offsets, colors)
+                expression = source[cursor + 1:expression_end]
+                self.paint_tokens(source, lex(expression), offsets, colors, cursor + 1)
+                if expression_end < close:
+                    self.paint(expression_end, expression_end + 1, "symbol", offsets, colors)
+                    self.paint_fields(source, expression_end + 1, close, offsets, colors)
+                if close < end:
+                    self.paint(close, close + 1, "symbol", offsets, colors)
+                cursor = min(close + 1, end)
+            else:
+                cursor += 1
+
+    def indent_line(self, context):
+        """Compute a column without changing text; None preserves string bodies."""
+        source = context.text.decode("utf-8")
+        position = len(context.text[:context.line].decode("utf-8"))
+        before = source[:position]
+        current_line = source[position:].split("\n", 1)[0].lstrip(" \t")
+        statements, pending, brackets, in_string = logical_statements(before, lex(before))
+        width = context.width
+        if in_string:
+            return None
+        if brackets:
+            opener = brackets[-1]
+            if current_line and current_line[0] == PAIRS[opener.value]:
+                return indentation(before, opener.start)
+            opener_line_end = before.find("\n", opener.end)
+            if opener_line_end < 0:
+                opener_line_end = len(before)
+            content = before[opener.end:opener_line_end]
+            if content.strip() and not content.lstrip().startswith("#"):
+                first_argument = opener.end + len(content) - len(content.lstrip(" \t"))
+                return column(before, first_argument)
+            return indentation(before, opener.start) + width
+        if pending:
+            return indentation(before, pending[0].start) + width
+        if not statements:
+            return 0
+        previous = statements[-1]
+        base = indentation(before, previous[0].start)
+        current_tokens = lex(current_line)
+        first = current_tokens[0].value if current_tokens and current_tokens[0].kind == "name" else ""
+        # Soft keywords are ordinary identifiers in assignments and calls.
+        if len(current_tokens) > 1 and current_tokens[1].value in {"=", "(", "."}:
+            first = ""
+        partners = {
+            "elif": {"if", "elif"}, "else": {"if", "elif", "for", "while", "try", "except"},
+            "except": {"try", "except"}, "finally": {"try", "except", "else"},
+            "case": {"match", "case"},
+        }
+        if first in partners:
+            limit = base + width if previous[-1].value == ":" else base
+            for statement in reversed(statements):
+                level = indentation(before, statement[0].start)
+                head = statement[0].value
+                if head == "async" and len(statement) > 1:
+                    head = statement[1].value
+                if level <= limit and head in partners[first] and statement[-1].value == ":":
+                    return level + width if first == "case" and head == "match" else level
+                if level < limit:
+                    limit = level
+        if previous[-1].value == ":":
+            return base + width
+        if previous[0].value in {"return", "raise", "break", "continue", "pass"}:
+            return max(0, base - width)
+        return base
+
+    def indentation_levels(self, context):
+        """Repeated TAB allows a deliberate dedent instead of guessing intent."""
+        proposed = self.indent_line(context)
+        if proposed is None:
+            return []
+        return sorted(set([0, proposed] + list(range(0, proposed + context.width + 1, context.width))))
+
+
+MODE = PythonMode()
+
+
+# Capture the previous provider once. Module reload replaces this extension's
+# provider via the bridge rather than stacking providers indefinitely.
+PREVIOUS_BUTTONS = menu.base_buttons_provider("python")
+
+
+def is_python_buffer(buffer_name):
+    filename = editor.call_in_window_of(buffer_name, editor.buffer_filename)
+    return bool(filename) and filename.lower().endswith((".py", ".pyw", ".pyi", ".synpy"))
+
+
+def navigate_definition(direction):
+    source = editor.buffer_octets(0, editor.buffer_size()).decode("utf-8")
+    definitions = []
+    statements, pending, _, _ = logical_statements(source, lex(source))
+    if pending:
+        statements.append(pending)
+    for statement in statements:
+        words = [token.value for token in statement[:2]]
+        if words[0] in {"def", "class"} or words == ["async", "def"]:
+            start = statement[0].start
+            definitions.append(len(source[:start].encode("utf-8")))
+    point = editor.point()
+    choices = [position for position in definitions if (position > point if direction > 0 else position < point)]
+    if choices:
+        editor.goto_char(min(choices) if direction > 0 else max(choices))
+    else:
+        editor.message("No further Python definition")
+
+
+def next_definition():
+    navigate_definition(1)
+
+
+def previous_definition():
+    navigate_definition(-1)
+
+
+def python_menu(buffer_name):
+    original = PREVIOUS_BUTTONS(buffer_name)
+    if not is_python_buffer(buffer_name):
+        return original
+    # MORE owns the complete command list; the status line stays short.
+    tools = [("#", "M-;")]
+    for label, action in original:
+        if label == "?":
+            tools.insert(0, (label, action))
+        elif label == "Select":
+            tools.extend([("MORE", "more-menu"), (label, action)])
+        elif label == "DELETE":
+            tools.extend([(label, action), ("INDENT", "menu-indent")])
+        elif label == "MORE":
+            if any(item[0] == "DELETE" for item in original):
+                tools.append((label, action))
+        else:
+            tools.append((label, action))
+    return tools
+
+
+def python_full_menu(buffer_name):
+    buttons = menu.full_buttons(buffer_name)
+    if not is_python_buffer(buffer_name):
+        return buttons
+    return [button for button in buttons if button[0] != "QUIT"] + [
+        ("#", "M-;"), ("INDENT", "menu-indent"),
+        ("DEF>", next_definition), ("<DEF", previous_definition),
+        ("QUIT", "C-x C-c")]
+
+
+
+# Registration is separate from the algorithms. These calls map to existing
+# Lisp tables/callbacks through the small bridge described in PYTHON_MODE.md.
+highlight.define_language("Python", extensions=[".py", ".pyw", ".pyi", ".synpy"], highlighter=MODE.colorize)
+indent.register_style("python-smart", MODE.indent_line, scan_from_start=True)
+indent.define_indentation("Python", style="python-smart", width=WIDTH, tabs=False,
+                          cycle=True, levels=MODE.indentation_levels,
+                          electric_keys=":", electric_words=["elif", "else", "except", "finally", "case"])
+editor.register_command(next_definition)
+editor.register_command(previous_definition)
+menu.install_buttons_provider("python", python_menu)
+menu.install_full_buttons_provider("python", python_full_menu)

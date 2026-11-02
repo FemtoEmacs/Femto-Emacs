@@ -1,0 +1,16 @@
+# PROGRAM -- the files of chezemax.wasm, the compiled program, in order:
+# make compiles them, and so does chezemax --compile-scripts (M-x
+# compile-scripts).  Paths are from the installation folder.  <ORDER> is
+# the editor's scripts (compiled/scripts/ORDER); <USERS> is your own code,
+# every .scm file under ~/.chezemax/users/ (sorted, subfolders included),
+# compiled by --compile-scripts only.
+compiled/bridge.scm
+compiled/editor-functions.scm
+compiled/system.scm
+compiled/syntax.scm
+compiled/femtoscheme.scm
+compiled/editor.scm
+<ORDER>
+compiled/eval-compiled.scm
+<USERS>
+compiled/start.scm

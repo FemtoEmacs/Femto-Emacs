@@ -1,0 +1,8 @@
+(a b c none 3)
+(1 #f 3 2)
+(11 missing 1)
+(f big)
+#t
+#t
+#t
+#(11 22)

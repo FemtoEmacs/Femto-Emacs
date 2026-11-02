@@ -1,0 +1,26 @@
+(a b . c)
+#(1 2.5 "s\nA")
+#\space
+#\A
+#\a
+(quote q)
+(quasiquote (x (unquote y) (unquote-splicing z)))
+12
+-350.0
+#t
+#f
+|sym bol|
+last
+#u8(1 2 255)
+0.5
+255
+1
+(x y)
+0.5
+-inf.0
+5.0
+a.b
++inf.0
+-0.0
+#\newline
+(12 -12 1.5 1000.0 #f 0.3333333333333333 5 5 #f #f 1.0 0.1 #f #f 3.0 0.01)

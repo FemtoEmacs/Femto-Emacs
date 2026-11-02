@@ -1,0 +1,17 @@
+;; small benchmarks, timed
+(define (fib n) (if (< n 2) 1 (+ (fib (- n 1)) (fib (- n 2)))))
+(define (tak x y z) (if (not (< y x)) z (tak (tak (- x 1) y z) (tak (- y 1) z x) (tak (- z 1) x y))))
+(define (count-primes n)
+  (let ((sieve (make-vector (+ n 1) #t)))
+    (let loop ((i 2) (count 0))
+      (if (> i n) count
+          (if (vector-ref sieve i)
+              (begin (let mark ((j (* i i))) (if (<= j n) (begin (vector-set! sieve j #f) (mark (+ j i)))))
+                     (loop (+ i 1) (+ count 1)))
+              (loop (+ i 1) count))))))
+(define (build n) (let loop ((i 0) (acc '())) (if (= i n) acc (loop (+ i 1) (cons i acc)))))
+(define (sum l) (if (null? l) 0 (+ (car l) (sum (cdr l)))))
+(display (fib 30)) (newline)
+(display (tak 18 12 6)) (newline)
+(display (count-primes 1000000)) (newline)
+(display (sum (map (lambda (x) (* x 2)) (build 5000)))) (newline)

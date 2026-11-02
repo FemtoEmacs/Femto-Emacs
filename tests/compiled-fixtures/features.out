@@ -1,0 +1,32 @@
+swap! (hygiene): 2 1
+my-or: 5
+while: 3
+my-let*: 2
+nested ellipses: ((1 2 3) (4) (5 6))
+internal define-syntax: 2 10
+literals: yes
+vector pattern: (1 2 3)
+record: 10 4 #t #f #f
+values: 6
+let-values: 3 2 x
+define-values: 1 2 (3 4)
+receive: 1 (2 3)
+case-lambda: 12 10 2
+call/cc: 42
+early return: 4
+dynamic-wind: (in after)
+guard error: (bad thing (1 2))
+guard raise: (caught oops)
+guard =>: 42
+raise-continuable: 11
+nested guard: (outer sym)
+car error caught: caught
+parameterize: 2 10
+converter: 10 14
+string port: sym "str"1.5
+read-line: abc d ef #t
+case =>: 25
+cond-expand: schemer
+assoc string: (b . 2)
+string->symbol: #t
+char cache: #t

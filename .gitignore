@@ -1,8 +1,39 @@
-# -*- conf -*-
-
-.dir-locals.el
+# built by make
 *.o
-femto
-*.so
 *.a
-femtolisp/flisp
+/chezemax
+/chezemax-gui
+/schemer-compile
+/chezemax.wasm
+/chezemax.cwasm
+/schemer/compiler.cwasm
+tests/bridge-test
+/irene-dixe
+femtoscheme/femtoscheme
+tests/native-host-test
+tests/fileprompt-test
+tests/filename-completion-test
+tests/search-test
+/runtime/
+/Chezemax.app/
+# written for git/gitcommit.sh, not part of the repository
+git/next-commit.txt
+.DS_Store
+# backups of edited files
+bkp/
+
+# Private documents and local test artifacts are never published.
+/NAIA-tst/
+/Claude outputs/
+/ttfy/codex-tests/
+/ttfy/rama/
+/ttfy/rama.zip
+/ttfy/benedetto.md
+/ttfy/NAIAs-answers-benedetto.md
+/teste.lisp
+/teste.scm
+/testes.md
+/docs/testchez.md
+/docs/testes.md
+/tests/pty-keys
+*.cwasm

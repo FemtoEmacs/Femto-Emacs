@@ -1,0 +1,9 @@
+/*.o
+/*.do
+/*.a
+/*.da
+/femtoscheme
+/llt/*.o
+/llt/*.a
+/femtoscheme.boot.bak
+/femtoscheme.boot.new
