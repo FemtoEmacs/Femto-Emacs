@@ -1,17 +1,21 @@
 # C-owned editor with embedded femtoscheme; optional native GUI.
 .DEFAULT_GOAL := all
 CC ?= cc
-CFLAGS ?= -O2 -Wall
+CFLAGS ?= -O2 -Wall -std=gnu11
 CPPFLAGS += -Isrc -Ifemtoscheme -Ifemtoscheme/llt
 UNAME_S := $(shell uname -s)
+PKG_CONFIG ?= pkg-config
+HOST_TARGET = $(shell CC="$(CC)" sh tools/host-platform.sh)
 ifeq ($(UNAME_S),Darwin)
+CURSES_CFLAGS ?=
 CURSES_LIBS ?= -lncurses
 PDF_LIBS = -framework CoreGraphics -framework ImageIO -framework CoreFoundation
 else
-CURSES_LIBS ?= -lncursesw
+CURSES_CFLAGS ?= $(shell $(PKG_CONFIG) --cflags ncursesw 2>/dev/null)
+CURSES_LIBS ?= $(shell $(PKG_CONFIG) --libs ncursesw 2>/dev/null || echo -lncursesw)
 endif
-SDL_CFLAGS := $(shell pkg-config --cflags sdl2 SDL2_ttf 2>/dev/null)
-SDL_LIBS := $(filter-out -lSDL2main,$(shell pkg-config --libs sdl2 SDL2_ttf 2>/dev/null))
+SDL_CFLAGS := $(shell $(PKG_CONFIG) --cflags sdl2 SDL2_ttf 2>/dev/null)
+SDL_LIBS := $(filter-out -lSDL2main,$(shell $(PKG_CONFIG) --libs sdl2 SDL2_ttf 2>/dev/null))
 # All C sources live in src/. term.c and gui.c are the two screen backends;
 # app.c is compiled twice (terminal and GUI).
 # irene-dixe.c is a program of its own (the C-c p plot window).
@@ -27,11 +31,26 @@ OBJECTS += schemer/native-host.o
 RUNTIME = femtoscheme/libfemtoscheme.a femtoscheme/llt/libllt.a
 .PHONY: all runtime check check-compiled check-library check-scripts check-compile-scripts fetch-wasmtime clean
 fetch-wasmtime:
-	WASMTIME_ROOT="$(WASMTIME_ROOT)" sh tools/fetch-wasmtime.sh
+	CC="$(CC)" WASMTIME_ROOT="$(WASMTIME_ROOT)" sh tools/fetch-wasmtime.sh
 $(WASMTIME_ROOT)/include/wasmtime.h:
-	WASMTIME_ROOT="$(WASMTIME_ROOT)" sh tools/fetch-wasmtime.sh
+	CC="$(CC)" WASMTIME_ROOT="$(WASMTIME_ROOT)" sh tools/fetch-wasmtime.sh
 src/compiled.o schemer/native-host.o: $(WASMTIME_ROOT)/include/wasmtime.h
-all: schemer-compile schemer/compiler.cwasm chezemax chezemax.wasm chezemax.cwasm $(if $(SDL_LIBS),chezemax-gui irene-dixe)
+all: check-build schemer-compile schemer/compiler.cwasm chezemax chezemax.wasm chezemax.cwasm $(if $(SDL_LIBS),chezemax-gui irene-dixe)
+
+.PHONY: check-build check-platform show-config
+check-build:
+	CC="$(CC)" CPPFLAGS="$(CPPFLAGS)" CFLAGS="$(CFLAGS)" LDFLAGS="$(LDFLAGS)" CURSES_CFLAGS="$(CURSES_CFLAGS)" CURSES_LIBS="$(CURSES_LIBS)" sh tools/check-build.sh
+show-config:
+	@echo "Platform: $(HOST_TARGET)"
+	@echo "Compiler: $(CC)"
+	@echo "Terminal libraries: $(CURSES_LIBS)"
+	@echo "SDL interface: $(if $(SDL_LIBS),enabled,not installed; terminal only)"
+check-platform:
+	sh tests/platform.sh
+# The check runs once even with make -j; no architecture-specific -f file.
+$(OBJECTS) src/term.o src/app.o src/gui.o src/app-gui.o: | check-build
+src/term.o: src/term.c src/screen.h
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(CURSES_CFLAGS) -c $< -o $@
 
 # The compiled Scheme program (PORT-TO-SCHEMER.md): compiled/*.scm and the
 # scripts, in this order, compiled by Schemer (about two minutes).  The C
@@ -93,7 +112,7 @@ check-scripts: chezemax schemer-compile
 # chezemax --compile-scripts and M-x compile-scripts (a few minutes each)
 check-compile-scripts: chezemax chezemax.wasm schemer/compiler.cwasm
 	sh tests/run-compile-scripts.sh
-check: chezemax check-compiled check-bridge check-library check-scripts
+check: check-platform chezemax check-compiled check-bridge check-library check-scripts
 	$(MAKE) -C femtoscheme test
 	./chezemax --eval '(+ 20 22)' | grep -x 42
 	./chezemax --eval '(get-version-string)' | grep femtoscheme

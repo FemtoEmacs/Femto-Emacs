@@ -2,7 +2,7 @@
 #define __UTILS_H_
 
 
-#if defined( __amd64__ ) || defined( _M_AMD64 )
+#if defined( __amd64__ ) || defined( __x86_64__ ) || defined( _M_AMD64 )
 #  define ARCH_X86_64
 #  define __CPU__ 686
 #elif defined( _M_IX86 )//msvs, intel, digital mars, watcom

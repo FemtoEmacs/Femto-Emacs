@@ -4,15 +4,15 @@
 set -eu
 cd "$(dirname "$0")/.."
 dest=${WASMTIME_ROOT:-runtime/wasmtime}
-if [ -f "$dest/include/wasmtime.h" ] && [ -d "$dest/lib" ]; then exit 0; fi
-case $(uname -s) in
-    Darwin) os=macos ;;
-    Linux) os=linux ;;
-    MINGW*|MSYS*|CYGWIN*) os=windows ;;
-    *) echo "Unsupported OS: install Wasmtime's C API and set WASMTIME_ROOT." >&2; exit 1 ;;
-esac
-case $(uname -m) in arm64|aarch64) arch=aarch64 ;; x86_64|amd64) arch=x86_64 ;; *) echo "Unsupported architecture" >&2; exit 1 ;; esac
-target=$arch-$os
+target=$(sh tools/host-platform.sh)
+case $target in *-windows) os=windows ;; *) os=posix ;; esac
+if [ -f "$dest/include/wasmtime.h" ] && [ -d "$dest/lib" ]; then
+ if [ -f "$dest/.chezemax-target" ] && [ "$(cat "$dest/.chezemax-target")" != "$target" ]; then
+  echo "Wasmtime SDK in $dest belongs to another architecture. Set WASMTIME_ROOT to a $target SDK." >&2
+  exit 1
+ fi
+ exit 0
+fi
 version=50.0.1
 case $target in
     aarch64-linux) digest=1a36140a016a9cc098f02a37bb0cc7be6451032861ba70049127928d2f31ef84 ;;
@@ -44,4 +44,5 @@ cp -R "$task_tmp/$name/lib" "$dest/"
 for license in LICENSE README.md; do
     if [ -f "$task_tmp/$name/$license" ]; then cp "$task_tmp/$name/$license" "$dest/"; fi
 done
-echo "Wasmtime installed in $dest"
+printf '%s\n' "$target" > "$dest/.chezemax-target"
+echo "Wasmtime installed in $dest ($target)"

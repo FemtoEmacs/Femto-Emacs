@@ -22,23 +22,64 @@ FEATURE-PARITY.md lists what was ported from SBEmacs.
 
 ## Build and launch
 
-```
+The same command builds the editor on **Intel Macs, Apple Silicon Macs and
+64-bit Linux**:
+
+```sh
 make
-./chezemax paper.md           # terminal
-./chezemax --gui paper.md     # window (SDL2), when built
-make app                       # macOS application bundle
-open Chezemax.app
-make check                     # femtoscheme suites and the editor's tests
-make check-ui                  # search, assistant protocols, PDF rendering
+./chezemax paper.md
 ```
 
-The terminal uses the system curses library; the window uses SDL2 and
-SDL2_ttf. The Scheme runtime is bundled source: no Scheme installation or
-package manager is needed. `make` builds the window version when its
-libraries are found through pkg-config.
+No `Makefile.macosx`, CPU flags, manually installed Scheme, Node.js or Python
+is required. `make` selects the OS libraries and downloads the checksum-verified
+Wasmtime C SDK for the C compiler's architecture. `make show-config` prints
+what was selected. A C11 compiler, make, curl, tar and xz extraction support
+are needed; ncurses supplies the terminal interface.
 
-Keep the executable beside the `scheme/`, `schemer/`, `runtime/`, `femtoscheme/` and `ttfy/`
-folders; `make app` copies them into Chezemax.app.
+On either type of Mac, install Apple's command-line developer tools once:
+
+```sh
+xcode-select --install
+```
+
+The system ncurses is used; `/usr/local/lib/libncursesw.a` is not required.
+The bundled Wasmtime 50.0.1 binaries have deployment minima of macOS 10.12
+for Intel and macOS 11.0 for ARM64. This does not include 32-bit Intel or
+PowerPC Macs. Do not copy an ARM64 runtime SDK into an Intel checkout, or
+vice versa. Start with a fresh clone or set `WASMTIME_ROOT` to the matching
+SDK and use `make clean` before changing compiler architecture.
+
+On Debian or Ubuntu, install the build prerequisites once:
+
+```sh
+sudo apt-get install build-essential libncurses-dev curl xz-utils pkg-config
+```
+
+Other Linux distributions need their corresponding C compiler, make and
+ncurses development packages. No platform-specific make command is needed.
+
+SDL2 and SDL2_ttf are optional. If pkg-config finds them, the same `make`
+also builds `chezemax-gui` and the plot helper. Without them, the terminal
+editor still builds. On macOS you may install them with
+`brew install pkg-config sdl2 sdl2_ttf`; on Debian/Ubuntu use
+`sudo apt-get install libsdl2-dev libsdl2-ttf-dev`.
+
+```sh
+./chezemax --gui paper.md     # SDL window, when built
+make app                     # macOS application bundle
+open Chezemax.app
+make check                   # compiled and compatibility editor tests
+make check-ui                # prompts, search and mocked assistant protocols
+make check-selfhost          # compiler reproducibility
+```
+
+The GitHub Actions build matrix runs the common makefile on Intel and ARM64
+Linux and on Intel and Apple Silicon macOS. Correctness tests do not require
+a recent CPU's benchmark speed. To opt into a local performance bound, set
+`CHEZEMAX_FIB30_MAX_SECONDS` when running the editor tests.
+
+Keep the executable beside the `scheme/`, `schemer/`, `runtime/`,
+`femtoscheme/` and `ttfy/` folders; `make app` copies them into Chezemax.app.
 
 ## Compiled Scheme runtime
 

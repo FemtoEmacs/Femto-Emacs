@@ -1,0 +1,42 @@
+name: Portable build
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux Intel
+            os: ubuntu-24.04
+          - name: Linux ARM64
+            os: ubuntu-24.04-arm
+          - name: macOS Intel
+            os: macos-15-intel
+          - name: macOS Apple Silicon
+            os: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Linux development libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libncurses-dev libsdl2-dev libsdl2-ttf-dev pkg-config curl xz-utils
+      - name: Install optional Mac SDL libraries
+        if: runner.os == 'macOS'
+        run: brew install pkg-config sdl2 sdl2_ttf
+      - name: Show detected configuration
+        run: make show-config check-platform
+      - name: Build with the common makefile
+        run: make -j2
+      - name: Test editor, runtime, prompts and mocked assistants
+        run: make check check-ui check-selfhost
