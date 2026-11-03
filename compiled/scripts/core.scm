@@ -516,4 +516,4 @@ on the kill ring and make it what C-y inserts."
   (run-hook '*startup-hook*)
   (if (pair? *init-errors*)
       (message (string-join (reverse *init-errors*) "; "))
-      (message "Chezemax -- C-h help; C-c r Claude; C-c g ChatGPT")))
+      (message "Chezweb -- C-h help; C-c d browser; C-c r Claude; C-c g Codex")))

@@ -20,3 +20,12 @@ seed are imported. Private papers, backups, scratch documents, native
 binaries, SDKs and machine-code caches are excluded. Build outputs are
 produced by make. The original source folder remains separate from this
 Git checkout.
+
+## Chezweb replaces master
+
+On 2 November 2026, master was updated from ~/claude-sandbox/chezweb.
+This is a normal successor commit after f34ab7b509c8d6521ef87d13a59f98d98d6bb795.
+The existing Intel/ARM macOS and Linux build support is retained. Legacy,
+sbcl and windows remain separate branches. Chezweb adds a JSPI browser
+editor, optional Grammarly checking and Chrome-granted folder access.
+The source folder remains separate from this publishing checkout.

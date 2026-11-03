@@ -312,7 +312,7 @@ otherwise in this window for a moment.  Its value."
      *menu-title* "\n"
      (if *menu-letter-keys*
          "h/q/d, arrows + Enter, or click an option then [RUN]. C-g closes."
-         "Arrows + Enter, or click an option then [RUN]. q closes.")
+         "Arrows + Enter, or click an option then [RUN]. q or C-c q closes.")
      "\n\n"
      (let loop ((bs buttons) (i 1) (acc ""))
        (if (null? bs) acc
@@ -366,7 +366,7 @@ or #f."
                               (*menu-number-keys*
                                (string-append (string-join (map number->string (iota (length *more-menu-buttons*) 1)) "/") "; "))
                               (else ""))
-                        "arrows + Enter; click then RUN; " (if *menu-letter-keys* "C-g" "q") " closes")
+                        "arrows + Enter; click then RUN; " (if *menu-letter-keys* "C-g" "q") " or C-c q closes")
                (update-display)
                (let* ((key (get-key))
                       (name (if (string=? key "") (get-key-name) ""))
@@ -376,7 +376,7 @@ or #f."
                  (cond
                    ((and *menu-letter-keys* (find (lambda (b) (equal? (cadr b) key)) *more-menu-buttons*))
                     (set! *more-menu-choice* key) (set! *more-menu-stop* #t))
-                   ((or (member key '("q" "Q")) (string=? name "C-g"))
+                   ((or (member key '("q" "Q")) (member name '("C-g" "C-c q")))
                     (set! *more-menu-stop* #t))
                    ((string=? name "C-x C-c")
                     (set! *more-menu-choice* "C-x C-c") (set! *more-menu-stop* #t))
@@ -467,7 +467,8 @@ Two values: the key, and a button's action (or #f)."
 (defcommand (menu-keybindings) (unless *help-in-progress* (help)))
 
 (defcommand (help-menu)
-  "[?], C-h or F1: Keybindings, ChatGPT or Claude."
+  "[?]: Keybindings (C-c h), ChatGPT (C-c g) or Claude (C-c r).
+C-c q, q or C-g closes it."
   (if (and *menu-popup-active* (string=? (get-buffer-name) "*help-options*"))
       (message "Choose 1 Keybindings, 2 ChatGPT, or 3 Claude.")
       (let ((saved (list *more-menu-buffer* *menu-title* *menu-number-keys*)))

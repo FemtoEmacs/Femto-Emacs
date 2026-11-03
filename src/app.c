@@ -28,10 +28,10 @@ int main(int argc, char **argv)
         char *slash = strrchr(resolved, '/');
         if (!slash) return 1;
         *slash = '\0';
-        snprintf(path, sizeof(path), "%s/chezemax-gui", resolved);
+        snprintf(path, sizeof(path), "%s/chezweb-gui", resolved);
         argv[1] = path;
         execv(path, argv + 1);
-        perror("Chezemax GUI backend"); return 1;
+        perror("Chezweb GUI backend"); return 1;
     }
 #endif
     if (argc == 2 && strcmp(argv[1], "--version") == 0) { puts(VERSION); return 0; }

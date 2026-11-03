@@ -75,6 +75,7 @@ int fe_main(int argc, char **argv)
 
 		update_display();
 		input = get_key(key_map, &key_return);
+        { extern void chezweb_poll(void); chezweb_poll(); }
 		before_bp = curbp;
 		before_size = document_size(curbp);
 

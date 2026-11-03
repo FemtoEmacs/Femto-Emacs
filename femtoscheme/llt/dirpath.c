@@ -60,7 +60,9 @@ void path_to_dirname(char *path)
     }
 }
 
-#ifdef LINUX
+#if defined(__EMSCRIPTEN__)
+char *get_exename(char *buf, size_t size) { snprintf(buf, size, "/chezweb"); return buf; }
+#elif defined(LINUX)
 char *get_exename(char *buf, size_t size)
 {
     char linkname[64]; /* /proc/<pid>/exe */

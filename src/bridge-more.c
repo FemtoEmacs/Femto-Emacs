@@ -500,7 +500,10 @@ static void put_answer(bridge_out *out, char *answer, const char *error)
 
 static void b_assistant_request(bridge_in *in, bridge_out *out)
 {
-	char *provider = bridge_string(in), *prompt = bridge_string(in);
+	#ifdef __EMSCRIPTEN__
+ (void)in;bridge_error(out,"Use Codex or Claude in the terminal or SDL window.");return;
+#endif
+ char *provider = bridge_string(in), *prompt = bridge_string(in);
 	const char *error = "";
 	put_answer(out, assistant_ask(provider, prompt, &error), error);
 	free(provider); free(prompt);
@@ -514,6 +517,34 @@ static void b_ttfy_request(bridge_in *in, bridge_out *out)
 	put_answer(out, assistant_textify(provider, path, range, guidelines, &error), error);
 	free(provider); free(path); free(range); free(guidelines);
 }
+
+/* Browser-only command adapter. The native run-program bridge is unchanged. */
+#ifdef __EMSCRIPTEN__
+extern char *chezweb_shell_run(const char *,const char *,int *,char **);
+extern char *chezweb_web_request(const char *,const char *);
+#endif
+static void b_browser_shell(bridge_in *in,bridge_out *out){
+ char *command=bridge_string(in),*directory=bridge_string(in);
+#ifdef __EMSCRIPTEN__
+ int status=0;char *cwd=NULL,*text=chezweb_shell_run(command,directory,&status,&cwd);
+ bridge_put_list(out,3);bridge_put_string(out,text);bridge_put_int(out,status);bridge_put_string(out,cwd);free(text);free(cwd);
+#else
+ bridge_error(out,"Browser commands are available only in the browser");
+#endif
+ free(command);free(directory);
+}
+static void b_browser_request(bridge_in *in,bridge_out *out){
+ char *name=bridge_string(in),*arg=bridge_string(in);
+#ifdef __EMSCRIPTEN__
+ char *answer=chezweb_web_request(name,arg);bridge_put_string(out,answer);free(answer);
+#else
+ bridge_error(out,"Browser requests are available only in the browser");
+#endif
+ free(name);free(arg);
+}
+
+extern const char *chezweb_launch(void);
+static void b_chezweb_open(bridge_in *in,bridge_out *out){(void)in;bridge_put_string(out,chezweb_launch());}
 
 void bridge_register_more(void)
 {
@@ -557,6 +588,9 @@ void bridge_register_more(void)
 		{ "fe-highlight-nim", b_highlight_nim },
 		{ "fe-highlight-markdown", b_highlight_markdown },
 		{ "assistant-request", b_assistant_request },
+        { "chezweb-open", b_chezweb_open },
+        { "chezweb-browser-shell", b_browser_shell },
+        { "chezweb-browser-request", b_browser_request },
 		{ "ttfy-request", b_ttfy_request },
 	};
 	for (size_t k = 0; k < sizeof fns / sizeof fns[0]; k++)

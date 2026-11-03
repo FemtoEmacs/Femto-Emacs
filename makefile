@@ -125,36 +125,39 @@ clean:
 	$(MAKE) -C femtoscheme clean
 
 .PHONY: app
-app: chezemax-gui irene-dixe chezemax.wasm chezemax.cwasm
-	rm -rf Chezemax.app/Contents/MacOS/scheme
-	mkdir -p Chezemax.app/Contents/MacOS/femtoscheme Chezemax.app/Contents/MacOS/ttfy \
-	    Chezemax.app/Contents/MacOS/scheme/languages Chezemax.app/Contents/MacOS/scheme/extensions \
-	    Chezemax.app/Contents/MacOS/scheme/modes
-	cp packaging/Info.plist Chezemax.app/Contents/Info.plist
-	cp chezemax-gui Chezemax.app/Contents/MacOS/chezemax-gui.new
-	mv -f Chezemax.app/Contents/MacOS/chezemax-gui.new Chezemax.app/Contents/MacOS/chezemax-gui
-	cp irene-dixe Chezemax.app/Contents/MacOS/irene-dixe.new
-	mv -f Chezemax.app/Contents/MacOS/irene-dixe.new Chezemax.app/Contents/MacOS/irene-dixe
-	cp scheme/*.scm Chezemax.app/Contents/MacOS/scheme/
-	cp scheme/languages/*.scm Chezemax.app/Contents/MacOS/scheme/languages/
-	cp scheme/extensions/*.scm Chezemax.app/Contents/MacOS/scheme/extensions/
-	cp scheme/modes/*.scm Chezemax.app/Contents/MacOS/scheme/modes/
-	cp ttfy/plots-guidelines.md Chezemax.app/Contents/MacOS/ttfy/
-	cp femtoscheme/femtoscheme.boot Chezemax.app/Contents/MacOS/femtoscheme/
-	rm -f Chezemax.app/Contents/MacOS/femtoscheme/femtoscheme \
-	    Chezemax.app/Contents/MacOS/schemer/native-compile.scm \
-	    Chezemax.app/Contents/MacOS/schemer/page.scm
-	cp schemer-compile Chezemax.app/Contents/MacOS/schemer-compile
-	cp chezemax.wasm chezemax.cwasm Chezemax.app/Contents/MacOS/
-	mkdir -p Chezemax.app/Contents/MacOS/runtime/wasmtime/lib Chezemax.app/Contents/MacOS/schemer
-	cp $(WASMTIME_ROOT)/lib/libwasmtime.dylib Chezemax.app/Contents/MacOS/runtime/wasmtime/lib/
-	cp schemer/*.scm schemer/compiler.wasm schemer/compiler.cwasm Chezemax.app/Contents/MacOS/schemer/
+app: chezweb-gui irene-dixe chezemax.wasm chezemax.cwasm browser
+	rm -rf Chezweb.app/Contents/MacOS/scheme
+	mkdir -p Chezweb.app/Contents/MacOS/femtoscheme Chezweb.app/Contents/MacOS/ttfy \
+	    Chezweb.app/Contents/MacOS/scheme/languages Chezweb.app/Contents/MacOS/scheme/extensions \
+	    Chezweb.app/Contents/MacOS/scheme/modes
+	cp packaging/Info.plist Chezweb.app/Contents/Info.plist
+	cp chezweb-gui Chezweb.app/Contents/MacOS/chezweb-gui.new
+	mv -f Chezweb.app/Contents/MacOS/chezweb-gui.new Chezweb.app/Contents/MacOS/chezweb-gui
+	cp irene-dixe Chezweb.app/Contents/MacOS/irene-dixe.new
+	mv -f Chezweb.app/Contents/MacOS/irene-dixe.new Chezweb.app/Contents/MacOS/irene-dixe
+	cp scheme/*.scm Chezweb.app/Contents/MacOS/scheme/
+	cp scheme/languages/*.scm Chezweb.app/Contents/MacOS/scheme/languages/
+	cp scheme/extensions/*.scm Chezweb.app/Contents/MacOS/scheme/extensions/
+	cp scheme/modes/*.scm Chezweb.app/Contents/MacOS/scheme/modes/
+	cp ttfy/plots-guidelines.md Chezweb.app/Contents/MacOS/ttfy/
+	cp femtoscheme/femtoscheme.boot Chezweb.app/Contents/MacOS/femtoscheme/
+	rm -f Chezweb.app/Contents/MacOS/femtoscheme/femtoscheme \
+	    Chezweb.app/Contents/MacOS/schemer/native-compile.scm \
+	    Chezweb.app/Contents/MacOS/schemer/page.scm
+	cp schemer-compile Chezweb.app/Contents/MacOS/schemer-compile
+	cp chezemax.wasm chezemax.cwasm Chezweb.app/Contents/MacOS/
+	mkdir -p Chezweb.app/Contents/MacOS/runtime/wasmtime/lib Chezweb.app/Contents/MacOS/schemer
+	cp $(WASMTIME_ROOT)/lib/libwasmtime.dylib Chezweb.app/Contents/MacOS/runtime/wasmtime/lib/
+	cp schemer/*.scm schemer/compiler.wasm schemer/compiler.cwasm Chezweb.app/Contents/MacOS/schemer/
 	# the program's sources, for chezemax --compile-scripts
-	rm -rf Chezemax.app/Contents/MacOS/compiled
-	mkdir -p Chezemax.app/Contents/MacOS/compiled/scripts
-	cp compiled/PROGRAM compiled/*.scm Chezemax.app/Contents/MacOS/compiled/
-	cp compiled/scripts/ORDER compiled/scripts/*.scm Chezemax.app/Contents/MacOS/compiled/scripts/
-	cp $(WASMTIME_ROOT)/LICENSE Chezemax.app/Contents/MacOS/runtime/wasmtime/
+	rm -rf Chezweb.app/Contents/MacOS/compiled
+	mkdir -p Chezweb.app/Contents/MacOS/compiled/scripts
+	cp compiled/PROGRAM compiled/*.scm Chezweb.app/Contents/MacOS/compiled/
+	cp compiled/scripts/ORDER compiled/scripts/*.scm Chezweb.app/Contents/MacOS/compiled/scripts/
+	cp $(WASMTIME_ROOT)/LICENSE Chezweb.app/Contents/MacOS/runtime/wasmtime/
+	mkdir -p Chezweb.app/Contents/MacOS/build
+	cp chezweb-server Chezweb.html Chezweb.app/Contents/MacOS/
+	cp build/chezweb.js build/chezweb.wasm Chezweb.app/Contents/MacOS/build/
 
 .PHONY: check-ui
 check-ui: chezemax
@@ -175,3 +178,9 @@ rebuild-compiler: schemer-compile
 	sh schemer/build-compiler.sh
 check-selfhost: schemer-compile tests/native-host-test
 	sh tests/selfhost-compiler.sh
+
+include web/makefile.inc
+
+# Public launch names for this separate project. Browser assets are built
+# when Emscripten is installed; prebuilt assets need no compiler to run.
+all: chezweb $(if $(SDL_LIBS),chezweb-gui) $(if $(shell command -v $(EMCC) 2>/dev/null),browser)

@@ -1,98 +1,204 @@
-# Chezemax: an Emacs-inspired editor scripted in Schemer
+# Chezweb: native and Chrome editor
 
-This is the current implementation of **Femto-Emacs**, published here under
-the Chezemax name. The original Femto-Emacs is preserved on the
-[legacy branch](https://github.com/FemtoEmacs/Femto-Emacs/tree/legacy).
-The repository and its history remain the same.
+Chezweb is the current implementation of **Femto-Emacs**, based on Chezemax.
+The original editor remains on the [legacy branch](https://github.com/FemtoEmacs/Femto-Emacs/tree/legacy).
+The existing repository, history, stars and fork network are retained. The terminal and
+SDL editor keep running when `C-c d` opens the current buffer in Google
+Chrome. Both views use the same C editing core and the same compiled Scheme
+WebAssembly program. Browser waiting uses **JSPI**, including WebAssembly
+exception/longjmp handling, rather than Asyncify. Chrome must expose
+`WebAssembly.Suspending` and `WebAssembly.promising`; an unsupported browser
+shows an explanatory message. Testing here uses Google Chrome only.
+
+```sh
+git clone --branch master --single-branch https://github.com/FemtoEmacs/Femto-Emacs.git
+cd Femto-Emacs
+make
+./chezweb                 # terminal
+./chezweb-gui             # SDL, if SDL2 and SDL2_ttf are installed
+```
+
+The same `make` builds on Intel Macs, Apple Silicon Macs and 64-bit Linux.
+On macOS, install Apple's command-line tools with `xcode-select --install`.
+On Debian/Ubuntu, install `build-essential libncurses-dev pkg-config curl xz-utils`.
+SDL is optional: install `sdl2 sdl2_ttf` with Homebrew, or
+`libsdl2-dev libsdl2-ttf-dev` on Debian/Ubuntu, for the GUI.
+`make show-config` shows the selected compiler architecture and libraries.
+Wasmtime is downloaded with a pinned checksum for that architecture.
+
+Building the browser editor additionally requires Emscripten with JSPI support
+(`emcc` on PATH); use `make browser`. Users of the terminal editor do not need
+Emscripten. The browser assets are generated locally rather than committed.
+
+Double-click `Chezweb.command` or `Chezweb-GUI.command` on macOS. `make app`
+packages `Chezweb.app`, including the browser assets and local server.
+Press **C-c d** in either native window to open Chrome. The original native
+window stays available for Codex (`C-c g`) and Claude (`C-c r`). Browser AI
+commands and Help-menu entries direct you there; the browser has no AI API,
+CLI login, shell endpoint, or credentials. On macOS Chrome is opened by name;
+on Linux the launcher uses `google-chrome`. Set `CHEZWEB_BROWSER` to a browser
+executable path if needed; its only argument is the local session URL.
+
+Grammarly starts **off** every time. The **Grammarly: off** button toggles a real text field over the selected
+buffer's canvas rows. Enable it when you want the installed Grammarly
+extension to check your text; click again to remove the field. Emacs keys
+continue to work. Corrections return to the buffer as undoable changes and
+are saved only when you explicitly save. Switching buffers ends the check.
+
+Browser notices have a reserved status row above the canvas; ordinary notices
+expire automatically and never cover the buffer. In Chrome, **M-!** opens the
+command buffer (Enter adds a line; **C-c s** runs it), and **C-c m** opens a
+minibuffer command prompt. Both support Tab completion and share the current
+directory. Commands are limited to `ls` (`-a`, `-l`, `-d`), `cd`, `pwd`, and
+`help`, using browser storage and folders explicitly granted to Chrome.
+Quotes, `;`, and `&&` are supported. External commands, pipes, redirection,
+and expansion are rejected. `cd` also updates the starting folder of
+`C-x C-f`. The native terminal and SDL windows retain their full system shell.
+As in `C-x C-f`, the first TAB at `~/` (`cd ` TAB, `ls ~/` TAB) asks for a
+folder when none has been granted yet; TAB on a folder name the browser does
+not have yet (`ls ~/papers/` TAB) asks for that folder.
+Use **Choose folder** to grant any additional directory and make it current.
+You can also type `cd --pick` in the shell minibuffer (`C-c m`), or use
+`ls --pick` to list a chosen directory without changing the current one.
+Earlier folder grants remain available. Selected folders appear as
+`~/<folder-name>/`; different folders with the same name receive suffixes
+such as `-2`. Chrome supplies folder handles rather than native parent paths.
+An unknown explicit directory path, including an absolute path, asks you to
+select that directory before listing or entering it.
+
+No browser command is forwarded to the local server or an AI provider.
+
+**Left to the terminal and SDL windows:** the assistants (C-c r, C-c g,
+and C-c y, C-c t on their answers), TTFY (C-c f, [TTFY]), the plots (C-c p)
+and M-x compile-scripts. In the browser the assistants' keys and these
+commands say so; TTFY and the plots are gone from the mode line, the keys
+and the help page, whose header says what the browser does.
+
+**Your settings** are the same in both windows. The browser editor loads
+your `~/.chezemax/init.scm` and the `.scm` files of `~/.chezemax/languages`
+and `~/.chezemax/extensions`, as the native editor does: the native window's
+server reads them, read-only, when the page starts. **C-x C-r** in the
+browser fetches them again, so after editing them (in either window) and
+saving, C-x C-r loads the new version. As natively, what your files define
+is for the editor (keys, settings, commands), not for M-:.
+
+**Your compiled scripts** (`./chezweb --compile-scripts`, which compiles
+the editor's scripts with your code in `~/.chezemax/users`) run in the
+browser too, chosen as in the terminal: yours when they are not older than
+Chezweb's own and they start; otherwise Chezweb's own, and the editor says
+why. The server reads `~/.chezemax/chezemax.wasm`, read-only. Compiling
+itself stays a terminal or SDL job: restart the browser editor (C-c d again
+after closing its tab) to use what you compiled.
+
+The browser initially receives a **snapshot** of the selected buffer,
+including unsaved text and its filename. Native and browser cursors are
+independent. `C-x C-s` in Chrome sends that snapshot's edited text back to the
+native buffer. Return to the native window and press a key to import it;
+then `C-x C-s` there saves the original document to disk. Native concurrent
+changes are preserved: browser text goes to a new conflict buffer. Repeating
+`C-c d` reopens the existing browser session. It does not silently replace an
+active browser session with a different buffer. Reloading restores the last
+explicit browser save; unsaved browser typing is not persisted.
+
+**C-x C-f** now uses ordinary editable filename prompts and Tab completion
+for Chrome-granted folders. On the first Tab at `~/`, or when completing an
+unknown `~/folder/...`, choose that folder in Chrome's directory picker. It
+then appears as `~/folder/`; Tab completes its filenames and subfolders.
+Only immediate directory entries are listed, with contents read when opened.
+Within this browser session, later prompts remember the last accepted folder.
+Cancelling a prompt or browsing a directory never writes to the computer.
+Save and Save As work inside the folders you explicitly granted.
+
+The browser's **Open local file** button also uses Chrome's file picker;
+subsequent saves of that picked file write through its granted handle. Files
+created only in the browser filesystem are temporary and do not become files
+on the computer automatically. Closing the native process stops its server
+and removes its private handoff files. Quitting the browser editor with
+`C-x C-c` closes its tab after any pending explicit save finishes. The native
+window stays open. If Chrome blocks tab closure, the page tells you to close
+the tab manually.
+There is no continuous background synchronization or automatic disk saving.
+
+`make` builds native executables using C, make, ncurses, and Wasmtime as
+before. When Emscripten is installed it also builds the browser page. To
+rebuild the browser explicitly, use `make browser` (Emscripten 6.0.13 was
+used here). Once built, running the page/server needs no Emscripten, Node.js,
+Python, or paid API. The local server binds only to loopback, serves a fixed
+asset allowlist, requires a random session token, and checks Host/Origin and
+write content types. It can exchange only the session's temporary buffer, and read (never
+write) the settings files and the compiled scripts named above.
+
+Developer checks:
+
+```sh
+make check check-ui check-selfhost
+make check-browser       # development-only Node + playwright; installed Chrome
+```
+
+The JSPI build lives in `build/chezweb.js` and `build/chezweb.wasm`, with
+`Chezweb.html` at the root. The Scheme program is `chezemax.wasm` (retained
+internal filename). The native Wasmtime backend remains separate from
+`web/host.c` and `web/runtime.js`, which implement the same module/bridge API
+in Chrome. `web/screen.c` adapts Browsered's screen grid; its menus and prompt
+logic remain the compiled Scheme implementations. Backups are under `bkp/`.
+
+---
+
+## Inherited Chezemax implementation notes
+
+# Chezemax: an Emacs-inspired editor scripted in Schemer
 
 Chezemax is Schememax's successor (a copy of it, made on 1 November 2026). Its C core owns `main()`, startup, the
 event loop and both screen backends (terminal and window); key bindings,
 editing commands, indentation, highlighting, undo, menus, help, the shell
 window and the assistants are Scheme scripts (`scheme/`).
 
-The editor's Scheme scripts are compiled ahead of time by Schemer, the
-Chez-inspired compiler to WasmGC (`schemer/`), and run through Wasmtime.
-Interactive evaluation and user files are also compiled. The old interpreter
-remains linked temporarily for the C compatibility layer and explicit
-`CHEZEMAX_SCHEME=femtoscheme` testing; its final removal is still pending.
-[PORT-TO-SCHEMER.md](PORT-TO-SCHEMER.md) records the migration status.
+**The goal: no femtoscheme.** Today Chezemax is still Schememax inside: the scripts
+run on femtoscheme, with Schemer (the Chez-inspired compiler to WasmGC,
+`schemer/`) compiling some commands and expressions. Chezemax will run every
+script on Schemer, compiled ahead of time, with the C core calling it through
+Wasmtime; femtoscheme will then be deleted, and the same compiled program
+will run in the browser. PORT-TO-SCHEMER.md is the plan and the inventory of
+what femtoscheme does for the editor today.
 
 The keys, menus and behaviour follow Schememax and SBEmacs before it.
 FEATURE-PARITY.md lists what was ported from SBEmacs.
 
 ## Build and launch
 
-The same command builds the editor on **Intel Macs, Apple Silicon Macs and
-64-bit Linux**:
-
-```sh
+```
 make
-./chezemax paper.md
-```
-
-No `Makefile.macosx`, CPU flags, manually installed Scheme, Node.js or Python
-is required. `make` selects the OS libraries and downloads the checksum-verified
-Wasmtime C SDK for the C compiler's architecture. `make show-config` prints
-what was selected. A C11 compiler, make, curl, tar and xz extraction support
-are needed; ncurses supplies the terminal interface.
-
-On either type of Mac, install Apple's command-line developer tools once:
-
-```sh
-xcode-select --install
-```
-
-The system ncurses is used; `/usr/local/lib/libncursesw.a` is not required.
-The bundled Wasmtime 50.0.1 binaries have deployment minima of macOS 10.12
-for Intel and macOS 11.0 for ARM64. This does not include 32-bit Intel or
-PowerPC Macs. Do not copy an ARM64 runtime SDK into an Intel checkout, or
-vice versa. Start with a fresh clone or set `WASMTIME_ROOT` to the matching
-SDK and use `make clean` before changing compiler architecture.
-
-On Debian or Ubuntu, install the build prerequisites once:
-
-```sh
-sudo apt-get install build-essential libncurses-dev curl xz-utils pkg-config
-```
-
-Other Linux distributions need their corresponding C compiler, make and
-ncurses development packages. No platform-specific make command is needed.
-
-SDL2 and SDL2_ttf are optional. If pkg-config finds them, the same `make`
-also builds `chezemax-gui` and the plot helper. Without them, the terminal
-editor still builds. On macOS you may install them with
-`brew install pkg-config sdl2 sdl2_ttf`; on Debian/Ubuntu use
-`sudo apt-get install libsdl2-dev libsdl2-ttf-dev`.
-
-```sh
-./chezemax --gui paper.md     # SDL window, when built
-make app                     # macOS application bundle
+./chezemax paper.md           # terminal
+./chezemax --gui paper.md     # window (SDL2), when built
+make app                       # macOS application bundle
 open Chezemax.app
-make check                   # compiled and compatibility editor tests
-make check-ui                # prompts, search and mocked assistant protocols
-make check-selfhost          # compiler reproducibility
+make check                     # femtoscheme suites and the editor's tests
+make check-ui                  # search, assistant protocols, PDF rendering
 ```
 
-The GitHub Actions build matrix runs the common makefile on Intel and ARM64
-Linux and on Intel and Apple Silicon macOS. Correctness tests do not require
-a recent CPU's benchmark speed. To opt into a local performance bound, set
-`CHEZEMAX_FIB30_MAX_SECONDS` when running the editor tests.
+The terminal uses the system curses library; the window uses SDL2 and
+SDL2_ttf. The Scheme runtime is bundled source: no Scheme installation or
+package manager is needed. `make` builds the window version when its
+libraries are found through pkg-config.
 
-Keep the executable beside the `scheme/`, `schemer/`, `runtime/`,
-`femtoscheme/` and `ttfy/` folders; `make app` copies them into Chezemax.app.
+Keep the executable beside the `scheme/`, `schemer/`, `runtime/`, `femtoscheme/` and `ttfy/`
+folders; `make app` copies them into Chezemax.app.
 
 ## Compiled Scheme runtime
 
-Chezemax compiles its Scheme editor program to `chezemax.wasm` and executes
-it through the embedded Wasmtime C API. No Node.js, JavaScript engine or
-browser is used. `C-x C-e`, `C-M-x`, `M-:` and `--eval` compile expressions
-and procedure definitions against the editor's environment. Definitions
-persist, so defining `fib` and then evaluating `(time (fib 40))` runs
-compiled recursion.
+Chezemax now executes compatible Scheme through Schemer and the embedded
+Wasmtime C API. No Node.js, JavaScript engine or browser is used. `C-x C-e`,
+`C-M-x`, `M-:` and `--eval` use the compiler for compatible code. Procedure
+definitions persist, so defining `fib` and then evaluating `(time (fib 40))`
+runs compiled recursion. Compatible editing commands compile on first use.
+`M-x schemer-status` reports compilation and editor-callback counts.
 
-The compiler is self-hosted WebAssembly (`schemer/compiler.wasm`).
-`CHEZEMAX_SCHEME=femtoscheme ./chezemax` explicitly selects the old
-interpreter for comparison while its remaining C dependencies are removed.
+The compiler and old editor dialect are not fully compatible. Legacy macros,
+ports, shared mutable objects and higher-order native callbacks retain
+compatibility handlers. The compiler itself is self-hosted WasmGC and does
+not use the interpreter. The editor core still uses the interpreter; it has
+not been removed. `CHEZEMAX_SCHEME=legacy ./chezemax` temporarily
+selects the interpreter for comparison or troubleshooting.
 
 The first `make` downloads a checksum-verified Wasmtime 50.0.1 C SDK using
 curl and tar (unzip under Windows/MSYS2). `make fetch-wasmtime` downloads it

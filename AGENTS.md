@@ -18,9 +18,9 @@ the order of the work) first.
 - **Backups** of edited files go in a `bkp/` folder beside the file, never
   beside the file itself. `bkp/` is ignored by git.
 - **Git** only through git/gitcommit.sh and git/gitpush.sh, with the message
-  in git/next-commit.txt; push only when the user asks. This checkout publishes to the existing
-  https://github.com/FemtoEmacs/Femto-Emacs repository on master. The legacy
-  branch preserves the original implementation. Do not rewrite its history.
+  in git/next-commit.txt; push only when the user asks. This checkout publishes to
+  https://github.com/FemtoEmacs/Femto-Emacs on master. Preserve history and
+  the separate legacy, sbcl and windows branches.
 - **Schememax and Browsered are separate products** (sbcl-rasp/schememax and
   ~/claude-sandbox/browsered). Do not change them from here, and do not
   change this folder from their sessions.

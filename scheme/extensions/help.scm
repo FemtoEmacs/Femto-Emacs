@@ -3,11 +3,11 @@
 ;;;; Port of SBEmacs's lisp/extensions/help.lisp.  Edit the entries below and
 ;;;; press C-x C-r; no rebuild.
 ;;;;
-;;;; C-h or F1 shows this page ([?] on the mode line offers it, ChatGPT and
-;;;; Claude: menu.scm).  The page is read-only (read-only.scm): j k, the
-;;;; arrows, gg G, C-d C-u, / n and % move; i or [CLOSE] returns to the page
-;;;; that asked for help, where the cursor was.  C-c r and C-c g close it
-;;;; and ask Claude or ChatGPT (Codex) about that page.
+;;;; C-c h, C-h or F1 shows this page ([?] on the mode line offers it,
+;;;; ChatGPT and Claude: menu.scm).  The page is read-only (read-only.scm):
+;;;; j k, the arrows, gg G, C-d C-u, / n and % move; i or [CLOSE]
+;;;; returns to the page that asked for help, where the cursor was.  C-c r
+;;;; and C-c g close it and ask Claude or ChatGPT (Codex) about that page.
 
 (define *help-buffer* "*chezemax-help*")
 
@@ -35,8 +35,9 @@
   "PRESS i (OR CLICK [CLOSE]) TO CLOSE THIS PAGE and return to your file.
 This page is read-only: j and k (or the arrows) move down and up, Ctrl-d
 and Ctrl-u a page, gg and G to the top and the end, / searches (n: again).
-Ctrl-c r (hold down the Ctrl key and press c; release and press r) asks
-Claude for help, Ctrl-c g asks ChatGPT; you must subscribe to them.")
+Ctrl-c h shows this page.  Ctrl-c r (hold down the Ctrl key and press c;
+release and press r) asks Claude for help, Ctrl-c g asks ChatGPT; you must
+subscribe to them.")
 
 (define *help-notation*
   "C-x means Ctrl-x.  M-x means Esc, then x (or Alt-x; Option-x on a Mac).")
@@ -44,13 +45,14 @@ Claude for help, Ctrl-c g asks ChatGPT; you must subscribe to them.")
 ;;; One key per line: (key description).  Keys in Emacs notation.
 (define *help-sections*
   '(("Help and assistants"
+     ("C-c h" "this page (also C-h and F1)")
      ("C-h" "this page (also F1)")
      ("C-x ?" "what does a key do?")
      ("M-x" "run a command by name (TAB completes)")
      ("C-c r" "Claude: a menu for hints, a question or a discussion")
      ("C-c y" "insert the answer's code, or make the buffer it proposes")
      ("C-c t" "in the discussion: insert the snippet under the cursor")
-     ("C-c q" "close the assistant's or shell's window ([CLOSE])")
+     ("C-c q" "close the help menu or page, the assistant's or the shell's window")
      ("C-c g" "write a request for ChatGPT (Codex); C-c g again sends it")
      ("C-c f" "textify a PDF into Markdown, with ChatGPT or Claude")
      ("C-c p" "plot, or show, the table at the cursor (curves or data)"))
@@ -295,5 +297,6 @@ Claude for help, Ctrl-c g asks ChatGPT; you must subscribe to them.")
 (set-buffer-hint *help-buffer* "i closes help | j k gg G / % move")
 
 (global-set-key "C-h" 'help)
+(global-set-key "C-c h" 'help)
 (global-set-key "F1" 'help)
 (global-set-key "C-x C-h" 'help)

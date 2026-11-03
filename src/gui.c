@@ -600,7 +600,7 @@ void screen_set_title(const char *t)
 	char full[300];
 	if (!t || strcmp(t, title) == 0) return;
 	strncpy(title, t, sizeof(title) - 1);
-	snprintf(full, sizeof(full), "%s - Chezemax", title);
+	snprintf(full, sizeof(full), "%s - Chezweb", title);
 	if (window) SDL_SetWindowTitle(window, full);
 }
 
@@ -949,7 +949,7 @@ int screen_init(int mouse)
 		fprintf(stderr, "chezemax: TTF_Init: %s\n", TTF_GetError());
 		return 0;
 	}
-	window = SDL_CreateWindow("Chezemax", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+	window = SDL_CreateWindow("Chezweb", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
 				  800, 600,
 				  SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_HIDDEN);
 	if (!window) {

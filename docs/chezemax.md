@@ -157,11 +157,11 @@ learns the keys, and learn them from the buttons:
 
 Grammarly is a pain in the ass, but if you need to write in English,
 you have no choice. It's the only Computer-Aided Writing Tool that
-gets past any AI detector. The [GRAMMAR] button lets you toggle
+gets past any AI detector. The Grammarly button lets you toggle
 Grammarly on and off. Word of advice: when you're not using Grammarly,
 leave it turned off.
   
-The file name is a button too. A name longer than 18
+The file name is also a button. A name longer than 18
 characters is shortened at the front, as in
 `...src/fib.lisp`. A click on the name opens a window with the
 full name of the file, its number of lines, words, characters and
@@ -210,15 +210,15 @@ and press `κ`
 > `C-/` – undo. `C-u` also undoes.  
 > `C-v` – forward page.  
 > `INS` – toggle overwrite mode.  
-> `←` `→` `↑` `↓` – arrows move cursor.  
+> `←` `→` `↑` `↓` – arrows move the cursor.  
 
 ### Control-x commands.
 
 `C-x C-`κ – Keep `Ctrl`
-down and press `x`, then `κ`
+down and press `x`, then `κ.`
 
 > `C-x C-f` – open a file into a new buffer.  
-> `C-x C-w` – write file with new name.  
+> `C-x C-w` – write file with a new name.  
 > `C-x C-s` – save file.  
 > `C-x s` – save every modified file, asking first.  
 > `C-x C-c` – exit Browsered.  

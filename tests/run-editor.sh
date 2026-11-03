@@ -37,7 +37,6 @@ case $(./chezemax --eval '(time (+ 1 2))') in "Elapsed time: "*" seconds
 got=$(./chezemax --eval '(define (fib n) (if (< n 2) 1 (+ (fib (- n 2)) (fib (- n 1))))) (time (fib 30))')
 secs=$(printf '%s\n' "$got" | sed -n 's/^Elapsed time: \([0-9.]*\) seconds$/\1/p')
 [ "$(printf '%s\n' "$got" | tail -1)" = 1346269 ] && [ -n "$secs" ] || fail "(fib 30) compiled ($got)"
-# Correctness must not depend on a recent CPU. Performance limits are opt-in.
 if [ -n "${CHEZEMAX_FIB30_MAX_SECONDS:-}" ]; then
  awk -v s="$secs" -v limit="$CHEZEMAX_FIB30_MAX_SECONDS" 'BEGIN { exit !(s < limit) }' || fail "(fib 30) performance ($got)"
 fi
@@ -73,6 +72,14 @@ keys typed word
 keys \eb
 keys ^C8
 keys \r
+keys \exhelp-menu\r
+wait 800
+keys ^Cq
+wait 300
+keys ^Ch
+wait 800
+keys ^Cq
+wait 300
 keys \e:
 wait 300
 keys (insert (number->string *fill-column*))\r
@@ -114,7 +121,7 @@ typed WORD
 66424911'
 got=$(cat "$work/a.txt")
 [ "$got" = "$expected" ] || { printf 'got:\n%s\n' "$got"; fail "the keys did not make the expected file"; }
-echo "ok    typed, a key and a variable set by ~/.chezemax/init.scm, M-: compiled (a session), C-x C-s, C-x C-c"
+echo "ok    typed, a key and a variable set by ~/.chezemax/init.scm, C-c q closing the [?] menu and the help page, M-: compiled (a session), C-x C-s, C-x C-c"
 
 # femtoscheme still runs the scripts when asked to (until step 5)
 [ "$(CHEZEMAX_SCHEME=femtoscheme CHEZEMAX_NO_INIT=1 ./chezemax --eval '(bound? (quote load-scripts))')" = "#t" ] ||

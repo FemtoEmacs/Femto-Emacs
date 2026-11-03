@@ -307,7 +307,7 @@
                          (every (lambda (l) (<= (string-length l) 80)) (split-lines text)) (and (string-search "M-x commands" text) #t)
                          (help-vim-text))))
    ("help scrolling" (list (help-scroll 1 -1 100 20) (help-scroll 80 5 100 20) (help-scroll 10 1 100 20)))
-   ("help keys" (list (key-binding "C-h") (key-binding "F1") (length (help-documented-keys)) (help-page-p)))
+   ("help keys" (list (key-binding "C-h") (key-binding "F1") (key-binding "C-c h") (length (help-documented-keys)) (help-page-p)))
    ;; buffer-menu.scm, kill-ring.scm, dired.scm, grep.scm
    ("bufm-name-from-line"
     (list (bufm-name-from-line "   1234567 a very long buffer name.scm /tmp/file" '("a very long buffer name.scm" "a very"))

@@ -39,16 +39,24 @@ whose line breaks are continuations."
                                     (if (string-suffix? "\\" line) "" " \\")
                                     "\n"))))))))
 
+(define %browser-shell (foreign-procedure "chezweb-browser-shell" (string string) scheme-object))
+(define (browser-run-shell command directory)
+  (let ((r (%browser-shell command (or directory (path.cwd)))))
+    (set! *shell-directory* (caddr r))
+    (values (car r) (cadr r))))
+
 (define (run-shell command directory)
   "Run COMMAND with /bin/sh in DIRECTORY: two values, what it printed (its
 errors too) and its exit status (#f when it could not run)."
-  (let* ((r (run-program "/bin/sh" (list "-c" (string-append "exec 2>&1\n" command)) "" *shell-timeout*
+  (if (in-browser?)
+      (browser-run-shell command directory)
+      (let* ((r (run-program "/bin/sh" (list "-c" (string-append "exec 2>&1\n" command)) "" *shell-timeout*
                          (and directory (directory-p directory) directory)))
          (out (remove-byte (car r) 13))
          (code (caddr r)))
     (if (< code 0)
         (values (string-append out (cadr r) "\n") #f)
-        (values out code))))
+        (values out code)))))
 
 (defcommand (shell-command-window)
   "M-!: a window below, to write a shell command (Enter: more lines);
