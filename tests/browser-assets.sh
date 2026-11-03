@@ -16,6 +16,13 @@ rm build/chezweb.js
 sh tools/browser-assets.sh install
 cmp build/chezweb.js web/prebuilt/chezweb.js
 echo 'PASS portable browser assets install and missing outputs are restored'
+rm build/chezweb.js build/chezweb.wasm
+pending=''
+for attempt in 1 2 3 4; do sh tools/browser-assets.sh install & pending="$pending $!";done
+for job in $pending; do wait "$job";done
+cmp build/chezweb.js web/prebuilt/chezweb.js
+cmp build/chezweb.wasm web/prebuilt/chezweb.wasm
+echo 'PASS concurrent restoration installs complete assets without temporary-file races'
 # Parallel make regenerates these files; authoritative generator inputs,
 # rather than half-written generated outputs, determine bundle freshness.
 printf 'regenerating' > src/bridge-functions.c

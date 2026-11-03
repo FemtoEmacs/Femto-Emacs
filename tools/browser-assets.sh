@@ -45,8 +45,8 @@ case ${1:-} in
   verify
   mkdir -p build
   for file in chezweb.js chezweb.wasm; do
-   cp "web/prebuilt/$file" "build/$file.new"
-   mv -f "build/$file.new" "build/$file"
+   cp "web/prebuilt/$file" "build/$file.new.$$"
+   mv -f "build/$file.new.$$" "build/$file"
   done
   touch build/browser-assets.stamp
   ;;
