@@ -38,5 +38,11 @@ jobs:
         run: make show-config check-platform
       - name: Build with the common makefile
         run: make -j2
+      - name: Verify browser editor is included without a browser SDK
+        run: |
+          test -s Chezweb.html
+          test -s build/chezweb.js
+          test -s build/chezweb.wasm
+          make check-browser-assets
       - name: Test editor, runtime, prompts and mocked assistants
         run: make check check-ui check-selfhost

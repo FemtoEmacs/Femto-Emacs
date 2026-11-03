@@ -2,56 +2,31 @@
 
 Chezweb is the current implementation of **Femto-Emacs**, based on Chezemax.
 The original editor remains on the [legacy branch](https://github.com/FemtoEmacs/Femto-Emacs/tree/legacy).
-The existing repository, history, stars and fork network are retained. The terminal and
-SDL editor keep running when `C-c d` opens the current buffer in Google
-Chrome. Both views use the same C editing core and the same compiled Scheme
-WebAssembly program. Browser waiting uses **JSPI**, including WebAssembly
-exception/longjmp handling, rather than Asyncify. Chrome must expose
-`WebAssembly.Suspending` and `WebAssembly.promising`; an unsupported browser
-shows an explanatory message. Testing here uses Google Chrome only.
+The existing repository, history, stars and fork network are retained.
+
+Edit in a terminal, an optional GUI, or Chrome. Press **C-c d** in the native
+editor to open the current buffer in Chrome; the native window stays open
+for Codex and Claude. All views use the same editor core and Scheme commands.
 
 ```sh
-git clone --branch master --single-branch https://github.com/FemtoEmacs/Femto-Emacs.git
+git clone https://github.com/FemtoEmacs/Femto-Emacs.git
 cd Femto-Emacs
 make
-./chezweb                 # terminal
-./chezweb-gui             # SDL, if SDL2 and SDL2_ttf are installed
+./chezweb
 ```
 
 The same `make` builds on Intel Macs, Apple Silicon Macs and 64-bit Linux.
 On macOS, install Apple's command-line tools with `xcode-select --install`.
 On Debian/Ubuntu, install `build-essential libncurses-dev pkg-config curl xz-utils`.
-SDL is optional: install `sdl2 sdl2_ttf` with Homebrew, or
+For the optional `./chezweb-gui` interface, install `sdl2 sdl2_ttf` with Homebrew, or
 `libsdl2-dev libsdl2-ttf-dev` on Debian/Ubuntu, for the GUI.
 `make show-config` shows the selected compiler architecture and libraries.
 Wasmtime is downloaded with a pinned checksum for that architecture.
 
-Building the browser editor additionally requires Emscripten with JSPI support
-(`emcc` on PATH); use `make browser`. Ordinary `make` includes the browser
-assets only if a small compile/link probe confirms JSPI and WebAssembly
-exception support. An older SDK on PATH is skipped, so the native build can
-finish. Explicit `make browser` reports the toolchain problem before compiling
-the browser editor. Users of the terminal editor do not need Emscripten.
-The browser assets are generated locally rather than committed.
-
-If `make browser` reports an unsupported Emscripten, update your SDK following
-[the official Emscripten instructions](https://emscripten.org/docs/getting_started/downloads.html).
-For an existing SDK checkout such as `~/emsdk`:
-
-```sh
-cd ~/emsdk
-git pull --ff-only
-./emsdk install latest
-./emsdk activate latest
-source ./emsdk_env.sh
-cd ~/codex-sand/Femto-Emacs  # your Chezweb repository checkout
-make browser
-```
-
-Emscripten 1.39.15 cannot compile this JSPI browser backend. After a failed
-optional browser build, the native `./chezweb` and (with SDL) `./chezweb-gui`
-may already be available. Compiler warnings preceding an Emscripten error do
-not by themselves mean the native build failed.
+The browser editor is included: `make` installs the bundled WebAssembly files
+and builds the local server automatically. No separate browser compiler,
+Node.js, Python, or API keys are needed. The same browser bundle runs on macOS
+and Linux; its checksums are verified against the editor sources.
 
 Double-click `Chezweb.command` or `Chezweb-GUI.command` on macOS. `make app`
 packages `Chezweb.app`, including the browser assets and local server.
@@ -142,11 +117,9 @@ window stays open. If Chrome blocks tab closure, the page tells you to close
 the tab manually.
 There is no continuous background synchronization or automatic disk saving.
 
-`make` builds native executables using C, make, ncurses, and Wasmtime as
-before. When Emscripten is installed it also builds the browser page. To
-rebuild the browser explicitly, use `make browser` (Emscripten 6.0.13 was
-used here). Once built, running the page/server needs no Emscripten, Node.js,
-Python, or paid API. The local server binds only to loopback, serves a fixed
+`make` builds native executables using C, make, ncurses, and Wasmtime, and
+installs the bundled browser editor. The bundled browser files need no extra
+compiler or language runtime on the user's machine. The local server binds only to loopback, serves a fixed
 asset allowlist, requires a random session token, and checks Host/Origin and
 write content types. It can exchange only the session's temporary buffer, and read (never
 write) the settings files and the compiled scripts named above.
@@ -476,3 +449,13 @@ and Unicode are supported. `C-c m` opens a one-line minibuffer command with
 Tab completion, Enter to run and `C-g` to cancel. Completion never executes
 the command. Native Chezemax and the local Browsered launcher continue to
 run the full system shell.
+
+## Rebuilding the browser bundle (maintainers only)
+
+Users run ordinary `make`; it never invokes a browser compiler. When changing
+the editor sources, maintainers with Emscripten/JSPI installed run
+`make browser-rebuild`. This builds the portable browser program, updates
+`web/prebuilt/chezweb.js` and `web/prebuilt/chezweb.wasm`, and records the
+asset/source checksums in `web/prebuilt/SHA256SUMS`. Commit those files with
+the source change. `make check-browser-assets` catches missing, stale or
+corrupted bundles. Emscripten 6.0.13 is the tested maintainer toolchain.

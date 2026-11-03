@@ -8,11 +8,11 @@ fail() {
  if [ "$quiet" = false ]; then
   echo "Chezweb's browser editor requires Emscripten with JSPI and WebAssembly exceptions." >&2
   echo "Compiler: $compiler" >&2
-  echo 'Update and activate your emsdk, then run make browser again:' >&2
+  echo 'Update and activate your emsdk, then run make browser-rebuild again:' >&2
   echo '  ./emsdk install latest' >&2
   echo '  ./emsdk activate latest' >&2
   echo '  source ./emsdk_env.sh' >&2
-  echo 'The terminal and SDL editors build with ordinary make; no Emscripten is needed.' >&2
+  echo 'Ordinary make uses the bundled browser files; no browser SDK is needed.' >&2
  fi
  exit 1
 }

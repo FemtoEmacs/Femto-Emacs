@@ -15,6 +15,12 @@ the order of the work) first.
 - **Users build with only cc (GCC or clang) and make.** No Node.js, Python,
   conda, Haskell, Quicklisp, Roswell, ASDF, C++, Flatpak or Snap for users.
   Wasmtime's C API is fetched by `make` (tools/fetch-wasmtime.sh).
+- **Users get both interfaces with clone + make.** Ordinary `make` and
+  `make browser` install the portable files in `web/prebuilt/`; they must
+  never invoke Emscripten, Node or Python. After changing browser/editor
+  inputs, maintainers run `make browser-rebuild` and commit the resulting
+  JS/Wasm bundle and SHA256SUMS together with the source changes. The
+  manifest verifies authoritative inputs, excluding generated bridge output.
 - **Backups** of edited files go in a `bkp/` folder beside the file, never
   beside the file itself. `bkp/` is ignored by git.
 - **Git** only through git/gitcommit.sh and git/gitpush.sh, with the message

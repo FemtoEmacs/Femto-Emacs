@@ -112,7 +112,7 @@ check-scripts: chezemax schemer-compile
 # chezemax --compile-scripts and M-x compile-scripts (a few minutes each)
 check-compile-scripts: chezemax chezemax.wasm schemer/compiler.cwasm
 	sh tests/run-compile-scripts.sh
-check: check-platform check-web-toolchain-test chezemax check-compiled check-bridge check-library check-scripts
+check: check-platform check-browser-assets-test check-web-toolchain-test chezemax check-compiled check-bridge check-library check-scripts
 	$(MAKE) -C femtoscheme test
 	./chezemax --eval '(+ 20 22)' | grep -x 42
 	./chezemax --eval '(get-version-string)' | grep femtoscheme
@@ -158,6 +158,8 @@ app: chezweb-gui irene-dixe chezemax.wasm chezemax.cwasm browser
 	mkdir -p Chezweb.app/Contents/MacOS/build
 	cp chezweb-server Chezweb.html Chezweb.app/Contents/MacOS/
 	cp build/chezweb.js build/chezweb.wasm Chezweb.app/Contents/MacOS/build/
+	mkdir -p Chezweb.app/Contents/Resources/browser-licenses
+	cp web/prebuilt/licenses/* Chezweb.app/Contents/Resources/browser-licenses/
 
 .PHONY: check-ui
 check-ui: chezemax
@@ -181,20 +183,14 @@ check-selfhost: schemer-compile tests/native-host-test
 
 include web/makefile.inc
 
-# An old emcc on PATH must not break an otherwise native build. Probe the
-# JSPI/exception features only for the default/all build; explicit browser
-# builds use check-web-toolchain and show its full diagnostic on failure.
-WEB_AUTO_BROWSER :=
-ifneq ($(filter all,$(if $(MAKECMDGOALS),$(MAKECMDGOALS),all)),)
-WEB_AUTO_BROWSER := $(shell EMCC="$(EMCC)" sh tools/check-emcc.sh --quiet && printf browser)
-ifeq ($(WEB_AUTO_BROWSER),)
-ifneq ($(shell command -v "$(EMCC)" 2>/dev/null),)
-$(warning Browser build skipped: Emscripten JSPI/exception probe failed. Native editors will still build; run make browser for details)
-endif
-endif
-endif
-all: chezweb $(if $(SDL_LIBS),chezweb-gui) $(WEB_AUTO_BROWSER)
+# Both interfaces are available after the same make on macOS and Linux.
+# The browser bundle is portable WebAssembly, shipped with the source.
+all: chezweb $(if $(SDL_LIBS),chezweb-gui) browser
 
 .PHONY: check-web-toolchain-test
 check-web-toolchain-test:
 	sh tests/emcc-toolchain.sh
+
+.PHONY: check-browser-assets-test
+check-browser-assets-test:
+	sh tests/browser-assets.sh
