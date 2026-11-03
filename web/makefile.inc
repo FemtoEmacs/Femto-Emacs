@@ -5,8 +5,11 @@ WEB_FEMTO = $(addprefix femtoscheme/,flisp.c builtins.c string.c equalhash.c tab
 WEB_LLT = $(addprefix femtoscheme/llt/,bitvector.c hashing.c socket.c timefuncs.c ptrhash.c utf8.c ios.c dirpath.c htable.c bitvector-ops.c int2str.c dump.c random.c lltinit.c)
 WEB_CFLAGS = -fwasm-exceptions -sSUPPORT_LONGJMP=wasm -O2 -std=gnu11 -Wno-everything -DSBEMACS_GUI -DNDEBUG -Isrc -Ifemtoscheme -Ifemtoscheme/llt
 WEB_EXPORTS = _main,_malloc,_free,_web_set_scrap,_web_ccall,_web_module_buffer,_web_module_size,_web_editor_request,_web_layer_set,_web_layer_on
-.PHONY: browser
-browser: Chezweb.html chezweb-server
+.PHONY: browser check-web-toolchain
+check-web-toolchain:
+	EMCC="$(EMCC)" sh tools/check-emcc.sh
+browser: check-web-toolchain Chezweb.html chezweb-server
+build/web-app.o build/chezweb.js: | check-web-toolchain
 build/web-app.o: src/app.c web/makefile.inc
 	mkdir -p build
 	$(EMCC) $(WEB_CFLAGS) -Dmain=app_main -c $< -o $@

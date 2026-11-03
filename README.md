@@ -27,8 +27,31 @@ SDL is optional: install `sdl2 sdl2_ttf` with Homebrew, or
 Wasmtime is downloaded with a pinned checksum for that architecture.
 
 Building the browser editor additionally requires Emscripten with JSPI support
-(`emcc` on PATH); use `make browser`. Users of the terminal editor do not need
-Emscripten. The browser assets are generated locally rather than committed.
+(`emcc` on PATH); use `make browser`. Ordinary `make` includes the browser
+assets only if a small compile/link probe confirms JSPI and WebAssembly
+exception support. An older SDK on PATH is skipped, so the native build can
+finish. Explicit `make browser` reports the toolchain problem before compiling
+the browser editor. Users of the terminal editor do not need Emscripten.
+The browser assets are generated locally rather than committed.
+
+If `make browser` reports an unsupported Emscripten, update your SDK following
+[the official Emscripten instructions](https://emscripten.org/docs/getting_started/downloads.html).
+For an existing SDK checkout such as `~/emsdk`:
+
+```sh
+cd ~/emsdk
+git pull --ff-only
+./emsdk install latest
+./emsdk activate latest
+source ./emsdk_env.sh
+cd ~/codex-sand/Femto-Emacs  # your Chezweb repository checkout
+make browser
+```
+
+Emscripten 1.39.15 cannot compile this JSPI browser backend. After a failed
+optional browser build, the native `./chezweb` and (with SDL) `./chezweb-gui`
+may already be available. Compiler warnings preceding an Emscripten error do
+not by themselves mean the native build failed.
 
 Double-click `Chezweb.command` or `Chezweb-GUI.command` on macOS. `make app`
 packages `Chezweb.app`, including the browser assets and local server.

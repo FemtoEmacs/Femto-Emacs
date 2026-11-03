@@ -112,7 +112,7 @@ check-scripts: chezemax schemer-compile
 # chezemax --compile-scripts and M-x compile-scripts (a few minutes each)
 check-compile-scripts: chezemax chezemax.wasm schemer/compiler.cwasm
 	sh tests/run-compile-scripts.sh
-check: check-platform chezemax check-compiled check-bridge check-library check-scripts
+check: check-platform check-web-toolchain-test chezemax check-compiled check-bridge check-library check-scripts
 	$(MAKE) -C femtoscheme test
 	./chezemax --eval '(+ 20 22)' | grep -x 42
 	./chezemax --eval '(get-version-string)' | grep femtoscheme
@@ -181,6 +181,20 @@ check-selfhost: schemer-compile tests/native-host-test
 
 include web/makefile.inc
 
-# Public launch names for this separate project. Browser assets are built
-# when Emscripten is installed; prebuilt assets need no compiler to run.
-all: chezweb $(if $(SDL_LIBS),chezweb-gui) $(if $(shell command -v $(EMCC) 2>/dev/null),browser)
+# An old emcc on PATH must not break an otherwise native build. Probe the
+# JSPI/exception features only for the default/all build; explicit browser
+# builds use check-web-toolchain and show its full diagnostic on failure.
+WEB_AUTO_BROWSER :=
+ifneq ($(filter all,$(if $(MAKECMDGOALS),$(MAKECMDGOALS),all)),)
+WEB_AUTO_BROWSER := $(shell EMCC="$(EMCC)" sh tools/check-emcc.sh --quiet && printf browser)
+ifeq ($(WEB_AUTO_BROWSER),)
+ifneq ($(shell command -v "$(EMCC)" 2>/dev/null),)
+$(warning Browser build skipped: Emscripten JSPI/exception probe failed. Native editors will still build; run make browser for details)
+endif
+endif
+endif
+all: chezweb $(if $(SDL_LIBS),chezweb-gui) $(WEB_AUTO_BROWSER)
+
+.PHONY: check-web-toolchain-test
+check-web-toolchain-test:
+	sh tests/emcc-toolchain.sh
