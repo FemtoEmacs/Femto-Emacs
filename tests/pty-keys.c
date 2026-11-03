@@ -6,6 +6,8 @@
  *
  * SCRIPT has one step a line:
  *   wait MS        let MS milliseconds pass (the program draws meanwhile)
+ *   await-screen TEXT  wait for literal terminal output, within TIMEOUT
+ *   await-file PATH    wait for a nonempty file, within TIMEOUT
  *   keys TEXT      type TEXT; \e is Esc, \r Return, \t Tab, \\ a backslash,
  *                  ^X the control key with X (^X^S is C-x C-s)
  * Everything the program writes goes to SCREEN-FILE.  The exit status is
@@ -18,6 +20,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/select.h>
+#include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/wait.h>
 #include <termios.h>
@@ -31,6 +34,8 @@
 
 static FILE *screen;
 static int master;
+static char observed[65536];
+static size_t observed_len;
 
 static long now_ms(void)
 {
@@ -56,6 +61,15 @@ static void drain(long ms)
 			ssize_t k = read(master, buf, sizeof buf);
 			if (k <= 0) return;
 			fwrite(buf, 1, (size_t) k, screen);
+			fflush(screen);
+			if (observed_len + (size_t) k >= sizeof observed) {
+				size_t drop = observed_len + (size_t) k - sizeof observed + 1;
+				memmove(observed, observed + drop, observed_len - drop);
+				observed_len -= drop;
+			}
+			memcpy(observed + observed_len, buf, (size_t) k);
+			observed_len += (size_t) k;
+			observed[observed_len] = 0;
 		} else if (left == 0 || (n < 0 && errno != EINTR)) {
 			return;
 		}
@@ -112,6 +126,25 @@ int main(int argc, char **argv)
 		line[strcspn(line, "\n")] = '\0';
 		if (strncmp(line, "wait ", 5) == 0) drain(atol(line + 5));
 		else if (strncmp(line, "keys ", 5) == 0) type_text(line + 5);
+		else if (strncmp(line, "await-screen ", 13) == 0 ||
+		         strncmp(line, "await-file ", 11) == 0) {
+			int is_screen = strncmp(line, "await-screen ", 13) == 0;
+			const char *target = line + (is_screen ? 13 : 11);
+			for (;;) {
+				struct stat st;
+				if (is_screen ? strstr(observed, target) != NULL :
+				    (stat(target, &st) == 0 && st.st_size > 0)) break;
+				if (now_ms() - start > timeout) {
+					fprintf(stderr, "Timed out: %s\n", line);
+					kill(pid, SIGKILL);
+					waitpid(pid, NULL, 0);
+					fclose(script);
+					fclose(screen);
+					return 124;
+				}
+				drain(50);
+			}
+		}
 	}
 	fclose(script);
 

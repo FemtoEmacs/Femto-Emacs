@@ -5,29 +5,51 @@ set -eu
 cd "$(dirname "$0")/.."
 root=$(pwd)
 work=$(mktemp -d "${TMPDIR:-/tmp}/chezweb-launch-test.XXXXXX")
-trap 'rm -rf "$work"' EXIT HUP INT TERM
+cleanup() {
+ status=$?
+ if [ "$status" -ne 0 ]; then
+  echo "Browser launch test failed; diagnostics retained in $work" >&2
+  if [ -f "$work/screen" ]; then cat "$work/screen" >&2; fi
+ else
+  rm -rf "$work"
+ fi
+}
+trap cleanup EXIT
+trap 'exit 130' HUP INT TERM
 ${CC:-cc} -O2 tests/pty-keys.c -o "$work/pty-keys" -lutil 2>/dev/null || ${CC:-cc} -O2 tests/pty-keys.c -o "$work/pty-keys"
 mkdir "$work/bin"
 printf 'Browser launch fixture\n' > "$work/source.txt"
-cat > "$work/keys" <<'KEYS'
-wait 1500
+cat > "$work/keys" <<KEYS
+await-screen Browser launch fixture
 keys ^Cd
-wait 1800
+await-file $work/url
+await-screen Browser: http://127.0.0.1:
 keys ^X^C
 KEYS
 cat > "$work/bin/fixture-browser" <<'SH'
 #!/bin/sh
+# Deliberately exceed the former 1.8-second completion delay.
+"$CHEZWEB_TEST_SLEEP" 2
 printf '%s\n' "$1" > "$CHEZWEB_TEST_LAUNCH_LOG"
 SH
 chmod +x "$work/bin/fixture-browser"
+sleep_program=$(command -v sleep)
+# Also exceed the former 1.5-second startup delay before the editor can
+# accept keys. Readiness, rather than machine speed, must control the test.
+cat > "$work/delayed-editor" <<'SH'
+#!/bin/sh
+"$CHEZWEB_TEST_SLEEP" 2
+exec "$CHEZWEB_TEST_EDITOR" "$@"
+SH
+chmod +x "$work/delayed-editor"
 case $(uname -s) in
  Linux) unset CHEZWEB_BROWSER;names='google-chrome google-chrome-stable chromium chromium-browser xdg-open' ;;
  *) export CHEZWEB_BROWSER=fixture-browser;names=fixture-browser ;;
 esac
 for browser in $names; do
  if [ "$browser" != fixture-browser ];then cp "$work/bin/fixture-browser" "$work/bin/$browser";fi
- HOME="$work" CHEZEMAX_NO_INIT=1 PATH="$work/bin" CHEZWEB_TEST_LAUNCH_LOG="$work/url" \
-  "$work/pty-keys" "$work/keys" 20 "$work/screen" "$root/chezweb" "$work/source.txt"
+ HOME="$work" CHEZEMAX_NO_INIT=1 PATH="$work/bin" CHEZWEB_TEST_LAUNCH_LOG="$work/url" CHEZWEB_TEST_SLEEP="$sleep_program" CHEZWEB_TEST_EDITOR="$root/chezweb" \
+  "$work/pty-keys" "$work/keys" 20 "$work/screen" "$work/delayed-editor" "$work/source.txt"
  grep -q '^http://127\.0\.0\.1:[0-9][0-9]*/[0-9a-f][0-9a-f]*/$' "$work/url"
  grep -q 'Browser: http://127.0.0.1:' "$work/screen"
  rm "$work/url"
