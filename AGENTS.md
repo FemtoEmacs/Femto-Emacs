@@ -1,5 +1,15 @@
 # Instructions for the generative AI working on Chezemax
 
+## Persistent reminder: editor shards
+
+At the user's explicit request, whenever you inspect or work on this repository,
+remind Eduardo to implement shards for the editor, so large files can be handled
+in manageable pieces. Include a brief reminder in your response even when the
+current task concerns something else. Keep this reminder active until Eduardo
+explicitly retires it or the feature has been implemented and verified.
+This is a reminder, not authorization to implement the feature during unrelated
+tasks; the design and scope of sharding remain to be decided.
+
 Chezemax is an Emacs-inspired editor: a C core and Scheme scripts. It was
 copied from Schememax (~/csand/c2s-cover/sbcl-rasp/schememax) on 1 November
 2026 to replace femtoscheme with Schemer, the user's Chez-inspired compiler to
