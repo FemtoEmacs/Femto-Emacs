@@ -162,7 +162,9 @@ app: chezweb-gui irene-dixe chezemax.wasm chezemax.cwasm browser
 	cp web/prebuilt/licenses/* Chezweb.app/Contents/Resources/browser-licenses/
 
 .PHONY: check-ui
-check-ui: chezemax
+check-ui: chezemax chezweb browser
+	sh tests/run-spawn.sh
+	sh tests/run-browser-launch.sh
 	$(CC) $(CPPFLAGS) $(CFLAGS) tests/filename-completion.c src/complete.c src/fileprompt.c -o tests/filename-completion-test
 	./tests/filename-completion-test
 	$(CC) $(CFLAGS) tests/fileprompt.c src/fileprompt.c -o tests/fileprompt-test

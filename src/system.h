@@ -31,7 +31,7 @@ const char *sys_run_program(const char *program, char *const *args, int nargs,
 			    const char *directory, sys_run_result *result);
 void sys_run_result_free(sys_run_result *);
 
-/* Start PROGRAM with ARGS and do not wait for it (a viewer window): in a
+/* Start PROGRAM (looked up on PATH when it has no slash) with ARGS and do not wait for it (a viewer window): in a
  * session of its own, with no terminal, so it survives the editor and never
  * draws on its screen.  NULL when it started, otherwise why not. */
 const char *sys_spawn_program(const char *program, char *const *args, int nargs);

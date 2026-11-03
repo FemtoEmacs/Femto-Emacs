@@ -34,8 +34,10 @@ Press **C-c d** in either native window to open Chrome. The original native
 window stays available for Codex (`C-c g`) and Claude (`C-c r`). Browser AI
 commands and Help-menu entries direct you there; the browser has no AI API,
 CLI login, shell endpoint, or credentials. On macOS Chrome is opened by name;
-on Linux the launcher uses `google-chrome`. Set `CHEZWEB_BROWSER` to a browser
-executable path if needed; its only argument is the local session URL.
+on Linux it finds Chrome/Chromium on PATH and falls back to the desktop's
+browser opener. The bottom line shows the local editor URL, so it can also
+be opened manually. `CHEZWEB_BROWSER` optionally overrides the browser with
+an executable path or command name; its only argument is the local URL.
 
 Grammarly starts **off** every time. The **Grammarly: off** button toggles a real text field over the selected
 buffer's canvas rows. Enable it when you want the installed Grammarly

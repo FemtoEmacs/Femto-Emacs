@@ -201,7 +201,7 @@ const char *sys_spawn_program(const char *program, char *const *args, int nargs)
 		if (fork() != 0) _exit(0);
 		int null = open("/dev/null", O_RDWR);
 		if (null >= 0) { dup2(null, 0); dup2(null, 1); dup2(null, 2); if (null > 2) close(null); }
-		execv(program, argv);
+		execvp(program, argv);
 		int e = errno;
 		if (write(fds[1], &e, sizeof(e)) < 0) { /* nothing more to say */ }
 		_exit(127);
