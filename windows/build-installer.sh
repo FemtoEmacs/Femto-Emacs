@@ -47,6 +47,10 @@ if [ -d /etc/pki ]; then cp -RL /etc/pki "$stage/etc/"; fi
 if [ -d /usr/ssl ]; then cp -RL /usr/ssl "$stage/usr/"; fi
 printf 'none / cygdrive binary,posix=0,user 0 0\n' > "$stage/etc/fstab"
 cp /usr/share/doc/Cygwin/* "$stage/licenses/" 2>/dev/null || true
+find /usr/share/doc -type f \( -iname 'copying*' -o -iname 'license*' -o -iname 'copyright*' \) | while IFS= read -r file; do
+ mkdir -p "$stage/licenses/doc/$(dirname "$file")"
+ cp "$file" "$stage/licenses/doc/$file"
+done
 cp runtime/wasmtime/LICENSE "$stage/licenses/Wasmtime-LICENSE" 2>/dev/null || true
 cp windows/README.md "$stage/licenses/Chezweb-Windows.txt"
 # Preserve the licenses shipped with both SDL development distributions.

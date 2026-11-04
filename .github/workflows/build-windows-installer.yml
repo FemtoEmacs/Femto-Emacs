@@ -14,13 +14,27 @@ jobs:
         shell: pwsh
         run: git config --global core.autocrlf false
       - uses: actions/checkout@v4
+      - name: Restore Cygwin package downloads
+        id: downloads
+        uses: actions/cache/restore@v4
+        with:
+          path: 'D:\cygwin-packages'
+          key: chezweb-cygwin-x64-20261104
       - name: Install Cygwin build environment
         id: cygwin
+        timeout-minutes: 12
         uses: cygwin/cygwin-install-action@5a1b0cd107181fa6bb6bf3f90d500f4fb3132f18
         with:
           install-dir: 'C:\cygwin64'
-          packages: gcc-core binutils make libncurses-devel pkg-config curl unzip xz git mintty zip
+          site: https://cygwin.mirror.constant.com/
+          packages: gcc-core binutils make libncurses-devel pkg-config curl unzip xz mintty
           add-to-path: false
+      - name: Save Cygwin package downloads
+        if: steps.downloads.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: 'D:\cygwin-packages'
+          key: chezweb-cygwin-x64-20261104
       - name: Install installer compiler
         shell: pwsh
         run: choco install nsis --no-progress -y
@@ -33,7 +47,7 @@ jobs:
       - name: Download corresponding component sources
         shell: pwsh
         run: |
-          & '${{ steps.cygwin.outputs.setup }}' --quiet-mode --download --include-source --no-admin --no-desktop --no-startmenu --root 'C:\cygwin64' --local-package-dir "$env:GITHUB_WORKSPACE\build\windows\cygwin-sources" --site https://mirrors.kernel.org/sourceware/cygwin/ --packages cygwin,bash,mintty,ncurses,coreutils,findutils,gawk,grep,sed,tar,xz,gzip,curl,unzip
+          & '${{ steps.cygwin.outputs.setup }}' --quiet-mode --download --include-source --no-admin --no-desktop --no-startmenu --root 'C:\cygwin64' --local-package-dir "$env:GITHUB_WORKSPACE\build\windows\cygwin-sources" --site https://cygwin.mirror.constant.com/ --packages cygwin,bash,mintty,ncurses,coreutils,findutils,gawk,grep,sed,tar,xz,gzip,curl,unzip
           if ($LASTEXITCODE -ne 0) { throw "Source download failed: $LASTEXITCODE" }
       - name: Install into a clean directory and test
         shell: pwsh
