@@ -15,6 +15,13 @@ if [ "${1:-}" = --delete-codemax ]; then
  git push origin --delete codemax
  exit
 fi
+if [ "${1:-}" = --windows ]; then
+ [ "$#" -eq 1 ] && [ "$(git branch --show-current)" = windows ] || exit 1
+ if [ -s git/next-commit.txt ]; then sh git/gitcommit.sh; fi
+ # The old Windows tip is a merge parent: publication is a fast-forward.
+ git push -u origin windows
+ exit
+fi
 [ "$#" -eq 0 ] || { echo 'Unsupported publishing option' >&2;exit 1; }
 [ "$(git branch --show-current)" = master ] || { echo 'This publisher expects master' >&2;exit 1; }
 if [ -s git/next-commit.txt ]; then sh git/gitcommit.sh; fi

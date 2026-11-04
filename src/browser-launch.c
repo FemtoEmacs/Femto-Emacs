@@ -29,6 +29,15 @@ static const char *open_chrome(void){
  const char *browser=getenv("CHEZWEB_BROWSER");if(browser&&*browser){char *args[]={url};return sys_spawn_program(browser,args,1);}
 #ifdef __APPLE__
  char *args[]={"-a","Google Chrome",url};return sys_spawn_program("/usr/bin/open",args,3);
+#elif defined(__CYGWIN__)
+ /* Native Windows Chrome, without invoking cmd.exe or a shell command. */
+ const char *bases[]={getenv("PROGRAMFILES"),getenv("PROGRAMFILES(X86)"),getenv("LOCALAPPDATA"),NULL};
+ char exe[8192];char *args[]={url};
+ for(int i=0;i<3;i++)if(bases[i]&&*bases[i]){
+  snprintf(exe,sizeof exe,"%s/Google/Chrome/Application/chrome.exe",bases[i]);
+  if(!access(exe,X_OK))return sys_spawn_program(exe,args,1);
+ }
+ return "Google Chrome was not found; install Chrome or set CHEZWEB_BROWSER";
 #else
  /* Chrome's command name varies by distribution and packaging. */
  const char *names[]={"google-chrome","google-chrome-stable","chromium","chromium-browser",NULL};

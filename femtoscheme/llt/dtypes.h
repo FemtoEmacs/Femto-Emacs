@@ -20,6 +20,9 @@
 #if defined(__EMSCRIPTEN__)
 /* WebAssembly in a browser: Emscripten emulates a POSIX system. */
 #  define LINUX
+#elif defined(__CYGWIN__)
+/* Cygwin supplies POSIX and LP64 on Windows, including /proc/self/exe. */
+#  define LINUX
 #elif defined(__gnu_linux__)
 #  define LINUX
 #elif defined(__APPLE__) && defined(__MACH__)

@@ -27,6 +27,10 @@ WASMTIME_LIBS = -L$(WASMTIME_ROOT)/lib -lwasmtime -Wl,-rpath,'$$ORIGIN/runtime/w
 ifeq ($(UNAME_S),Darwin)
 WASMTIME_LIBS = -L$(WASMTIME_ROOT)/lib -lwasmtime -Wl,-rpath,@loader_path/runtime/wasmtime/lib
 endif
+# The Windows installer bundles Cygwin for the editor's POSIX services.
+ifneq ($(filter CYGWIN%,$(UNAME_S)),)
+WASMTIME_LIBS = -L$(WASMTIME_ROOT)/lib -lwasmtime
+endif
 OBJECTS += schemer/native-host.o
 RUNTIME = femtoscheme/libfemtoscheme.a femtoscheme/llt/libllt.a
 .PHONY: all runtime check check-compiled check-library check-scripts check-compile-scripts fetch-wasmtime clean

@@ -1,0 +1,51 @@
+#!/bin/bash
+# Run on a Windows Cygwin builder, not on an end user's computer.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+sh windows/prepare-runtime.sh
+export PATH="$PWD:$PATH"
+make -j2 SDL_LIBS= SDL_CFLAGS=
+work="$PWD/build/windows"
+stage="$work/stage"
+rm -rf "$stage"
+mkdir -p "$stage"/{app,bin,tmp,etc,licenses,usr/share/terminfo}
+# The source compiler remains available for personal scripts. Native caches
+# are deliberately omitted: Wasmtime regenerates them for the user's CPU.
+cp chezweb.exe chezweb-server.exe schemer-compile.exe "$stage/app/"
+cp chezemax.wasm Chezweb.html "$stage/app/"
+cp -R scheme compiled schemer tools femtoscheme "$stage/app/"
+find "$stage/app" -type d -name bkp -prune -exec rm -rf {} +
+find "$stage/app" -type f \( -name '*.o' -o -name '*.a' -o -name '*.cwasm' -o -name '*.exe' \) ! -path "$stage/app/*.exe" -delete
+mkdir -p "$stage/app/build"
+cp build/chezweb.js build/chezweb.wasm "$stage/app/build/"
+cp windows/start.sh "$stage/app/"
+# Bundle the basic shell tools used by the editor and by compile-scripts.
+commands='bash sh mintty cygpath cat cp mv rm mkdir mktemp dirname basename find sort awk grep sed head tail wc tr cut chmod pwd env date tar xz gzip curl unzip sha256sum'
+for cmd in $commands; do
+ src=$(command -v "$cmd")
+ # Some shell builtins (pwd) also have a standalone executable.
+ [ -f "$src" ] || src="/usr/bin/$cmd.exe"
+ cp -L "$src" "$stage/bin/$cmd.exe"
+done
+# Cygwin DLL dependencies, including transitive ones, come from the exact
+# packages installed on this builder. cygcheck recursively enumerates them.
+for exe in "$stage"/{bin,app}/*.exe; do
+ cygcheck "$exe" | sed 's/^[[:space:]]*//' | while IFS= read -r dependency; do
+  posix=$(cygpath -u "$dependency" 2>/dev/null || true)
+  case "$posix" in /usr/bin/*.dll|/bin/*.dll) cp -u "$posix" "$stage/bin/" ;; esac
+ done
+done
+cp ./*wasmtime*.dll "$stage/bin/"
+cp -R /usr/share/terminfo/. "$stage/usr/share/terminfo/"
+printf 'none / cygdrive binary,posix=0,user 0 0\n' > "$stage/etc/fstab"
+cp /usr/share/doc/Cygwin/* "$stage/licenses/" 2>/dev/null || true
+cp runtime/wasmtime/LICENSE "$stage/licenses/Wasmtime-LICENSE" 2>/dev/null || true
+cp windows/README.md "$stage/licenses/Chezweb-Windows.txt"
+cygcheck -cd > "$work/installed-packages.txt"
+# Record the complete build source without ignored documents or caches.
+git archive HEAD | gzip > "$work/Chezweb-source.tar.gz"
+makensis=$(cygpath -u 'C:\Program Files (x86)\NSIS\makensis.exe')
+[ -x "$makensis" ] || makensis=$(command -v makensis)
+cp windows/installer.nsi "$work/"
+(cd "$work" && "$makensis" installer.nsi)
+sha256sum "$work/"*.exe > "$work/SHA256SUMS"

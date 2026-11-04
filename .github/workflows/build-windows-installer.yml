@@ -1,0 +1,65 @@
+name: Windows installer
+on:
+  push:
+    branches: [windows]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  installer:
+    runs-on: windows-2025
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Cygwin build environment
+        id: cygwin
+        uses: cygwin/cygwin-install-action@5a1b0cd107181fa6bb6bf3f90d500f4fb3132f18
+        with:
+          install-dir: 'C:\cygwin64'
+          packages: gcc-core binutils make libncurses-devel pkg-config curl unzip xz git mintty zip
+          add-to-path: false
+      - name: Install installer compiler
+        shell: pwsh
+        run: choco install nsis --no-progress -y
+      - name: Build Chezweb and installer
+        shell: C:\cygwin64\bin\bash.exe --noprofile --norc -eo pipefail {0}
+        run: |
+          export PATH=/usr/bin:$PATH
+          cd "$(cygpath -u "$GITHUB_WORKSPACE")"
+          bash windows/build-installer.sh 2>&1 | tee windows-build.log
+      - name: Download corresponding component sources
+        shell: pwsh
+        run: |
+          & '${{ steps.cygwin.outputs.setup }}' --quiet-mode --download --include-source --no-admin --no-desktop --no-startmenu --root 'C:\cygwin64' --local-package-dir "$env:GITHUB_WORKSPACE\build\windows\cygwin-sources" --site https://mirrors.kernel.org/sourceware/cygwin/ --packages cygwin,bash,mintty,ncurses,coreutils,findutils,gawk,grep,sed,tar,xz,gzip,curl,unzip
+          if ($LASTEXITCODE -ne 0) { throw "Source download failed: $LASTEXITCODE" }
+      - name: Install into a clean directory and test
+        shell: pwsh
+        run: |
+          $dest = "$env:RUNNER_TEMP\Chezweb installed test"
+          $installer = "$env:GITHUB_WORKSPACE\build\windows\Chezweb-Windows-x86_64-Setup.exe"
+          $p = Start-Process $installer -ArgumentList @('/S', "/D=$dest") -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw 'Installer failed' }
+          $env:PATH = "$dest\bin;$dest\app;$env:SystemRoot\system32;$env:SystemRoot"
+          & "$dest\bin\bash.exe" --noprofile --norc "$env:GITHUB_WORKSPACE\windows\smoke-test.sh" $dest
+          if ($LASTEXITCODE -ne 0) { throw 'Installed editor failed' }
+          $u = Start-Process "$dest\Uninstall.exe" -ArgumentList '/S' -Wait -PassThru
+          if ($u.ExitCode -ne 0) { throw 'Uninstaller failed' }
+      - name: Upload installer and matching sources
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Chezweb-Windows-x86_64
+          path: |
+            build/windows/*Setup.exe
+            build/windows/SHA256SUMS
+            build/windows/*source.tar.gz
+            build/windows/installed-packages.txt
+            build/windows/cygwin-sources/
+            windows-build.log
+          retention-days: 30
+      - name: Upload failed build diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Windows-build-diagnostics
+          path: windows-build.log
