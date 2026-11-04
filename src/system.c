@@ -22,6 +22,7 @@
 #include <time.h>
 #include <unistd.h>
 #include "system.h"
+#include "process-windows.h"
 
 int sys_file_info(const char *path, int *is_dir, long long *size, long long *mtime)
 {
@@ -95,6 +96,9 @@ const char *sys_run_program(const char *program, char *const *args, int nargs,
 			    const char *input, size_t input_len, long timeout,
 			    const char *dir, sys_run_result *r)
 {
+#ifdef __CYGWIN__
+ return win_run_program(program,args,nargs,input,input_len,timeout,dir,r);
+#else
 	char *argv[SYS_MAX_ARGS + 2];
 	int argc = 0;
 	static char why[160];
@@ -170,6 +174,7 @@ const char *sys_run_program(const char *program, char *const *args, int nargs,
 		WIFEXITED(status) ? WEXITSTATUS(status) : 128 + WTERMSIG(status);
 	unlink(in); unlink(out); unlink(err); rmdir(tmp);
 	return NULL;
+#endif
 }
 
 void sys_run_result_free(sys_run_result *r)
@@ -183,11 +188,16 @@ void sys_run_result_free(sys_run_result *r)
 const char *sys_spawn_program(const char *program, char *const *args, int nargs)
 {
 	char *argv[SYS_MAX_ARGS + 2];
-	int argc = 0, fds[2];
+	int argc = 0;
 	if (nargs > SYS_MAX_ARGS) return "spawn-program: too many arguments";
 	argv[argc++] = (char *) program;
 	for (int k = 0; k < nargs; k++) argv[argc++] = args[k];
 	argv[argc] = NULL;
+#ifdef __CYGWIN__
+ win_process child=NULL;const char *why=win_process_start(program,argv,NULL,NULL,NULL,NULL,&child);
+ if(child)win_process_close(child);return why;
+#else
+ int fds[2];
 	if (pipe(fds) != 0) return "spawn-program: pipe failed";
 	fcntl(fds[1], F_SETFD, FD_CLOEXEC);
 	pid_t pid = fork();
@@ -213,6 +223,7 @@ const char *sys_spawn_program(const char *program, char *const *args, int nargs)
 	close(fds[0]);
 	if (got == (ssize_t) sizeof(err)) return strerror(err);
 	return NULL;
+#endif
 }
 
 /* the names in DIRECTORY (malloc'd, *COUNT of them), or NULL */

@@ -3,6 +3,7 @@
  * made concurrently in the native buffer are preserved as a conflict. */
 #include "header.h"
 #include "system.h"
+#include "process-windows.h"
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <signal.h>
@@ -22,9 +23,17 @@ extern void fe_insert_bytes(long,char *,long);
 static char session[4096],url[4096],launch_message[8192],*baseline;
 static size_t baseline_len;
 static buffer_t *source;
+#ifdef __CYGWIN__
+static win_process server_process;
+static int server_running(void){int status;if(!server_process)return 0;if(win_process_wait(server_process,0,&status)==0)return 1;win_process_close(server_process);server_process=NULL;return 0;}
+static void stop_server(void){if(server_process){win_process_kill(server_process);win_process_close(server_process);server_process=NULL;}}
+#else
 static pid_t server_pid;
+static int server_running(void){return server_pid>0&&waitpid(server_pid,NULL,WNOHANG)==0;}
+static void stop_server(void){if(server_pid>0){kill(server_pid,SIGTERM);waitpid(server_pid,NULL,0);server_pid=0;}}
+#endif
 static char *snapshot(buffer_t *bp,size_t *n){buffer_t *save=curbp;curbp=bp;*n=(size_t)document_size(bp);char *s=malloc(*n+1);if(s){fe_copy_text(0,(long)*n,s);s[*n]=0;}curbp=save;return s;}
-static void cleanup(void){if(server_pid>0){kill(server_pid,SIGTERM);waitpid(server_pid,NULL,0);}if(*session){const char *names[]={"initial","name","pending","pending.new","incoming","ready",NULL};char p[8192];for(int i=0;names[i];i++){snprintf(p,sizeof p,"%s/%s",session,names[i]);unlink(p);}rmdir(session);}free(baseline);baseline=NULL;server_pid=0;*session=0;*url=0;}
+static void cleanup(void){stop_server();if(*session){const char *names[]={"initial","name","pending","pending.new","incoming","ready",NULL};char p[8192];for(int i=0;names[i];i++){snprintf(p,sizeof p,"%s/%s",session,names[i]);unlink(p);}rmdir(session);}free(baseline);baseline=NULL;*session=0;*url=0;}
 static const char *open_chrome(void){
  const char *browser=getenv("CHEZWEB_BROWSER");if(browser&&*browser){char *args[]={url};return sys_spawn_program(browser,args,1);}
 #ifdef __APPLE__
@@ -55,7 +64,7 @@ static const char *browser_result(const char *why){
  return launch_message;
 }
 const char *chezweb_launch(void){
- if(server_pid>0&&waitpid(server_pid,NULL,WNOHANG)==0){return browser_result(open_chrome());}
+ if(server_running()){return browser_result(open_chrome());}
  cleanup();
  static int registered;if(!registered){atexit(cleanup);registered=1;}
  const char *root=bridge_install_dir();char exe[8192],html[8192];snprintf(exe,sizeof exe,"%s/chezweb-server",root);snprintf(html,sizeof html,"%s/Chezweb.html",root);
@@ -64,7 +73,13 @@ const char *chezweb_launch(void){
  source=curbp;baseline=snapshot(source,&baseline_len);char path[8192];snprintf(path,sizeof path,"%s/initial",session);FILE *f=fopen(path,"wb");if(!f||!baseline)return "Cannot write the browser snapshot.";size_t written=fwrite(baseline,1,baseline_len,f);int closed=fclose(f);if(written!=baseline_len||closed)return "Cannot finish the browser snapshot.";
  snprintf(path,sizeof path,"%s/name",session);f=fopen(path,"w");if(f){const char *name=strrchr(source->b_fname,'/');name=name?name+1:source->b_fname;fputs(*name?name:"browser.txt",f);fclose(f);}
  unsigned char random[24];FILE *rng=fopen("/dev/urandom","rb");if(!rng)return "Cannot create browser session token.";size_t got=fread(random,1,sizeof random,rng);fclose(rng);if(got!=sizeof random)return "Cannot create browser session token.";char token[49];for(size_t i=0;i<sizeof random;i++)snprintf(token+i*2,3,"%02x",random[i]);
- char *args[]={exe,(char *)root,session,token,NULL};int rc=posix_spawn(&server_pid,exe,NULL,NULL,args,environ);if(rc){server_pid=0;return "Cannot start the Chezweb loopback server.";}
+ char *args[]={exe,(char *)root,session,token,NULL};
+#ifdef __CYGWIN__
+ const char *start_error=win_process_start(exe,args,NULL,NULL,NULL,NULL,&server_process);
+ if(start_error)return start_error;
+#else
+ int rc=posix_spawn(&server_pid,exe,NULL,NULL,args,environ);if(rc){server_pid=0;return "Cannot start the Chezweb loopback server.";}
+#endif
  snprintf(path,sizeof path,"%s/ready",session);for(int i=0;i<100;i++){FILE *r=fopen(path,"r");if(r){if(fgets(url,sizeof url,r))url[strcspn(url,"\r\n")]=0;fclose(r);break;}struct timespec delay={0,20000000};nanosleep(&delay,NULL);}
  if(!*url)return "The browser server did not become ready.";
  return browser_result(open_chrome());

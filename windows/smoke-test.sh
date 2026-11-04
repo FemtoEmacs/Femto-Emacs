@@ -10,6 +10,17 @@ export PATH="$root/bin:$root/app" HOME="$root/tmp/test-home" TERM=xterm-256color
 mkdir -p "$HOME"
 [ "$(chezweb --eval '(+ 20 22)')" = 42 ]
 [ "$(chezweb --eval '(let fib ((n 20)) (if (< n 2) n (+ (fib (- n 1)) (fib (- n 2)))))')" = 6765 ]
+# Start processes after Wasmtime is active, using only packaged executables.
+[ "$(chezweb --eval '(run-program "/bin/sh" (list "-c" "cat; printf err >&2; exit 7") "input" 5 #f)')" = '("input" "err" 7)' ]
+cat > "$root/tmp/process-check.scm" <<'SCHEME'
+(let ((r (run-program "/bin/sh"
+             (list "-c" "printf '<%s>\\n' \"$@\"" "fixture" "a b" "a\"b" "end\\" "") "" 5 #f)))
+  (if (and (equal? (car r) "<a b>\n<a\"b>\n<end\\>\n<>\n")
+           (= (caddr r) 0)) 42 0))
+SCHEME
+[ "$(chezweb --eval "$(cat "$root/tmp/process-check.scm")")" = 42 ]
+[ "$(chezweb --eval '(let ((r (run-program "/bin/sh" (list "-c" "while :; do :; done") "" 1 #f))) (caddr r))')" = -1 ]
+echo 'PASS installed process input/output/status, argument quoting and timeout'
 mkdir -p "$HOME/.chezemax/users"
 printf '(define (installed-answer) 42)\n' > "$HOME/.chezemax/users/answer.scm"
 chezweb --compile-scripts "$HOME/compile.log"

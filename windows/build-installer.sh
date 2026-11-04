@@ -31,7 +31,7 @@ cp windows/start.sh "$stage/app/"
 # Bundle the basic shell tools used by the editor and by compile-scripts.
 gcc -O2 -mwindows windows/gui-launch.c -o "$stage/bin/chezweb-gui-launch.exe"
 cp "$sdl/bin/"*.dll "$ttf/bin/"*.dll "$stage/bin/"
-commands='bash sh mintty cygpath cat cp mv rm mkdir mktemp dirname basename find sort awk grep sed head tail wc tr cut chmod pwd env date ls cmp touch sleep printf realpath readlink ln stat expr tar xz gzip curl unzip sha256sum'
+commands='bash sh mintty cygpath cygwin-console-helper cat cp mv rm mkdir mktemp dirname basename find sort awk grep sed head tail wc tr cut chmod pwd env date ls cmp touch sleep printf realpath readlink ln stat expr tar xz gzip curl unzip sha256sum'
 for cmd in $commands; do
  src=$(command -v "$cmd")
  # Some shell builtins (pwd) also have a standalone executable.
