@@ -20,7 +20,7 @@ mkdir -p "$stage/app/build"
 cp build/chezweb.js build/chezweb.wasm "$stage/app/build/"
 cp windows/start.sh "$stage/app/"
 # Bundle the basic shell tools used by the editor and by compile-scripts.
-commands='bash sh mintty cygpath cat cp mv rm mkdir mktemp dirname basename find sort awk grep sed head tail wc tr cut chmod pwd env date tar xz gzip curl unzip sha256sum'
+commands='bash sh mintty cygpath cat cp mv rm mkdir mktemp dirname basename find sort awk grep sed head tail wc tr cut chmod pwd env date ls cmp touch sleep printf realpath readlink ln stat expr tar xz gzip curl unzip sha256sum'
 for cmd in $commands; do
  src=$(command -v "$cmd")
  # Some shell builtins (pwd) also have a standalone executable.
@@ -37,12 +37,16 @@ for exe in "$stage"/{bin,app}/*.exe; do
 done
 cp ./*wasmtime*.dll "$stage/bin/"
 cp -R /usr/share/terminfo/. "$stage/usr/share/terminfo/"
+# curl's TLS verification uses the bundled certificate store.
+if [ -d /etc/pki ]; then cp -RL /etc/pki "$stage/etc/"; fi
+if [ -d /usr/ssl ]; then cp -RL /usr/ssl "$stage/usr/"; fi
 printf 'none / cygdrive binary,posix=0,user 0 0\n' > "$stage/etc/fstab"
 cp /usr/share/doc/Cygwin/* "$stage/licenses/" 2>/dev/null || true
 cp runtime/wasmtime/LICENSE "$stage/licenses/Wasmtime-LICENSE" 2>/dev/null || true
 cp windows/README.md "$stage/licenses/Chezweb-Windows.txt"
 cygcheck -cd > "$work/installed-packages.txt"
 # Record the complete build source without ignored documents or caches.
+gcc -O2 tests/pty-keys.c -o "$work/pty-test.exe"
 git archive HEAD | gzip > "$work/Chezweb-source.tar.gz"
 makensis=$(cygpath -u 'C:\Program Files (x86)\NSIS\makensis.exe')
 [ -x "$makensis" ] || makensis=$(command -v makensis)

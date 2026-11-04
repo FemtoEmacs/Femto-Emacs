@@ -31,9 +31,9 @@ static const char *open_chrome(void){
  char *args[]={"-a","Google Chrome",url};return sys_spawn_program("/usr/bin/open",args,3);
 #elif defined(__CYGWIN__)
  /* Native Windows Chrome, without invoking cmd.exe or a shell command. */
- const char *bases[]={getenv("PROGRAMFILES"),getenv("PROGRAMFILES(X86)"),getenv("LOCALAPPDATA"),NULL};
+ const char *bases[]={getenv("PROGRAMFILES"),getenv("ProgramFiles"),getenv("PROGRAMFILES(X86)"),getenv("ProgramFiles(x86)"),getenv("LOCALAPPDATA")};
  char exe[8192];char *args[]={url};
- for(int i=0;i<3;i++)if(bases[i]&&*bases[i]){
+ for(size_t i=0;i<sizeof bases/sizeof bases[0];i++)if(bases[i]&&*bases[i]){
   snprintf(exe,sizeof exe,"%s/Google/Chrome/Application/chrome.exe",bases[i]);
   if(!access(exe,X_OK))return sys_spawn_program(exe,args,1);
  }

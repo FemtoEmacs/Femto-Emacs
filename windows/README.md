@@ -19,6 +19,7 @@ currently requires macOS. Windows ARM64 is not a native build target here.
 Settings and personal scripts stay in %USERPROFILE%\.chezemax. Uninstallation
 preserves that folder and documents. Close Chezweb before updating/uninstalling.
 Paths inside the terminal use Cygwin notation, e.g. /c/Users/nia/Documents.
+The included shell tools support ordinary ls, cd and pwd commands.
 
 Maintainers: the GitHub workflow installs build dependencies, runs
 windows/build-installer.sh, tests a silently installed copy in a folder with
