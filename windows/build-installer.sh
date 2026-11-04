@@ -3,15 +3,18 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 sh windows/prepare-runtime.sh
-export PATH="$PWD:$PATH"
-make -j2 SDL_LIBS= SDL_CFLAGS=
+bash windows/prepare-sdl.sh
+sdl="$PWD/build/windows/sdl/SDL2-2.32.10/x86_64-w64-mingw32"
+ttf="$PWD/build/windows/sdl/SDL2_ttf-2.24.0/x86_64-w64-mingw32"
+export PATH="$PWD:$sdl/bin:$ttf/bin:$PATH"
+make -j2 SDL_CFLAGS="-I$sdl/include/SDL2 -I$ttf/include/SDL2" SDL_LIBS="-L$sdl/lib -L$ttf/lib -lSDL2_ttf -lSDL2"
 work="$PWD/build/windows"
 stage="$work/stage"
 rm -rf "$stage"
 mkdir -p "$stage"/{app,bin,tmp,etc,licenses,usr/share/terminfo}
 # The source compiler remains available for personal scripts. Native caches
 # are deliberately omitted: Wasmtime regenerates them for the user's CPU.
-cp chezweb.exe chezweb-server.exe schemer-compile.exe "$stage/app/"
+cp chezweb.exe chezweb-gui.exe chezweb-server.exe schemer-compile.exe "$stage/app/"
 cp chezemax.wasm Chezweb.html "$stage/app/"
 cp -R scheme compiled schemer tools femtoscheme "$stage/app/"
 find "$stage/app" -type d -name bkp -prune -exec rm -rf {} +
@@ -20,6 +23,8 @@ mkdir -p "$stage/app/build"
 cp build/chezweb.js build/chezweb.wasm "$stage/app/build/"
 cp windows/start.sh "$stage/app/"
 # Bundle the basic shell tools used by the editor and by compile-scripts.
+gcc -O2 -mwindows windows/gui-launch.c -o "$stage/bin/chezweb-gui-launch.exe"
+cp "$sdl/bin/"*.dll "$ttf/bin/"*.dll "$stage/bin/"
 commands='bash sh mintty cygpath cat cp mv rm mkdir mktemp dirname basename find sort awk grep sed head tail wc tr cut chmod pwd env date ls cmp touch sleep printf realpath readlink ln stat expr tar xz gzip curl unzip sha256sum'
 for cmd in $commands; do
  src=$(command -v "$cmd")
@@ -52,4 +57,4 @@ makensis=$(cygpath -u 'C:\Program Files (x86)\NSIS\makensis.exe')
 [ -x "$makensis" ] || makensis=$(command -v makensis)
 cp windows/installer.nsi "$work/"
 (cd "$work" && "$makensis" installer.nsi)
-sha256sum "$work/"*.exe > "$work/SHA256SUMS"
+(cd "$work" && sha256sum *Setup.exe > SHA256SUMS)

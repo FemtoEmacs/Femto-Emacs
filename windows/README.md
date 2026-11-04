@@ -12,8 +12,8 @@ editor. The terminal window remains open for shell commands and AI assistance.
 This package bundles the Cygwin POSIX runtime, mintty, ncurses, the Scheme
 compiler, the native Windows Wasmtime DLL and portable browser WebAssembly.
 Users do not install Cygwin, WSL, a C compiler, Node or a browser compiler.
-The initial package provides terminal and browser interfaces; SDL is not
-included. Claude/Codex are optional separate installations. PDF rendering
+The package provides terminal, native SDL GUI and browser interfaces.
+Choose Chezweb or Chezweb GUI in the Start menu. Claude/Codex are optional separate installations. PDF rendering
 currently requires macOS. Windows ARM64 is not a native build target here.
 
 Settings and personal scripts stay in %USERPROFILE%\.chezemax. Uninstallation

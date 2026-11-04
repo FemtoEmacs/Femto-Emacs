@@ -13,6 +13,9 @@
 #define SDL_MAIN_HANDLED
 #include <SDL.h>
 #include <SDL_ttf.h>
+#ifdef __CYGWIN__
+#include <sys/cygwin.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -243,7 +246,7 @@ static const char *font_candidates[] = {
 	"/System/Library/Fonts/Monaco.ttf",
 	"/System/Library/Fonts/SFNSMono.ttf",
 	"/Library/Fonts/Courier New.ttf",
-#elif defined(_WIN32)
+#elif defined(_WIN32) || defined(__CYGWIN__)
 	"C:\\Windows\\Fonts\\consola.ttf",
 	"C:\\Windows\\Fonts\\cour.ttf",
 	"C:\\Windows\\Fonts\\lucon.ttf",
@@ -270,6 +273,10 @@ static void close_fonts(void)
 
 static int open_fonts_from(const char *path)
 {
+#ifdef __CYGWIN__
+ char native[4096];
+ if(path[0]=='/' && !cygwin_conv_path(CCP_POSIX_TO_WIN_A,path,native,sizeof native)) path=native;
+#endif
 	static const int styles[4] = {
 		TTF_STYLE_NORMAL, TTF_STYLE_BOLD, TTF_STYLE_ITALIC, TTF_STYLE_BOLD | TTF_STYLE_ITALIC
 	};
@@ -707,7 +714,7 @@ static void key_down(SDL_KeyboardEvent *e)
 
 	suppress_text = 0;
 
-#if defined(_WIN32)
+#if defined(_WIN32) || defined(__CYGWIN__)
 	/* AltGr arrives as Ctrl+Alt: it types text */
 	if ((mod & KMOD_RALT) && (mod & KMOD_LCTRL)) return;
 #endif
@@ -931,6 +938,7 @@ static int usable_driver(void)
 int screen_probe(void)
 {
 	int ok;
+	SDL_SetMainReady();
 	hints();
 	ok = SDL_Init(SDL_INIT_VIDEO) == 0 && usable_driver();
 	SDL_Quit();
@@ -942,6 +950,7 @@ int screen_init(int mouse)
 	int i, r, c;
 
 	(void) mouse;                        /* the mouse is always on */
+	SDL_SetMainReady();
 	hints();
 	if (SDL_Init(SDL_INIT_VIDEO) != 0) {
 		fprintf(stderr, "chezemax: SDL_Init: %s\n", SDL_GetError());

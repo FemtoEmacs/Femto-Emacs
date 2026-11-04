@@ -1,3 +1,6 @@
+#if defined(__CYGWIN__)
+#define _XOPEN_SOURCE 700
+#endif
 /*
   string functions
 */

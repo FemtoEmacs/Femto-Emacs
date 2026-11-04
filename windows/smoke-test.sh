@@ -11,6 +11,7 @@ mkdir -p "$HOME"
 # The packaged browser bundle is genuinely present, and the compiler starts.
 [ -s "$root/app/build/chezweb.wasm" ] && [ -s "$root/app/build/chezweb.js" ]
 [ -s "$root/app/schemer/compiler.wasm" ]
+[ "$(chezweb-gui --eval '(fe-screen-probe)')" = 1 ]
 chezweb --version
 printf 'PASS installed Windows editor: compiled Scheme, Fibonacci, browser assets\n'
 

@@ -20,12 +20,14 @@ Section "Chezweb"
  CreateDirectory "$SMPROGRAMS\Chezweb"
  CreateShortcut "$SMPROGRAMS\Chezweb\Chezweb.lnk" "$INSTDIR\bin\mintty.exe" '-t Chezweb /bin/bash --noprofile --norc /app/start.sh'
  CreateShortcut "$SMPROGRAMS\Chezweb\Uninstall.lnk" "$INSTDIR\Uninstall.exe"
+ CreateShortcut "$SMPROGRAMS\Chezweb\Chezweb GUI.lnk" "$INSTDIR\bin\chezweb-gui-launch.exe"
  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Chezweb" "DisplayName" "Chezweb"
  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Chezweb" "UninstallString" '$"$INSTDIR\Uninstall.exe$"'
  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Chezweb" "InstallLocation" "$INSTDIR"
 SectionEnd
 Section "Uninstall"
  Delete "$SMPROGRAMS\Chezweb\Chezweb.lnk"
+ Delete "$SMPROGRAMS\Chezweb\Chezweb GUI.lnk"
  Delete "$SMPROGRAMS\Chezweb\Uninstall.lnk"
  RMDir "$SMPROGRAMS\Chezweb"
  DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Chezweb"
