@@ -39,6 +39,8 @@
 
 /* the byte a back end returns from screen_getch() when the screen resized */
 #define SCR_KEY_RESIZE 0x9A
+/* A timed native wait expired; never a character or an editing command. */
+#define SCR_KEY_IDLE (-3)
 
 /* life cycle */
 extern int  screen_probe(void);            /* 1 if screen_init can work here */

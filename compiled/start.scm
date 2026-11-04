@@ -23,7 +23,9 @@
 ;;; (compiled-key!, editor.scm), then the scripts' EDITOR-EVENT
 (start-hook! hook-event
   (lambda (kind arg)
-    (when *compile-scripts-log* (compile-scripts-check))
+    ;; A key command might immediately replace the completion message.
+    ;; Deliver it at an idle boundary instead, outside prompts.
+    (when (and *compile-scripts-log* (string=? kind "idle")) (compile-scripts-check))
     (cond ((string=? kind "init") (start-up) #t)
           (else (or (compiled-editor-event kind arg)
                     (editor-event kind arg))))))
@@ -135,6 +137,43 @@ take effect when Chezemax starts again."
               (begin (set! *compile-scripts-log* log)
                      (message "Compiling the scripts in the background (a few minutes); keep editing"))
               (message "compile-scripts could not start: " (->string r)))))))
+
+(define (script-installer-default-name)
+  (let* ((file (buffer-filename))
+         (base (if file (file-name-nondirectory file) "my-script.scm"))
+         (dot (string-index-right base #\.)))
+    (cond ((or (string=? base "") (char=? (string-ref base 0) #\.)) "my-script.scm")
+          ((ends-with-p ".scm" base) base)
+          (else (string-append (if dot (substring base 0 dot) base) ".scm")))))
+
+(define (script-installer-name destination)
+  "A visible .scm filename directly under ~/.chezemax/users, or #f."
+  (let* ((root (config-file "users/")) (path (absolute-path destination)))
+    (and (starts-with-p root path)
+         (let ((name (substring path (string-length root) (string-length path))))
+           (and (> (string-length name) 4) (ends-with-p ".scm" name)
+                (not (char=? (string-ref name 0) #\.))
+                (not (string-index name #\/)) (not (string-index name #\\)) name)))))
+
+(defcommand (script-installer)
+  "Install this buffer, including unsaved edits, in ~/.chezemax/users/.
+The source file, buffer filename and modified flag stay as they were.
+Then use M-x compile-scripts and restart to load the installed script."
+  (let ((destination (fe-file-prompt-default "Install script as: "
+                       (config-file (string-append "users/" (script-installer-default-name))))))
+    (if (string=? destination "")
+        (message "Script installation cancelled")
+        (let* ((name (script-installer-name destination))
+               (exists (and name (path.exists? (config-file (string-append "users/" name))))))
+          (cond ((not name) (message "Choose a visible .scm file directly in ~/.chezemax/users/"))
+                ((and exists
+                      (not (string-ci=? "y" (trim (prompt (string-append "Replace " name "? (y/n) ") "")))))
+                 (message "Script installation cancelled"))
+                (else
+                 (let ((error (fe-install-script name (if exists 1 0))))
+                   (if (string=? error "")
+                       (message "Installed " name "; M-x compile-scripts, then restart")
+                       (message "Script installation failed: " error)))))))))
 
 ;;; After the program has started, before the screen does (fe_main): the
 ;;; C core sends the event "init" (flcall.c).  Your files are compiled

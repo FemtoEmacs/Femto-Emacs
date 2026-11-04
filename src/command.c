@@ -39,7 +39,7 @@ int yesno(int flag)
 
 	screen_addstr(flag ? str_yes : str_no);
 	screen_refresh();
-	ch = read_key_byte();
+	ch = read_nonmouse_key_byte();
 	if (ch == '\r' || ch == '\n')
 		return (flag);
 	return (tolower(ch) == str_yes[1]);
@@ -118,9 +118,40 @@ static point_t mouse_old_mark = NOMARK;
 /* the id of the mode line button under a pressed mouse button, or -1 */
 static int menu_down_row = -1, menu_down_index = -1;
 
+/* Hover help never selects a pane or runs the button. Restore a previous
+ * message only if no subsequent command has replaced our hint. */
+static int hover_id = -1;
+static char hover_previous[TEMPBUF], hover_message[TEMPBUF];
+void clear_button_hover(void)
+{
+ if (hover_id >= 0 && strcmp(msgline, hover_message) == 0) {
+  snprintf(msgline, TEMPBUF, "%s", hover_previous);
+  msgflag = TRUE;
+ }
+ hover_id = -1;
+}
+
 void editor_mouse_event()
 {
 	int b = mouse_button;
+
+ if ((b & 32) && (b & 3) == 3) {
+  int id = menu_hit(mouse_row, mouse_col);
+  if (id != hover_id) {
+   clear_button_hover();
+   if (id >= 0) {
+    char arg[16];
+    snprintf(hover_previous, sizeof hover_previous, "%s", msgline);
+    snprintf(arg, sizeof arg, "%d", id);
+    call_lisp_event("menu-hover", arg);
+    snprintf(hover_message, sizeof hover_message, "%s", msgline);
+    hover_id = id;
+   }
+  }
+  msgflag = TRUE; /* passive motion must not erase an unrelated message */
+  return;
+ }
+ clear_button_hover();
 
 	if (b & 64) {                   /* wheel: 64 up, 65 down (66, 67 sideways) */
 		if ((b & 3) < 2 && select_screen_window(mouse_row))
@@ -922,7 +953,7 @@ void i_describe_key()
 	screen_mvaddstr(MSGLINE, 0, "Describe key ");
 	screen_clrtoeol();
 
-	input = get_key(key_map, &key_return);
+	do { input = get_key(key_map, &key_return); } while (key_return == &idle_key);
 
 	if (key_return != NULL)
 		msg("%s runs the command '%s'", key_return->key_name, key_return->key_desc);

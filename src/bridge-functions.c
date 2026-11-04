@@ -568,6 +568,21 @@ static void b_fe_log_message(bridge_in *in, bridge_out *out)
 	free(a1);
 }
 
+extern char *fe_key_command(char *name);
+static void b_fe_key_command(bridge_in *in, bridge_out *out)
+{
+	char *a1 = bridge_string(in);
+	const char *r = fe_key_command(a1);
+	bridge_put_string(out, r);
+	free(a1);
+}
+
+extern int fe_mouse_menu_hit(void);
+static void b_fe_mouse_menu_hit(bridge_in *in, bridge_out *out)
+{
+	bridge_put_int(out, (long) fe_mouse_menu_hit());
+}
+
 extern char * fe_get_key(void);
 static void b_fe_get_key(bridge_in *in, bridge_out *out)
 {
@@ -587,6 +602,27 @@ static void b_fe_get_key_binding(bridge_in *in, bridge_out *out)
 {
 	const char *r = fe_get_key_binding();
 	bridge_put_string(out, r);
+}
+
+extern char *fe_file_prompt_default(char *question, char *initial);
+static void b_fe_file_prompt_default(bridge_in *in, bridge_out *out)
+{
+	char *a1 = bridge_string(in);
+	char *a2 = bridge_string(in);
+	const char *r = fe_file_prompt_default(a1, a2);
+	bridge_put_string(out, r);
+	free(a1);
+	free(a2);
+}
+
+extern char *fe_install_script(char *name, int overwrite);
+static void b_fe_install_script(bridge_in *in, bridge_out *out)
+{
+	char *a1 = bridge_string(in);
+	int a2 = (int) bridge_int(in);
+	const char *r = fe_install_script(a1, a2);
+	bridge_put_string(out, r);
+	free(a1);
 }
 
 extern char * fe_prompt(char *prompt, char *initial);
@@ -763,9 +799,13 @@ void bridge_register_editor(void)
 	bridge_register("fe-clear-message-line", b_fe_clear_message_line);
 	bridge_register("fe-log-debug", b_fe_log_debug);
 	bridge_register("fe-log-message", b_fe_log_message);
+	bridge_register("fe-key-command", b_fe_key_command);
+	bridge_register("fe-mouse-menu-hit", b_fe_mouse_menu_hit);
 	bridge_register("fe-get-key", b_fe_get_key);
 	bridge_register("fe-get-key-name", b_fe_get_key_name);
 	bridge_register("fe-get-key-binding", b_fe_get_key_binding);
+	bridge_register("fe-file-prompt-default", b_fe_file_prompt_default);
+	bridge_register("fe-install-script", b_fe_install_script);
 	bridge_register("fe-prompt", b_fe_prompt);
 	bridge_register("fe-shell-command", b_fe_shell_command);
 	bridge_register("fe-add-mode-global", b_fe_add_mode_global);

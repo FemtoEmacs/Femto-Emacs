@@ -527,7 +527,16 @@ void fe_log_debug(char *s)           { debug("%s", s); }
 void fe_log_message(char *s)         { log_message(s); }
 
 /* keyboard */
-char *fe_get_key(void)               { return fe_get_input_key(); }
+char *fe_get_key(void)
+{
+ for (;;) {
+  char *key = fe_get_input_key();
+  if (key_return == &idle_key) continue;
+  if (key_return && key_return->func == editor_mouse_event &&
+      (mouse_button & 32) && (mouse_button & 3) == 3) continue;
+  return key;
+ }
+}
 
 char *fe_get_key_name(void)
 {
@@ -570,3 +579,28 @@ const char *fe_backend(void)         { return screen_backend(); }
 void fe_gui_set_font(char *path, int points)          { screen_set_font(path, points); }
 void fe_gui_set_colors(long fg, long bg, long cursor) { screen_set_default_colors(fg, bg, cursor); }
 void fe_gui_set_option(char *name, int value)         { screen_set_option(name, value); }
+
+/* Help queries inspect bindings without reading or executing a key. */
+char *fe_key_command(char *name)
+{
+ for (keymap_t *k = key_map ? key_map : keymap; k->key_bytes != NULL; k++)
+  if (strcmp(k->key_name, name) == 0) return k->key_desc;
+ return "";
+}
+
+/* -3: release, -2: motion, -1: press outside a button, otherwise action id. */
+int fe_mouse_menu_hit(void)
+{
+ if (mouse_release) return -3;
+ if ((mouse_button & (32 | 64)) || (mouse_button & 3) != 0) return -2;
+ return menu_hit(mouse_row, mouse_col);
+}
+
+/* Editable filename prompt with the same completion as Save As. */
+char *fe_file_prompt_default(char *question, char *initial)
+{
+ static char response[4096];
+ safe_strncpy(response, initial, sizeof response);
+ if (!getfilename_default(question, response, sizeof response - 1)) response[0] = 0;
+ return response;
+}

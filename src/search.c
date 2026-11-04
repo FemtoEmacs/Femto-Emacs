@@ -11,7 +11,7 @@ void search(void)
     searchtext[0]=0;
     display_prompt_and_response((char *)prompt,searchtext);
     for(;;){
-        c=read_key_byte();
+        c=read_nonmouse_key_byte();
         point_t previous=curbp->b_point;
         if(c==0x07){
             curbp->b_point=origin;display(curwp,TRUE);msg("Search cancelled");return;

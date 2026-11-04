@@ -967,17 +967,21 @@ deactivates the region."
         (message (eval-for-message (buffer-substring start end))))))
 
 (defcommand (describe-key)
-  "C-x ?: what a key does."
-  (message "Describe key: ")
+  "C-x ?: name the command for a key or a clicked button, without running it."
+  (message "Describe key or click a button: ")
   (update-display)
-  (let ((k (get-key)))
-    (if (string=? k "")
-        (let* ((name (get-key-name)) (fn (get *keymap* name #f)))
-          (message (display-key name) " runs "
-                   (cond (fn (command-name fn))
-                         ((string=? (get-key-binding) "user-defined-function") "nothing")
-                         (else (get-key-binding)))))
-        (message (value->string k) " inserts itself"))))
+  (let loop ((pending #f))
+    (let ((k (get-key)))
+      (cond ((not (string=? k "")) (message (value->string k) " inserts itself"))
+            ((string=? (get-key-binding) "mouse")
+             (let ((id (fe-mouse-menu-hit)))
+               (cond ((= id -2) (loop pending))
+                     ((= id -3) (if pending (describe-mode-line-button pending) (loop #f)))
+                     (else (loop id)))))
+            ((string=? (get-key-name) "C-g") (message "Describe key cancelled"))
+            (else
+             (let* ((name (get-key-name)) (command (key-command-name name)))
+               (message (display-key name) " runs " (or command "nothing"))))))))
 
 (defcommand (eval-expression)
   "M-:: evaluate a Scheme expression typed on the message line."

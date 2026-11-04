@@ -22,6 +22,7 @@ void dispmsg(void){}
 void msg(char *format,...){(void)format;}
 void display_prompt_and_response(char *p,char *s){(void)p;(void)s;}
 int read_key_byte(void){if(unread_count){int k=unread[0];memmove(unread,unread+1,--unread_count);return k;}assert(*test_keys);return *test_keys++;}
+int read_nonmouse_key_byte(void){return read_key_byte();}
 static void setup(point_t point){
     unread_count=0;
     /* Logical text "alpha beta alpha", with a gap crossing the first match. */

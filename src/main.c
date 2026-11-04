@@ -74,8 +74,24 @@ int fe_main(int argc, char **argv)
 		point_t before_size;
 
 		update_display();
-		input = get_key(key_map, &key_return);
+        for (;;) {
+            input = get_key(key_map, &key_return);
+            if (key_return != &idle_key) break;
+            /* Run callbacks only between commands, never through a
+             * suspended Scheme prompt or a partially typed key sequence.
+             * Redraw only on a notification, so messages remain visible. */
+            int changed = call_lisp_event("idle", "");
+            if (changed || msgflag) update_display();
+        }
         { extern void chezweb_poll(void); chezweb_poll(); }
+        /* Passive mouse motion is help, not an editing command: do not
+         * break kill/yank sequences, selection, or modal key handlers. */
+        if (key_return && key_return->func == editor_mouse_event &&
+            (mouse_button & 32) && (mouse_button & 3) == 3) {
+            editor_mouse_event();
+            continue;
+        }
+        clear_button_hover();
 		before_bp = curbp;
 		before_size = document_size(curbp);
 

@@ -200,6 +200,20 @@ the width.  The encoded pieces, or #f for the C core's own mode line."
                        (lambda () (note-command-use action) (set! *last-command* *this-command*))))
         (else (message (->string action) " is not a command"))))
 
+(define (mode-line-action id)
+  (and id (<= 1 id) (<= id (vector-length *mode-line-actions*))
+       (vector-ref *mode-line-actions* (- id 1))))
+
+(define (mode-line-action-description action)
+  (if (string? action)
+      (string-append (or (key-command-name action) "unbound") " (" action ")")
+      (command-name action)))
+
+(define (describe-mode-line-button id)
+  (let ((action (mode-line-action id)))
+    (message (if action (string-append "Button runs " (mode-line-action-description action))
+                 "No command button here"))))
+
 (define (run-mode-line-button id)
   "The \"menu\" event: the button numbered ID was clicked."
   (let ((action (and id (<= 1 id) (<= id (vector-length *mode-line-actions*))
@@ -300,7 +314,7 @@ otherwise in this window for a moment.  Its value."
                           ("#" . "Comment / uncomment") ("DEF>" . "Next definition")
                           ("<DEF" . "Previous definition") ("AI" . "AI help")
                           ("BUFS" . "Buffers") ("TTFY" . "Textify PDF")
-                          ("WRAP" . "Word wrap on/off (C-c w)")))))
+                          ("WRAP" . "Word wrap on/off")))))
     (cond (e (cdr e))
           ;; button labels (SAVE, BUFS) read better capitalized; other
           ;; labels ("Textify with ChatGPT") are kept as written
@@ -320,7 +334,8 @@ otherwise in this window for a moment.  Its value."
                   (text (string-append (pad-left (number->string i) 2) "  "
                                        (if *menu-letter-keys* label (more-menu-label label))))
                   (key (if (or *menu-number-keys* *menu-letter-keys*) ""
-                           (if (string? action) action (->string action)))))
+                           (if (eq? action 'toggle-word-wrap) "C-c w toggle-word-wrap"
+                               (if (string? action) action (->string action))))))
              (loop (cdr bs) (+ i 1)
                    (string-append acc (string-trim-right (string-append (pad-right text 24) key)) "\n")))))))
 

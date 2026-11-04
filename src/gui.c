@@ -859,6 +859,8 @@ static void handle(SDL_Event *e)
 	case SDL_MOUSEMOTION:
 		if (e->motion.state & SDL_BUTTON_LMASK)
 			push_mouse(32, e->motion.x, e->motion.y, 0);
+		else
+			push_mouse(35, e->motion.x, e->motion.y, 0);
 		break;
 	case SDL_MOUSEBUTTONUP:
 		if (e->button.button == SDL_BUTTON_LEFT)
@@ -893,7 +895,7 @@ int screen_getch(void)
 
 	if (queue_empty() && dirty) render();
 	while (queue_empty()) {
-		if (!SDL_WaitEvent(&e)) continue;
+		if (!SDL_WaitEventTimeout(&e, 250)) return SCR_KEY_IDLE;
 		handle(&e);
 		/* take everything that is already waiting */
 		while (SDL_PollEvent(&e)) handle(&e);

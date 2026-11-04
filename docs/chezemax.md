@@ -89,6 +89,9 @@ editing.
 | :-------- | :----------------------------------------------- |
 | `C-x b`   | choose a buffer from a filtered, completing list |
 | `C-x C-b` | buffer menu                                      |
+| `C-x →`   | activate the next buffer.                        |
+| `C-x ←`   | activate the previous buffer.                    |
+
 | `C-x 2`   | split the window                                 |
 | `C-x o`   | other window (or click it)                       |
 | `C-x 0`   | close this window                                |
@@ -110,7 +113,7 @@ editing.
 # The commands in detail
 
 This chapter explains the commands on the first page in more detail.
-The next chapter shows how to install and run Browsered.
+The next chapter shows how to install and run Chezweb.
 
 In the following cheat sheet, `Spc` denotes
 the space bar, `C-` is the `Ctrl` prefix, `M-` represents
@@ -118,18 +121,17 @@ the `Alt` prefix, and κ can be any key.
 
 ### Help.
 
-If you forget a command, press `C-h` or `F1`.
-Browsered shows all its keybindings on a page of their own,
-one key per line. The arrows, `C-n` and `C-p` scroll
-the page; any other key takes you back to the file you are editing.
+If you forget a command, press `C-h`. Chezweb shows all its
+keybindings on a page of their own, one key per line. The arrows,
+`C-n` and `C-p` scroll the page; any other key takes you back to the
+file you are editing.
 
 ### The status line is a menu.
 
-At the bottom of each window,
-the status line shows the name of the file and the line where the
-cursor is. An asterisk after the file name means that the file has
-been modified, but not saved. Then come buttons that the mouse can
-click:
+At the bottom of each window, the status line shows the name of the
+file and the line where the cursor is. An asterisk after the file name
+means that the file has been modified, but not saved. Then come
+buttons that the mouse can click:
 
 > 
 > 
@@ -151,7 +153,7 @@ learns the keys, and learn them from the buttons:
 > | `[MORE]` Paste   | `C-y`     | paste                       |
 > | `[?]` 2 or 3     |           | how to ask Claude or Codex  |
 > | `[MORE]` Buffers | `C-x b`   | switch to another open file |
-> | `[QUIT]`         | `C-x C-c` | leave SBEmacs               |
+> | `[QUIT]`         | `C-x C-c` | leave Chezweb               |
 > | `[GRAMMAR]`      |           | Toggle Grammarly            |
 > 
 
@@ -161,18 +163,17 @@ gets past any AI detector. The Grammarly button lets you toggle
 Grammarly on and off. Word of advice: when you're not using Grammarly,
 leave it turned off.
   
-The file name is also a button. A name longer than 18
-characters is shortened at the front, as in
-`...src/fib.lisp`. A click on the name opens a window with the
-full name of the file, its number of lines, words, characters and
-bytes, the line of the cursor, the language, and whether and when it
-was saved. Any key closes that window.
-To copy, Nia drags the mouse over the text and clicks
-`[MORE] Copy`; she then clicks where the copy should go, and clicks
-`[MORE] Paste`. A button lights up while she presses it, and acts
-when she lets it go; if she changes her mind, she moves the mouse
-off the button before letting go. If Nia leaves Browsered with
-`[QUIT]` while a file is not saved, the Editor asks first.
+The file name is also a button. A name longer than 18 characters is
+shortened at the front, as in `...src/fib.lisp`. A click on the name
+opens a window with the full name of the file, its number of lines,
+words, characters and bytes, the line of the cursor, the language, and
+whether and when it was saved. Any key closes that window. To copy,
+Nia drags the mouse over the text and clicks `[MORE] Copy`; she then
+clicks where the copy should go, and press `[MORE] Paste`. A button
+lights up while she presses it, and acts when she lets it go; if she
+changes her mind, she moves the mouse off the button before letting
+go. If Nia leaves Chezweb with `[QUIT]` while a file is not saved, the
+Editor asks first.
 
 The whole status line is written in Scheme, in
 `scheme/extensions/menu.scm`. The buttons are a list,
@@ -185,8 +186,7 @@ The whole status line is written in Scheme, in
 
 ### Basic commands.
 
-`C-`κ – Keep `Ctrl` down
-and press `κ`
+`C-`κ – Keep `Ctrl` down and press `κ`
 
 > `C-s` then type some text, and press `C-s` again
 > – search for text.  
@@ -194,7 +194,7 @@ and press `κ`
 > – reverse search.  
 > `C-k` – kill a line.  
 > `C-h` – help (the backspace key deletes backward).  
-> `C-d` – delete char forward.  
+> `C-d` – delete char under the cursor.  
 > `C-Spc` then move the cursor – select a region.  
 > `M-w` – save selected region into the kill ring.  
 > `C-w` – kill region.  
@@ -214,27 +214,27 @@ and press `κ`
 
 ### Control-x commands.
 
-`C-x C-`κ – Keep `Ctrl`
-down and press `x`, then `κ.`
+`C-x C-`κ – Keep `Ctrl` down and press `x`, then `κ.`
 
 > `C-x C-f` – open a file into a new buffer.  
 > `C-x C-w` – write file with a new name.  
 > `C-x C-s` – save file.  
 > `C-x s` – save every modified file, asking first.  
-> `C-x C-c` – exit Browsered.  
+> `C-x C-c` – exit Chezweb.  
 > `C-x i` – insert file at the cursor.  
 > `C-x ?` – describes a key stroke.  
 > `C-x @` – shell command. After `C-x @`,
 > if one types `ls` at the prompt, the computer
 > will list the current folder.
 > It is possible to use any other shell command
-> just like the `ls` example.
+> just like the `ls` example. However, on a browser,
+> for your own safety, the commands are limited
+> to ls, cd and pwd.
 
 ### Window commands.
 
-One can have more
-than one window on the screen. Below, you will
-find commands that cope with this situation.
+One can have more than one window on the screen. Below, you will find
+commands that cope with this situation.
 
   - ` C-x  `κ – Keep `Ctrl` down and press `x`;
     let go of `Ctrl`, then press `κ`
@@ -254,6 +254,7 @@ find commands that cope with this situation.
     > `C-x 0` – close the cursor window.  
     > `C-x ^` – make the cursor window taller.
     > `C-^`   - make the cursor window taller.
+    > `C-\`   - make the cursor window taller.
       
   - `Esc` κ – Press the `Esc` key and let go of it,
     then press the `κ` key.
@@ -263,13 +264,12 @@ find commands that cope with this situation.
     > `Esc f` – word forward.  
     > `Esc b` – word backward.  
 
-  - `M`-κ – Keep the `Alt` key
-    down and press the `κ` key. On the Macintosh,
-    the `Alt` key is called `Option`; in the Terminal
-    application, you must tick *Use Option as Meta key*
-    in Settings, Profiles, Keyboard. In iTerm2, open Settings,
-    Profiles, Keys and set *Left Option key* to *Esc+*.
-    The right Option key may remain *Normal* for entering Mac symbols.
+  - `M`-κ – Keep the `Alt` key down and press the `κ` key. On an
+    Apple keyboard, the `Alt` key is called `Option`; in the Terminal
+    application, you must tick *Use Option as Meta key* in Settings,
+    Profiles, Keyboard. In iTerm2, open Settings, Profiles, Keys and
+    set *Left Option key* to *Esc+*. The right Option key may remain
+    *Normal* for entering Mac symbols.
     
     > `M-b`   – move backward one word.  
     > `M-f`   – move forward one word.  
@@ -280,163 +280,134 @@ find commands that cope with this situation.
 
 ### The mouse.
 
-You can click on a window to move
-the cursor there; a click on another window selects that window.
-If you keep the button down and drag the mouse, you select a region.
-This works in the graphical window and in the text terminal.
-In a text terminal, SBEmacs takes the mouse from the terminal; if
-you want the terminal’s own selection, hold down the `Shift`
-key (the `Option` key in the Macintosh Terminal) while
-you drag, or start the Editor with the `--no-mouse` option.
+You can click on a window to move the cursor there; a click on another
+window selects that window. If you keep the button down and drag the
+mouse, you select a region. This works in the graphical window and in
+the text terminal. In a text terminal, Chezweb takes the mouse from
+the terminal; if you want the terminal’s own selection, hold down the
+`Shift` key (the `Option` key in the Apple keyboard) while you
+drag, or start the Editor with the `--no-mouse` option.
 
 ### The region.
 
-The region is the text between the mark,
-which you set with `C-Spc`, and the cursor. Like in Emacs,
-SBEmacs shades the region while it is active. The shade goes away
-when you change the text, when you copy the region with `M-w`,
-or when you press `C-g`.
+The region is the text between the mark, which you set with `C-Spc`,
+and the cursor. Like in Emacs, Chezweb shades the region while it is
+active. The shade goes away when you change the text, when you copy
+the region with `M-w`, or when you press `C-g`.
 
 ### Query replace.
 
-If you press `Esc``r`,
-the computer enters in the query replace mode.
-First, Browsered prompts for the text snippet S
-that you want to replace. Then it prompts for
-the replacement R. When you type the R text and
-press the `Enter` key, the cursor jumps to
-the first occurence of S, and SBEmacs
-asks whether you want to
-replace it. If the answer is
-`y`, Browsered will replace S
-with `R` and jump to the next occurence.
-If the answer is `n`, SBEmacs will
-jump to the next occurrence of S without
-performing the replacement.
+If you press `Esc``r`, the computer enters in the query replace mode.
+First, Chezweb prompts for the text snippet S that you want to
+replace. Then it prompts for the replacement R. When you type the R
+text and press the `Enter` key, the cursor jumps to the first
+occurence of S, and Chezweb asks whether you want to replace it. If
+the answer is `y`, Chezweb will replace S with `R` and jump to the
+next occurence. If the answer is `n`, Chezweb will jump to the next
+occurrence of S without performing the replacement.
 
 ### Go to line.
 
-When you try to compile
-code containing errors, the compiler
-usually reports the line number where the error occurred.
-If you press `Esc``g`, Browsered
-prompts for a line number. As soon as you
-type the number and press the `Enter`
-key, the cursor jumps to the line where the
-error occurred.
+When you try to compile code containing errors, the compiler usually
+reports the line number where the error occurred. If you press
+`Esc``g`, Chezweb prompts for a line number. As soon as you type the
+number and press the `Enter` key, the cursor jumps to the line where
+the error occurred.
 
-In order to know the position of the cursor,
-press the `C-x =` command,
-and SBEmacs gives information concerning
-the character under the
-cursor, the corresponding code, the line,
-and the character position in the text.
+In order to know the position of the cursor, press the `C-x =`
+command, and Chezweb gives information concerning the character under
+the cursor, the corresponding code, the line, and the character
+position in the text.
 
 ### Markdown.
 
-Browsered colours Markdown files (`.md`):
-headings, `**strong**` and `*emphasis*`, code between back
-quotes, links, quotations and lists. A block of code that names its language,
-like ` ```lisp `, is coloured as that language. In a list,
-`Enter` starts the next item, ` -  ` or ` 3. `;
-`Enter` on an empty item ends the list. `Tab` nests an item under
-the item above, and `M-q` refills a paragraph or a list item.
+Chezweb colours Markdown files (`.md`): headings, `**strong**` and
+`*emphasis*`, code between back quotes, links, quotations and lists. A
+block of code that names its language, like ` ```lisp `, is coloured
+as that language. In a list, `Enter` starts the next item, ` - ` or `
+3. `; `Enter` on an empty item ends the list. `Tab` nests an item
+under the item above, and `M-q` refills a paragraph or a list item.
 
 ### Undo.
 
-The `C-/` command undoes the last
-command. If you press it again, it undoes the command before,
-and so on. Typed text is undone a word at a time, and a command
-that changed many lines, like `M-q` (fill paragraph), is undone
-at once. If you undo too much, `C-M-_` (or `M-_`) redoes
-what undo took back. When you undo all the changes made since the
-file was saved, the asterisk disappears from the status line.
+The `C-/` command undoes the last command. If you press it again, it
+undoes the command before, and so on. Typed text is undone a word at a
+time, and a command that changed many lines, like `M-q` (fill
+paragraph), is undone at once. If you undo too much, `C-M-_` (or
+`M-_`) redoes what undo took back. When you undo all the changes made
+since the file was saved, the asterisk disappears from the status
+line.
 
 ### Nia Vardalos.
 
-In order to get acquainted with editing and scripting,
-let us accompany the Canadian programmer Nia
-Vardalos, while she explores Browsered.
+In order to get acquainted with editing and scripting, let us
+accompany the Canadian programmer Nia Vardalos, while she explores
+Chezweb.
 
-When text is needed for carrying out a command,
-it is read from the minibuffer, a one line
-window at the bottom of the screen. For instance,
-if Nia presses `C-s` for finding a text,
-the text is read from the minibuffer. After
-typing the text that she wants to localize,
-Nia presses `C-s` again to start the search.
-For abandoning an ongoing command, she may press `C-g`.
+When text is needed for carrying out a command, it is read from the
+minibuffer, a one line window at the bottom of the screen. For
+instance, if Nia presses `C-s` for finding a text, the text is read
+from the minibuffer. After typing the text that she wants to localize,
+Nia presses `C-s` again to start the search. For abandoning an ongoing
+command, she may press `C-g`.
 
-To transport a region from one place to another,
-Nia presses `C-Spc` to start
-the selection process
-and move the cursor to select the region.
-Then she presses `C-w` to
-kill her selection. Finally, she moves
-the cursor to the insertion place,
-and presses the `C-y` shortcut.
-Of course, she can select the region with the mouse instead.
+To transport a region from one place to another, Nia presses `C-Spc`
+to start the selection process and move the cursor to select the
+region. Then she presses `C-w` to kill her selection. Finally, she
+moves the cursor to the insertion place, and presses the `C-y`
+shortcut. Of course, she can select the region with the mouse instead.
 
-To copy a region, Nia presses `C-Spc` and moves the cursor to select the region.
-Then she presses `M-w` to save the selection into the kill ring. Finally,
-she takes the cursor to the destination where the copy is to be inserted and
-issues the `C-y` command. If she wants an earlier kill,
-she presses `M-y` right after `C-y`, and Browsered replaces
-the yanked text with the kill before it.
+To copy a region, Nia presses `C-Spc` and moves the cursor to select
+the region. Then she presses `M-w` to save the selection into the kill
+ring. Finally, she takes the cursor to the destination where the copy
+is to be inserted and issues the `C-y` command. If she wants an
+earlier kill, she presses `M-y` right after `C-y`, and Chezweb
+replaces the yanked text with the kill before it.
 
-The kill ring and the system clipboard work together, as in
-Emacs. Whatever Nia kills or copies with `C-w`, `M-w` or
-`C-k` also goes to the clipboard, so she can paste it into any
-other program. And when she copies something in another program,
-say a paragraph in her browser, `C-y` inserts it, and it joins
-the kill ring; `M-y` then goes on to her older kills. In a
-terminal, Browsered reaches the clipboard through `pbcopy` and
-`pbpaste` on the Macintosh, and through `wl-copy` or
-`xclip` on Linux (install one of them); in a window, it needs
+The kill ring and the system clipboard work together, as in Emacs.
+Whatever Nia kills or copies with `C-w`, `M-w` or `C-k` also goes to
+the clipboard, so she can paste it into any other program. And when
+she copies something in another program, say a paragraph in her
+browser, `C-y` inserts it, and it joins the kill ring; `M-y` then goes
+on to her older kills. In a terminal, Chezweb reaches the clipboard
+through `pbcopy` and `pbpaste` on the Macintosh, and through `wl-copy`
+or `xclip` on Linux (install one of them); in a window, it needs
 nothing.
 
-When Nia selects text by dragging the mouse, Browsered copies it to the
+When Nia selects text by dragging the mouse, Chezweb copies it to the
 clipboard at once: `Cmd-V` pastes it in her browser, and she
 never needs `Cmd-C`. In fact, in a terminal `Cmd-C` finds
-nothing to copy, because Browsered takes the mouse for itself (that is
+nothing to copy, because Chezweb takes the mouse for itself (that is
 how the buttons of the status line work); iTerm2 then complains that
 mouse reporting has prevented making a selection. The text is
 already on the clipboard. If Nia wants the terminal’s own selection,
 she keeps `Option` down while she drags.
 
-Nia noticed that there are two equivalent ways to
-issue an `M-`κ command. She can
-press and release the `Esc` key, then
-strike the κ key. Alternatively, she
-can keep the `Alt` key down and press
-the `κ` key.
+Nia noticed that there are two equivalent ways to issue an `M-`κ
+command. She can press and release the `Esc` key, then strike the κ
+key. Alternatively, she can keep the `Alt` key down and press the `κ`
+key.
 
-### Calculations with Lisp.
+### Calculations with Chez Scheme.
 
-Browsered offers a Lisp Scheme dialect to perform calculations and
+Chezweb offers a Lisp Scheme dialect to perform calculations and
 text processing. Let us assume that you want to find how many students
 graduate from medical schools in California. You press `Esc``:` and
-Browsered will prompt you for a Lisp expression.
+Chezweb will prompt you for a Lisp expression.
 
 > `> (+ 190 180 170 160 120 100 100 90)``Enter`
 
-In the above expression, the first thing after
-the open parenthesis is the `+` sum
-operation identifier. After the name of
-the operation, there is a list of
-the arguments to be added together.
-As soon as Nia presses the `Enter` key,
-Browsered shows the result of the addition:
+In the above expression, the first thing after the open parenthesis is
+the `+` sum operation identifier. After the name of the operation,
+there is a list of the arguments to be added together. As soon as Nia
+presses the `Enter` key, Chezweb shows the result of the addition:
 
 > `1110`
 
-The rule that worked for
-the `(+ x₁ x₂ …)`
-sum operation also works for the
-other arithmetic function too.
+The rule that worked for the `(+ x₁ x₂ …)` sum operation also works
+for the other arithmetic function too.
 
-  - Multiplication is performed
-    by the `*` operation.
+  - Multiplication is performed by the `*` operation.
     
     > `Esc``:`  
     > `> (* 1 2 3 4 5)``Enter`  
@@ -448,8 +419,7 @@ other arithmetic function too.
     > `> (/ 1 2 4)``Enter`  
     > 0.125
     
-    The above operation performed the chain
-    division `1/2/4`.
+    The above operation performed the chain division `1/2/4`.
     
   - Subtraction has the syntax shown below.
     
@@ -457,11 +427,10 @@ other arithmetic function too.
     > `> (- 1 2 4)``Enter`  
     > \-5
 
-  - Mixed operations. One can nest subexpressions
-    within an outer expression. For instance,
-    to get the average student number graduating
-    from medical school in California, one can
-    calculate the expression:
+  - Mixed operations. One can nest subexpressions within an outer
+    expression. For instance, to get the average student number
+    graduating from medical school in California, one can calculate
+    the expression:
     
     > `Esc``:`  
     > `> (/ (+ 190 180 170 160 120 100 100 90) 8.0)``Enter`  
@@ -470,15 +439,15 @@ other arithmetic function too.
 
 ### Command execution.
 
-When you press shortcut keys, Browsered calls a command written in C
-or in Scheme. You can get a complete list of all Browsered keybindings
+When you press shortcut keys, Chezweb calls a command written in C
+or in Scheme. You can get a complete list of all Chezweb keybindings
 by pressing `C-h`.
 
 There are commands that are not associated to shortcut keys. For
 instance, the `undo-status` command tells how many steps of undo the
 buffer keeps. Press `Esc``x` and type `undo-status` at the minibuffer
 prompt. The `Tab` key completes the name of the command. Below you
-will find a fairly complete list of Browsered commands.
+will find a fairly complete list of Chezweb commands.
 
 ### Moving.
 
@@ -596,63 +565,57 @@ The region is shaded.
 
 ### Shell commands.
 
-`M-!` opens a window below the file,
-where Nia writes a command for the operating system, say
-`ls -l` or `sbcl --script fib.lisp`. A long command may
-take several lines: `Enter` breaks the line, and Browsered joins
-the lines again as the system expects (with `\` at the end of
-each line on Linux and the Macintosh). `C-c s` runs the command
-in the folder of her file. The window then shows the command and,
-below it, what the command printed; if it failed, its exit status
-too. `C-x 1` closes the window. Its status line has two
-buttons, so Nia can click instead of typing:
+`M-!` opens a window below the file, where Nia writes a command for
+the operating system, say `ls -l` or `sbcl --script fib.lisp`. A long
+command may take several lines: `Enter` breaks the line, and Chezweb
+joins the lines again as the system expects (with `\` at the end of
+each line on Linux and the Macintosh). `C-c s` runs the command in the
+folder of her file. The window then shows the command and, below it,
+what the command printed; if it failed, its exit status too. `C-x 1`
+closes the window. Its status line has two buttons, so Nia can click
+instead of typing:
 
 > 
 > 
->     Browsered: *shell-command*, L. 1 == [SEND - C-c s] [CLOSE - C-x 1]
+>     Chezweb: *shell-command*, L. 1 == [SEND - C-c s] [CLOSE - C-x 1]
 
 # Installation
 
-A text editor, like Emacs or Browsered, has three components:
+A text editor, like Emacs or Chezweb, has three components:
 
-1. A frontend that inserts characters into a buffer.
-    A buffer is a memory region with an image of a
-    text file. One can see the buffer as a representation
-    of a scratch pad. As such, the frontend provides tools to
-    insert keystrokes at the point indicated by
-    a movable cursor.
+1. A frontend that inserts characters into a buffer. A buffer is a
+   memory region with an image of a text file. One can see the buffer
+   as a representation of a scratch pad. As such, the frontend
+   provides tools to insert keystrokes at the point indicated by a
+   movable cursor.
 
-2. Editing operations that save buffers
-    as files, delete and insert text, move the
-    cursor around, copy items from one place to another, etc.
+2. Editing operations that save buffers as files, delete and insert
+   text, move the cursor around, copy items from one place to another,
+   etc.
 
 3. A scripting language for customizing the Editor.
 
-There is a wide choice of frontends. Some frontends
-work with a raster graphics image, which is a dot matrix
-data structure that represents a grid of pixels.
-There are also frontends that are specialized in
-showing letters and other characters via an appropriate
-display medium. The latter sort of frontend is called
-text-based user interfaces, while the former is called
-Graphical user interface, or GUI.
+There is a wide choice of frontends. Some frontends work with a raster
+graphics image, which is a dot matrix data structure that represents a
+grid of pixels. There are also frontends that are specialized in
+showing letters and other characters via an appropriate display
+medium. The latter sort of frontend is called text-based user
+interfaces, while the former is called Graphical User Interface, or
+GUI.
 
-Text-based user interfaces are more
-comfortable on the eyes, since they provide
-sharper and crisper alphabetical letters.
-On the other hand, GUI allows for font
-customization. Schememax, the sister project of Browsered,
-offers both. In a text terminal, it uses ncurses,
-which is a text-based user interface.
-In a window of its own, it uses SDL2, a library that
-draws on a grid of pixels, and SDL2\_ttf, which renders
-TrueType fonts. The two frontends are compiled into two
-separate libraries, so a person who only works in the
-text terminal never needs SDL2.
+Text-based user interfaces are more comfortable on the eyes, since
+they provide sharper and crisper alphabetical letters. On the other
+hand, GUI allows for font customization. Schememax, the sister project
+of Chezweb, offers both. In a text terminal, it uses ncurses, which is
+a text-based user interface. In a window of its own, it uses SDL2, a
+library that draws on a grid of pixels, and SDL2\_ttf, which renders
+TrueType fonts. The two frontends are compiled into two separate
+libraries, so a person who only works in the text terminal never needs
+SDL2.
 
-Browsered itself runs in a browser to facilitate
-interaction of web applications, such as Grammarly
-and NAIA, a medical AI.
+Besides the Text-based User Interface and the Graphical User Interface,
+Chezweb can also run in a browser to facilitate interaction of web
+applications, such as Grammarly and NAIA, a medical AI.
 
 The scripting language is a fast implementation of Scheme inspired
 on Dybvig's Chez Scheme.
@@ -664,300 +627,375 @@ expert. If you never used a text terminal, read Chapter
 [Shell](#shell) first.
 
 ## Windows: the setup program
--- Claude, rewrite this section
 
 If you use Windows and only want to run the Editor, you can skip
-the rest of this chapter. Download the setup program:
+the rest of this chapter. Download the setup program, as we will
+explain later.
 
-> `https://github.com/FemtoEmacs/Femto-Emacs/releases/`  
-> `   download/windows-installer/ `  
-> `   Browsered-2.0-Windows-x86_64-Setup.exe `
-
-(the README of the repository has the same link, ready to click)
-and double-click it. Click *Next*, then *Install*, then
-*Finish*. That is all. You do not need SBCL, because
-`sbemacs.exe` carries SBCL inside it; you do not need a
-C compiler, PowerShell scripts, nor administrator rights.
-
-Because the setup program is not signed, Windows may show a blue
-window saying that it protected your PC. Click *More info*,
-then *Run anyway*.
-
-The setup program puts Browsered in your own programs folder,
-
-> `%LOCALAPPDATA%\Programs\Browsered`
-
-so it is installed for you alone. It adds *Browsered* and *Browsered manual* to the
-Start menu, a shortcut on the desktop if you leave that box ticked,
-and Browsered to the *Open with* menu of text files. Browsered
-starts in your home folder, `C:\Users\Nia`, say, and opens its
-own window; the Windows version has no text-terminal frontend. Your
-customisations go to `C:\Users\Nia\.sbemacs`, exactly as on the
-other systems (section [Executing Lisp programs](#executing-lisp-programs)). To remove Browsered, open
-*Settings*, then *Apps*, find Browsered, and choose
-*Uninstall*; your `.sbemacs` folder stays.
 
 ### How the setup program is made.
--- Claude, rewrite this section
 
-Windows users should
-not have to install compilers, and they do not: GitHub does the
-work. Every time the authors push to the `windows` branch,
-GitHub starts a clean Windows machine of its own, which runs
-`windows/build-installer.sh` in three steps:
-the C core is compiled with MinGW-w64; the official
-Windows SBCL loads the Lisp files and saves
-`sbemacs.exe`; and NSIS packs the program, SDL2, SDL2\_ttf,
-the Lisp scripts, a font and this manual into one `.exe`.
-The machine then installs the result, opens the Editor, uninstalls
-it, and, if all went well, puts the new setup program behind the
-link above. The recipe is in
-`.github/workflows/build-windows-installer.yml`.
+Windows users should not have to install compilers, and they do not:
+GitHub does the work. Every time the authors push to the `windows`
+branch, GitHub starts a clean Windows machine of its own, which runs
+`windows/build-installer.sh.` 
 
-A developer can repeat the build on Linux, where the Windows SBCL
-runs under Wine:
-
-> 
-> 
->     ~$ sudo apt-get install gcc-mingw-w64-x86-64 wine
->     ~$ sudo apt-get install nsis msitools unzip
->     ~$ cd csand/sbemacs
->     ~/csand/sbemacs$ make windows-installer
-
-The result is in `build/windows`.
 
 ## Cloning the GitHub repository
--- Claude, rewrite this section
 
-The sources of Browsered are kept on GitHub, a site that stores
-programs together with the history of all their changes.
-Such a collection is called a repository. To get a copy of the
-repository on your machine, you need the `git` program.
-In order to check whether you have it, type:
+The sources of Chezweb are kept in the
+[Femto-Emacs repository](https://github.com/FemtoEmacs/Femto-Emacs).
+Its `master` branch contains Chezweb; the `legacy`, `sbcl` and `windows`
+branches preserve other versions. The instructions below use `master`.
 
-> 
-> 
->     ~$ git --version
->     git version 2.39.5
+On a Macintosh, open Terminal and install Apple's command-line tools,
+if you still don't have them (which I think is unlikely):
 
-If the computer says that it does not know `git`,
-install it. On the Macintosh, the command below installs
-`git` together with the C compiler and `make`,
-which you will need anyway:
+```sh
+xcode-select --install
+```
 
-> 
-> 
->     ~$ xcode-select --install
+Complete the installation dialog before continuing. The tools include
+Git, the C compiler and `make`. The same build commands work on an
+Intel Mac and on a Mac with Apple Silicon.
 
-On Debian or Ubuntu Linux, use apt-get:
+On Debian or Ubuntu Linux, install the build tools and libraries:
 
-> 
-> 
->     ~$ sudo apt-get install git build-essential
+```sh
+sudo apt-get update
+sudo apt-get install git build-essential libncurses-dev pkg-config curl xz-utils
+```
 
-Now, clone the repository, i.e., make a local copy of it.
-Let us assume that Nia keeps her sources in a `csand`
-folder:
+Other Linux distributions need the corresponding packages: Git, a
+64-bit C compiler, make, ncurses development files, pkg-config, curl
+and the tools for unpacking tar and xz archives.
 
-> 
-> 
->     ~$ mkdir -p csand
->     ~$ cd csand
->     ~/csand$ git clone https://github.com/FemtoEmacs/Femto-Emacs.git sbemacs
->     ~/csand$ cd sbemacs
->     ~/csand/sbemacs$
+Check that Git is available:
 
-The last argument of `git clone`, `sbemacs`, is the
-name of the folder that receives the copy. If you omit it, git
-names the folder after the repository, `Femto-Emacs`.
+```sh
+git --version
+```
 
-Later on, when the authors improve the Editor, you do not need
-to clone the repository again. Enter the folder and ask git to
-bring the changes:
+Let us assume that Nia keeps her sources in `~/mysand`. She makes a
+copy of the repository in a folder named `chezmoi`:
 
-> 
-> 
->     ~/csand/sbemacs$ git pull
+```sh
+mkdir -p ~/mysand
+cd ~/mysand
+git clone --branch master --single-branch https://github.com/FemtoEmacs/Femto-Emacs.git chezmoi
+cd chezmoi
+```
+
+The final argument, `chezmoi`, chooses the local folder name. It does
+not change the name of the program. Without that argument, Git would
+name the folder `Femto-Emacs`.
+
+To update this copy later, save your work, close the Editor and run:
+
+```sh
+cd ~/mysand/chezmoi
+git pull --ff-only
+make
+```
+
+If Git reports local changes or a conflict, resolve them before
+continuing. Keep personal scripts in `~/.chezemax/`, so updating the
+repository does not mix them with the Editor's sources.
 
 ## ncurses
--- Claude, rewrite this section, if necessary.
 
-Computers need a tool to make communication
-with users possible. That tool is
-called User Interface, or UI for short.
-A text terminal
-offers sharper and crisp characters
-through the use of a specialized
-User Interface called ncurses. Browsered uses ncurses
-when it runs in a text terminal, and needs the version
-that handles characters with
-diacritics, so you can write words
-like *café* and *façade*. This version is
-called ncursesw, where the `w` stands for wide characters.
+Chezweb uses ncurses to draw its terminal interface. Building the
+Editor requires both the library and its development headers. Linux
+uses the wide-character version, ncursesw; macOS supplies its own
+ncurses library. The makefile selects the appropriate one.
 
-In 2016, one had to download ncurses and build it, because
-the operating systems came with old versions. Today, this is
-seldom necessary.
+SDL2 and SDL2_ttf are optional. Install them before running `make` if
+you also want the Editor in a separate graphical window. They are not
+needed for the terminal or browser interface.
 
 ### MAC OS-X.
--- Claude, rewrite this section
 
-The Macintosh comes with ncurses, and
-Browsered uses it. The Xcode command line tools of
-section [Cloning the GitHub repository](#cloning-the-github-repository) bring the files that the C compiler needs.
-To check the version:
+Apple's command-line tools provide the headers needed to use the
+system ncurses library. After completing `xcode-select --install`,
+check the compiler and SDK:
 
-> 
-> 
->     ~$ tic -V
->     ncurses 6.0.20150808
->     ~$ ls $(xcrun --show-sdk-path)/usr/include/ncurses.h
->     /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/ncurses.h
+```sh
+cc --version
+xcrun --show-sdk-path
+```
 
-If `xcrun` complains, run `xcode-select --install` again.
+There is no need to download and compile ncurses separately. If the
+SDK cannot be found, finish or repair the command-line tools
+installation before building Chezweb.
 
-### Linux.
--- Claude, rewrite this section
+For the optional graphical window, if you already use Homebrew:
 
-The ncurses library is certainly installed,
-since many programs use it, but the files that the C compiler
-needs come in a separate package. Check whether the compiler
-can find ncursesw:
+```sh
+brew install pkg-config sdl2 sdl2_ttf
+```
 
-> 
-> 
->     ~$ pkg-config --modversion ncursesw
->     6.4.20240113
-
-If the computer answers that the package was not found,
-install it:
-
-> 
-> 
->     ~$ sudo apt-get install libncurses-dev pkg-config  # Debian, Ubuntu
->     ~$ sudo dnf install ncurses-devel pkgconf          # Fedora
-
-### Windows.
--- Claude, rewrite this section. Consider compiling the application on GitHub.
-
-If you build Browsered from the sources, you
-need MSYS2 (`https://www.msys2.org`), a collection of Unix
-tools for Windows. In the *MSYS2 MINGW64* shell, install
-the compiler, make, ncurses and pkg-config:
-
-> 
-> 
->     $ pacman -S make mingw-w64-x86_64-gcc mingw-w64-x86_64-ncurses \
->                 mingw-w64-x86_64-pkgconf
-
-### MAC OS-X.
--- Claude, write this section
+Then run `make` again. It detects the SDL libraries and builds
+`chezweb-gui` as well as the terminal program.
 
 ### Linux.
--- Claude, write this section
+
+The ncurses runtime may already be installed, but the C headers often
+come in a separate package. On Debian or Ubuntu, install:
+
+```sh
+sudo apt-get install libncurses-dev pkg-config
+```
+
+Check that pkg-config can find the wide-character library:
+
+```sh
+pkg-config --modversion ncursesw
+```
+
+For the optional graphical window on Debian or Ubuntu:
+
+```sh
+sudo apt-get install libsdl2-dev libsdl2-ttf-dev
+```
+
+Run `make` after installing these packages. On another distribution,
+use its development packages for ncursesw, SDL2 and SDL2_ttf.
 
 ### Windows.
 
-### Try it.
--- Claude, write this section
+The current `master` branch has automated builds for macOS and Linux.
+The separate `windows` branch contains an installer for the older
+SBEmacs implementation; that installer does not install this Chezweb.
+Do not use it as a substitute for the build described here.
 
+To use the Linux build on a Windows machine, install Windows Subsystem
+for Linux (WSL) with Ubuntu. See Microsoft's
+[WSL installation guide](https://learn.microsoft.com/en-us/windows/wsl/install).
+In an administrator PowerShell window:
+
+```powershell
+wsl --install
+```
+
+Restart Windows if requested, open Ubuntu and complete its user-account
+setup. In the Ubuntu terminal, follow the Debian/Ubuntu package and
+build instructions in this chapter. Clone into your Linux home folder,
+for example `~/mysand/chezmoi`. Run Chezweb from that Ubuntu terminal.
+These are instructions for running under WSL, not for a native Windows
+executable. The browser and optional SDL window also depend on the
+Windows/WSL graphical environment; they are not covered by the current
+macOS/Linux build checks.
 
 ## make and sudo make install
--- Claude, write this section.
 
-The editor folder contains many files in the C computer language, and
-many in Lisp. In order to become usable, these files must be compiled
-into a set of libraries containing instructions written in a language
-that the computer understands. You do not need any knowledge of C to
-perform the translation to machine language. All instructions in the
-batch job for performing the compilation are written in `Makefile`.
-Enter the folder and type `make`:
+The repository contains C sources, Scheme scripts and a makefile that
+builds them together. You do not need to compile each file yourself.
+From the folder created by `git clone`, run:
 
-## Running Browsered
+```sh
+cd ~/mysand/chezmoi
+make
+```
 
-In a text terminal of macOS, type `Browsered.command` followed by the name of the
-file you want to edit:
+The first build needs an Internet connection to fetch the pinned
+Wasmtime runtime for your computer. The Scheme compiler is included.
+Compilation can take several minutes; wait for the shell prompt to
+return. A successful build produces `chezweb`, its compiled Scheme
+program, the local browser server and the bundled browser editor.
+If the SDL libraries are available, it also produces `chezweb-gui`.
 
-> 
-> 
->  ~/claude-sandbox/browsered$ ./Browsered.command
+The same `make` command selects Linux, Intel macOS or Apple Silicon
+macOS. Ordinary users do not need Node.js, Python or a separate browser
+compiler. The portable browser files are already included.
+
+To see which compiler, terminal library and optional GUI were detected:
+
+```sh
+make show-config
+```
+
+If the build reports a missing compiler or library, install the
+appropriate package from the preceding sections, then run `make`
+again. Do not run the build with `sudo`.
+
+Despite this section's title, the current makefile has no `install`
+target: `sudo make install` is not an installation step for this
+version. Keep the build folder intact and put it on your shell's
+search path as explained next. The executable needs the runtime,
+compiled scripts and browser files beside it; copying only `chezweb`
+into `/usr/local/bin` is insufficient.
+
+## Running Chezweb
+
+From the build folder, start the terminal Editor with:
+
+```sh
+./chezweb
+```
+
+To open a file immediately:
+
+```sh
+./chezweb ~/Documents/notes.md
+```
+
+A name containing spaces needs quotes, for example
+`./chezweb "$HOME/Documents/My notes.md"`. The file need not exist yet;
+`C-x C-s` saves it. `C-x C-c` leaves the Editor and asks about unsaved
+changes when necessary.
+
+If you built the optional graphical interface, start it with
+`./chezweb-gui`. On macOS, `Chezweb.command` and `Chezweb-GUI.command`
+are double-click launchers in the build folder. Keep the folder and
+its supporting files together.
+
+In either native interface, `C-c d` opens the browser editor while
+leaving the original window available. Install a current Google Chrome
+for this interface. On Linux, the launcher looks for Chrome or Chromium
+and can fall back to the desktop's default browser. If that browser is
+unsuitable, select an installed browser executable before starting
+Chezweb, for example:
+
+```sh
+export CHEZWEB_BROWSER=google-chrome
+```
+
+Use the executable name on your machine; it may be `google-chrome-stable`
+or `chromium`. The message line also supplies the local URL. Keep the
+native Editor running while using its browser tab. Claude and Codex
+commands are used from the native window.
+
+To make `chezweb` callable from any directory, add the build folder to
+`PATH`. For Nia's example folder:
+
+```sh
+export PATH="$HOME/mysand/chezmoi:$PATH"
+```
+
+This changes the current shell. To keep the change for future terminals,
+add that same line to `~/.zshrc` if you use Zsh (the usual macOS shell),
+or to `~/.bashrc` if you use Bash (usual on Ubuntu). Replace
+`mysand/chezmoi` with your actual folder. Open a new terminal and check:
+
+```sh
+command -v chezweb
+chezweb --version
+```
+
+You can now work from another directory:
+
+```sh
+cd ~/Documents
+chezweb notes.md
+```
+
+The filename is relative to that working directory. Adding the build
+folder to `PATH` also makes `chezweb-gui` available, if it was built.
+If you move or rename the build folder, update the line in your shell
+configuration.
 
 ## Installing Claude and Codex
--- Claude, rewrite this section
 
-Browsered can ask Claude, an artificial intelligence made by
-Anthropic, for help with the text you are editing. The Editor does
-not talk to Claude directly: it calls Claude Code, a program that
-you install and log in once. You must subscribe to Claude: Claude Code
-requires a Pro, Max, Team or Enterprise plan, or an Anthropic
-Console account; the free plan does not include it.
+The assistants are optional: Chezweb can edit files without either of
+them. Claude Code and Codex CLI are separate programs. Install the
+ones you want and sign in from a terminal before calling them from
+Chezweb. In the browser editor, their commands direct you back to the
+terminal or GUI window.
 
 ### MAC OS-X and Linux.
 
-> 
-> 
->     ~$ curl -fsSL https://claude.ai/install.sh | bash
+Install Claude Code with Anthropic's native installer:
 
-On the Macintosh, Homebrew works too:
+```sh
+curl -fsSL https://claude.ai/install.sh | bash
+```
 
-> 
-> 
->     ~$ brew install --cask claude-code
+On macOS, Homebrew is another option:
+
+```sh
+brew install --cask claude-code
+```
+
+Choose one installation method. Open a new terminal afterwards and
+run `claude --version`. See Anthropic's
+[installation instructions](https://code.claude.com/docs/en/setup)
+for supported systems and troubleshooting.
 
 ### Windows.
 
-In PowerShell:
+For Claude Code on native Windows, Anthropic provides this PowerShell
+command:
 
-> 
-> 
->     PS C:\Users\nia> irm https://claude.ai/install.ps1 | iex
+```powershell
+irm https://claude.ai/install.ps1 | iex
+```
+
+If Chezweb is running in WSL, install Claude Code inside WSL with the
+Linux command instead. The Editor needs to find `claude` in the
+environment where the Editor itself runs.
 
 ### Logging in.
 
-Open a new terminal, check the
-installation, and run `claude` once. It opens the browser, where
-you log in with your Claude account.
+Run Claude Code once in that terminal:
 
-> 
-> 
->     ~$ claude --version
->     ~$ claude
+```sh
+claude
+```
 
-After logging in, type `/exit` to leave Claude Code. You will not
-need to log in again.
+Follow the browser sign-in instructions, then type `/exit` to return
+to the shell. Use an account with Claude Code access, such as a
+qualifying Claude subscription or a Console account. Console/API
+billing is separate from subscription usage. See Anthropic's
+[authentication documentation](https://code.claude.com/docs/en/authentication)
+for account options. If authentication later expires, sign in again.
 
 ### API key.
 
-If you have an Anthropic API key instead of a
-subscription, Browsered can use it: write the key in the first line of
-the `~/.sbemacs/anthropic-api-key` file, or put it in the
-`ANTHROPIC_API_KEY` environment variable. Never put the key in
-a file that you share or send to GitHub.
+A Claude subscription login does not require a key in Chezweb. For
+users who choose Anthropic API billing instead, Chezweb also supports
+`ANTHROPIC_API_KEY`, or the first line of
+`~/.chezemax/anthropic-api-key`. This is an alternative to the
+subscription route. Keep the key private and out of the repository.
 
 ### Codex and ChatGPT.
 
-The `C-c g` command asks Codex,
-OpenAI’s programming assistant, using an eligible ChatGPT subscription.
-Install the current Codex program, for instance with
-`npm install -g @openai/codex@latest`, run `codex` once and
-choose *Sign in with ChatGPT*. On Windows, PowerShell can install it
-without npm:
+Install Codex CLI on macOS or Linux:
 
-> 
-> 
->     PS C:\Users\nia> irm https://chatgpt.com/codex/install.ps1 | iex
->     PS C:\Users\nia> codex
+```sh
+curl -fsSL https://chatgpt.com/codex/install.sh | sh
+```
 
-On a Macintosh, Browsered also looks for the copy of Codex inside the
-ChatGPT application. If that copy needs authentication, the same one-time
-terminal sign-in completes the set-up. The Editor never asks for an API key.
+Open a new terminal, then run:
+
+```sh
+codex --version
+codex
+```
+
+Choose **Sign in with ChatGPT** and complete the browser login to use
+your account's Codex allowance. For Chezweb under WSL, install and sign
+in inside WSL. See the official
+[Codex CLI instructions](https://learn.chatgpt.com/docs/codex/cli).
+
+On macOS, Chezweb also searches supported locations inside the Codex
+and ChatGPT applications. A separate CLI installation is useful when
+`codex` is otherwise unavailable in your terminal. Chezweb's Codex
+integration does not ask you to enter an OpenAI API key; use the
+ChatGPT sign-in route for subscription usage. Account access and
+limits follow OpenAI's [authentication documentation](https://learn.chatgpt.com/docs/auth).
 
 ### Checking.
 
-Inside Browsered, press `C-c r s` to check
-Claude or `C-c g s` to check Codex. The Editor tells whether it
-found the corresponding program, where it found it, and how to fix what
-is missing.
+Start Chezweb from the terminal where the installed programs are
+available. Press `C-c r`, then `s`, to check Claude; press `C-c g`,
+then `s`, to check Codex. The setup page reports which executable was
+found and any missing setup. If a program is not found, check its
+`--version` command in that terminal, correct `PATH` as directed by
+its installer, then restart Chezweb.
+
+For a nonstandard executable location, set `CHEZEMAX_CLAUDE` or
+`CHEZEMAX_CODEX` to the full executable path before starting the Editor.
+Do not put a whole shell command with options in these variables.
 
 ## Using Claude and Codex
 
@@ -1049,7 +1087,7 @@ appended, followed by a new `You:`. Each message sends the whole
 discussion and the file around its cursor, so Claude sees the code as
 it is now. To bring a snippet of the discussion into the file, Nia
 puts the cursor inside the snippet and presses `C-c t`, for
-tangle; Browsered asks, then inserts the snippet at the cursor of the
+tangle; Chezweb asks, then inserts the snippet at the cursor of the
 file. The `C-x 0` command closes the discussion window, and
 `C-c r d` brings it back as it was.
 
@@ -1096,7 +1134,7 @@ the assistants, except the discussion.
 
 ## Executing Scheme programs
 
-There are many ways of executing Lisp in Browsered. They all
+There are many ways of executing Lisp in Chezweb. They all
 evaluate the expressions in the same Common Lisp, the one that
 runs the Editor. Errors are reported on the message line; they
 never take the Editor down.
@@ -1112,7 +1150,7 @@ returns the name of the file.
 ### Configuration.
 -- Claude, rewrite this section.
 
-When Browsered starts, it loads
+When Chezweb starts, it loads
 `~/.sbemacs/init.lisp`, if the file exists. That is where Nia
 puts her own commands and keybindings:
 
@@ -1123,7 +1161,7 @@ Syntax colouring, indentation, keybindings and
 the assistants are Lisp scripts, in the `lisp/` folder of the
 sources. The files that Nia puts in `~/.sbemacs/extensions/` and
 `~/.sbemacs/languages/` are loaded too. If she edits any of
-these files, she presses `C-x C-r`, and Browsered reloads what
+these files, she presses `C-x C-r`, and Chezweb reloads what
 changed; there is no need to run `make` again. For instance, a
 new language is a file with two forms:
 
@@ -1131,20 +1169,19 @@ Chapter [Teaching Claude: SKILL.md](#teaching-claude-skillmd) explains how to as
 write such scripts for you.
 
 
+-- Parei aqui
+
 # Shell
 
-Nia, a Greek young woman, has an
-account on a well known social network.
-She visits her friends’ postings on a daily basis,
-and when she finds an interesting picture or video,
-she presses the *Like*-button. However, when
-she needs to discuss her upcoming holidays on the Saba Island
-with her Argentinian boyfriend, she uses the
-live chat box. After all, hitting buttons and
-icons offers only a very limited interaction tool,
-and does not produce a highly detailed
-level of information that permits the answering
-of questions and making of statements.
+Nia, a Greek young woman, has an account on a well known social
+network. She visits her friends’ postings on a daily basis, and when
+she finds an interesting picture or video, she presses the
+*Like*-button. However, when she needs to discuss her upcoming
+holidays on the Saba Island with her Argentinian boyfriend, she uses
+the live chat box. After all, hitting buttons and icons offers only a
+very limited interaction tool, and does not produce a highly detailed
+level of information that permits the answering of questions and
+making of statements.
 
 Using a chat service needs to
 be very easy and fun, otherwise all those teenage
@@ -1585,7 +1622,7 @@ programs without `sudo`:
 
 ### git clone.
 
-Many programs, Browsered among them,
+Many programs, Chezweb among them,
 are distributed as source code in a git repository. The
 `git clone` command makes a copy of the repository, `git pull`
 brings the changes, and `make` builds the program, as you saw
@@ -1615,7 +1652,7 @@ folder comes first in `PATH`.
 
 # Teaching Claude: SKILL.md
 
-There are two ways of working with Claude. Inside Browsered,
+There are two ways of working with Claude. Inside Chezweb,
 `C-c r` asks Claude a question about the text you are editing.
 Claude only reads: it cannot open files or run programs, and you
 decide what goes into your buffer. Outside the Editor, in the text
@@ -1624,12 +1661,12 @@ types `claude`, she can chat with Claude Code, which reads the
 files of the folder, writes new ones, and runs commands like
 `make`, always asking her permission first.
 
-Suppose that Nia wants Browsered to colour Go programs. She could
+Suppose that Nia wants Chezweb to colour Go programs. She could
 type `claude` in her terminal and say:
 
-> *Write an Browsered script that colours and indents Go files.*
+> *Write an Chezweb script that colours and indents Go files.*
 
-Claude Code knows Common Lisp, but it does not know Browsered.
+Claude Code knows Common Lisp, but it does not know Chezweb.
 It does not know that a language is defined by `define-language`,
 that personal scripts go to `~/.sbemacs/languages/`, or that
 `C-x C-r` reloads them. It would find out by reading the sources,
@@ -1652,9 +1689,9 @@ its description:
 > 
 >     ---
 >     name: sbemacs-scripts
->     description: Write or change Browsered Lisp scripts (key bindings,
+>     description: Write or change Chezweb Lisp scripts (key bindings,
 >       commands, syntax colouring with define-language, indentation ...)
->       Use when the user wants Browsered to do something new, or asks
+>       Use when the user wants Chezweb to do something new, or asks
 >       how its Lisp API works.
 >     ---
 
@@ -1682,7 +1719,7 @@ Claude Code looks for skills in two places:
     a repository. They work when Claude Code runs in that repository,
     and everybody who clones the repository gets them.
 
-The Browsered repository brings a project skill:
+The Chezweb repository brings a project skill:
 
 > 
 > 
@@ -1706,13 +1743,13 @@ Nia enters her folder, starts Claude Code and asks:
 > 
 > 
 >     ~/go-programs$ claude
->     > Write an Browsered script that colours and indents Go files.
+>     > Write an Chezweb script that colours and indents Go files.
 
 Claude recognizes the task from the description, reads the skill,
 and writes the file `~/.sbemacs/languages/go.lisp`, with a
 `define-language` form and a
 `define-indentation` form. It asks
-before creating the file. Then Nia opens a Go file in Browsered, or
+before creating the file. Then Nia opens a Go file in Chezweb, or
 presses `C-x C-r` if the Editor is already running, and the
 colours appear. If Claude does not pick the skill by itself, Nia
 names it:
@@ -1721,7 +1758,7 @@ names it:
 > 
 >     > /sbemacs-scripts a command on C-c d that inserts today's date
 
-## The Browsered skill
+## The Chezweb skill
 
 Here is the complete file. Its rules are the rules of this book:
 the assistant never changes the text behind your back, errors end in
@@ -1755,12 +1792,12 @@ Keep a skill short and specific. Claude reads it when it applies,
 so a long skill costs time on every task of that kind, and a vague
 description makes Claude use the skill at the wrong moments, or never.
 
-# About Browsered
+# About Chezweb
 
-Browsered, Steel Bank Emacs, is a tiny Emacs clone,
+Chezweb, Steel Bank Emacs, is a tiny Emacs clone,
 originally derived from a minimalist
 editor called Atto. Although built
-upon the C Atto codebase, Browsered can
+upon the C Atto codebase, Chezweb can
 be customized using Lisp: Steel Bank Common Lisp,
 or SBCL for short. Its predecessor, FemtoEmacs,
 used a Lisp of its own, femtolisp.
@@ -1802,7 +1839,7 @@ The REPL approach enables fast prototyping
 of extensions as each idea can be tested
 individually on the command line inside
 the Editor with an immediate result check.
-In Browsered, this is true of the Editor itself:
+In Chezweb, this is true of the Editor itself:
 syntax colouring, indentation, the key bindings and the
 assistants are Lisp scripts. If you edit one of them
 and press `C-x C-r`, the Editor reloads it;
@@ -1817,7 +1854,7 @@ derivatives.
 
 Chez Scheme  was chosen
 as the extension language
-for Browsered for the following reasons:
+for Chezweb for the following reasons:
 
 1. It is open source.
 
@@ -1828,5 +1865,5 @@ for Browsered for the following reasons:
 The present text is based on *An introduction to femtolisp*,
 by Eduardo Costa and Vernon Sipple.
 
-Browsered was written by Eduardo Costa, on top of FemtoEmacs by Hugh Barney
+Chezweb was written by Eduardo Costa, on top of FemtoEmacs by Hugh Barney
 and Lucas Guerra.

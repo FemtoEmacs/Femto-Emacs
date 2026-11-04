@@ -63,6 +63,10 @@
   "TTFY, plots and compile-scripts run in the terminal or SDL window."
   (message "Not in the browser editor: TTFY, plots (C-c p) and compile-scripts run in the terminal or SDL window."))
 
+(defcommand (browser-script-installer)
+  "Script installation uses your native home folder."
+  (message "Save browser edits with C-x C-s; run script-installer in the terminal/GUI window"))
+
 (define (%without-labels labels buttons)
   (filter (lambda (b) (not (member (car b) labels))) buttons))
 (define (%without-entries names entries)
@@ -94,6 +98,7 @@
   (set! plot-at-point browser-native-only)
   (set! plot-save browser-native-only)
   (set! compile-scripts browser-native-only)
+  (set! script-installer browser-script-installer)
   (global-unset-key "C-c f")
   (global-unset-key "C-c p")
   (set! *mode-line-menu* (%without-labels '("TTFY") *mode-line-menu*))

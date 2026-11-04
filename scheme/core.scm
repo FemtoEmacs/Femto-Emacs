@@ -241,6 +241,15 @@ the procedure).  Any key can be bound, in Emacs notation: \"C-c a\",
 (define (global-unset-key key) (table-remove! *keymap* (normalize-key key)) #t)
 (define (key-binding key) (get *keymap* (normalize-key key) #f))
 
+(define (key-command-name key)
+  "The live Scheme binding, or the C command behind KEY; #f if unbound."
+  (let* ((name (normalize-key key)) (fn (key-binding key))
+         (builtin (if fn "" (fe-key-command name)))
+         (builtin (if (and (not fn) (string=? builtin "")) (fe-key-command key) builtin)))
+    (cond (fn (command-name fn))
+          ((or (string=? builtin "") (string=? builtin "user-defined-function")) #f)
+          (else builtin))))
+
 (define *last-key* "")
 (define *this-key* "")
 (define *last-command* #f)
@@ -449,6 +458,9 @@ on the kill ring and make it what C-y inserts."
                       (set! handled #t)
                       (command-boundary "menu")
                       (run-mode-line-button (string->number arg)))
+                     ((string=? kind "menu-hover")
+                      (set! handled #t)
+                      (describe-mode-line-button (string->number arg)))
                      ((string=? kind "select") (run-hook '*select-hook*))
                      ((string=? kind "complete-file")
                       (fe-set-completions (string-join (file-name-completions arg) "\n")))

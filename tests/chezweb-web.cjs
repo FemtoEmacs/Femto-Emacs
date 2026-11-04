@@ -20,6 +20,24 @@ const server=http.createServer((q,r)=>{
  const seq=async(...keys)=>{for(const key of keys)await page.keyboard.press(key);};
  const type=async s=>page.keyboard.insertText(s);
  await page.goto('http://127.0.0.1:'+server.address().port);await wait('A Chezweb test.');
+ await seq('Alt+x');await type('script-installer');await seq('Enter');await wait('run script-installer in the terminal/GUI window');
+ assert.equal(saved,'');assert(!(await page.evaluate(()=>FS.analyzePath('/home/web_user/.chezemax/users').exists)));
+ console.log('PASS browser script-installer gives native-window guidance without saving or a virtual installation');
+ await seq('Control+c','k');await wait('The kill ring is empty');
+ await type('Empty menu returned');await wait('Empty menu returned');
+ await seq('Control+a','Control+k');
+ for(const exit of ['q','Control+g']){
+  await seq('Control+c','k');await wait('q/x/C-g exits');
+  await seq(exit);await page.waitForFunction(()=>!document.getElementById('screen-text').textContent.includes('q/x/C-g exits'));
+ }
+ console.log('PASS empty kill ring returns immediately; populated menu exits with q and C-g');
+ await seq('Control+x','2');await page.waitForFunction(()=>document.getElementById('screen-text').textContent.split('\n').filter(s=>s.includes('[?]')).length===2);
+ const modes=await page.evaluate(()=>document.getElementById('screen-text').textContent.split('\n').map((s,i)=>s.includes('[?]')?i:-1).filter(i=>i>=0));
+ await seq('Control+Backslash');await page.waitForFunction(before=>{
+  const after=document.getElementById('screen-text').textContent.split('\n').map((s,i)=>s.includes('[?]')?i:-1).filter(i=>i>=0);
+  return after.length===2&&after[0]!==before[0];
+ },modes);console.log('PASS C-backslash enlarges the selected browser window');
+ await page.reload();await wait('A Chezweb test.');
  assert(await page.evaluate(()=>typeof WebAssembly.Suspending==='function'));console.log('PASS real Chrome JSPI, unchanged compiled editor startup');
  await seq('Control+x','Control+f');await wait('Find');await seq('Control+a','Control+k');await type('/home/web_user/other.txt');await seq('Enter');await type('Other buffer marker');await wait('Other buffer marker');await seq('Control+x','Control+s');
  await seq('Control+x','b');await wait('Switch to buffer');await type('test.md');await seq('Enter');await wait('A Chezweb test.');console.log('PASS C-x b prompt suspends through compiled Scheme and selects a buffer');
@@ -39,7 +57,7 @@ const server=http.createServer((q,r)=>{
  // A pending explicit save must finish before the tab is closed.
  await page.evaluate(()=>{Module.chezwebSave=new Promise(r=>window.finishQuitSave=r);});
  await seq('Control+x','Control+c');await page.waitForTimeout(100);assert(!page.isClosed());
- const closed=page.waitForEvent('close');await page.evaluate(()=>window.finishQuitSave());await closed;
+ const closed=page.waitForEvent('close');await page.evaluate(()=>window.finishQuitSave());try{await closed;}catch(e){console.error("QUIT SCREEN:",await text(),"ERRORS:",errors);throw e;}
  assert(browser.isConnected());console.log('PASS C-x C-c waits for pending save and closes its tab only');
  const fallback=await browser.newPage();await fallback.goto('http://127.0.0.1:'+server.address().port);await fallback.waitForFunction(()=>document.getElementById('screen-text').textContent.includes('A Chezweb test.'));
  await fallback.evaluate(()=>{window.close=()=>{};});await fallback.keyboard.press('Control+x');await fallback.keyboard.press('Control+c');

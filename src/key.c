@@ -234,8 +234,10 @@ static int macro_repeat = 0;         /* "e" right after C-x e repeats it */
  * else.  A prompt that ends because of a key it does not use (search ends
  * at an arrow, say) gives the key back, and the editor runs it as usual.
  */
-static char_t unread[16];
+static char_t unread[K_BUFFER_LENGTH * 2];
 static int nunread = 0;
+static int offer_idle; /* only before the first byte of get_key's sequence */
+keymap_t idle_key = { "idle", "idle", NULL, NULL };
 
 void unread_key_bytes(const char *s, int n)
 {
@@ -247,7 +249,8 @@ void unread_key_bytes(const char *s, int n)
 
 int read_key_byte(void)
 {
-	int c;
+	int c, allow_idle = offer_idle;
+	offer_idle = 0;
 
 	if (nunread > 0) {              /* already recorded, if a macro is */
 		c = unread[0];
@@ -260,7 +263,10 @@ int read_key_byte(void)
 			return macro_buf[macro_play++];
 		macro_play = -1;
 	}
-	c = screen_getch();
+	do {
+		c = screen_getch();
+		if (c == SCR_KEY_IDLE && allow_idle) return c;
+	} while (c == SCR_KEY_IDLE);
 	if (macro_repeat) {
 		macro_repeat = 0;
 		if (c == 'e' && macro_len > 0) {
@@ -379,6 +385,8 @@ static void byte_name(char *out, int b)
 
 static char synth_name[64];
 static keymap_t synth_key = { synth_name, "user-defined-function", NULL, keyboardDefinition };
+static char_t synth_bytes[K_BUFFER_LENGTH];
+static int synth_length;
 
 /*
  * Name an unmatched sequence, or return 0 when it is ordinary text
@@ -431,7 +439,14 @@ char_t *get_key(keymap_t *keys, keymap_t **key_return)
 	do {
 		assert(K_BUFFER_LENGTH > record - buffer);
 		/* read and record one byte. */
-		*record++ = (unsigned)read_key_byte();
+        offer_idle = (record == buffer);
+        int byte = read_key_byte();
+        if (byte == SCR_KEY_IDLE) {
+            *key_return = &idle_key;
+            *record = '\0';
+            return record;
+        }
+		*record++ = (unsigned)byte;
 		*record = '\0';
 
 		/* if recorded bytes match any multi-byte sequence... */
@@ -473,6 +488,8 @@ char_t *get_key(keymap_t *keys, keymap_t **key_return)
 
 	/* nothing matched */
 	if (name_sequence(buffer, (int) (record - buffer))) {
+        synth_length = (int)(record - buffer);
+        memcpy(synth_bytes, buffer, (size_t)synth_length);
 		record = buffer;
 		*record = '\0';
 		*key_return = &synth_key;
@@ -481,6 +498,24 @@ char_t *get_key(keymap_t *keys, keymap_t **key_return)
 	/* ordinary text: return the recorded bytes one at a time */
 	record = buffer;
 	return (record++);
+}
+
+/* Key-only prompts ignore complete mouse reports. Other key sequences
+ * are replayed byte-for-byte for the prompt's existing control handling. */
+int read_nonmouse_key_byte(void)
+{
+ for (;;) {
+  keymap_t *key = NULL;
+  char_t *text = get_key(key_map ? key_map : keymap, &key);
+  if (key == &idle_key || (key && key->func == editor_mouse_event)) continue;
+  if (key) {
+   const char_t *bytes = key == &synth_key ? synth_bytes : (const char_t *)key->key_bytes;
+   int n = key == &synth_key ? synth_length : (int)strlen((const char *)bytes);
+   if (n > 1) unread_key_bytes((const char *)bytes + 1, n - 1);
+   return n ? bytes[0] : 0;
+  }
+  return (unsigned char)*text;
+ }
 }
 
 /* wrapper to simplify call and dependancies in the interface code */

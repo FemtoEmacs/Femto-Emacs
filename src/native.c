@@ -377,6 +377,16 @@ static value_t wrap_fe_log_message(value_t *a, uint32_t n) {
  argcount("fe_log_message", n, 1);
  fe_log_message(tostring(a[0], "fe_log_message")); return FL_T;
 }
+extern char *fe_key_command(char *name);
+static value_t wrap_fe_key_command(value_t *a, uint32_t n) {
+ argcount("fe_key_command", n, 1);
+ const char *s = fe_key_command(tostring(a[0], "fe_key_command")); return string_from_cstrn((char *)s, strlen(s));
+}
+extern int fe_mouse_menu_hit(void);
+static value_t wrap_fe_mouse_menu_hit(value_t *a, uint32_t n) {
+ argcount("fe_mouse_menu_hit", n, 0);
+ return fixnum(fe_mouse_menu_hit());
+}
 extern char * fe_get_key(void);
 static value_t wrap_fe_get_key(value_t *a, uint32_t n) {
  argcount("fe_get_key", n, 0);
@@ -391,6 +401,18 @@ extern char * fe_get_key_binding(void);
 static value_t wrap_fe_get_key_binding(value_t *a, uint32_t n) {
  argcount("fe_get_key_binding", n, 0);
  const char *s = fe_get_key_binding(); return string_from_cstrn((char *)(s ? s : ""), s ? strlen(s) : 0);
+}
+extern char *fe_file_prompt_default(char *question, char *initial);
+static value_t wrap_fe_file_prompt_default(value_t *a, uint32_t n) {
+ argcount("fe_file_prompt_default", n, 2);
+ const char *s = fe_file_prompt_default(tostring(a[0], "fe_file_prompt_default"), tostring(a[1], "fe_file_prompt_default"));
+ return string_from_cstrn((char *)s, strlen(s));
+}
+extern char *fe_install_script(char *name, int overwrite);
+static value_t wrap_fe_install_script(value_t *a, uint32_t n) {
+ argcount("fe_install_script", n, 2);
+ const char *s = fe_install_script(tostring(a[0], "fe_install_script"), tofixnum(a[1], "fe_install_script"));
+ return string_from_cstrn((char *)s, strlen(s));
 }
 extern char * fe_prompt(char *prompt, char *initial);
 static value_t wrap_fe_prompt(value_t *a, uint32_t n) {
@@ -528,9 +550,13 @@ static builtinspec_t editor_builtins[] = {
  {"fe-clear-message-line", wrap_fe_clear_message_line},
  {"fe-log-debug", wrap_fe_log_debug},
  {"fe-log-message", wrap_fe_log_message},
+ {"fe-key-command", wrap_fe_key_command},
+ {"fe-mouse-menu-hit", wrap_fe_mouse_menu_hit},
  {"fe-get-key", wrap_fe_get_key},
  {"fe-get-key-name", wrap_fe_get_key_name},
  {"fe-get-key-binding", wrap_fe_get_key_binding},
+ {"fe-file-prompt-default", wrap_fe_file_prompt_default},
+ {"fe-install-script", wrap_fe_install_script},
  {"fe-prompt", wrap_fe_prompt},
  {"fe-shell-command", wrap_fe_shell_command},
  {"fe-add-mode-global", wrap_fe_add_mode_global},

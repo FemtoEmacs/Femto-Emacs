@@ -165,6 +165,10 @@ app: chezweb-gui irene-dixe chezemax.wasm chezemax.cwasm browser
 check-ui: chezemax chezweb browser
 	sh tests/run-spawn.sh
 	sh tests/run-browser-launch.sh
+	sh tests/run-kill-ring-menu.sh
+	sh tests/run-command-help.sh
+	sh tests/run-compile-notification.sh
+	sh tests/run-script-installer.sh
 	$(CC) $(CPPFLAGS) $(CFLAGS) tests/filename-completion.c src/complete.c src/fileprompt.c -o tests/filename-completion-test
 	./tests/filename-completion-test
 	$(CC) $(CFLAGS) tests/fileprompt.c src/fileprompt.c -o tests/fileprompt-test

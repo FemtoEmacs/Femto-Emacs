@@ -17,14 +17,14 @@ static int active = 0;
 static int mouse_on = 0;
 
 /*
- * xterm mouse reporting: 1002 reports presses, releases and motion while
- * a button is down; 1006 is the SGR encoding (ESC [ < b ; x ; y M/m),
+ * xterm mouse reporting: 1003 reports presses, releases and all pointer motion;
+ * 1006 is the SGR encoding (ESC [ < b ; x ; y M/m),
  * which has no 223-column limit.  key.c decodes it.  Most terminals still
  * select text natively with Shift (Option in Terminal.app) held down.
  */
 static void mouse_reporting(int on)
 {
-	fputs(on ? "\033[?1000h\033[?1002h\033[?1006h" : "\033[?1006l\033[?1002l\033[?1000l", stdout);
+	fputs(on ? "\033[?1000h\033[?1003h\033[?1006h" : "\033[?1006l\033[?1003l\033[?1000l", stdout);
 	fflush(stdout);
 }
 static attr_t face_attrs[MAX_FACE + 1];
@@ -39,6 +39,7 @@ int screen_init(int mouse)
 		return 0;
 	raw();
 	noecho();
+	wtimeout(stdscr, 250);
 	idlok(stdscr, TRUE);
 	if (has_colors()) {
 		start_color();
@@ -92,7 +93,7 @@ int screen_getch(void)
 {
 	int c = getch();
 	/* KEY_RESIZE (0x19A) arrives as its low byte, SCR_KEY_RESIZE */
-	return c < 0 ? c : (c & 0xFF);
+	return c == ERR ? SCR_KEY_IDLE : (c & 0xFF);
 }
 
 void screen_flushinp(void) { flushinp(); }

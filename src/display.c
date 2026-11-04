@@ -303,8 +303,11 @@ again:
 	if (bp->b_point < bp->b_page)
 		bp->b_page = segstart(bp, lnstart(bp,bp->b_point), bp->b_point);
 
-	/* reframe when scrolled off bottom */
-	if (bp->b_epage <= bp->b_point) {
+	/* The previous b_epage is a byte offset into the pre-edit text.
+	 * Padding a visible line can move point beyond it without moving the
+	 * cursor off screen. Paint the current page first; reframe only when
+	 * that pass proves point is not visible. */
+	if (tries > 0) {
 		/* Find end of screen plus one. */
 		bp->b_page = dndn(bp, bp->b_point);
 		/* if we scoll to EOF we show 1 blank line at bottom of screen */
@@ -332,7 +335,7 @@ again:
 	/* paint screen from top of page until we hit maxline */
 	while (1) {
 		/* reached point - store the cursor position */
-		if (bp->b_point == bp->b_epage) {
+		if (bp->b_point == bp->b_epage && i < wp->w_top + wp->w_rows) {
 			found = 1;
 			bp->b_row = i;
 			bp->b_col = wrap_end != NOMARK && j >= screen_cols() ? screen_cols() - 1 : j;
