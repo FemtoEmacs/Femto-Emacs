@@ -24,6 +24,7 @@
  * Unknown records are ignored, so the format can grow (diagnostic-image
  * sketches will add their own).  Only SDL2 and SDL2_ttf are needed.
  */
+#define SDL_MAIN_HANDLED
 #include <SDL.h>
 #include <SDL_ttf.h>
 #include <ctype.h>
@@ -217,7 +218,7 @@ static const char *font_candidates[] = {
 	"/System/Library/Fonts/Supplemental/Arial.ttf",
 	"/Library/Fonts/Arial.ttf",
 	"/System/Library/Fonts/Menlo.ttc",
-#elif defined(_WIN32)
+#elif defined(_WIN32) || defined(__CYGWIN__)
 	"C:\\Windows\\Fonts\\arial.ttf",
 	"C:\\Windows\\Fonts\\segoeui.ttf",
 	"C:\\Windows\\Fonts\\consola.ttf",
@@ -880,6 +881,7 @@ int main(int argc, char **argv)
 		return 2;
 	}
 	if (!read_sketch(path)) return 1;
+	SDL_SetMainReady();
 	if (TTF_Init() != 0) { fprintf(stderr, "irene-dixe: %s\n", TTF_GetError()); return 1; }
 	if (offscreen) return render_offscreen(argv[3]);
 

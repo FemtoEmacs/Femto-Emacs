@@ -10,7 +10,7 @@ Install current Google Chrome, launch Chezweb, then press C-c d for its browser
 editor. The terminal window remains open for shell commands and AI assistance.
 
 This package bundles the Cygwin POSIX runtime, mintty, ncurses, the Scheme
-compiler, the native Windows Wasmtime DLL and portable browser WebAssembly.
+compiler, the native Windows Wasmtime DLL, SDL and portable browser WebAssembly.
 Users do not install Cygwin, WSL, a C compiler, Node or a browser compiler.
 The package provides terminal, native SDL GUI and browser interfaces.
 Choose Chezweb or Chezweb GUI in the Start menu. Claude/Codex are optional separate installations. PDF rendering

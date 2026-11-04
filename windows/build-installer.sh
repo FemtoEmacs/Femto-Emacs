@@ -14,7 +14,7 @@ rm -rf "$stage"
 mkdir -p "$stage"/{app,bin,tmp,etc,licenses,usr/share/terminfo}
 # The source compiler remains available for personal scripts. Native caches
 # are deliberately omitted: Wasmtime regenerates them for the user's CPU.
-cp chezweb.exe chezweb-gui.exe chezweb-server.exe schemer-compile.exe "$stage/app/"
+cp chezweb.exe chezweb-gui.exe chezweb-server.exe schemer-compile.exe irene-dixe.exe "$stage/app/"
 cp chezemax.wasm Chezweb.html "$stage/app/"
 cp -R scheme compiled schemer tools femtoscheme "$stage/app/"
 find "$stage/app" -type d -name bkp -prune -exec rm -rf {} +
