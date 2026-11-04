@@ -9,7 +9,7 @@ export CHEZEMAX_NO_INIT=1
 export PATH="$root/bin:$root/app" HOME="$root/tmp/test-home" TERM=xterm-256color
 mkdir -p "$HOME"
 [ "$(chezweb --eval '(+ 20 22)')" = 42 ]
-[ "$(chezweb --eval '(begin (define (fib n) (if (< n 2) n (+ (fib (- n 1)) (fib (- n 2))))) (fib 20))')" = 6765 ]
+[ "$(chezweb --eval '(let fib ((n 20)) (if (< n 2) n (+ (fib (- n 1)) (fib (- n 2)))))')" = 6765 ]
 mkdir -p "$HOME/.chezemax/users"
 printf '(define (installed-answer) 42)\n' > "$HOME/.chezemax/users/answer.scm"
 chezweb --compile-scripts "$HOME/compile.log"
