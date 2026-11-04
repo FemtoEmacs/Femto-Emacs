@@ -112,19 +112,11 @@ jobs:
           $u = Start-Process "$dest\Uninstall.exe" -WorkingDirectory $env:RUNNER_TEMP -ArgumentList '/S' -Wait -PassThru
           if ($u.ExitCode -ne 0) { throw 'Uninstaller failed' }
       - name: Download corresponding component sources
-        shell: pwsh
+        shell: C:\cygwin64\bin\bash.exe --noprofile --norc -o igncr -eo pipefail {0}
         run: |
-          # An empty root makes --include-source select the requested packages.
-          # Setup is a GUI-subsystem program: wait for its actual exit status.
-          $cache = "$env:GITHUB_WORKSPACE\build\windows\cygwin-sources"
-          $args = @('--quiet-mode', '--download', '--include-source', '--no-admin', '--no-desktop', '--no-startmenu', '--root', 'C:\cygwin-source-download', '--local-package-dir', $cache, '--site', 'https://cygwin.mirror.constant.com/', '--packages', 'cygwin,bash,mintty,ncurses,coreutils,findutils,gawk,grep,sed,tar,xz,gzip,curl,unzip')
-          $setup = Start-Process -FilePath '${{ steps.cygwin.outputs.setup }}' -ArgumentList $args -Wait -PassThru
-          if ($setup.ExitCode -ne 0) { throw "Source download failed: $($setup.ExitCode)" }
-          $sources = @(Get-ChildItem $cache -Recurse -File -Filter '*-src.tar.*')
-          if ($sources.Count -eq 0) { throw 'No component source archives were downloaded' }
-          $versionLine = Select-String -Path 'build/windows/installed-packages.txt' -Pattern '^cygwin\s+(\S+)'
-          $version = $versionLine.Matches[0].Groups[1].Value
-          if (!($sources | Where-Object Name -Like "cygwin-$version-src.tar.*")) { throw 'Matching Cygwin source is missing' }
+          export PATH=/usr/bin:$PATH
+          cd "$(cygpath -u "$GITHUB_WORKSPACE")"
+          sh .github/scripts/windows-sources.sh build/windows/installed-packages.txt build/windows/cygwin-sources
       - name: Upload installer
         if: success()
         uses: actions/upload-artifact@v4
