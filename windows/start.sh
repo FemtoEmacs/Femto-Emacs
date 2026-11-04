@@ -1,7 +1,10 @@
 #!/bin/bash
 # Executed inside the bundled POSIX environment, never a login shell.
 set -eu
-root=$(cd -- "$(dirname -- "$0")/.." && pwd)
+script=${BASH_SOURCE[0]}
+root=$(cd -- "${script%/*}/.." && pwd -P)
+# //bin is a UNC server path on Cygwin, not a synonym for /bin.
+root=${root%/}
 export PATH="$root/bin:$root/app:$PATH"
 export HOME=$(cygpath -u "$USERPROFILE")
 export TMPDIR="$root/tmp" TERM=xterm-256color LANG=C.UTF-8
