@@ -2,7 +2,8 @@
 # Publish the current master without rewriting history. Only on user request.
 set -eu
 cd "$(dirname "$0")/.."
-[ "$(git remote get-url origin)" = https://github.com/FemtoEmacs/Femto-Emacs.git ] || { echo 'Unexpected publishing repository' >&2;exit 1; }
+remote=$(git remote get-url origin)
+[ "${remote%.git}" = https://github.com/FemtoEmacs/Femto-Emacs ] || { echo 'Unexpected publishing repository' >&2;exit 1; }
 if [ "${1:-}" = --delete-codemax ]; then
  [ "$#" -eq 2 ] || { echo 'Supply the verified codemax SHA' >&2;exit 1; }
  expected=$2
