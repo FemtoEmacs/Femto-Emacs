@@ -47,11 +47,6 @@ jobs:
           export PATH=/usr/bin:$PATH
           cd "$(cygpath -u "$GITHUB_WORKSPACE")"
           bash windows/build-installer.sh 2>&1 | tee windows-build.log
-      - name: Download corresponding component sources
-        shell: pwsh
-        run: |
-          & '${{ steps.cygwin.outputs.setup }}' --quiet-mode --download --include-source --no-admin --no-desktop --no-startmenu --root 'C:\cygwin64' --local-package-dir "$env:GITHUB_WORKSPACE\build\windows\cygwin-sources" --site https://cygwin.mirror.constant.com/ --packages cygwin,bash,mintty,ncurses,coreutils,findutils,gawk,grep,sed,tar,xz,gzip,curl,unzip
-          if ($LASTEXITCODE -ne 0) { throw "Source download failed: $LASTEXITCODE" }
       - name: Install into a clean directory and test
         shell: pwsh
         run: |
@@ -79,6 +74,20 @@ jobs:
           if ($gui.ExitCode -ne 0) { throw 'GUI exit failed' }
           $u = Start-Process "$dest\Uninstall.exe" -ArgumentList '/S' -Wait -PassThru
           if ($u.ExitCode -ne 0) { throw 'Uninstaller failed' }
+      - name: Download corresponding component sources
+        shell: pwsh
+        run: |
+          # An empty root makes --include-source select the requested packages.
+          # Setup is a GUI-subsystem program: wait for its actual exit status.
+          $cache = "$env:GITHUB_WORKSPACE\build\windows\cygwin-sources"
+          $args = @('--quiet-mode', '--download', '--include-source', '--no-admin', '--no-desktop', '--no-startmenu', '--root', 'C:\cygwin-source-download', '--local-package-dir', $cache, '--site', 'https://cygwin.mirror.constant.com/', '--packages', 'cygwin,bash,mintty,ncurses,coreutils,findutils,gawk,grep,sed,tar,xz,gzip,curl,unzip')
+          $setup = Start-Process -FilePath '${{ steps.cygwin.outputs.setup }}' -ArgumentList $args -Wait -PassThru
+          if ($setup.ExitCode -ne 0) { throw "Source download failed: $($setup.ExitCode)" }
+          $sources = @(Get-ChildItem $cache -Recurse -File -Filter '*-src.tar.*')
+          if ($sources.Count -eq 0) { throw 'No component source archives were downloaded' }
+          $versionLine = Select-String -Path 'build/windows/installed-packages.txt' -Pattern '^cygwin\s+(\S+)'
+          $version = $versionLine.Matches[0].Groups[1].Value
+          if (!($sources | Where-Object Name -Like "cygwin-$version-src.tar.*")) { throw 'Matching Cygwin source is missing' }
       - name: Upload installer
         if: success()
         uses: actions/upload-artifact@v4
