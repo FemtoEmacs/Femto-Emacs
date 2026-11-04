@@ -8,6 +8,11 @@ export PATH="$root/bin:$root/app" HOME="$root/tmp/test-home" TERM=xterm-256color
 mkdir -p "$HOME"
 [ "$(chezweb --eval '(+ 20 22)')" = 42 ]
 [ "$(chezweb --eval '(begin (define (fib n) (if (< n 2) n (+ (fib (- n 1)) (fib (- n 2))))) (fib 20))')" = 6765 ]
+mkdir -p "$HOME/.chezemax/users"
+printf '(define (installed-answer) 42)\n' > "$HOME/.chezemax/users/answer.scm"
+chezweb --compile-scripts "$HOME/compile.log"
+[ "$(chezweb --eval '(installed-answer)')" = 42 ]
+echo 'PASS personal scripts compile using only the installed package'
 # The packaged browser bundle is genuinely present, and the compiler starts.
 [ -s "$root/app/build/chezweb.wasm" ] && [ -s "$root/app/build/chezweb.js" ]
 [ -s "$root/app/schemer/compiler.wasm" ]

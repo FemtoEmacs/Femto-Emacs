@@ -242,7 +242,13 @@ size_t u8_strlen(const char *s)
     return count;
 }
 
-#if defined(__WIN32__)
+#if defined(__CYGWIN__)
+/* Use the bundled full-codepoint width table, not the UTF-16 libc API. */
+#define wcwidth u8_windows_wcwidth
+#define wcswidth u8_windows_wcswidth
+#include "wcwidth.c"
+#undef wcswidth
+#elif defined(__WIN32__)
 #include "wcwidth.c"
 #endif
 

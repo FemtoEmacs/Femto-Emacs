@@ -15,6 +15,9 @@ typedef unsigned long long u_int64_t;
 #endif
 
 extern int locale_is_utf8;
+#ifdef __CYGWIN__
+extern int u8_windows_wcwidth(uint32_t);
+#endif
 
 #if defined(__WIN32__) || defined(__linux__)
 extern int wcwidth(uint32_t);

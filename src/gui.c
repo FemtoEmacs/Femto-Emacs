@@ -14,6 +14,9 @@
 #include <SDL.h>
 #include <SDL_ttf.h>
 #ifdef __CYGWIN__
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <windows.h>
 #include <sys/cygwin.h>
 #endif
 #include <stdio.h>

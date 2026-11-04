@@ -45,9 +45,24 @@ jobs:
           $env:PATH = "$dest\bin;$dest\app;$env:SystemRoot\system32;$env:SystemRoot"
           & "$dest\bin\bash.exe" --noprofile --norc "$env:GITHUB_WORKSPACE\windows\smoke-test.sh" $dest "$env:GITHUB_WORKSPACE\build\windows\pty-test.exe"
           if ($LASTEXITCODE -ne 0) { throw 'Installed editor failed' }
+          # A real SDL window must become ready, load its fonts and close cleanly.
+          $env:HOME = "$dest/tmp/gui-home"
+          $env:CHEZEMAX_NO_INIT = '1'
+          $env:SDL_RENDER_DRIVER = 'software'
+          $gui = Start-Process "$dest/app/chezweb-gui.exe" -PassThru -RedirectStandardError "$dest/tmp/gui-errors.txt"
+          $ready = $false
+          for ($i=0; $i -lt 120; $i++) {
+            $gui.Refresh()
+            if ($gui.HasExited) { Get-Content "$dest/tmp/gui-errors.txt"; throw 'GUI exited before readiness' }
+            if ($gui.MainWindowTitle -eq 'Chezweb') { $ready = $true; break }
+            Start-Sleep -Milliseconds 500
+          }
+          if (!$ready) { $gui.Kill(); throw 'SDL window never became ready' }
+          if (!$gui.CloseMainWindow() -or !$gui.WaitForExit(30000)) { $gui.Kill(); throw 'GUI did not close' }
+          if ($gui.ExitCode -ne 0) { throw 'GUI exit failed' }
           $u = Start-Process "$dest\Uninstall.exe" -ArgumentList '/S' -Wait -PassThru
           if ($u.ExitCode -ne 0) { throw 'Uninstaller failed' }
-      - name: Upload installer and matching sources
+      - name: Upload installer
         if: success()
         uses: actions/upload-artifact@v4
         with:
@@ -55,10 +70,18 @@ jobs:
           path: |
             build/windows/*Setup.exe
             build/windows/SHA256SUMS
-            build/windows/*source.tar.gz
             build/windows/installed-packages.txt
-            build/windows/cygwin-sources/
             windows-build.log
+          retention-days: 30
+      - name: Upload matching component sources
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Chezweb-Windows-corresponding-source
+          path: |
+            build/windows/*source.tar.gz
+            build/windows/cygwin-sources/
+            build/windows/installed-packages.txt
           retention-days: 30
       - name: Upload failed build diagnostics
         if: failure()

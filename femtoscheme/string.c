@@ -1,6 +1,3 @@
-#if defined(__CYGWIN__)
-#define _XOPEN_SOURCE 700
-#endif
 /*
   string functions
 */
@@ -19,6 +16,10 @@
 #include "llt.h"
 #include "flisp.h"
 #include <math.h>
+#ifdef __CYGWIN__
+/* Windows wchar_t cannot represent every Unicode scalar. */
+#define wcwidth u8_windows_wcwidth
+#endif
 
 /* print.c */
 void snprint_real(char *s, size_t cnt, double r, int width, int dec,

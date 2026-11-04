@@ -49,6 +49,11 @@ printf 'none / cygdrive binary,posix=0,user 0 0\n' > "$stage/etc/fstab"
 cp /usr/share/doc/Cygwin/* "$stage/licenses/" 2>/dev/null || true
 cp runtime/wasmtime/LICENSE "$stage/licenses/Wasmtime-LICENSE" 2>/dev/null || true
 cp windows/README.md "$stage/licenses/Chezweb-Windows.txt"
+# Preserve the licenses shipped with both SDL development distributions.
+(cd build/windows/sdl && find . -type f \( -iname '*license*' -o -iname '*copying*' \) | while IFS= read -r file; do
+ mkdir -p "$stage/licenses/SDL/$(dirname "$file")"
+ cp "$file" "$stage/licenses/SDL/$file"
+done)
 cygcheck -cd > "$work/installed-packages.txt"
 # Record the complete build source without ignored documents or caches.
 gcc -O2 tests/pty-keys.c -o "$work/pty-test.exe"
