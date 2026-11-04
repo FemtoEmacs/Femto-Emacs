@@ -17,13 +17,14 @@ work="$PWD/build/windows"
 stage="$work/stage"
 rm -rf "$stage"
 mkdir -p "$stage"/{app,bin,tmp,etc,licenses,usr/share/terminfo}
-# The source compiler remains available for personal scripts. Native caches
-# are deliberately omitted: Wasmtime regenerates them for the user's CPU.
+# Keep source and compiled WebAssembly for personal scripts. Native caches
+# are fingerprinted and validated by Wasmtime; incompatible CPUs fall back
+# to compiling the portable WebAssembly, as on macOS/Linux.
 cp chezweb.exe chezweb-gui.exe chezweb-server.exe schemer-compile.exe irene-dixe.exe "$stage/app/"
-cp chezemax.wasm Chezweb.html "$stage/app/"
+cp chezemax.wasm chezemax.cwasm Chezweb.html "$stage/app/"
 cp -R scheme compiled schemer tools femtoscheme "$stage/app/"
 find "$stage/app" -type d -name bkp -prune -exec rm -rf {} +
-find "$stage/app" -type f \( -name '*.o' -o -name '*.a' -o -name '*.cwasm' -o -name '*.exe' \) ! -path "$stage/app/*.exe" -delete
+find "$stage/app" -type f \( -name '*.o' -o -name '*.a' -o -name '*.exe' \) ! -path "$stage/app/*.exe" -delete
 mkdir -p "$stage/app/build"
 cp build/chezweb.js build/chezweb.wasm "$stage/app/build/"
 cp windows/start.sh "$stage/app/"
@@ -46,7 +47,7 @@ for exe in "$stage"/{bin,app}/*.exe; do
  done
 done
 cp ./*wasmtime*.dll "$stage/bin/"
-cp -R /usr/share/terminfo/. "$stage/usr/share/terminfo/"
+cp -RL /usr/share/terminfo/. "$stage/usr/share/terminfo/"
 # curl's TLS verification uses the bundled certificate store.
 if [ -d /etc/pki ]; then cp -RL /etc/pki "$stage/etc/"; fi
 if [ -d /usr/ssl ]; then cp -RL /usr/ssl "$stage/usr/"; fi
