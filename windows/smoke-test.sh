@@ -1,9 +1,10 @@
 #!/bin/bash
 # Test an installed tree, with no compiler or system Cygwin tools on PATH.
-set -euo pipefail
+set -euxo pipefail
 root=$(cd -- "$(cygpath -u "$1")" && pwd -P)
 root=${root%/}
 helper=$(cygpath -u "$2")
+cd -- "${root:-/}"
 export CHEZEMAX_NO_INIT=1
 export PATH="$root/bin:$root/app" HOME="$root/tmp/test-home" TERM=xterm-256color
 mkdir -p "$HOME"

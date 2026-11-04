@@ -38,15 +38,52 @@ jobs:
         with:
           path: 'D:\cygwin-packages'
           key: chezweb-cygwin-x64-20261104
+      - name: Key the compiled Windows product
+        id: product-key
+        shell: pwsh
+        run: |
+          $tree = (git ls-tree -r HEAD | Where-Object { $_ -notmatch "`t(\.github/|git/|windows/smoke-test\.sh$)" }) -join "`n"
+          $packages = (Get-FileHash 'C:\cygwin64\etc\setup\installed.db' -Algorithm SHA256).Hash
+          $cpu = (Get-CimInstance Win32_Processor).Name -join ' '
+          $bytes = [Text.Encoding]::UTF8.GetBytes("$tree`n$packages`n$cpu")
+          $hash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes))
+          "key=chezweb-win-product-$hash" >> $env:GITHUB_OUTPUT
+      - name: Restore compiled Windows product
+        id: product
+        uses: actions/cache/restore@v4
+        with:
+          key: ${{ steps.product-key.outputs.key }}
+          path: |
+            build/windows/*Setup.exe
+            build/windows/pty-test.exe
+            build/windows/installed-packages.txt
+            build/windows/SHA256SUMS
+            windows-build.log
       - name: Install installer compiler
+        if: steps.product.outputs.cache-hit != 'true'
         shell: pwsh
         run: choco install nsis --no-progress -y
       - name: Build Chezweb and installer
+        if: steps.product.outputs.cache-hit != 'true'
         shell: C:\cygwin64\bin\bash.exe --noprofile --norc -o igncr -eo pipefail {0}
         run: |
           export PATH=/usr/bin:$PATH
           cd "$(cygpath -u "$GITHUB_WORKSPACE")"
           bash windows/build-installer.sh 2>&1 | tee windows-build.log
+      - name: Cache compiled Windows product
+        if: steps.product.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          key: ${{ steps.product-key.outputs.key }}
+          path: |
+            build/windows/*Setup.exe
+            build/windows/pty-test.exe
+            build/windows/installed-packages.txt
+            build/windows/SHA256SUMS
+            windows-build.log
+      - name: Archive the matching current source
+        shell: pwsh
+        run: git archive --format=tar.gz -o build/windows/Chezweb-source.tar.gz HEAD
       - name: Install into a clean directory and test
         shell: pwsh
         run: |
@@ -61,7 +98,7 @@ jobs:
           $env:HOME = "$dest/tmp/gui-home"
           $env:CHEZEMAX_NO_INIT = '1'
           $env:SDL_RENDER_DRIVER = 'software'
-          $gui = Start-Process "$dest/app/chezweb-gui.exe" -PassThru -RedirectStandardError "$dest/tmp/gui-errors.txt"
+          $gui = Start-Process "$dest/app/chezweb-gui.exe" -WorkingDirectory $dest -PassThru -RedirectStandardError "$dest/tmp/gui-errors.txt"
           $ready = $false
           for ($i=0; $i -lt 120; $i++) {
             $gui.Refresh()
@@ -72,7 +109,7 @@ jobs:
           if (!$ready) { $gui.Kill(); throw 'SDL window never became ready' }
           if (!$gui.CloseMainWindow() -or !$gui.WaitForExit(30000)) { $gui.Kill(); throw 'GUI did not close' }
           if ($gui.ExitCode -ne 0) { throw 'GUI exit failed' }
-          $u = Start-Process "$dest\Uninstall.exe" -ArgumentList '/S' -Wait -PassThru
+          $u = Start-Process "$dest\Uninstall.exe" -WorkingDirectory $env:RUNNER_TEMP -ArgumentList '/S' -Wait -PassThru
           if ($u.ExitCode -ne 0) { throw 'Uninstaller failed' }
       - name: Download corresponding component sources
         shell: pwsh
@@ -114,4 +151,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Windows-build-diagnostics
-          path: windows-build.log
+          path: |
+            windows-build.log
+            ${{ runner.temp }}/Chezweb installed test/tmp/
