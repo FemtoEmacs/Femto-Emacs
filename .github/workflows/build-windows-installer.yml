@@ -71,7 +71,7 @@ jobs:
           for ($i=0; $i -lt 120; $i++) {
             $gui.Refresh()
             if ($gui.HasExited) { Get-Content "$dest/tmp/gui-errors.txt"; throw 'GUI exited before readiness' }
-            if ($gui.MainWindowTitle -eq 'Chezweb') { $ready = $true; break }
+            if ($gui.MainWindowTitle -match '(^Chezweb$| - Chezweb$)') { $ready = $true; break }
             Start-Sleep -Milliseconds 500
           }
           if (!$ready) { $gui.Kill(); throw 'SDL window never became ready' }

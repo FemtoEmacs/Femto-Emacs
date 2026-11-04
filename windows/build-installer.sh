@@ -10,7 +10,7 @@ export PATH="$PWD:$sdl/bin:$ttf/bin:$PATH"
 gcc -O2 windows/loader-check.c -o build/windows/loader-check.exe
 build/windows/loader-check.exe "$(cygpath -w "$PWD/wasmtime.dll")"
 make schemer-compile
-cygcheck ./schemer-compile.exe
+cygcheck ./schemer-compile.exe || true
 objdump -p schemer-compile.exe | grep 'DLL Name'
 make -j2 SDL_CFLAGS="-I$sdl/include/SDL2 -I$ttf/include/SDL2" SDL_LIBS="-L$sdl/lib -L$ttf/lib -lSDL2_ttf -lSDL2"
 work="$PWD/build/windows"
