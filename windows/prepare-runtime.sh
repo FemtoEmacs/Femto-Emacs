@@ -12,4 +12,6 @@ mkdir -p build/windows
 grep -q wasmtime_module_new build/windows/wasmtime.def
 dlltool -d build/windows/wasmtime.def -l runtime/wasmtime/lib/libwasmtime.dll.a
 # Both make-time tools and installed executables need the DLL on PATH.
+chmod +x "$dll"
 cp "$dll" .
+chmod +x "$(basename "$dll")"
