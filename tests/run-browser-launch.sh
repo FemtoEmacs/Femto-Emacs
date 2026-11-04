@@ -17,7 +17,14 @@ cleanup() {
 trap cleanup EXIT
 trap 'exit 130' HUP INT TERM
 ${CC:-cc} -O2 tests/pty-keys.c -o "$work/pty-keys" -lutil 2>/dev/null || ${CC:-cc} -O2 tests/pty-keys.c -o "$work/pty-keys"
-mkdir "$work/bin"
+mkdir -p "$work/bin" "$work/.chezemax"
+# The assistant scripts append /usr/bin and other installation directories
+# during startup. Restore the fixture-only PATH afterwards: otherwise a real
+# Chrome installed on the runner hides the fallback we intend to exercise.
+unset CHEZEMAX_NO_INIT
+cat > "$work/.chezemax/init.scm" <<'SCM'
+(os.setenv "PATH" (os.getenv "CHEZWEB_TEST_PATH"))
+SCM
 printf 'Browser launch fixture\n' > "$work/source.txt"
 cat > "$work/keys" <<KEYS
 await-screen Browser launch fixture
@@ -30,6 +37,8 @@ cat > "$work/bin/fixture-browser" <<'SH'
 #!/bin/sh
 # Deliberately exceed the former 1.8-second completion delay.
 "$CHEZWEB_TEST_SLEEP" 2
+printf '%s\n' "$PATH" > "$CHEZWEB_TEST_LAUNCH_LOG.path"
+printf '%s\n' "${0##*/}" > "$CHEZWEB_TEST_LAUNCH_LOG.program"
 printf '%s\n' "$1" > "$CHEZWEB_TEST_LAUNCH_LOG"
 SH
 chmod +x "$work/bin/fixture-browser"
@@ -48,11 +57,15 @@ case $(uname -s) in
 esac
 for browser in $names; do
  if [ "$browser" != fixture-browser ];then cp "$work/bin/fixture-browser" "$work/bin/$browser";fi
- HOME="$work" CHEZEMAX_NO_INIT=1 PATH="$work/bin" CHEZWEB_TEST_LAUNCH_LOG="$work/url" CHEZWEB_TEST_SLEEP="$sleep_program" CHEZWEB_TEST_EDITOR="$root/chezweb" \
-  "$work/pty-keys" "$work/keys" 20 "$work/screen" "$work/delayed-editor" "$work/source.txt"
+ HOME="$work" CHEZWEB_TEST_PATH="$work/bin" PATH="$work/bin" CHEZWEB_TEST_LAUNCH_LOG="$work/url" CHEZWEB_TEST_SLEEP="$sleep_program" CHEZWEB_TEST_EDITOR="$root/chezweb" \
+  "$work/pty-keys" "$work/keys" 60 "$work/screen" "$work/delayed-editor" "$work/source.txt"
  grep -q '^http://127\.0\.0\.1:[0-9][0-9]*/[0-9a-f][0-9a-f]*/$' "$work/url"
  grep -q 'Browser: http://127.0.0.1:' "$work/screen"
- rm "$work/url"
+ printf '%s\n' "$work/bin" > "$work/expected-path"
+ cmp "$work/expected-path" "$work/url.path"
+ printf '%s\n' "$browser" > "$work/expected-program"
+ cmp "$work/expected-program" "$work/url.program"
+ rm "$work/url" "$work/url.path" "$work/url.program"
  if [ "$browser" != fixture-browser ];then rm "$work/bin/$browser";fi
  echo "PASS C-c d launches $browser through PATH and displays its local URL"
 done
