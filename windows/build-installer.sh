@@ -7,6 +7,11 @@ bash windows/prepare-sdl.sh
 sdl="$PWD/build/windows/sdl/SDL2-2.32.10/x86_64-w64-mingw32"
 ttf="$PWD/build/windows/sdl/SDL2_ttf-2.24.0/x86_64-w64-mingw32"
 export PATH="$PWD:$sdl/bin:$ttf/bin:$PATH"
+gcc -O2 windows/loader-check.c -o build/windows/loader-check.exe
+build/windows/loader-check.exe "$(cygpath -w "$PWD/wasmtime.dll")"
+make schemer-compile
+cygcheck ./schemer-compile.exe
+objdump -p schemer-compile.exe | grep 'DLL Name'
 make -j2 SDL_CFLAGS="-I$sdl/include/SDL2 -I$ttf/include/SDL2" SDL_LIBS="-L$sdl/lib -L$ttf/lib -lSDL2_ttf -lSDL2"
 work="$PWD/build/windows"
 stage="$work/stage"
