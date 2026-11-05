@@ -476,6 +476,7 @@ on the kill ring and make it what C-y inserts."
                       (fe-set-completions (string-join (%call 'file-name-completions arg) "\n")))
                      ((string=? kind "complete-command")
                       (fe-set-completions (string-join (%call 'shell-command-completions arg) "\n")))
+                     ((string=? kind "read-copy") (push-kill arg) (set-clipboard arg))
                      ((string=? kind "kill") (run-hook '*kill-hook* arg))
                      ((string=? kind "startup") (run-startup))
                      ((string=? kind "colors") (%call 'apply-color-theme (string->number arg))))

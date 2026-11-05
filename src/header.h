@@ -144,6 +144,8 @@ typedef struct buffer_t
 	int b_col;                /* cursor col */
 	char b_fname[NAME_MAX + 1]; /* filename */
 	char b_bname[NBUFN];      /* buffer name */
+	int b_read_mode, b_read_visual, b_read_pending;
+	unsigned b_read_count;
 	buffer_flags_t b_flags;   /* buffer flags */
 	undo_t b_ubuf;            /* undoset */
 	long b_id;                /* unique, never reused: undo history is kept by id */
@@ -417,3 +419,9 @@ extern void record_change(buffer_t *, int, point_t, const char_t *, long);
  * include public Femto interface functions definitions 
  */
 #include "public.h"
+
+/* Native read-only navigation; modes 0 Emacs, 1 READ, 2 copy-only Vim. */
+extern void fe_read_mode(int);
+extern int fe_read_state(char *);
+extern int fe_read_key(char *);
+extern int read_mode_event(const char *, const char *);

@@ -18,6 +18,8 @@ void buffer_init(buffer_t *bp)
 	bp->b_size = 0;
 	bp->b_psize = 0;
 	bp->b_flags = 0;
+	bp->b_read_mode = bp->b_read_visual = bp->b_read_pending = 0;
+	bp->b_read_count = 0;
 	bp->b_cnt = 0;
 	bp->b_buf = NULL;
 	bp->b_ebuf = NULL;

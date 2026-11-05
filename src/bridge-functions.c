@@ -205,6 +205,30 @@ static void b_fe_line_start(bridge_in *in, bridge_out *out)
 	bridge_put_int(out, (long) fe_line_start(a1));
 }
 
+extern void fe_read_mode(int mode);
+static void b_fe_read_mode(bridge_in *in, bridge_out *out)
+{
+	int a1 = (int) bridge_int(in);
+	fe_read_mode(a1);
+	bridge_put_nothing(out);
+}
+
+extern int fe_read_state(char *name);
+static void b_fe_read_state(bridge_in *in, bridge_out *out)
+{
+	char *a1 = bridge_string(in);
+	bridge_put_int(out, (long) fe_read_state(a1));
+	free(a1);
+}
+
+extern int fe_read_key(char *key);
+static void b_fe_read_key(bridge_in *in, bridge_out *out)
+{
+	char *a1 = bridge_string(in);
+	bridge_put_int(out, (long) fe_read_key(a1));
+	free(a1);
+}
+
 extern void fe_insert(char *s);
 static void b_fe_insert(bridge_in *in, bridge_out *out)
 {
@@ -715,6 +739,9 @@ void bridge_register_editor(void)
 	bridge_register("fe-set-point", b_fe_set_point);
 	bridge_register("fe-char-at", b_fe_char_at);
 	bridge_register("fe-line-start", b_fe_line_start);
+	bridge_register("fe-read-mode", b_fe_read_mode);
+	bridge_register("fe-read-state", b_fe_read_state);
+	bridge_register("fe-read-key", b_fe_read_key);
 	bridge_register("fe-insert", b_fe_insert);
 	bridge_register("fe-backward-delete-char", b_fe_backward_delete_char);
 	bridge_register("fe-delete-char", b_fe_delete_char);

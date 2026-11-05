@@ -56,9 +56,12 @@ extern int compiled_wrap(const char *, const unsigned char *, int, int, int *);
 /* flcall.c: the scripts are compiled, femtoscheme runs none of them */
 extern int compiled_scripts;
 
+extern int read_mode_event(const char *, const char *);
+
 static int event(const char *kind, const char *arg)
 {
 	int handled = 0;
+	if (read_mode_event(kind, arg)) return 1;
 	/* the compiled program first; the femtoscheme scripts get the rest */
 	if (compiled_event(kind, arg))
 		return 1;

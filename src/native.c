@@ -137,6 +137,21 @@ static value_t wrap_fe_line_start(value_t *a, uint32_t n) {
  argcount("fe_line_start", n, 1);
  return fixnum(fe_line_start(tofixnum(a[0], "fe_line_start")));
 }
+extern void fe_read_mode(int mode);
+static value_t wrap_fe_read_mode(value_t *a, uint32_t n) {
+ argcount("fe_read_mode", n, 1);
+ fe_read_mode(tofixnum(a[0], "fe_read_mode")); return FL_T;
+}
+extern int fe_read_state(char *name);
+static value_t wrap_fe_read_state(value_t *a, uint32_t n) {
+ argcount("fe_read_state", n, 1);
+ return fixnum(fe_read_state(tostring(a[0], "fe_read_state")));
+}
+extern int fe_read_key(char *key);
+static value_t wrap_fe_read_key(value_t *a, uint32_t n) {
+ argcount("fe_read_key", n, 1);
+ return fixnum(fe_read_key(tostring(a[0], "fe_read_key")));
+}
 extern void fe_insert(char *s);
 static value_t wrap_fe_insert(value_t *a, uint32_t n) {
  argcount("fe_insert", n, 1);
@@ -480,6 +495,9 @@ static builtinspec_t editor_builtins[] = {
  {"fe-set-point", wrap_fe_set_point},
  {"fe-char-at", wrap_fe_char_at},
  {"fe-line-start", wrap_fe_line_start},
+ {"fe-read-mode", wrap_fe_read_mode},
+ {"fe-read-state", wrap_fe_read_state},
+ {"fe-read-key", wrap_fe_read_key},
  {"fe-insert", wrap_fe_insert},
  {"fe-backward-delete-char", wrap_fe_backward_delete_char},
  {"fe-delete-char", wrap_fe_delete_char},

@@ -90,7 +90,7 @@ src/gui.o: src/gui.c src/screen.h
 src/app-gui.o: src/app.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -DSBEMACS_GUI -c $< -o $@
 src/assistant.o src/pdf-pages.o: src/pdf-pages.h
-$(CORE:.c=.o) src/term.o src/app.o src/app-gui.o: src/header.h src/public.h
+$(CORE:.c=.o) src/term.o src/gui.o src/app.o src/app-gui.o: src/header.h src/public.h
 schemer/native-host.o: schemer/native-host.c schemer/native-host.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 src/compiled.o: schemer/native-host.h
@@ -119,6 +119,7 @@ check: check-platform check-browser-assets-test check-web-toolchain-test chezema
 	CHEZEMAX_SCHEME=femtoscheme CHEZEMAX_NO_INIT=1 ./chezemax --eval '(load "tests/run-tests.scm")'
 	! ./chezemax --eval '(error "expected test error")'
 	sh tests/run-editor.sh
+	sh tests/run-read-mode.sh
 	sh tests/run-compile-scripts.sh
 clean:
 	rm -f src/*.o schemer/*.o tests/native-host-test tests/fileprompt-test tests/filename-completion-test chezemax chezemax-gui irene-dixe tests/search-test chezemax.wasm chezemax.cwasm schemer/compiler.cwasm tests/bridge-test
@@ -196,3 +197,7 @@ check-web-toolchain-test:
 .PHONY: check-browser-assets-test
 check-browser-assets-test:
 	sh tests/browser-assets.sh
+
+.PHONY: check-read-mode
+check-read-mode: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/run-read-mode.sh

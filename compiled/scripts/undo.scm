@@ -159,7 +159,8 @@ forget) or 115 #\\s (saved)."
 (defcommand (undo)
   "C-/: undo the last command's changes; again: the one before."
   (let ((h (current-history)))
-    (cond ((not *undo-mode*) (message "Undo is off (*undo-mode*)"))
+    (cond ((buffer-read-only?) (message "Read-only: return to Emacs before undo"))
+          ((not *undo-mode*) (message "Undo is off (*undo-mode*)"))
           ((or (not h) (null? (undo-history-done h)))
            (message "No further undo information"))
           (else
@@ -177,7 +178,8 @@ forget) or 115 #\\s (saved)."
 (defcommand (redo)
   "C-M-_ (or M-_): redo what undo took back."
   (let ((h (current-history)))
-    (cond ((or (not h) (null? (undo-history-undone h))) (message "Nothing to redo"))
+    (cond ((buffer-read-only?) (message "Read-only: return to Emacs before redo"))
+          ((or (not h) (null? (undo-history-undone h))) (message "Nothing to redo"))
           (else
            (let ((group (car (undo-history-undone h))) (end #f))
              (vector-set! h 1 (cdr (undo-history-undone h)))

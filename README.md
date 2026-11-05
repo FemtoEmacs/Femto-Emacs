@@ -413,25 +413,25 @@ Curves recorded as sampled landmarks (`:landmark` rows) are drawn as dots
 joined by dotted lines: the table does not say what the curve does between
 them.
 
-## Read-only and vim mode
+## Read-only and copy-only Vim mode
 
-M-x read-only (or C-x C-q) makes the buffer read-only and turns the keys
-into nvim's normal-mode motions: h j k l (and the arrows), w b e, 0 ^ $,
-gg G (G: the end of the text; 42G: line 42), Enter, C-d C-u, / ? n N,
-% (the matching paren); yy and y{motion} copy, v selects (then y copies).
-What is copied also goes to the system clipboard, so Cmd-V (Ctrl-V)
-pastes it in other programs. Nothing can change the buffer, neither a key
-nor a script.
+M-x read-only (or C-x C-q) makes the buffer read-only. Movement runs in
+C: h j k l and the arrows, Enter (next visual row), w b e, 0 ^ $, gg G,
+counts such as 5j or 42G, C-d C-u, and % for matching brackets. Vertical
+movement uses the same visual rows as Emacs mode, including word wrapping.
+The existing / ? n N search commands remain available.
 
-M-x vim-mode adds the keys that edit: dd and d{motion} (dw, d$, dgg), x,
-p and P, u and C-r, v ... d, o and O; . repeats the last change, J joins
-lines, r{char} replaces a character, and :w saves (:wq or :x save and
-quit, :q quits, :42 goes to line 42). A count repeats (3dd, 5j, 3.).
+yy copies the current logical line (3yy copies three); v starts a selection,
+movement extends it, and y copies it, including the character under the
+cursor. Copying updates the editor kill ring and system clipboard.
 
-In both modes i returns to Emacs; the mode line shows `%%` and READ,
-NORMAL or VISUAL. C-g cancels a count, an operator or a selection. The
-help page (C-h) lists the keys; it is read-only itself, so the same
-motion keys move on it, and i (or [CLOSE]) closes it.
+M-x vim-mode now provides copy-only navigation and selection. Delete,
+paste, undo, redo, replace, open-line and edit-repeat commands are disabled
+in both modes. Press i explicitly to return to Emacs before editing.
+
+The mode line shows `%%` and READ, NORMAL or VISUAL. C-g cancels a count
+or selection. The read-only help page and tag views use the same C
+navigation; i returns to their originating document.
 
 ## Search
 
