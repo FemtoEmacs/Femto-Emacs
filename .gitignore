@@ -75,3 +75,8 @@ bkp/
 /scheme/users/mean.scm
 
 /tests/gc-allocation-test
+
+# Optional Lean research tools and bounded runtime reports
+/Lean/.build/
+/Lean/chez-tester
+/Lean/results/

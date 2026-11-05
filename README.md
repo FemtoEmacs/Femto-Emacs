@@ -433,6 +433,25 @@ The mode line shows `%%` and READ, NORMAL or VISUAL. C-g cancels a count
 or selection. The read-only help page and tag views use the same C
 navigation; i returns to their originating document.
 
+## Visible tests with a Lean checker
+
+Open `Lean/rdonly-tester.lean`, edit its `TestSettings`, invoke `M-x chez-tester`,
+and choose an existing text file. The unsaved Lean buffer supplies the protocol;
+the selected file supplies the text. A disposable copy visibly scrolls through
+READ/copy-only Vim while Lean checks progress, logical line numbers, unchanged
+contents and stable EOF. The original file is never saved. Reports stay within
+20 KiB total; batches are recycled only after acknowledgment. This optional
+native macOS workflow requires Lean on PATH; ordinary builds do not.
+
+For seeded editing stress tests, open `Lean/mv-cp-mv-paste-undo.lean` and choose
+a Markdown file or directory with `M-x chez-tester`. Each cycle copies at most
+200 characters, moves, pastes, undoes and checks exact restoration and bounded
+kill-ring/undo/redo state. Default history limits are 60 entries/4 MiB for the
+kill ring and 8 MiB/200 groups/10,000 changes per buffer across undo and redo.
+
+See [Lean/README.md](Lean/README.md) for proofs, reproducible runs, trust
+boundaries, diagnostic/replay limits and the bounded reference-trace mode.
+
 ## Search
 
 C-s searches forward and C-r backward as you type; repeat them for the

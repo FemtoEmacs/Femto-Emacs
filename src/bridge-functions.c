@@ -534,6 +534,15 @@ static void b_fe_line_number(bridge_in *in, bridge_out *out)
 	bridge_put_int(out, (long) fe_line_number(a1));
 }
 
+extern char *fe_key_command(char *name);
+static void b_fe_key_command(bridge_in *in, bridge_out *out)
+{
+	char *a1 = bridge_string(in);
+	const char *r = fe_key_command(a1);
+	bridge_put_string(out, r);
+	free(a1);
+}
+
 extern int fe_run_c_key(char *name);
 static void b_fe_run_c_key(bridge_in *in, bridge_out *out)
 {
@@ -710,6 +719,21 @@ static void b_fe_gui_set_option(bridge_in *in, bridge_out *out)
 	free(a1);
 }
 
+extern void fe_tester_history_stats(long a, long b, long c, long d, long e, long f, long g, long h);
+static void b_fe_tester_history_stats(bridge_in *in, bridge_out *out)
+{
+	long a1 = (long) bridge_int(in);
+	long a2 = (long) bridge_int(in);
+	long a3 = (long) bridge_int(in);
+	long a4 = (long) bridge_int(in);
+	long a5 = (long) bridge_int(in);
+	long a6 = (long) bridge_int(in);
+	long a7 = (long) bridge_int(in);
+	long a8 = (long) bridge_int(in);
+	fe_tester_history_stats(a1, a2, a3, a4, a5, a6, a7, a8);
+	bridge_put_nothing(out);
+}
+
 void bridge_register_editor(void)
 {
 	bridge_register("fe-set-color", b_fe_set_color);
@@ -783,6 +807,7 @@ void bridge_register_editor(void)
 	bridge_register("fe-recenter", b_fe_recenter);
 	bridge_register("fe-set-window-start", b_fe_set_window_start);
 	bridge_register("fe-line-number", b_fe_line_number);
+	bridge_register("fe-key-command", b_fe_key_command);
 	bridge_register("fe-run-c-key", b_fe_run_c_key);
 	bridge_register("fe-execute-command", b_fe_execute_command);
 	bridge_register("fe-command-name", b_fe_command_name);
@@ -805,4 +830,5 @@ void bridge_register_editor(void)
 	bridge_register("fe-gui-set-font", b_fe_gui_set_font);
 	bridge_register("fe-gui-set-colors", b_fe_gui_set_colors);
 	bridge_register("fe-gui-set-option", b_fe_gui_set_option);
+	bridge_register("fe-tester-history-stats", b_fe_tester_history_stats);
 }

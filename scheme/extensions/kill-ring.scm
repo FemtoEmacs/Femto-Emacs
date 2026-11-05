@@ -26,7 +26,9 @@
 
 (defcommand (kill-ring-menu)
   "C-c k: browse the kill ring."
-  (let ((original (get-buffer-name)))
+  (if (null? *kill-ring*)
+      (message "The kill ring is empty")
+      (let ((original (get-buffer-name)))
     (set! *kr-line* (min *kr-line* (kr-last-line)))
     (kill-buffer "*kill-ring*")
     (select-buffer "*kill-ring*")
@@ -56,7 +58,7 @@
                  (update-display)
                  (loop (+ n 1)))
                 (else (loop (+ n 1)))))))
-    (update-display)))
+    (update-display))))
 
 (defcommand (insert-kill-ring)
   "C-c i: insert the whole kill ring."

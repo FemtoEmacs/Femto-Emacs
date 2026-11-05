@@ -357,6 +357,12 @@ static value_t wrap_fe_line_number(value_t *a, uint32_t n) {
  argcount("fe_line_number", n, 1);
  return fixnum(fe_line_number(tofixnum(a[0], "fe_line_number")));
 }
+extern char *fe_key_command(char *name);
+static value_t wrap_fe_key_command(value_t *a, uint32_t n) {
+ argcount("fe_key_command", n, 1);
+ const char *s = fe_key_command(tostring(a[0], "fe_key_command"));
+ return string_from_cstrn((char *)s, strlen(s));
+}
 extern int fe_run_c_key(char *name);
 static value_t wrap_fe_run_c_key(value_t *a, uint32_t n) {
  argcount("fe_run_c_key", n, 1);
@@ -467,6 +473,11 @@ static value_t wrap_fe_gui_set_option(value_t *a, uint32_t n) {
  argcount("fe_gui_set_option", n, 2);
  fe_gui_set_option(tostring(a[0], "fe_gui_set_option"), tofixnum(a[1], "fe_gui_set_option")); return FL_T;
 }
+extern void fe_tester_history_stats(long a, long b, long c, long d, long e, long f, long g, long h);
+static value_t wrap_fe_tester_history_stats(value_t *a, uint32_t n) {
+ argcount("fe_tester_history_stats", n, 8);
+ fe_tester_history_stats(tofixnum(a[0],"tester"),tofixnum(a[1],"tester"),tofixnum(a[2],"tester"),tofixnum(a[3],"tester"),tofixnum(a[4],"tester"),tofixnum(a[5],"tester"),tofixnum(a[6],"tester"),tofixnum(a[7],"tester")); return FL_T;
+}
 static builtinspec_t editor_builtins[] = {
  {"fe-set-color", wrap_fe_set_color},
  {"fe-set-theme-face", wrap_fe_set_theme_face},
@@ -528,6 +539,7 @@ static builtinspec_t editor_builtins[] = {
  {"fe-find-file", wrap_fe_find_file},
  {"fe-list-buffers", wrap_fe_list_buffers},
  {"fe-rename-buffer", wrap_fe_rename_buffer},
+ {"fe-tester-history-stats", wrap_fe_tester_history_stats},
  {"fe-delete-other-windows", wrap_fe_delete_other_windows},
  {"fe-other-window", wrap_fe_other_window},
  {"fe-split-window", wrap_fe_split_window},
@@ -539,6 +551,7 @@ static builtinspec_t editor_builtins[] = {
  {"fe-recenter", wrap_fe_recenter},
  {"fe-set-window-start", wrap_fe_set_window_start},
  {"fe-line-number", wrap_fe_line_number},
+ {"fe-key-command", wrap_fe_key_command},
  {"fe-run-c-key", wrap_fe_run_c_key},
  {"fe-execute-command", wrap_fe_execute_command},
  {"fe-command-name", wrap_fe_command_name},

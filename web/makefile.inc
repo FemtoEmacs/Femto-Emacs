@@ -51,6 +51,7 @@ chezweb-gui: chezemax-gui
 # Development only: npm's playwright package and an installed Google Chrome.
 check-browser: browser chezweb
 	node tests/chezweb-server.cjs
+	node tests/chezweb-controls.cjs
 	node tests/chezweb-read-mode.cjs
 	node tests/chezweb-web.cjs
 	node tests/chezweb-files.cjs

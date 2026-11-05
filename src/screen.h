@@ -68,6 +68,8 @@ extern int  screen_colors(void);           /* 8, 256, or 16777216 for 24-bit */
 
 /* wait MS milliseconds (a clicked button stays lit that long) */
 extern void screen_pause(int ms);
+/* Pump events, discard test-time input; Escape/C-g/resize cancels. */
+extern int screen_test_cancelled(void);
 
 /* input */
 extern int  screen_getch(void);            /* blocks; returns one byte */

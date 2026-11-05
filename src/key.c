@@ -8,6 +8,8 @@
 /* name, function */
 command_t commands[] = {
         {"apropos", apropos_command},
+        {"chez-tester", chez_tester},
+        {"run-tester", run_tester},
 	{"backspace", backsp},
 	{"backward-character", left},
 	{"backward-page", backward_page},
@@ -243,6 +245,11 @@ void unread_key_bytes(const char *s, int n)
 	memmove(unread + n, unread, (size_t) nunread);   /* before what is there */
 	memcpy(unread, s, (size_t) n);
 	nunread += n;
+}
+
+int tester_can_inject(void)
+{
+ return nunread == 0 && !macro_recording && macro_play < 0 && !macro_repeat;
 }
 
 int read_key_byte(void)

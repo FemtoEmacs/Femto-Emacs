@@ -58,6 +58,10 @@ extern int compiled_scripts;
 
 extern int read_mode_event(const char *, const char *);
 
+static unsigned long failures;
+void note_runtime_failure(void) { ++failures; }
+unsigned long runtime_failure_serial(void) { return failures; }
+
 static int event(const char *kind, const char *arg)
 {
 	int handled = 0;
@@ -74,6 +78,7 @@ static int event(const char *kind, const char *arg)
 		value_t result = fl_applyn(2, procedure("editor-event"), a, b);
 		handled = result != FL_F && result != FL_NIL;
 	} FL_CATCH_EXTERN {
+		note_runtime_failure();
 		fe_message("Scheme command failed; buffer preserved");
 		/* a failing key binding must not run the C binding as well */
 		handled = strcmp(kind, "self-insert") != 0;
@@ -109,7 +114,8 @@ static int modeline(const char *name, const char *file, const char *buffer, int 
 			out[n] = '\0';
 			ok = 1;
 		}
-	} FL_CATCH_EXTERN { }
+	} FL_CATCH_EXTERN {
+		note_runtime_failure(); }
 	fl_free_gc_handles(4);
 	return ok;
 }
@@ -123,7 +129,8 @@ static void changed(long id, int kind, long pos, const unsigned char *text, long
 	FL_TRY_EXTERN {
 		value = bytes(text, text ? (size_t) len : 0);
 		(void) fl_applyn(4, procedure("record-change"), fixnum(id), fixnum(kind), fixnum(pos), value);
-	} FL_CATCH_EXTERN { fe_message("Undo recording failed"); }
+	} FL_CATCH_EXTERN {
+		note_runtime_failure(); fe_message("Undo recording failed"); }
 	fl_free_gc_handles(1);
 }
 
@@ -144,7 +151,8 @@ static void highlight(const char *file, const char *buffer, long start,
 		b = bytes(buffer ? buffer : "", buffer ? strlen(buffer) : 0);
 		(void) fl_applyn(5, procedure("highlight-buffer-text"), f, t, c, b, fixnum(start));
 		memcpy(colors, cvalue_data(c), (size_t) n);
-	} FL_CATCH_EXTERN { }
+	} FL_CATCH_EXTERN {
+		note_runtime_failure(); }
 	fl_free_gc_handles(4);
 }
 
@@ -162,7 +170,8 @@ static int wrap_row(const char *file, const unsigned char *text, int len, int co
 		t = text ? bytes(text, (size_t) len) : FL_F;
 		value_t r = fl_applyn(3, procedure("markdown-wrap-row"), f, t, fixnum(cols));
 		if (isfixnum(r)) result = (int) numval(r);
-	} FL_CATCH_EXTERN { result = 0; }
+	} FL_CATCH_EXTERN {
+		note_runtime_failure(); result = 0; }
 	fl_free_gc_handles(2);
 	return result;
 }

@@ -298,3 +298,12 @@ void screen_set_font(const char *path, int points) { (void) path; (void) points;
 void screen_set_default_colors(long fg, long bg, long cursor) { (void) fg; (void) bg; (void) cursor; }
 void screen_set_title(const char *title) { (void) title; }
 void screen_set_option(const char *name, int value) { (void) name; (void) value; }
+
+int screen_test_cancelled(void)
+{
+ int cancel = 0, c;
+ nodelay(stdscr, TRUE);
+ while ((c = getch()) != ERR) if (c == 7 || c == 27 || c == KEY_RESIZE) cancel = 1;
+ nodelay(stdscr, FALSE);
+ return cancel;
+}

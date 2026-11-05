@@ -794,7 +794,9 @@ deactivates the region."
 
 (defcommand (copy-region-command)
   "M-w: copy the region; the shading goes away."
-  (copy-region)
+  (let ((nonempty (and (mark) (not (= (mark) (point))))))
+    (copy-region)
+    (when nonempty (remember-kill (get-buffer-name))))
   (deactivate-mark)
   (set! *this-command* 'copy-region))
 

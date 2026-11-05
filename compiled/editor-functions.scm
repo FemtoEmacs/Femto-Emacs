@@ -72,6 +72,7 @@
 (define fe-recenter (foreign-procedure "fe-recenter" () void))
 (define fe-set-window-start (foreign-procedure "fe-set-window-start" (long) void))
 (define fe-line-number (foreign-procedure "fe-line-number" (long) int))
+(define fe-key-command (foreign-procedure "fe-key-command" (string) string))
 (define fe-run-c-key (foreign-procedure "fe-run-c-key" (string) int))
 (define fe-execute-command (foreign-procedure "fe-execute-command" (string) int))
 (define fe-command-name (foreign-procedure "fe-command-name" (int) string))
@@ -94,3 +95,4 @@
 (define fe-gui-set-font (foreign-procedure "fe-gui-set-font" (string int) void))
 (define fe-gui-set-colors (foreign-procedure "fe-gui-set-colors" (long long long) void))
 (define fe-gui-set-option (foreign-procedure "fe-gui-set-option" (string int) void))
+(define fe-tester-history-stats (foreign-procedure "fe-tester-history-stats" (long long long long long long long long) void))

@@ -117,10 +117,25 @@ static point_t mouse_old_mark = NOMARK;
 
 /* the id of the mode line button under a pressed mouse button, or -1 */
 static int menu_down_row = -1, menu_down_index = -1;
+static int menu_hover_index = -1;
 
 void editor_mouse_event()
 {
 	int b = mouse_button;
+
+	/* SGR button 35 is passive motion, never a click or selection. */
+	if (b == 35 && !mouse_release) {
+		int index = menu_hit(mouse_row, mouse_col);
+		if (index != menu_hover_index) {
+			menu_hover_index = index;
+			if (index >= 0) {
+				char arg[16];
+				snprintf(arg, sizeof arg, "%d", index);
+				call_lisp_event("menu-hover", arg);
+			}
+		}
+		return;
+	}
 
 	if (b & 64) {                   /* wheel: 64 up, 65 down (66, 67 sideways) */
 		if ((b & 3) < 2 && select_screen_window(mouse_row))
@@ -616,7 +631,7 @@ void copy_cut(int cut)
 		undoset();
 		(void) memcpy(scrap, p, nscrap * sizeof (char_t));
 		*(scrap + nscrap) = '\0';  /* null terminate for insert_string */
-		screen_set_clipboard((char *) scrap);  /* the system clipboard, in the GUI */
+		if (!chez_tester_clipboard_isolated()) screen_set_clipboard((char *) scrap);  /* the system clipboard, in the GUI */
 		if (cut) {
 			//debug("CUT: pt=%ld nscrap=%d\n", curbp->b_point, nscrap);
 			record_change(curbp, 'd', (curbp->b_point < curbp->b_mark ? curbp->b_point : curbp->b_mark), scrap, nscrap);

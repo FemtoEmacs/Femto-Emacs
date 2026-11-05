@@ -200,6 +200,20 @@ the width.  The encoded pieces, or #f for the C core's own mode line."
                        (lambda () (note-command-use action) (set! *last-command* *this-command*))))
         (else (message (->string action) " is not a command"))))
 
+(define (describe-mode-line-button id)
+  "Describe a hovered button without executing its action."
+  (when (and id (<= 1 id) (<= id (vector-length *mode-line-actions*)))
+    (let* ((raw (vector-ref *mode-line-actions* (- id 1)))
+           (action (if (string? raw) (or (key-binding raw) (fe-key-command raw)) raw))
+           (keys (if (string? raw) (list raw) '())))
+      (for-each
+       (lambda (key)
+         (when (equal? (hashtable-ref *keymap* key #f) action)
+           (set! keys (cons key keys))))
+       (table.keys *keymap*))
+      (message "Button runs " (command-name action)
+               (if (null? keys) "" (string-append " (" (string-join keys ", ") ")"))))))
+
 (define (run-mode-line-button id)
   "The \"menu\" event: the button numbered ID was clicked."
   (let ((action (and id (<= 1 id) (<= id (vector-length *mode-line-actions*))

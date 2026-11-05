@@ -446,3 +446,5 @@ void screen_end(void)
 {
 	active = 0;
 }
+
+int screen_test_cancelled(void) { return 0; } /* Native tester only. */

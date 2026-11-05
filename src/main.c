@@ -5,6 +5,53 @@
 
 #include "header.h"
 
+void editor_dispatch_key(void)
+{
+	buffer_t *before_bp;
+	point_t before_size;
+	before_bp = curbp;
+	before_size = document_size(curbp);
+
+	if (key_return != NULL) {
+		/*
+		 * Every key goes to the Lisp keymap first, so scripts
+		 * can bind any key; the C binding runs when Lisp has
+		 * none.  (Lisp may read keys itself, which changes
+		 * key_return: take the function first.)
+		 */
+		void (*func)(void) = key_return->func;
+		whatKey = key_return->key_name;
+		if (!call_lisp_event("key", whatKey))
+			func();
+	} else {
+		mark_active = 0;    /* typing ends the selection */
+		/*
+		 * if first char of input is a control char then
+		 * key is not bound, except TAB and NEWLINE
+		 */
+		if (*input > 31 || *input == 0x0A || *input == 0x0D || *input == 0x09) {
+			/*
+			 * Lisp may take over a printable ASCII key, TAB or
+			 * RET: indentation, electric characters
+			 */
+			char key[2];
+			key[0] = (char) *input;
+			key[1] = '\0';
+			if (*input >= 128 || !call_lisp_event("self-insert", key))
+				insert();
+		}
+		else
+			msg(str_not_bound);
+	}
+
+	/* as in Emacs, changing the text deactivates the region */
+	if (curbp != before_bp || document_size(curbp) != before_size)
+		mark_active = 0;
+
+	/* debug_stats("main loop:"); */
+	match_parens();
+}
+
 /*
  * Entry point, called from SBCL (see lisp/sbemacs.lisp) after the Lisp
  * side has installed its hooks with fe_set_hooks() and loaded the user's
@@ -68,55 +115,15 @@ int fe_main(int argc, char **argv)
 	key_map = keymap;
 	match_parens();         /* the parens at the cursor before the first key */
 
+	if (getenv("CHEZ_TESTER_AUTORUN")) { chez_tester(); chez_tester_poll(); }
 
 	while (!done) {
-		buffer_t *before_bp;
-		point_t before_size;
 
 		update_display();
 		input = get_key(key_map, &key_return);
         { extern void chezweb_poll(void); chezweb_poll(); }
-		before_bp = curbp;
-		before_size = document_size(curbp);
-
-		if (key_return != NULL) {
-			/*
-			 * Every key goes to the Lisp keymap first, so scripts
-			 * can bind any key; the C binding runs when Lisp has
-			 * none.  (Lisp may read keys itself, which changes
-			 * key_return: take the function first.)
-			 */
-			void (*func)(void) = key_return->func;
-			whatKey = key_return->key_name;
-			if (!call_lisp_event("key", whatKey))
-				func();
-		} else {
-			mark_active = 0;    /* typing ends the selection */
-			/*
-			 * if first char of input is a control char then
-			 * key is not bound, except TAB and NEWLINE
-			 */
-			if (*input > 31 || *input == 0x0A || *input == 0x0D || *input == 0x09) {
-				/*
-				 * Lisp may take over a printable ASCII key, TAB or
-				 * RET: indentation, electric characters
-				 */
-				char key[2];
-				key[0] = (char) *input;
-				key[1] = '\0';
-				if (*input >= 128 || !call_lisp_event("self-insert", key))
-					insert();
-			}
-                        else
-				msg(str_not_bound);
-		}
-
-		/* as in Emacs, changing the text deactivates the region */
-		if (curbp != before_bp || document_size(curbp) != before_size)
-			mark_active = 0;
-
-		/* debug_stats("main loop:"); */
-		match_parens();
+		editor_dispatch_key();
+		chez_tester_poll();
 	}
 
 	if (scrap != NULL)

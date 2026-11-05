@@ -425,3 +425,14 @@ extern void fe_read_mode(int);
 extern int fe_read_state(char *);
 extern int fe_read_key(char *);
 extern int read_mode_event(const char *, const char *);
+
+/* Visible bounded tester, scheduled outside Scheme callbacks. */
+extern void chez_tester(void);
+void run_tester(void);
+extern void chez_tester_poll(void);
+extern void editor_dispatch_key(void);
+extern int tester_can_inject(void);
+extern void note_runtime_failure(void);
+extern unsigned long runtime_failure_serial(void);
+
+extern int chez_tester_clipboard_isolated(void);

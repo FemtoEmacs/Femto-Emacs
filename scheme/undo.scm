@@ -18,6 +18,8 @@
 ;;;;   C-/  C-_  C-x u  C-u     undo           C-M-_  M-_     redo
 
 (define *undo-limit* (* 8 1024 1024))   ; bytes of history kept per buffer
+(define *undo-group-limit* 200)
+(define *undo-change-limit* 10000)
 (define *undo-amalgamate* 20)           ; typed characters that undo together
 
 ;; a change: #(kind pos text), kind 'insert or 'delete, text a byte string
@@ -32,12 +34,13 @@
 (define (undo-group-point g) (vector-ref g 1))
 (define (undo-group-changes g) (vector-ref g 2))
 
-;; a history: #(done undone bytes saved-id)
-(define (make-undo-history) (vector '() '() 0 0))
+;; a history: #(done undone bytes saved-id blocked-command-id)
+(define (make-undo-history) (vector '() '() 0 0 -1))
 (define (undo-history-done h) (vector-ref h 0))
 (define (undo-history-undone h) (vector-ref h 1))
 (define (undo-history-bytes h) (vector-ref h 2))
 (define (undo-history-saved-id h) (vector-ref h 3))
+(define (undo-history-blocked-command h) (vector-ref h 4))
 
 (defvar *undo-histories* (table))       ; buffer id (never reused) -> history
 (define *undoing* #f)
@@ -94,15 +97,30 @@ typing or deleting; true if joined."
 (define (group-bytes g)
   (fold (lambda (c sum) (+ sum (length (change-text c)))) 0 (undo-group-changes g)))
 
+(define (history-groups h) (append (undo-history-done h) (undo-history-undone h)))
+(define (history-actual-bytes h)
+  (fold (lambda (g n) (+ n (group-bytes g))) 0 (history-groups h)))
+(define (history-change-count h)
+  (fold (lambda (g n) (+ n (length (undo-group-changes g)))) 0 (history-groups h)))
 (define (trim-history h)
-  "Forget the oldest groups while the history is over *UNDO-LIMIT*."
+  "Bound both stacks, including the newest/oversized group and metadata."
+  (vector-set! h 2 (history-actual-bytes h))
   (let loop ()
-    (when (and (> (undo-history-bytes h) *undo-limit*)
-               (pair? (undo-history-done h)) (pair? (cdr (undo-history-done h))))
-      (let* ((done (undo-history-done h))
-             (oldest (car (last-pair done))))
-        (vector-set! h 0 (list-head done (- (length done) 1)))
-        (vector-set! h 2 (max 0 (- (undo-history-bytes h) (group-bytes oldest))))
+    (when (and (pair? (history-groups h))
+               (or (> (undo-history-bytes h) (max 0 *undo-limit*))
+                   (> (length (history-groups h)) (max 0 *undo-group-limit*))
+                   (> (history-change-count h) (max 0 *undo-change-limit*))))
+      (let* ((back (pair? (undo-history-done h)))
+             (groups (if back (undo-history-done h) (undo-history-undone h)))
+             (oldest (car (last-pair groups))))
+        (when (= (undo-group-id oldest) *command-serial*)
+          (vector-set! h 4 *command-serial*))
+        (vector-set! h (if back 0 1) (list-head groups (- (length groups) 1)))
+        ;; A discarded saved boundary must never falsely mark text unmodified.
+        (when (or (= (undo-group-id oldest) (undo-history-saved-id h))
+                  (and back (= (undo-history-saved-id h) 0)))
+          (vector-set! h 3 -1))
+        (vector-set! h 2 (history-actual-bytes h))
         (loop)))))
 
 (define (record-change id kind pos text)
@@ -118,15 +136,16 @@ POS), 100 #\\d (deleted), 114 #\\r (replaced wholesale: forget) or 115
             (change (make-change (if (= kind 105) 'insert 'delete) (max pos 0) text))
             (done (undo-history-done h))
             (group (and (pair? done) (car done))))
-       (vector-set! h 1 '())            ; a new change: no redo
-       (unless (and group (= (undo-group-id group) *command-serial*))
-         (set! group (make-undo-group *command-serial*
-                                      (if (= id *command-buffer-id*) *command-point* (max pos 0))))
-         (vector-set! h 0 (cons group (undo-history-done h))))
-       (unless (merge-change group change)
-         (vector-set! group 2 (cons change (undo-group-changes group))))
-       (vector-set! h 2 (+ (undo-history-bytes h) (length text)))
-       (trim-history h))))
+       (unless (= (undo-history-blocked-command h) *command-serial*)
+         (vector-set! h 1 '())            ; a new change: no redo
+         (unless (and group (= (undo-group-id group) *command-serial*))
+           (set! group (make-undo-group *command-serial*
+                                        (if (= id *command-buffer-id*) *command-point* (max pos 0))))
+           (vector-set! h 0 (cons group (undo-history-done h))))
+         (unless (merge-change group change)
+           (vector-set! group 2 (cons change (undo-group-changes group))))
+         (vector-set! h 2 (history-actual-bytes h))
+         (trim-history h)))))
   #f)
 
 ;;; Applying changes, without recording them
@@ -155,6 +174,7 @@ POS), 100 #\\d (deleted), 114 #\\r (replaced wholesale: forget) or 115
 (defcommand (undo)
   "C-/: undo the last command's changes; again: the one before."
   (let ((h (current-history)))
+    (when h (trim-history h))
     (cond ((buffer-read-only?) (message "Read-only: return to Emacs before undo"))
           ((not *undo-mode*) (message "Undo is off (*undo-mode*)"))
           ((or (not h) (null? (undo-history-done h)))
@@ -174,6 +194,7 @@ POS), 100 #\\d (deleted), 114 #\\r (replaced wholesale: forget) or 115
 (defcommand (redo)
   "C-M-_ (or M-_): redo what undo took back."
   (let ((h (current-history)))
+    (when h (trim-history h))
     (cond ((buffer-read-only?) (message "Read-only: return to Emacs before redo"))
           ((or (not h) (null? (undo-history-undone h))) (message "Nothing to redo"))
           (else
@@ -204,3 +225,54 @@ POS), 100 #\\d (deleted), 114 #\\r (replaced wholesale: forget) or 115
 (global-set-key "C-u" 'undo)            ; the old key, kept
 (global-set-key "C-M-_" 'redo)
 (global-set-key "M-_" 'redo)
+
+;; Native stress tester: isolate user globals once per run, never per cycle.
+(define *tester-saved-state* #f)
+(define (tester-history-begin)
+  (when *tester-saved-state* (error "Tester already active"))
+  (set! *tester-saved-state*
+    (vector *kill-ring* *use-system-clipboard* *undo-mode* *last-command* *this-command*
+            *yank-start* *yank-end* *yank-index*))
+  (set! *kill-ring* '())
+  (set! *use-system-clipboard* #f)
+  (set! *undo-mode* #t)
+  #t)
+(define (tester-history-state)
+  (let ((h (current-history)))
+    (list (length *kill-ring*) (kill-ring-bytes)
+      (if h (length (undo-history-done h)) 0)
+      (if h (length (undo-history-undone h)) 0)
+      (if h (undo-history-bytes h) 0)
+      (if h (history-actual-bytes h) 0)
+      (if h (history-change-count h) 0)
+      (length (table.keys *undo-histories*)))))
+(define (tester-history-end)
+  (when *tester-saved-state*
+    (let ((s *tester-saved-state*))
+      (set! *kill-ring* (vector-ref s 0))
+      (trim-kill-ring)
+      (set! *use-system-clipboard* (vector-ref s 1))
+      (set! *undo-mode* (vector-ref s 2))
+      (set! *last-command* (vector-ref s 3))
+      (set! *this-command* (vector-ref s 4))
+      (set! *yank-start* (vector-ref s 5))
+      (set! *yank-end* (vector-ref s 6))
+      (set! *yank-index* (vector-ref s 7))
+      (set! *tester-saved-state* #f)))
+  #t)
+
+(define (tester-history-event action)
+  (cond ((string=? action "begin") (tester-history-begin))
+        ((string=? action "end") (tester-history-end)))
+  ;; A copy probe reports only if M-w actually put the copied text at the
+  ;; front of the ring. No mutable history objects cross the C bridge.
+  (when (or (not (string=? action "copy"))
+            (and (pair? *kill-ring*) (string=? (car *kill-ring*) (get-clipboard))))
+    (let ((h (current-history)))
+      (fe-tester-history-stats (length *kill-ring*) (kill-ring-bytes)
+        (if h (length (undo-history-done h)) 0)
+        (if h (length (undo-history-undone h)) 0)
+        (if h (undo-history-bytes h) 0)
+        (if h (history-actual-bytes h) 0)
+        (if h (history-change-count h) 0)
+        (length (table.keys *undo-histories*))))))

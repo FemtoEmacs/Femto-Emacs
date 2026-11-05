@@ -487,6 +487,15 @@ int  fe_line_number(long p)          { return line_number(curbp, p); }
  * ...).  Returns 0 when there is no such command.
  */
 /* run the C core's binding of the key NAME ("C-x C-s"); 0 if it has none */
+/* Describe a core key without running it or changing the active key. */
+char *fe_key_command(char *name)
+{
+	keymap_t *k;
+	for (k = keymap; k->key_name != NULL; k++)
+		if (strcmp(k->key_name, name) == 0) return k->key_desc;
+	return "";
+}
+
 int fe_run_c_key(char *name)
 {
 	keymap_t *k;

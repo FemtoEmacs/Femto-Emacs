@@ -859,6 +859,8 @@ static void handle(SDL_Event *e)
 	case SDL_MOUSEMOTION:
 		if (e->motion.state & SDL_BUTTON_LMASK)
 			push_mouse(32, e->motion.x, e->motion.y, 0);
+		else
+			push_mouse(35, e->motion.x, e->motion.y, 0);
 		break;
 	case SDL_MOUSEBUTTONUP:
 		if (e->button.button == SDL_BUTTON_LEFT)
@@ -1001,4 +1003,21 @@ void screen_end(void)
 void screen_set_option(const char *name, int value)
 {
 	if (strcmp(name, "option-is-meta") == 0) option_is_meta = value;
+}
+
+int screen_test_cancelled(void)
+{
+ SDL_Event e;
+ int cancel = 0;
+ while (SDL_PollEvent(&e)) {
+  if (e.type == SDL_QUIT || (e.type == SDL_KEYDOWN &&
+      (e.key.keysym.sym == SDLK_ESCAPE || (e.key.keysym.sym == SDLK_g && (e.key.keysym.mod & KMOD_CTRL))))) cancel = 1;
+  if (e.type == SDL_WINDOWEVENT) {
+   int old_rows = rows, old_cols = cols;
+   handle(&e);
+   if (old_rows != rows || old_cols != cols) cancel = 1;
+  }
+ }
+ q_head = q_tail = 0;
+ return cancel;
 }

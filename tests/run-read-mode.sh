@@ -83,7 +83,9 @@ cp "$work/cumulative.md" "$work/cumulative.original"
  done
  printf 'keys i\nkeys ^X^C\n'
 } > "$work/keys"
-CHEZEMAX_NO_INIT=1 "$work/pty" "$work/keys" 180 "$work/screen" ./chezemax "$work/cumulative.md"
+# 16,000 keys at the PTY runner's 30 ms typing delay take eight minutes
+# before editor processing and the per-pass evaluation prompts are counted.
+CHEZEMAX_NO_INIT=1 "$work/pty" "$work/keys" 600 "$work/screen" ./chezemax "$work/cumulative.md"
 if grep -aq 'Compiled Scheme.*error\|heap out of memory' "$work/screen"; then echo 'FAIL cumulative scrolling hook error';exit 1;fi
 cmp "$work/cumulative.md" "$work/cumulative.original"
 echo 'PASS four wrapped-file traversals and Vim/READ switches in one process'

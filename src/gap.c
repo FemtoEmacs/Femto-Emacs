@@ -238,18 +238,12 @@ void undoset()
 /* find the point for start of line ln */
 point_t line_to_point(int ln)
 {
-	point_t end_p = pos(curbp, curbp->b_ebuf);
-	point_t p, start;
-
-	for (p=0, start=0; p < end_p; p++) {
-		if ( *(ptr(curbp, p)) == '\n') {
-			if (--ln == 0)
-				return start;
-			if (p + 1 < end_p)
-				start = p + 1;
-		}
-	}
-	return -1;
+ if (ln < 1) return -1;
+ if (ln == 1) return 0;
+ point_t end = document_size(curbp);
+ for (point_t p = 0; p < end; p++)
+  if (*ptr(curbp, p) == '\n' && --ln == 1) return p + 1;
+ return -1;
 }
 
 /* scan buffer and fill in curline and lastline */

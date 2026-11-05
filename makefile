@@ -112,7 +112,7 @@ check-scripts: chezemax schemer-compile
 # chezemax --compile-scripts and M-x compile-scripts (a few minutes each)
 check-compile-scripts: chezemax chezemax.wasm schemer/compiler.cwasm
 	sh tests/run-compile-scripts.sh
-check: check-gc-allocation check-platform check-browser-assets-test check-web-toolchain-test chezemax check-compiled check-bridge check-library check-scripts
+check: check-history check-gc-allocation check-platform check-browser-assets-test check-web-toolchain-test chezemax check-compiled check-bridge check-library check-scripts
 	$(MAKE) -C femtoscheme test
 	./chezemax --eval '(+ 20 22)' | grep -x 42
 	./chezemax --eval '(get-version-string)' | grep femtoscheme
@@ -207,3 +207,21 @@ check-gc-allocation: schemer-compile tests/gc-allocation-test
 	sh tests/run-gc-allocation.sh
 tests/gc-allocation-test: tests/gc-allocation.c schemer/native-host.o
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< schemer/native-host.o $(WASMTIME_LIBS) -Wl,-rpath,$(abspath $(WASMTIME_ROOT))/lib -lm -o $@
+
+# Optional research tooling: never dependencies of ordinary make/check.
+.PHONY: lean-checker check-lean check-lean-native
+lean-checker:
+	$(MAKE) -C Lean
+check-lean:
+	$(MAKE) -C Lean check audit
+check-lean-native: chezemax chezemax.wasm chezemax.cwasm
+	$(MAKE) -C Lean native-check
+
+# The native stress driver is included by the tester translation unit.
+src/chez-tester.o: src/chez-edit-tester.h
+
+.PHONY: check-history check-lean-edit
+check-history: chezemax schemer-compile
+	sh tests/history-limits.sh
+check-lean-edit: chezemax chezemax.wasm chezemax.cwasm
+	$(MAKE) -C Lean edit-check
