@@ -73,3 +73,5 @@ bkp/
 /teste.py
 
 /scheme/users/mean.scm
+
+/tests/gc-allocation-test

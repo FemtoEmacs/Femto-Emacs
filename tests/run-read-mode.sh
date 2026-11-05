@@ -65,3 +65,25 @@ for runtime in compiled femtoscheme; do
  case "$result" in *'(#t #t #t #t)') ;; *) echo "FAIL $runtime counts/cancellation: $result";exit 1 ;; esac
  echo "PASS $runtime counted yy, cancelled counts/selections and gg"
 done
+# Cumulative regression: reuse the same process and store across mode switches.
+# The original one-pass tests missed retained objects surviving each traversal.
+awk 'BEGIN {for(i=1;i<=1829;i++) printf "line %04d: cumulative scrolling keeps these wrapped prose rows in the same editor process for every pass.\n",i}' > "$work/cumulative.md"
+cp "$work/cumulative.md" "$work/cumulative.original"
+{
+ printf 'wait 1000\nkeys \\exvim-mode\\r\nwait 200\n'
+ for pass in 1 2 3 4; do
+  if [ "$pass" -gt 1 ]; then
+   if [ $((pass % 2)) = 0 ]; then printf 'keys ^X^Q\n'; else printf 'keys \\exvim-mode\\r\n'; fi
+   printf 'keys gg\n'
+  fi
+  awk 'BEGIN {for(i=0;i<4000;i++) print "keys \\r"}'
+  printf 'keys \\e:\nwait 100\n'
+  printf "keys (list 'CUMULATIVE-%s (= (point) (buffer-size)) (buffer-read-only?))\\\\r\n" "$pass"
+  printf 'await-screen (CUMULATIVE-%s #t #t)\n' "$pass"
+ done
+ printf 'keys i\nkeys ^X^C\n'
+} > "$work/keys"
+CHEZEMAX_NO_INIT=1 "$work/pty" "$work/keys" 180 "$work/screen" ./chezemax "$work/cumulative.md"
+if grep -aq 'Compiled Scheme.*error\|heap out of memory' "$work/screen"; then echo 'FAIL cumulative scrolling hook error';exit 1;fi
+cmp "$work/cumulative.md" "$work/cumulative.original"
+echo 'PASS four wrapped-file traversals and Vim/READ switches in one process'

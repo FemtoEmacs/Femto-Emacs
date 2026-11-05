@@ -112,7 +112,7 @@ check-scripts: chezemax schemer-compile
 # chezemax --compile-scripts and M-x compile-scripts (a few minutes each)
 check-compile-scripts: chezemax chezemax.wasm schemer/compiler.cwasm
 	sh tests/run-compile-scripts.sh
-check: check-platform check-browser-assets-test check-web-toolchain-test chezemax check-compiled check-bridge check-library check-scripts
+check: check-gc-allocation check-platform check-browser-assets-test check-web-toolchain-test chezemax check-compiled check-bridge check-library check-scripts
 	$(MAKE) -C femtoscheme test
 	./chezemax --eval '(+ 20 22)' | grep -x 42
 	./chezemax --eval '(get-version-string)' | grep femtoscheme
@@ -122,7 +122,7 @@ check: check-platform check-browser-assets-test check-web-toolchain-test chezema
 	sh tests/run-read-mode.sh
 	sh tests/run-compile-scripts.sh
 clean:
-	rm -f src/*.o schemer/*.o tests/native-host-test tests/fileprompt-test tests/filename-completion-test chezemax chezemax-gui irene-dixe tests/search-test chezemax.wasm chezemax.cwasm schemer/compiler.cwasm tests/bridge-test
+	rm -f src/*.o schemer/*.o tests/native-host-test tests/gc-allocation-test tests/fileprompt-test tests/filename-completion-test chezemax chezemax-gui irene-dixe tests/search-test chezemax.wasm chezemax.cwasm schemer/compiler.cwasm tests/bridge-test
 	$(MAKE) -C femtoscheme clean
 
 .PHONY: app
@@ -201,3 +201,9 @@ check-browser-assets-test:
 .PHONY: check-read-mode
 check-read-mode: chezemax chezemax.wasm chezemax.cwasm
 	sh tests/run-read-mode.sh
+
+.PHONY: check-gc-allocation
+check-gc-allocation: schemer-compile tests/gc-allocation-test
+	sh tests/run-gc-allocation.sh
+tests/gc-allocation-test: tests/gc-allocation.c schemer/native-host.o
+	$(CC) $(CPPFLAGS) $(CFLAGS) $< schemer/native-host.o $(WASMTIME_LIBS) -Wl,-rpath,$(abspath $(WASMTIME_ROOT))/lib -lm -o $@

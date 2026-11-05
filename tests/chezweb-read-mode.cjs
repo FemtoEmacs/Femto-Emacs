@@ -46,6 +46,22 @@ const server=http.createServer((q,r)=>{
    assert.deepStrictEqual(errors,[]);await page.close();
    console.log(`PASS Chrome ${mode} ${key}: 1829 lines, edit protection and visual copy`);
   }
+  // Same page, same compiled module and GC heap across every traversal.
+  const cumulative=await browser.newPage({viewport:{width:1100,height:740}}),cumulativeErrors=[];
+  cumulative.on('pageerror',e=>cumulativeErrors.push(e.message));
+  const waitCumulative=async marker=>cumulative.waitForFunction(s=>document.getElementById('screen-text').textContent.includes(s),marker,{timeout:60000});
+  const evaluateCumulative=async(code,marker)=>{await cumulative.evaluate(s=>Module.browsered.queueScheme('(message (value->string '+s+'))'),code);await waitCumulative(marker);};
+  await cumulative.goto('http://127.0.0.1:'+server.address().port);await waitCumulative('line 0001');
+  for(let pass=1;pass<=4;pass++){
+   if(pass%2)await evaluateCumulative('(begin (vim-mode) (quote VIM-READY))','VIM-READY');
+   else{await cumulative.keyboard.press('Control+x');await cumulative.keyboard.press('Control+q');}
+   if(pass>1)await cumulative.evaluate(()=>Module.browsered.sendText('gg'));
+   await cumulative.evaluate(()=>{for(let i=0;i<1900;i++)document.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}));});
+   await evaluateCumulative('(list (quote CUMULATIVE-'+pass+') (= (point) (buffer-size)) (buffer-read-only?))','(CUMULATIVE-'+pass+' #t #t)');
+   assert(!(await cumulative.locator('#screen-text').textContent()).includes('Compiled Scheme (word wrap)'));
+  }
+  assert.deepStrictEqual(cumulativeErrors,[]);await cumulative.close();
+  console.log('PASS Chrome four traversals and Vim/READ switches in one page');
   assert.strictEqual(writes,0);console.log('PASS navigation and copying never saved the source');
  }finally{await browser.close();await new Promise(r=>server.close(r));}
 })().catch(e=>{console.error(e);server.close();process.exitCode=1;});
