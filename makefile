@@ -164,6 +164,7 @@ app: chezweb-gui irene-dixe chezemax.wasm chezemax.cwasm browser
 
 .PHONY: check-ui
 check-ui: chezemax chezweb browser
+	sh tests/terminal-hover.sh
 	sh tests/run-spawn.sh
 	sh tests/run-browser-launch.sh
 	$(CC) $(CPPFLAGS) $(CFLAGS) tests/filename-completion.c src/complete.c src/fileprompt.c -o tests/filename-completion-test

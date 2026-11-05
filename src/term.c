@@ -17,14 +17,14 @@ static int active = 0;
 static int mouse_on = 0;
 
 /*
- * xterm mouse reporting: 1002 reports presses, releases and motion while
- * a button is down; 1006 is the SGR encoding (ESC [ < b ; x ; y M/m),
+ * xterm mouse reporting: 1003 includes passive motion for button hints;
+ * 1006 is the SGR encoding (ESC [ < b ; x ; y M/m),
  * which has no 223-column limit.  key.c decodes it.  Most terminals still
  * select text natively with Shift (Option in Terminal.app) held down.
  */
 static void mouse_reporting(int on)
 {
-	fputs(on ? "\033[?1000h\033[?1002h\033[?1006h" : "\033[?1006l\033[?1002l\033[?1000l", stdout);
+	fputs(on ? "\033[?1000h\033[?1003h\033[?1006h" : "\033[?1006l\033[?1003l\033[?1002l\033[?1000l", stdout);
 	fflush(stdout);
 }
 static attr_t face_attrs[MAX_FACE + 1];

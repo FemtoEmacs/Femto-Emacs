@@ -465,7 +465,7 @@ on the kill ring and make it what C-y inserts."
                       (run-mode-line-button (string->number arg)))
                      ((string=? kind "menu-hover")
                       (set! handled #t)
-                      (%call 'describe-mode-line-button (string->number arg)))
+                      (describe-mode-line-button (string->number arg)))
                      ((string=? kind "select") (run-hook '*select-hook*))
                      ((string=? kind "complete-file")
                       (fe-set-completions (string-join (file-name-completions arg) "\n")))

@@ -207,7 +207,7 @@ the width.  The encoded pieces, or #f for the C core's own mode line."
            (keys (if (string? raw) (list raw) '())))
       (for-each
        (lambda (key)
-         (when (equal? (hashtable-ref *keymap* key #f) action)
+         (when (equal? (get *keymap* key #f) action)
            (set! keys (cons key keys))))
        (table.keys *keymap*))
       (message "Button runs " (command-name action)
