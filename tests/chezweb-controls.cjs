@@ -42,14 +42,34 @@ const server=http.createServer((q,r)=>{
   await page.keyboard.press('Control+/');
   console.log('PASS C-backslash redoes the change undone by C-slash');
   await evaluate('(begin (delete-other-windows) (quote HOVER-READY))','HOVER-READY');
-  const pos=await page.evaluate(()=>{
-   const lines=document.getElementById('screen-text').textContent.split('\n'),row=lines.findIndex(s=>s.includes('[SAVE]')),col=lines[row].indexOf('[SAVE]')+2;
-   const canvas=document.getElementById('screen'),box=canvas.getBoundingClientRect(),ctx=canvas.getContext('2d');ctx.font='15px Menlo,Consolas,monospace';
-   return {x:box.left+4+(col+0.5)*ctx.measureText('MMMMMMMMMM').width/10,y:box.top+4+(row+0.5)*21};
-  });
-  await page.mouse.move(pos.x,pos.y);await wait('Button runs save-buffer (C-x C-s)');
+  async function hoverButton(label,offset=1) {
+   const pos=await page.evaluate(({label,offset})=>{
+    const lines=document.getElementById('screen-text').textContent.split('\n'),needle='['+label+']',row=lines.findIndex(s=>s.includes(needle));
+    if(row<0)throw Error('Missing button '+label);
+    const col=lines[row].indexOf(needle)+offset,g=Module.browsered.layerGeometry(),box=document.getElementById('screen').getBoundingClientRect();
+    window.hoverPaint=0;
+    if(window.hoverObserver)window.hoverObserver.disconnect();
+    window.hoverObserver=new MutationObserver(()=>window.hoverPaint++);
+    window.hoverObserver.observe(document.getElementById('screen-text'),{childList:true});
+    return {x:box.left+g.pad+(col+.5)*g.cw,y:g.top+g.pad+(row+.5)*g.ch};
+   },{label,offset});
+   await page.mouse.move(pos.x,pos.y);
+   await page.waitForFunction(()=>window.hoverPaint>0);
+  }
+  await hoverButton('SAVE');await wait('Button runs save-buffer (C-x C-s)');
+  // Staying over the same button used to clear its hint on the next cell.
+  for(const offset of [2,3,4]) {
+   await hoverButton('SAVE',offset);
+   assert((await page.locator('#screen-text').textContent()).includes('Button runs save-buffer (C-x C-s)'), 'SAVE hint disappeared within its button');
+  }
+  for(const [label,command] of [['UNDO','undo'],['Select','menu-select'],['MORE','more-menu'],['QUIT','exit'],['?','help-menu'],['SAVE','save-buffer']]) {
+   await hoverButton(label);
+   await wait('Button runs '+command);
+  }
+  await evaluate('(quote REPLACED-HINT)','REPLACED-HINT');
+  await hoverButton('SAVE',2);await wait('Button runs save-buffer (C-x C-s)');
   await evaluate('(list (quote HOVER-SAFE) (point) (window-count) (string=? (buffer-string) (file-contents (buffer-filename))))','(HOVER-SAFE 0 1 #t)');
   assert.deepStrictEqual(errors,[]);assert.strictEqual(writes,0);
-  console.log('PASS passive SAVE hover describes its command without clicking or editing');
+  console.log('PASS all browser button hints, movement within SAVE, and hint recovery without edits');
  } finally {await browser.close();server.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;server.close();});

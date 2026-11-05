@@ -117,7 +117,6 @@ static point_t mouse_old_mark = NOMARK;
 
 /* the id of the mode line button under a pressed mouse button, or -1 */
 static int menu_down_row = -1, menu_down_index = -1;
-static int menu_hover_index = -1;
 
 void editor_mouse_event()
 {
@@ -126,13 +125,13 @@ void editor_mouse_event()
 	/* SGR button 35 is passive motion, never a click or selection. */
 	if (b == 35 && !mouse_release) {
 		int index = menu_hit(mouse_row, mouse_col);
-		if (index != menu_hover_index) {
-			menu_hover_index = index;
-			if (index >= 0) {
-				char arg[16];
-				snprintf(arg, sizeof arg, "%d", index);
-				call_lisp_event("menu-hover", arg);
-			}
+		/* Each input redraw clears the echo area. Refresh even when a
+		 * later cell still belongs to the same button. Backends already
+		 * coalesce motion at character-cell boundaries. */
+		if (index >= 0) {
+			char arg[16];
+			snprintf(arg, sizeof arg, "%d", index);
+			call_lisp_event("menu-hover", arg);
 		}
 		return;
 	}
