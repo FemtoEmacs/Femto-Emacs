@@ -19,7 +19,7 @@ static int edit_metrics(long values[8])
 static int edit_key(struct run *r, buffer_t *bp, const char *bytes, int count)
 {
  if (screen_test_cancelled()) { r->cancelled=1; return 0; }
- if (!tester_inject_key_bytes(bytes, count)) return 0;
+ unread_key_bytes(bytes, count);
  input = get_key(key_map, &key_return);
  editor_dispatch_key();
  return curbp == bp && bp->b_point >= 0 && bp->b_point <= document_size(bp);

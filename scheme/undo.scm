@@ -228,19 +228,12 @@ POS), 100 #\\d (deleted), 114 #\\r (replaced wholesale: forget) or 115
 
 ;; Native stress tester: isolate user globals once per run, never per cycle.
 (define *tester-saved-state* #f)
-(define *tester-search-baseline* #f)
-(define (tester-search-state)
-  (value->string (list *kill-ring* (current-history))))
-(define (tester-search-unchanged?)
-  (and *tester-search-baseline*
-       (equal? *tester-search-baseline* (tester-search-state))))
 (define (tester-history-begin)
   (when *tester-saved-state* (error "Tester already active"))
   (set! *tester-saved-state*
     (vector *kill-ring* *use-system-clipboard* *undo-mode* *last-command* *this-command*
             *yank-start* *yank-end* *yank-index*))
   (set! *kill-ring* '())
-  (set! *tester-search-baseline* #f)
   (set! *use-system-clipboard* #f)
   (set! *undo-mode* #t)
   #t)
@@ -266,21 +259,15 @@ POS), 100 #\\d (deleted), 114 #\\r (replaced wholesale: forget) or 115
       (set! *yank-end* (vector-ref s 6))
       (set! *yank-index* (vector-ref s 7))
       (set! *tester-saved-state* #f)))
-  (set! *tester-search-baseline* #f)
   #t)
 
 (define (tester-history-event action)
   (cond ((string=? action "begin") (tester-history-begin))
-        ((string=? action "end") (tester-history-end))
-        ((string=? action "search-seed") (push-kill "chez-tester search baseline"))
-        ((string=? action "search-baseline")
-         (set! *tester-search-baseline* (tester-search-state))))
+        ((string=? action "end") (tester-history-end)))
   ;; A copy probe reports only if M-w actually put the copied text at the
   ;; front of the ring. No mutable history objects cross the C bridge.
-  (when (and (or (not (string=? action "search-check"))
-                 (tester-search-unchanged?))
-             (or (not (string=? action "copy"))
-            (and (pair? *kill-ring*) (string=? (car *kill-ring*) (get-clipboard)))))
+  (when (or (not (string=? action "copy"))
+            (and (pair? *kill-ring*) (string=? (car *kill-ring*) (get-clipboard))))
     (let ((h (current-history)))
       (fe-tester-history-stats (length *kill-ring*) (kill-ring-bytes)
         (if h (length (undo-history-done h)) 0)

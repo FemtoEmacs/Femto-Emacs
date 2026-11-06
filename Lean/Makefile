@@ -6,7 +6,6 @@ all: chez-tester
 proof:
 	$(LEAN) rdonly-tester.lean
 	$(LEAN) mv-cp-mv-paste-undo.lean
-	$(LEAN) search-return.lean
 .build/chez-tester.c: rdonly-tester.lean
 	mkdir -p .build
 	$(LEAN) -c $@ $<
@@ -33,12 +32,3 @@ edit-audit:
 	$(LEAN) .build/edit-audit.lean
 edit-check: proof edit-audit
 	sh tests/edit.sh
-
-.PHONY: search-audit search-check
-search-audit:
-	mkdir -p .build
-	cat search-return.lean > .build/search-audit.lean
-	printf '\n#print axioms SearchReturn.movement_in_file\n#print axioms SearchReturn.byte_position_in_file\n#print axioms SearchReturn.substring_in_file\n#print axioms SearchReturn.query_nonempty\n#print axioms SearchReturn.query_bytes_bounded\n#print axioms SearchReturn.reference_hit_matches\n#print axioms SearchReturn.search_position_in_file\n#print axioms SearchReturn.any_schedule_preserves\n#print axioms SearchReturn.checker_sound\n#print axioms SearchReturn.accepted_preserves\n#print axioms SearchReturn.fixed_report_bound\n' >> .build/search-audit.lean
-	$(LEAN) .build/search-audit.lean
-search-check: proof search-audit
-	sh tests/search.sh

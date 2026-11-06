@@ -464,11 +464,6 @@ a Markdown file or directory with `M-x chez-tester`. Each cycle copies at most
 kill-ring/undo/redo state. Default history limits are 60 entries/4 MiB for the
 kill ring and 8 MiB/200 groups/10,000 changes per buffer across undo and redo.
 
-For non-editing search stress, open `Lean/search-return.lean`: it alternates
-forward/backward matches and boundary failures, restores a seeded cursor origin,
-and checks exact text, dirty flag and history preservation. Search state has a
-fixed 64-byte capacity and is restored when the test finishes.
-
 See [Lean/README.md](Lean/README.md) for proofs, reproducible runs, trust
 boundaries, diagnostic/replay limits and the bounded reference-trace mode.
 
