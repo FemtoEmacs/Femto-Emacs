@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <dirent.h>
+#include <time.h>
 #define LIMIT (16*1024*1024)
 static int sendall(int fd,const void *p,size_t n){while(n){ssize_t k=send(fd,p,n,0);if(k<0&&errno==EINTR)continue;if(k<=0)return 0;p=(const char*)p+k;n-=k;}return 1;}
 static void reply(int fd,int status,const char *type,const void *data,size_t len){char h[1024];int n=snprintf(h,sizeof h,"HTTP/1.1 %d %s\r\nContent-Type: %s\r\nContent-Length: %zu\r\nCache-Control: no-store\r\nX-Content-Type-Options: nosniff\r\nReferrer-Policy: no-referrer\r\nConnection: close\r\n\r\n",status,status==200?"OK":"Rejected",type,len);sendall(fd,h,(size_t)n);sendall(fd,data,len);}
@@ -69,6 +70,42 @@ static void program(int fd,const char *root){
  if(!older){if(!f){reply(fd,404,"text/plain","Not found",9);return;}data=malloc((size_t)a.st_size+1);n=data?fread(data,1,(size_t)a.st_size,f):0;fclose(f);if(!data||n!=(size_t)a.st_size){free(data);reply(fd,500,"text/plain","Read failed",11);return;}}
  char h[512];int k=snprintf(h,sizeof h,"HTTP/1.1 200 OK\r\nContent-Type: application/wasm\r\nX-Chezweb-Program: %s\r\nContent-Length: %zu\r\nCache-Control: no-store\r\nX-Content-Type-Options: nosniff\r\nReferrer-Policy: no-referrer\r\nConnection: close\r\n\r\n",older?"older":"current",n);
  sendall(fd,h,(size_t)k);if(n)sendall(fd,data,n);free(data);}
+/* A native save receipt, unlike PUT session, confirms the real disk write. */
+static void save_response(int fd,int status,unsigned long long revision,const char *message){
+ char h[512];size_t len=strlen(message);int n=snprintf(h,sizeof h,"HTTP/1.1 %d %s\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Length: %zu\r\nX-Chezweb-Revision: %llu\r\nCache-Control: no-store\r\nX-Content-Type-Options: nosniff\r\nConnection: close\r\n\r\n",status,status==200?"OK":"Rejected",len,revision);
+ sendall(fd,h,(size_t)n);sendall(fd,message,len);
+}
+static void snapshot_response(int fd,const char *dir){
+ char path[8192],head[64];snprintf(path,sizeof path,"%s/snapshot",dir);FILE *f=fopen(path,"rb");
+ if(!f){reply(fd,404,"text/plain","Not found",9);return;}
+ unsigned long long revision;char tail;
+ if(!fgets(head,sizeof head,f)||sscanf(head,"%llu %c",&revision,&tail)!=1){fclose(f);reply(fd,500,"text/plain","Invalid snapshot",16);return;}
+ long offset=ftell(f);fseek(f,0,SEEK_END);long len=ftell(f)-offset;fseek(f,offset,SEEK_SET);
+ char *text=len>=0&&len<=LIMIT?malloc((size_t)len+1):NULL;
+ int ok=text&&fread(text,1,(size_t)len,f)==(size_t)len;fclose(f);
+ if(!ok){free(text);reply(fd,500,"text/plain","Snapshot read failed",20);return;}
+ char h[512];int n=snprintf(h,sizeof h,"HTTP/1.1 200 OK\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Length: %ld\r\nX-Chezweb-Revision: %llu\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n",len,revision);sendall(fd,h,(size_t)n);sendall(fd,text,(size_t)len);free(text);
+}
+static void commit_request(int fd,const char *dir,const char *body,size_t len,unsigned long long revision){
+ static unsigned long long sequence;unsigned long long id=++sequence;
+ char temp[8192],path[8192];snprintf(temp,sizeof temp,"%s/save.pending.new",dir);snprintf(path,sizeof path,"%s/save.pending",dir);
+ FILE *f=fopen(temp,"wb");int ok=f&&fprintf(f,"%llu\n%llu\n",id,revision)>0&&fwrite(body,1,len,f)==len;
+ if(f&&fclose(f))ok=0;if(ok)ok=!rename(temp,path);
+ if(!ok){unlink(temp);reply(fd,500,"text/plain","Save request failed",19);return;}
+ snprintf(temp,sizeof temp,"%s/save.result",dir);
+ for(int i=0;i<500;i++){
+  f=fopen(temp,"rb");if(f){unsigned long long got,version;int status;char message[4608];
+   if(fscanf(f,"%llu\n%d\n%llu\n",&got,&status,&version)==3&&got==id){size_t n=fread(message,1,sizeof message-1,f);message[n]=0;fclose(f);unlink(temp);
+    if(status!=200&&status!=409&&status!=413&&status!=422&&status!=500)status=500;
+    save_response(fd,status,version,message);return;
+   }fclose(f);
+  }
+  struct timespec pause={0,20000000};nanosleep(&pause,NULL);
+ }
+ const char *message="Save not confirmed. Close any native prompt and retry; your browser changes remain unsaved.";
+ unlink(path);reply(fd,503,"text/plain",message,strlen(message));
+}
+
 int main(int argc,char **argv){
  if(argc!=4)return 2;const char *root=argv[1],*dir=argv[2],*token=argv[3];signal(SIGPIPE,SIG_IGN);
  int s=socket(AF_INET,SOCK_STREAM,0);struct sockaddr_in a={0};a.sin_family=AF_INET;inet_pton(AF_INET,"127.0.0.1",&a.sin_addr);
@@ -81,18 +118,28 @@ int main(int argc,char **argv){
  char *o=header(h,"Origin");if(!equalheader(header(h,"Host"),host)||(o&&!equalheader(o,origin))||strncmp(url,prefix,strlen(prefix))){reply(c,403,"text/plain","Forbidden",9);close(c);continue;}
  const char *name=url+strlen(prefix);
  if(!strcmp(method,"GET")){
-  if(!strcmp(name,"name")){snprintf(path,sizeof path,"%s/name",dir);file(c,path,"text/plain; charset=utf-8");}
+  if(!strcmp(name,"snapshot")){snapshot_response(c,dir);}
+  else if(!strcmp(name,"target")){snprintf(path,sizeof path,"%s/target",dir);file(c,path,"text/plain; charset=utf-8");}
+  else if(!strcmp(name,"name")){snprintf(path,sizeof path,"%s/name",dir);file(c,path,"text/plain; charset=utf-8");}
   else if(!strcmp(name,"session")){snprintf(path,sizeof path,"%s/initial",dir);file(c,path,"text/plain; charset=utf-8");}
   else if(!strcmp(name,"settings"))settings(c);
   else if(!strcmp(name,"program"))program(c,root);
   else if(!*name||!strcmp(name,"Chezweb.html")){snprintf(path,sizeof path,"%s/Chezweb.html",root);file(c,path,"text/html; charset=utf-8");}
   else if(!strcmp(name,"build/chezweb.js")||!strcmp(name,"build/chezweb.wasm")){snprintf(path,sizeof path,"%s/%s",root,name);file(c,path,strstr(name,".wasm")?"application/wasm":"text/javascript");}
   else reply(c,404,"text/plain","Not found",9);
- }else if(!strcmp(method,"PUT")&&!strcmp(name,"session")&&equalheader(header(h,"Content-Type"),"application/x-chezweb-text")&&o){
+ }else if(!strcmp(method,"POST")&&!strcmp(name,"refresh")&&o&&equalheader(header(h,"Content-Type"),"application/x-chezweb-refresh")){
+  snprintf(path,sizeof path,"%s/refresh",dir);FILE *f=fopen(path,"wb");int ok=f!=NULL;if(f&&fclose(f))ok=0;reply(c,ok?200:500,"text/plain",ok?"Refresh requested":"Refresh failed",ok?17:14);
+ }else if(!strcmp(method,"PUT")&&(!strcmp(name,"session")||!strcmp(name,"save"))&&equalheader(header(h,"Content-Type"),"application/x-chezweb-text")&&o){
   char *length=header(h,"Content-Length"),*stop=NULL;long n=length?strtol(length,&stop,10):-1;
   if(n<0||n>LIMIT||!stop||*stop!='\r'||header(h,"Transfer-Encoding")){reply(c,400,"text/plain","Invalid length",14);close(c);continue;}
-  char *body=malloc((size_t)n+1);size_t got=used-(size_t)(end+4-h);if(got>(size_t)n)got=(size_t)n;memcpy(body,end+4,got);
+  char *body=malloc((size_t)n+1);if(!body){reply(c,500,"text/plain","Out of memory",13);close(c);continue;}size_t got=used-(size_t)(end+4-h);if(got>(size_t)n)got=(size_t)n;memcpy(body,end+4,got);
   while(got<(size_t)n){ssize_t k=recv(c,body+got,(size_t)n-got,0);if(k<=0)break;got+=(size_t)k;}
+  if(!strcmp(name,"save")){
+   char *v=header(h,"X-Chezweb-Revision"),*last=NULL;errno=0;unsigned long long revision=v?strtoull(v,&last,10):0;
+   if(got!=(size_t)n||!v||*v<'0'||*v>'9'||errno||!last||*last!='\r')reply(c,400,"text/plain","Missing document revision",25);
+   else commit_request(c,dir,body,got,revision);
+   free(body);close(c);continue;
+  }
   int ok=got==(size_t)n;snprintf(path,sizeof path,"%s/pending.new",dir);FILE *f=ok?fopen(path,"wb"):NULL;if(f){ok=fwrite(body,1,got,f)==got;if(fclose(f))ok=0;}else ok=0;
   if(ok){char dest[8192];snprintf(dest,sizeof dest,"%s/pending",dir);ok=rename(path,dest)==0;if(ok){snprintf(dest,sizeof dest,"%s/initial",dir);FILE *initial=fopen(dest,"wb");if(initial){fwrite(body,1,got,initial);fclose(initial);}}}free(body);reply(c,ok?200:500,"text/plain",ok?"Imported on next native key":"Save failed",ok?27:11);
  }else reply(c,405,"text/plain","Unsupported",11);

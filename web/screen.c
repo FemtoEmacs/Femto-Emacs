@@ -448,3 +448,8 @@ void screen_end(void)
 }
 
 int screen_test_cancelled(void) { return 0; } /* Native tester only. */
+
+/* A virtual fclose is not proof that a granted file or native document saved. */
+EM_ASYNC_JS(int,screen_save_file,(const char *path),{
+ return await Module.browsered.confirmSave(UTF8ToString(path)) ? 1 : 0;
+});

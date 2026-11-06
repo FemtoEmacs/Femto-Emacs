@@ -889,13 +889,16 @@ static void handle(SDL_Event *e)
  * grid and then wait for a key, without asking for a refresh.  Without
  * this the window would show nothing of them, and seem frozen.
  */
+int screen_save_file(const char *path) { (void)path; return 1; }
 int screen_getch(void)
 {
 	SDL_Event e;
 
 	if (queue_empty() && dirty) render();
 	while (queue_empty()) {
-		if (!SDL_WaitEvent(&e)) continue;
+		if (editor_is_idle()) {
+			if (!SDL_WaitEventTimeout(&e,100)) { editor_idle_poll(); continue; }
+		} else if (!SDL_WaitEvent(&e)) continue;
 		handle(&e);
 		/* take everything that is already waiting */
 		while (SDL_PollEvent(&e)) handle(&e);

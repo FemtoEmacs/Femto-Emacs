@@ -5,6 +5,16 @@
 
 #include "header.h"
 
+/* Background handoffs may run only while the top-level editor waits for a
+ * key, never inside a Scheme command, search or filename prompt. */
+static int editor_idle_wait;
+int editor_is_idle(void) { return editor_idle_wait; }
+void editor_idle_poll(void)
+{
+ extern int chezweb_poll(void);
+ if (editor_idle_wait && chezweb_poll()) { update_display(); screen_refresh(); }
+}
+
 void editor_dispatch_key(void)
 {
 	buffer_t *before_bp;
@@ -120,8 +130,10 @@ int fe_main(int argc, char **argv)
 	while (!done) {
 
 		update_display();
+		editor_idle_wait = 1;
 		input = get_key(key_map, &key_return);
-        { extern void chezweb_poll(void); chezweb_poll(); }
+		editor_idle_wait = 0;
+        { extern int chezweb_poll(void); chezweb_poll(); }
 		editor_dispatch_key();
 		chez_tester_poll();
 	}

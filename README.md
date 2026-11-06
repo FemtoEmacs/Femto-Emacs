@@ -90,15 +90,30 @@ why. The server reads `~/.chezemax/chezemax.wasm`, read-only. Compiling
 itself stays a terminal or SDL job: restart the browser editor (C-c d again
 after closing its tab) to use what you compiled.
 
-The browser initially receives a **snapshot** of the selected buffer,
-including unsaved text and its filename. Native and browser cursors are
-independent. `C-x C-s` in Chrome sends that snapshot's edited text back to the
-native buffer. Return to the native window and press a key to import it;
-then `C-x C-s` there saves the original document to disk. Native concurrent
-changes are preserved: browser text goes to a new conflict buffer. Repeating
-`C-c d` reopens the existing browser session. It does not silently replace an
-active browser session with a different buffer. Reloading restores the last
-explicit browser save; unsaved browser typing is not persisted.
+The browser initially receives a **snapshot** of the selected native buffer,
+including unsaved text. **C-x C-s in Chrome saves that buffer's original file
+to disk and updates the native buffer in one operation.** No second native
+Save or keypress is required. Chrome confirms the real destination after the
+native editor acknowledges the write. Choosing a folder changes the starting
+folder of file prompts; it does not retarget an already-open document.
+
+Saves wait while the native editor is executing a command. If it remains in
+a prompt, close that prompt and retry. A failed or unconfirmed save leaves the
+browser buffer modified. Concurrent native edits, external disk changes and
+stale browser snapshots are rejected, preserving the browser text in a native
+conflict buffer as well. The original file is replaced atomically only after
+its contents are checked against the shared version.
+
+Files opened through **Open local file** or a granted folder save through their
+Chrome file handles, rather than through the native snapshot route. If such a
+save changes the same file open natively, the native view refreshes while idle;
+native edits are preserved as a conflict. Picking another file with the same
+basename never replaces the original snapshot's save target. A browser snapshot
+of an unnamed native buffer needs an explicit **Save As** target.
+
+Repeating **C-c d** reopens the existing session. Reloading opens its latest
+shared snapshot; unsaved browser typing is not persisted. There is no automatic
+save on typing: each disk write still requires an explicit Save.
 
 **C-x C-f** now uses ordinary editable filename prompts and Tab completion
 for Chrome-granted folders. On the first Tab at `~/`, or when completing an
@@ -448,6 +463,11 @@ a Markdown file or directory with `M-x chez-tester`. Each cycle copies at most
 200 characters, moves, pastes, undoes and checks exact restoration and bounded
 kill-ring/undo/redo state. Default history limits are 60 entries/4 MiB for the
 kill ring and 8 MiB/200 groups/10,000 changes per buffer across undo and redo.
+
+For non-editing search stress, open `Lean/search-return.lean`: it alternates
+forward/backward matches and boundary failures, restores a seeded cursor origin,
+and checks exact text, dirty flag and history preservation. Search state has a
+fixed 64-byte capacity and is restored when the test finishes.
 
 See [Lean/README.md](Lean/README.md) for proofs, reproducible runs, trust
 boundaries, diagnostic/replay limits and the bounded reference-trace mode.

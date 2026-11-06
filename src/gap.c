@@ -167,9 +167,14 @@ int save_buffer(buffer_t *bp, char *fn)
 		msg(m_close, fn);
 		return (FALSE);
 	}
+ if (!screen_save_file(fn)) {
+  msg("Save failed; changes are still unsaved. See the browser notice.");
+  return FALSE;
+ }
 	delete_mode(bp, B_MODIFIED);
 	record_change(bp, 's', 0, NULL, 0);
-	msg(m_saved, fn, pos(bp, bp->b_ebuf));
+	if (!strcmp(screen_backend(),"browser")) msg("File saved. See the destination above.");
+	else msg(m_saved, fn, pos(bp, bp->b_ebuf));
 	return (TRUE);
 }
 

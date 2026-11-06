@@ -283,8 +283,7 @@ int save_buffer_byname(char *bname)
 	if (bp == NULL) return FALSE;
 	if (bp->b_fname[0] == '\0') return FALSE;
 
-	save_buffer(bp, bp->b_fname);
-	return TRUE;
+	return save_buffer(bp, bp->b_fname);
 }
 
 char *get_current_bufname()

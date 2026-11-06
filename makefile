@@ -219,10 +219,17 @@ check-lean-native: chezemax chezemax.wasm chezemax.cwasm
 	$(MAKE) -C Lean native-check
 
 # The native stress driver is included by the tester translation unit.
-src/chez-tester.o: src/chez-edit-tester.h
+src/chez-tester.o: src/chez-edit-tester.h src/chez-search-tester.h
 
 .PHONY: check-history check-lean-edit
 check-history: chezemax schemer-compile
 	sh tests/history-limits.sh
 check-lean-edit: chezemax chezemax.wasm chezemax.cwasm
 	$(MAKE) -C Lean edit-check
+
+.PHONY: check-lean-search
+check-lean-search: chezemax chezemax.wasm chezemax.cwasm
+	$(MAKE) -C Lean search-check
+
+# Native browser persistence helpers are included by the bridge.
+src/browser-launch.o: src/browser-save.h

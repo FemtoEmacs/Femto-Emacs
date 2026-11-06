@@ -131,6 +131,11 @@ var ChezwebFiles=(function(){
  return {
   install,write,normalize,pickDirectory,prepareListing,readDirectory:directory,
   target:path=>handles().has(path)||!!folderOf(normalize(path)),
+  describe(path){
+   path=normalize(path);var folder=folderOf(path),handle=handles().get(path);
+   if(folder)return (path.startsWith(home+'/')?'~'+path.slice(home.length):path)+' (chosen folder)';
+   return handle?'selected file '+(handle.name||path.slice(path.lastIndexOf('/')+1)):path;
+  },
   async prepare(typed,partial){if(busy)return false;busy=true;try{return await prepare(typed,partial);}catch(e){if(e.name!=='AbortError')Module.browsered.notice(e.message,true);return false;}finally{busy=false;}}
  };
 })();

@@ -93,4 +93,10 @@ extern void screen_set_default_colors(long fg, long bg, long cursor);
 extern void screen_set_title(const char *title);
 extern void screen_set_option(const char *name, int value);
 
+/* Core idle callback: screen backends call it only between ordinary keys. */
+extern int editor_is_idle(void);
+extern void editor_idle_poll(void);
+/* Confirm an external browser write before marking a virtual file saved. */
+extern int screen_save_file(const char *path);
+
 #endif

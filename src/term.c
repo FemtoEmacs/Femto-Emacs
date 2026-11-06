@@ -88,9 +88,15 @@ void screen_addch(int c)
 	addch(ch);
 }
 
+int screen_save_file(const char *path) { (void)path; return 1; }
 int screen_getch(void)
 {
-	int c = getch();
+ int c;
+ if (editor_is_idle()) {
+  timeout(100);
+  while ((c = getch()) == ERR) editor_idle_poll();
+  timeout(-1);
+ } else c = getch();
 	/* KEY_RESIZE (0x19A) arrives as its low byte, SCR_KEY_RESIZE */
 	return c < 0 ? c : (c & 0xFF);
 }
