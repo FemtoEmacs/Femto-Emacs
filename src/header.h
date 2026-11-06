@@ -375,6 +375,7 @@ extern int getfilename(char *, char *, int);
 extern int getfilename_default(char *, char *, int);
 extern int getcommand(char *, int);
 extern void unread_key_bytes(const char *, int);
+extern int tester_inject_key_bytes(const char *, int);
 extern void scroll_window(int);
 extern int select_screen_window(int);
 #define WHEEL_ROWS 3            /* rows the text moves for a notch of the wheel */

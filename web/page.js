@@ -88,7 +88,7 @@ Module.browsered=(function(){
   window.addEventListener('resize',()=>{layout();push(154);});keys.focus();
   FS.mkdirTree('/home/web_user');FS.chdir('/home/web_user');ENV.HOME='/home/web_user';await settings();await program();
   var initial='Welcome to Chezweb.\n\nC-x C-f opens files. C-x C-s saves.\nAsk Codex or Claude in your terminal or SDL window.\n';
-  try{var r=await fetch('snapshot',{cache:'no-store'});if(!r.ok)r=await fetch('session',{cache:'no-store'});if(r.ok){initial=new Uint8Array(await r.arrayBuffer());Module.chezwebSession=true;nativeRevision=r.headers.get('X-Chezweb-Revision')||'0';}}catch(_){}
+  try{var r=await fetch('snapshot',{cache:'no-store'});if(!r.ok)r=await fetch('session',{cache:'no-store'});if(r.ok){initial=new Uint8Array(await r.arrayBuffer());Module.chezwebSession=true;nativeRevision=r.headers.get('X-Chezweb-Revision')||'0';Module.chezwebInitialModified=r.headers.get('X-Chezweb-Modified')==='1';}}catch(_){}
   if(Module.chezwebSession)try{var target=await fetch('target',{cache:'no-store'});if(target.ok){nativeSave=true;nativeTarget=await target.text();}}catch(_){}
   var name='browser.txt';try{var nr=await fetch('name',{cache:'no-store'});if(nr.ok){var value=await nr.text();if(value&&!/[\/\\\x00-\x1f]/.test(value))name=value;}}catch(_){}
   Module.chezwebSessionPath='/home/web_user/'+name;FS.writeFile(Module.chezwebSessionPath,initial);

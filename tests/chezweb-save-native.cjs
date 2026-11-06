@@ -15,7 +15,7 @@ async function start(name,{exists=true,filename='nia.md',commands='',initialEdit
  const exited=new Promise(r=>proc.on('exit',r));running.push({proc,finish,release,exited});
  try{
   await until(()=>fs.existsSync(urlFile),'native server launch');const url=fs.readFileSync(urlFile,'utf8').trim(),origin=new URL(url).origin;
-  const snapshot=await fetch(url+'snapshot');assert.equal(snapshot.status,200);const text=await snapshot.text();let revision=snapshot.headers.get('X-Chezweb-Revision');assert.equal(revision,'0');
+  const snapshot=await fetch(url+'snapshot');assert.equal(snapshot.status,200);const text=await snapshot.text();let revision=snapshot.headers.get('X-Chezweb-Revision');assert.equal(revision,'0');assert.equal(snapshot.headers.get('X-Chezweb-Modified'),exists&&!unnamed&&!initialEdit?'0':'1');
   return {dir,file,url,text,trigger,release,screen,
    async put(body,version=revision){const r=await fetch(url+'save',{method:'PUT',headers:{Origin:origin,'Content-Type':'application/x-chezweb-text','X-Chezweb-Revision':version},body});const message=await r.text();if(r.ok)revision=r.headers.get('X-Chezweb-Revision');return {status:r.status,message,revision};},
    async close(){fs.writeFileSync(finish,'done');assert.equal(await exited,0,fs.readFileSync(screen,'utf8').slice(-1500));},
@@ -25,9 +25,14 @@ async function start(name,{exists=true,filename='nia.md',commands='',initialEdit
 }
 (async()=>{try{
  const cc=cp.spawnSync(process.env.CC||'cc',['-O2',path.join(root,'tests/pty-keys.c'),'-o',path.join(work,'pty')]);assert.equal(cc.status,0);
- let c=await start('normal');fs.chmodSync(c.file,0o640);
+ let c=await start('unchanged-native',{commands:'keys ^X^S\nawait-screen (No changes need to be saved)\nkeys \\e:(list (quote NOOP-READY) (save-buffer (get-buffer-name)))\\r'});
+ const oldTime=new Date('2000-01-01T00:00:00Z');fs.utimesSync(c.file,oldTime,oldTime);const unchangedTime=fs.statSync(c.file).mtimeMs;fs.writeFileSync(c.trigger,'save');
+ await until(()=>fs.readFileSync(c.screen,'utf8').includes('(NOOP-READY #t)'),'native unchanged-save message and Scheme success');
+ assert.equal(fs.statSync(c.file).mtimeMs,unchangedTime);assert.equal(fs.readFileSync(c.file,'utf8'),'ORIGINAL\n');await c.close();console.log('PASS native unchanged saves report no changes and preserve disk timestamp');
+ c=await start('empty-native',{exists:false,commands:'keys ^X^S\nkeys \\e:(quote EMPTY-SAVED)\\r'});fs.writeFileSync(c.trigger,'create');await until(()=>fs.existsSync(c.file),'new empty file saved');assert.equal(fs.statSync(c.file).size,0);await c.close();console.log('PASS a new empty file is still created on Save');
+ c=await start('normal');fs.chmodSync(c.file,0o640);
  for(const text of ['Browser é🙂\n','Second revision\n','']){const r=await c.put(text);assert.equal(r.status,200,r.message);assert.equal(fs.readFileSync(c.file,'utf8'),text);assert.equal(fs.statSync(c.file).mode&0o777,0o640);}
- assert.equal((await fetch(c.url+'snapshot')).headers.get('X-Chezweb-Revision'),'3');await c.close();console.log('PASS idle native commit, repeated UTF-8/empty saves, clean quit and file permissions');
+ const cleanSnapshot=await fetch(c.url+'snapshot');assert.equal(cleanSnapshot.headers.get('X-Chezweb-Revision'),'3');assert.equal(cleanSnapshot.headers.get('X-Chezweb-Modified'),'0');await c.close();console.log('PASS idle native commit, repeated UTF-8/empty saves, clean quit and file permissions');
  c=await start('spaces',{filename:'Nia café.md'});assert.equal((await c.put('Space/Unicode path\n')).status,200);assert.equal(fs.readFileSync(c.file,'utf8'),'Space/Unicode path\n');await c.close();console.log('PASS original filenames with spaces and Unicode');
  c=await start('unsaved',{initialEdit:'keys PREEXISTING \n'});assert(c.text.startsWith('PREEXISTING '));assert.equal((await c.put('Browser '+c.text)).status,200);assert.equal(fs.readFileSync(c.file,'utf8'),'Browser '+c.text);await c.close();console.log('PASS unsaved native text at handoff is included in the first disk save');
  c=await start('native-conflict',{commands:'keys NATIVE \nkeys \\e:(quote NATIVE-READY)\\r',clean:false});fs.writeFileSync(c.trigger,'edit');await until(()=>fs.readFileSync(c.screen,'utf8').includes('NATIVE-READY'),'native concurrent edit');let r=await c.put('BROWSER\n');assert.equal(r.status,409,r.message);assert.equal(fs.readFileSync(c.file,'utf8'),'ORIGINAL\n');assert.equal((await c.put('SECOND BROWSER\n')).status,409);assert.equal((await c.put('SECOND BROWSER\n')).status,409);await c.close();console.log('PASS native concurrent edits reject overwrite and preserve browser conflict text');

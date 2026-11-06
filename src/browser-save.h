@@ -79,7 +79,8 @@ static void publish_snapshot(void)
 {
  char temp[8192],path[8192];snprintf(temp,sizeof temp,"%s/snapshot.new",session);snprintf(path,sizeof path,"%s/snapshot",session);
  FILE *f=fopen(temp,"wb");if(!f)return;
- int ok=fprintf(f,"%llu\n",save_revision)>0&&fwrite(baseline,1,baseline_len,f)==baseline_len;
+ int modified=!disk_known||!disk_exists||!same_text(baseline,baseline_len,disk_baseline,disk_len);
+ int ok=fprintf(f,"%llu %d\n",save_revision,modified)>0&&fwrite(baseline,1,baseline_len,f)==baseline_len;
  if(fclose(f))ok=0;if(ok)rename(temp,path);else unlink(temp);
 }
 static int prepare_source_import(size_t len)
@@ -196,7 +197,7 @@ static int refresh_native_file(void)
  char *text;size_t len;int exists;if(!read_disk(save_path,&text,&len,&exists)||!exists)return 0;
  if(disk_known&&same_text(text,len,disk_baseline,disk_len)){free(text);return 0;}
  if(source_unchanged(text,len)&&prepare_source_import(len)&&replace_source(text,len)){
-  remember_browser_text(text,len);remember_disk(text,len);mark_source_saved();fe_message("Browser-saved file reloaded; the native buffer is up to date.");
+  remember_disk(text,len);remember_browser_text(text,len);mark_source_saved();fe_message("Browser-saved file reloaded; the native buffer is up to date.");
  }else keep_conflict(text,len,"File changed on disk; native edits were preserved. Review the browser conflict buffer.");
  free(text);return 1;
 }

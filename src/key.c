@@ -236,7 +236,8 @@ static int macro_repeat = 0;         /* "e" right after C-x e repeats it */
  * else.  A prompt that ends because of a key it does not use (search ends
  * at an arrow, say) gives the key back, and the editor runs it as usual.
  */
-static char_t unread[16];
+/* Bounded lookahead also carries one tester search (32 UTF-8 bytes + keys). */
+static char_t unread[64];
 static int nunread = 0;
 
 void unread_key_bytes(const char *s, int n)
@@ -250,6 +251,15 @@ void unread_key_bytes(const char *s, int n)
 int tester_can_inject(void)
 {
  return nunread == 0 && !macro_recording && macro_play < 0 && !macro_repeat;
+}
+
+/* Checked tester entry: a rejected injection must never become a blocking
+ * read from the physical keyboard. */
+int tester_inject_key_bytes(const char *bytes, int count)
+{
+ if (!tester_can_inject() || count < 1 || count > (int)sizeof unread) return 0;
+ unread_key_bytes(bytes,count);
+ return 1;
 }
 
 int read_key_byte(void)

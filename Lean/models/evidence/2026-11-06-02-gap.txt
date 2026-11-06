@@ -1,0 +1,137 @@
+02-gap.lean verification: 2026-11-06 (America/Sao_Paulo)
+Source SHA-256: 577e92290020add8503c3fe9337e680ad6d9b0f73e068dd0d7ecf82d9a6222e8
+Lean (version 4.30.0, arm64-apple-darwin24.6.0, commit d024af099ca4bf2c86f649261ebf59565dc8c622, Release)
+
+INTERPRETED RUN
+lean --run 02-gap.lean
+Thirteen theorems checked; nine visual frames completed; final result pass.
+All output records were read successfully as S-expressions with SBCL.
+
+CHEZWEB RUN
+A disposable copy was opened in a separate native terminal editor.
+M-! opened the command window; lean --run 02-gap.lean was entered; C-c s ran it.
+The first visual frames appeared in *output*. M-> displayed the last frame and (result pass).
+The PTY test and editor both exited with status 0. No C executable was generated.
+
+BOUNDARY CHECKS
+PASS 95 gap layouts, including empty text, zero free cells and both edges.
+The checks compare each movement with a direct update of one physical memory cell,
+and compare reads, insertion, deletion and growth with independent list calculations.
+
+KERNEL DEPENDENCY AUDIT
+'Gap02.gapAt_text' depends on axioms: [propext]
+'Gap02.boundaries_ordered' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Gap02.address_in_memory' depends on axioms: [propext, Quot.sound]
+'Gap02.physical_read' depends on axioms: [propext, Quot.sound]
+'Gap02.moveLeft_text' depends on axioms: [propext]
+'Gap02.moveLeft_space' depends on axioms: [propext, Quot.sound]
+'Gap02.moveRight_text' depends on axioms: [propext]
+'Gap02.moveRight_space' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Gap02.insertByte_text' depends on axioms: [propext]
+'Gap02.insertByte_space' depends on axioms: [propext]
+'Gap02.deleteRight_correct' depends on axioms: [propext]
+'Gap02.grow_correct' depends on axioms: [propext]
+'Gap02.gap_cursor_separate' does not depend on any axioms
+
+VISUAL OUTPUT
+(gap-demonstration (legend "[.] unused; [_] space; | cursor"))
+(frame (action "start: cursor and gap differ")
+  (physical "[H][e][l][l][o][.][.][_][w][o][r][l][d]")
+  (logical  "Hel|lo world")
+  (unused-bytes (0 0))
+  (cursor 3) (gap-start 5) (gap-end 7)
+  (free 2) (capacity 13))
+(frame (action "move gap left: copy o")
+  (physical "[H][e][l][l][.][.][o][_][w][o][r][l][d]")
+  (logical  "Hel|lo world")
+  (unused-bytes (111 0))
+  (cursor 3) (gap-start 4) (gap-end 6)
+  (free 2) (capacity 13))
+(frame (action "move gap left: copy l")
+  (physical "[H][e][l][.][.][l][o][_][w][o][r][l][d]")
+  (logical  "Hel|lo world")
+  (unused-bytes (108 111))
+  (cursor 3) (gap-start 3) (gap-end 5)
+  (free 2) (capacity 13))
+(frame (action "insert X")
+  (physical "[H][e][l][X][.][l][o][_][w][o][r][l][d]")
+  (logical  "HelX|lo world")
+  (unused-bytes (111))
+  (cursor 4) (gap-start 4) (gap-end 5)
+  (free 1) (capacity 13))
+(frame (action "insert Y: gap is full")
+  (physical "[H][e][l][X][Y][l][o][_][w][o][r][l][d]")
+  (logical  "HelXY|lo world")
+  (unused-bytes ())
+  (cursor 5) (gap-start 5) (gap-end 5)
+  (free 0) (capacity 13))
+(frame (action "grow by three cells")
+  (physical "[H][e][l][X][Y][.][.][.][l][o][_][w][o][r][l][d]")
+  (logical  "HelXY|lo world")
+  (unused-bytes (0 0 0))
+  (cursor 5) (gap-start 5) (gap-end 8)
+  (free 3) (capacity 16))
+(frame (action "insert Z after growth")
+  (physical "[H][e][l][X][Y][Z][.][.][l][o][_][w][o][r][l][d]")
+  (logical  "HelXYZ|lo world")
+  (unused-bytes (0 0))
+  (cursor 6) (gap-start 6) (gap-end 8)
+  (free 2) (capacity 16))
+(frame (action "delete next byte: l")
+  (physical "[H][e][l][X][Y][Z][.][.][.][o][_][w][o][r][l][d]")
+  (logical  "HelXYZ|o world")
+  (unused-bytes (0 0 108))
+  (cursor 6) (gap-start 6) (gap-end 9)
+  (free 3) (capacity 16))
+(frame (action "move gap right: copy o")
+  (physical "[H][e][l][X][Y][Z][o][.][.][.][_][w][o][r][l][d]")
+  (logical  "HelXYZ|o world")
+  (unused-bytes (0 108 111))
+  (cursor 6) (gap-start 7) (gap-end 10)
+  (free 3) (capacity 16))
+(result pass)
+
+REPRODUCING THE BOUNDARY CHECKS
+Append the following Lean code to a disposable copy of 02-gap.lean.
+Run lean on that copy. The #eval executes the checks.
+
+-- Compare small gap layouts with direct byte-copy and list-edit calculations.
+def checkGapEdges : IO Unit := do
+  let samples : List (List UInt8) := [[], [0], [65], [255], [10, 65], [65, 0, 255], [65, 66, 67, 68]]
+  let mut states := 0
+  for text in samples do
+    for split in List.range (text.length + 1) do
+      for room in List.range 5 do
+        let g := Gap02.gapAt text split room
+        let l := Gap02.moveLeft g
+        let r := Gap02.moveRight g
+        let leftMemory := if split = 0 then g.memory else g.memory.set (g.finish - 1) (text[split - 1]?.getD 0)
+        let rightMemory := if split = text.length then g.memory else g.memory.set g.start (text[split]?.getD 0)
+        unless l.memory == leftMemory && r.memory == rightMemory do
+          throw (IO.userError "movement did not match a single physical byte copy")
+        unless l.text == text && r.text == text && l.capacity == g.capacity && r.capacity == g.capacity do
+          throw (IO.userError "movement changed text or capacity")
+        unless l.start == split - 1 && r.start == min (split + 1) text.length do
+          throw (IO.userError "movement reached the wrong gap position")
+        for point in List.range (text.length + 2) do
+          unless g.memory[g.address point]? == text[point]? do
+            throw (IO.userError "wrong physical read")
+        match Gap02.insertByte g 88 with
+        | none => unless room == 0 do throw (IO.userError "insertion wrongly refused")
+        | some inserted =>
+          unless room > 0 && inserted.text == text.take split ++ [88] ++ text.drop split &&
+              inserted.capacity == g.capacity && inserted.free.length + 1 == room do
+            throw (IO.userError "wrong insertion")
+        let deleted := Gap02.deleteRight g
+        unless deleted.text == text.take split ++ text.drop (split + 1) && deleted.memory == g.memory do
+          throw (IO.userError "wrong deletion")
+        for extra in [0, 1, 3] do
+          let grown := Gap02.grow g extra
+          unless grown.text == text && grown.capacity == g.capacity + extra do
+            throw (IO.userError "wrong growth")
+        states := states + 1
+  IO.println s!"PASS {states} gap layouts, including empty text, zero free cells and both edges."
+
+-- Run the boundary checks through Lean's interpreter.
+#eval checkGapEdges
+

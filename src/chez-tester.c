@@ -50,6 +50,8 @@ struct run {
  unsigned lines, passes, profile, delay, batch;
  unsigned seq, acked, pending, bytes, max_enters, file_count, edit_cycles, seed;
  int edit_test;
+ unsigned search_peak;
+ int search_restored;
  long ring_peak, ring_bytes_peak, undo_bytes_peak, undo_accounted_peak;
  int histories_restored;
  int to, from, cancelled, keep_reference;
@@ -143,7 +145,7 @@ static int read_plan(struct run *r)
 {
  char line[128];
  if (!read_reply(r, line, sizeof line)) return 0;
- if (!strncmp(line,"PLAN3 ",6)) {
+ if (!strncmp(line,"PLAN3 ",6) || !strncmp(line,"PLAN4 ",6)) {
   unsigned values[4];
   const char *p=line+6;
   for(unsigned i=0;i<4;i++){
@@ -153,7 +155,7 @@ static int read_plan(struct run *r)
    values[i]=(unsigned)v;
    if(i==3){if(*end)return 0;}else{if(*end!=' ')return 0;p=end+1;}
   }
-  r->file_count=values[0];r->edit_cycles=values[1];r->delay=values[2];r->seed=values[3];r->edit_test=1;r->keep_reference=0;
+  r->file_count=values[0];r->edit_cycles=values[1];r->delay=values[2];r->seed=values[3];r->edit_test=line[4]=='4' ? 2 : 1;r->keep_reference=0;
   return r->file_count>0&&r->file_count<=64&&r->edit_cycles>0&&r->delay<=1000&&
     (unsigned long long)r->file_count*r->edit_cycles<=1000000;
  }
@@ -315,6 +317,7 @@ static int observe(struct run *r, buffer_t *bp, unsigned action, unsigned long e
 }
 
 #include "chez-edit-tester.h"
+#include "chez-search-tester.h"
 
 static void run_test(int from_buffer)
 {
@@ -340,7 +343,7 @@ static void run_test(int from_buffer)
      !number("CHEZ_TESTER_LINES", "Fixture lines [256]: ", 256, 1, 4096, &r.lines) ||
      r.passes * (r.lines + 9) > 1000000)) { msg("chez-tester: cancelled or invalid bounded configuration"); return; }
  if (from_buffer) {
-  if (snprintf(r.selected, sizeof r.selected, "%s/docs/chezemax.md", install) >= (int)sizeof r.selected ||
+  if (snprintf(r.selected, sizeof r.selected, "%s/docs/chezweb.md", install) >= (int)sizeof r.selected ||
       !getfilename_default("Text file or Markdown directory: ", r.selected, sizeof r.selected)) {
    msg("chez-tester: file selection cancelled"); return;
   }
@@ -376,10 +379,10 @@ static void run_test(int from_buffer)
  }
  if (!start_checker(&r, checker, from_buffer)) { reason = "Lean/checker startup failed: check Lean installation, source and settings"; goto finish; }
  if (r.edit_test) {
-  success=run_edit_test(&r,origin_name);
+  success=r.edit_test==2 ? run_search_test(&r,origin_name) : run_edit_test(&r,origin_name);
   if(success)success=stop_checker(&r,1);
   mark_active=original_mark;
-  reason=success ? "Lean accepted edit cycles, exact restoration and bounded histories" : "edit protocol, byte restoration, history bounds or cleanup rejected";
+  reason=success ? (r.edit_test==2 ? "Lean accepted search results, exact return and unchanged histories" : "Lean accepted edit cycles, exact restoration and bounded histories") : "protocol, text, search/return, history bounds or cleanup rejected";
   goto finish;
  }
  if (!from_buffer && r.keep_reference && r.passes * (r.lines + 9) > 60) { reason = "reference mode requires <=60 observations"; goto finish; }
@@ -470,10 +473,10 @@ finish:
   char report[SUMMARY_CAP];
   int n = snprintf(report, sizeof report,
    "chez-tester v1\nstatus=%s\nreason=%s\nprotocol=%s\nfiles_tested=%u\ncycles_per_file=%u\nseed=%u\nprofile=%u\nlines=%u\npasses=%u\nobservations=%u\nacknowledged=%u\n"
-   "ring_peak=%ld\nring_bytes_peak=%ld\nundo_live_bytes_peak=%ld\nundo_accounted_bytes_peak=%ld\nhistories_restored=%d\ninput_file=%.512s\ninput_bytes=%u\nreference_kept=%d\nrun_time_unix=%lld\nchecker=%.512s\nlean_diagnostic=%.120s\npending_limit=8192\nfailure_limit=8192\nsummary_limit=4096\ntotal_disk_limit=20480\n"
+   "ring_peak=%ld\nring_bytes_peak=%ld\nundo_live_bytes_peak=%ld\nundo_accounted_bytes_peak=%ld\nhistories_restored=%d\nsearch_bytes_peak=%u\nsearch_capacity=%u\nsearch_state_restored=%d\ninput_file=%.512s\ninput_bytes=%u\nreference_kept=%d\nrun_time_unix=%lld\nchecker=%.512s\nlean_diagnostic=%.120s\npending_limit=8192\nfailure_limit=8192\nsummary_limit=4096\ntotal_disk_limit=20480\n"
    "proof_scope=Lean model/checker/protocol; C observations and OS/IO are trusted\n"
    "failure.trace is a bounded diagnostic window, not a standalone proof certificate\n",
-   success ? "PASS" : r.cancelled ? "CANCELLED" : "FAIL", reason, r.edit_test ? "move-copy-paste-undo" : "enter-readonly", r.edit_test ? r.file_count : 1, r.edit_test ? r.edit_cycles : 0, r.seed, r.profile, r.lines, r.passes, r.seq, r.acked, r.ring_peak, r.ring_bytes_peak, r.undo_bytes_peak, r.undo_accounted_peak, r.histories_restored, r.selected, r.bytes, r.keep_reference, (long long)time(NULL), checker, r.diagnostic);
+   success ? "PASS" : r.cancelled ? "CANCELLED" : "FAIL", reason, r.edit_test==2 ? "search-return" : r.edit_test ? "move-copy-paste-undo" : "enter-readonly", r.edit_test ? r.file_count : 1, r.edit_test ? r.edit_cycles : 0, r.seed, r.profile, r.lines, r.passes, r.seq, r.acked, r.ring_peak, r.ring_bytes_peak, r.undo_bytes_peak, r.undo_accounted_peak, r.histories_restored, r.search_peak, r.edit_test==2 ? STRBUF_M : 0, r.search_restored, r.selected, r.bytes, r.keep_reference, (long long)time(NULL), checker, r.diagnostic);
   if (n < 0 || n >= (int)sizeof report || fwrite(report, 1, (size_t)n, r.summary_file) != (size_t)n || fflush(r.summary_file)) success = 0;
  }
  if (r.trace_file && fclose(r.trace_file)) success = 0;

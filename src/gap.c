@@ -145,7 +145,14 @@ int save_buffer(buffer_t *bp, char *fn)
 {
 	FILE *fp;
 	point_t length;
+	struct stat saved_file;
 
+	/* Save As and a never-created file still need an actual write. */
+	if (!(bp->b_flags & B_MODIFIED) && !strcmp(fn, bp->b_fname) &&
+	    stat(fn, &saved_file) == 0 && S_ISREG(saved_file.st_mode)) {
+		msg("(No changes need to be saved)");
+		return TRUE;
+	}
 	if (!posix_file(fn)) {
 		msg(m_badname);
 		return (FALSE);

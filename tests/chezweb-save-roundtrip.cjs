@@ -29,11 +29,16 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
  const save=async()=>{await page.evaluate(()=>{window.previousSave=Module.chezwebSave;});await seq('Control+x','Control+s');await page.waitForFunction(()=>Module.chezwebSave!==window.previousSave);return page.evaluate(()=>Module.chezwebSave);};
  const evaluate=async(code,marker)=>{await page.evaluate(s=>Module.browsered.queueScheme('(message (value->string '+s+'))'),code);await wait(marker);};
  await page.goto(url);await wait('Chezweb original');
+ const oldTime=new Date('2000-01-01T00:00:00Z');fs.utimesSync(file,oldTime,oldTime);const cleanTime=fs.statSync(file).mtimeMs;
+ await seq('Control+x','Control+s');await wait('(No changes need to be saved)');assert.equal(fs.statSync(file).mtimeMs,cleanTime);assert.equal(await page.evaluate(()=>Module.chezwebSave===undefined),true);
+ console.log('PASS a clean browser snapshot reports no changes without a disk write');
  await page.getByRole('button',{name:'Choose folder'}).click();await page.getByText('Current directory: ~/docs',{exact:false}).waitFor();
  assert.equal(fs.readFileSync(file,'utf8'),'Chezweb original\n','choosing a folder writes nothing');
  await seq('Control+a');await page.keyboard.insertText('Browser é🙂 ');await wait('Browser é🙂 Chezweb original');assert.equal(await save(),true);
  let saved='Browser é🙂 Chezweb original\n';assert.equal(fs.readFileSync(file,'utf8'),saved);assert.equal(await page.evaluate(()=>localWrites.length),0,'folder selection must not retarget the native snapshot');
  console.log('PASS choosing docs then saving the native snapshot writes the original disk file with no native key');
+ const savedTime=fs.statSync(file).mtimeMs;await page.evaluate(()=>{window.previousSave=Module.chezwebSave;});await seq('Control+x','Control+s');await wait('(No changes need to be saved)');assert.equal(await page.evaluate(()=>Module.chezwebSave===window.previousSave),true);assert.equal(fs.statSync(file).mtimeMs,savedTime);
+ console.log('PASS repeated browser Save does not resubmit or rewrite a saved file');
  fs.chmodSync(file,0o444);await seq('Escape','Shift+Period');await page.keyboard.insertText(' retry');await wait(' retry');assert.equal(await save(),false);
  assert.equal(fs.readFileSync(file,'utf8'),saved);await evaluate('(if (buffer-modified-p) (quote SAVE-STILL-DIRTY) (quote WRONG-CLEAN))','SAVE-STILL-DIRTY');
  await evaluate('(list (quote SCHEME-SAVE-FAIL) (save-buffer (get-buffer-name)) (buffer-modified-p))','(SCHEME-SAVE-FAIL #f #t)');
@@ -62,6 +67,18 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
  await fresh.waitForFunction(()=>window.saveClosed);assert.equal(fs.readFileSync(file,'utf8'),saved+' quit');
  fs.writeFileSync(finish,'done');assert.equal(await exit,0,'native source must already be clean');
  console.log('PASS Save then quit waits for disk confirmation and leaves the idle native file clean');
+ // A clean-looking browser must not skip native edits that were unsaved at handoff.
+ fs.unlinkSync(urlFile);fs.unlinkSync(finish);fs.writeFileSync(file,'Native disk\n');
+ fs.writeFileSync(path.join(work,'keys'),'await-screen Native disk\nkeys UNSAVED \nkeys ^Cd\nawait-file '+finish+'\nkeys ^X^C\n');
+ proc=cp.spawn(path.join(work,'pty'),[path.join(work,'keys'),'90',path.join(work,'screen-unsaved'),path.join(root,'chezweb'),file],{cwd:root,env:{...process.env,HOME:work,CHEZEMAX_NO_INIT:'1',CHEZWEB_BROWSER:'fixture-browser',CHEZWEB_TEST_URL:urlFile,PATH:bin+path.delimiter+process.env.PATH}});
+ exit=new Promise(r=>proc.on('exit',r));for(let i=0;i<400&&!fs.existsSync(urlFile);i++)await sleep(30);assert(fs.existsSync(urlFile));
+ const unsaved=await browser.newPage();await unsaved.goto(fs.readFileSync(urlFile,'utf8').trim());await unsaved.waitForFunction(()=>document.getElementById('screen-text').textContent.includes('UNSAVED Native disk'));
+ await unsaved.evaluate(()=>Module.browsered.queueScheme('(message (value->string (list (quote UNSAVED-INITIAL) (buffer-modified-p))))'));
+ await unsaved.waitForFunction(()=>document.getElementById('screen-text').textContent.includes('(UNSAVED-INITIAL #t)'));
+ await unsaved.keyboard.press('Control+x');await unsaved.keyboard.press('Control+s');await unsaved.waitForFunction(()=>Module.chezwebSave!==undefined);assert.equal(await unsaved.evaluate(()=>Module.chezwebSave),true);assert.equal(fs.readFileSync(file,'utf8'),'UNSAVED Native disk\n');
+ await unsaved.keyboard.press('Control+x');await unsaved.keyboard.press('Control+s');await unsaved.waitForFunction(()=>document.getElementById('screen-text').textContent.includes('(No changes need to be saved)'));
+ fs.writeFileSync(finish,'done');assert.equal(await exit,0);
+ console.log('PASS unsaved native snapshots start modified, save once, and then report no changes');
 }finally{
  if(proc&&proc.exitCode===null){try{fs.writeFileSync(finish,'done');}catch(_){}await Promise.race([exit||sleep(0),sleep(1500)]);if(proc.exitCode===null)proc.kill('SIGTERM');}
  if(browser)await browser.close();fs.rmSync(work,{recursive:true,force:true});

@@ -1,0 +1,72 @@
+Navigation evidence preserved on 2026-11-06. Times use America/Sao_Paulo (-03:00).
+Proposal: ideal-read-only-mode.md
+
+REPAIR RECORDS (from repository commit metadata)
+f9ff7214cc950c2f7de7b80a7c712da30c8cc927
+2026-11-05T09:05:37-03:00
+Move read-only navigation into C and make Vim copy-only
+Use native Emacs visual-row movement for read and copy-only Vim modes,
+including Enter, without repeated Scheme line scans and buffer copies.
+Keep mode/selection/count state per buffer; support yy and visual copying.
+Remove Vim editing handlers and protect read-only undo/redo history.
+
+Update help, README, generated bridges and the browser bundle/manifest.
+Add terminal and Chrome regressions for long-file traversal, UTF-8 copying,
+edit refusal, counts, buffer-local protection and undo-history preservation.
+
+Validation: normal make, make check, UI/selfhost checks, script parity,
+native read-mode regressions and Chrome navigation/general editor tests.
+
+
+4c38408ec3521bc517feb171b99dca9711d4ece1
+2026-11-05T11:11:17-03:00
+Prevent recursive helper closures from retaining GC buffers
+Resolve singleton letrec self references through the closure parameter,
+instead of capturing the closure in its own environment. The previous
+cycles retained bytevectors because Wasmtime DRC cannot collect cycles,
+exhausting the GC heap across repeated editor traversals.
+
+Add recursive-closure semantics and 100000-allocation regressions without
+forced collection. Exercise four traversals and Vim/READ switches in the
+same native process and Chrome page. Rebuild the self-hosted compiler,
+browser bundle and source manifest.
+
+Validated normal builds, make check, UI/selfhost checks, allocation stress,
+repeated scrolling and general Chrome editor behavior.
+
+
+
+Native test record
+Original log: /tmp/chez-unchanged-check.log
+Log modification time: 2026-11-06T12:59:03.988955-03:00
+Log SHA-256: dfdb83c5d66fd4a3f500ff967745b65419196c712a232e0f88976c0d66579f2d
+Relevant tested sources (SHA-256):
+8175e20d695aa5c26983c763911ba9fac811396670858d889ddb8e23b8d9daa9  src/read-mode.c
+fc3b85a48e53df9a77266dd8f967c586b99cf34cb4d6222d704a75ab23bd0b70  src/display.c
+d655ccdaa46418f36fb767f7b698c4c32ce55c0374fa229eef65f7ed402208ff  schemer/compiler.scm
+798cbcef9c68d7e4ca4abefa46ffc683721cf60e942159c775ea9fa702f32e1a  tests/run-read-mode.sh
+98dfd7f63eb193e9ef1f6a9a0db1818230ef93a6d61351110968aa115eccb5ed  tests/chezweb-read-mode.cjs
+c3984bb04fc8dd6db605c05868623afd4729c5e01f846e8887ed873fcf4d1e0d  tests/gc-allocation.scm
+The tested copies also contained pending local changes. The source hashes identify the navigation code, not a clean release build.
+
+Chrome test record
+Original log: /tmp/chez-save-all-browser.log
+Log modification time: 2026-11-06T10:04:18.599344-03:00
+Log SHA-256: ae8dadc5e4cee40cfe0e8ec08d797021dae6997d03b7f4a530809e52ad6a61fb
+Relevant tested sources (SHA-256):
+8175e20d695aa5c26983c763911ba9fac811396670858d889ddb8e23b8d9daa9  src/read-mode.c
+fc3b85a48e53df9a77266dd8f967c586b99cf34cb4d6222d704a75ab23bd0b70  src/display.c
+d655ccdaa46418f36fb767f7b698c4c32ce55c0374fa229eef65f7ed402208ff  schemer/compiler.scm
+798cbcef9c68d7e4ca4abefa46ffc683721cf60e942159c775ea9fa702f32e1a  tests/run-read-mode.sh
+98dfd7f63eb193e9ef1f6a9a0db1818230ef93a6d61351110968aa115eccb5ed  tests/chezweb-read-mode.cjs
+c3984bb04fc8dd6db605c05868623afd4729c5e01f846e8887ed873fcf4d1e0d  tests/gc-allocation.scm
+The tested copies also contained pending local changes. The source hashes identify the navigation code, not a clean release build.
+
+ORIGINAL FAILURE OBSERVATIONS
+User-provided screenshots in the project discussion:
+codex-clipboard-dfb259e9-758e-47b6-abd4-e5057c0fc8ba.png: Emacs-mode status at line 1829.
+codex-clipboard-fb4336de-91b2-4d5b-9adf-4a6bf9f79a1b.png: READ status at line 446; Compiled Scheme (word wrap) execution error.
+codex-clipboard-ab1e9731-8977-4729-b8f0-277a8293d135.png: READ status at line 502; Compiled Scheme (word wrap) execution error.
+codex-clipboard-77569a5a-9b3b-45dc-94c6-3e6604afd795.png: READ status at line 1113; Compiled Scheme (word wrap) execution error.
+Exact screenshot capture dates were not recorded. The original image files are absent from the local clipboard directory.
+The approximately-400-line threshold and increasing slowness come from the accompanying user reports.

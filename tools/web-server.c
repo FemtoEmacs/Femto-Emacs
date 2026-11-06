@@ -78,13 +78,14 @@ static void save_response(int fd,int status,unsigned long long revision,const ch
 static void snapshot_response(int fd,const char *dir){
  char path[8192],head[64];snprintf(path,sizeof path,"%s/snapshot",dir);FILE *f=fopen(path,"rb");
  if(!f){reply(fd,404,"text/plain","Not found",9);return;}
- unsigned long long revision;char tail;
- if(!fgets(head,sizeof head,f)||sscanf(head,"%llu %c",&revision,&tail)!=1){fclose(f);reply(fd,500,"text/plain","Invalid snapshot",16);return;}
+ unsigned long long revision;int modified=0;char tail;
+ if(!fgets(head,sizeof head,f)||sscanf(head,"%llu %d %c",&revision,&modified,&tail)!=2||
+    (modified!=0&&modified!=1)){fclose(f);reply(fd,500,"text/plain","Invalid snapshot",16);return;}
  long offset=ftell(f);fseek(f,0,SEEK_END);long len=ftell(f)-offset;fseek(f,offset,SEEK_SET);
  char *text=len>=0&&len<=LIMIT?malloc((size_t)len+1):NULL;
  int ok=text&&fread(text,1,(size_t)len,f)==(size_t)len;fclose(f);
  if(!ok){free(text);reply(fd,500,"text/plain","Snapshot read failed",20);return;}
- char h[512];int n=snprintf(h,sizeof h,"HTTP/1.1 200 OK\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Length: %ld\r\nX-Chezweb-Revision: %llu\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n",len,revision);sendall(fd,h,(size_t)n);sendall(fd,text,(size_t)len);free(text);
+ char h[512];int n=snprintf(h,sizeof h,"HTTP/1.1 200 OK\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Length: %ld\r\nX-Chezweb-Revision: %llu\r\nX-Chezweb-Modified: %d\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n",len,revision,modified);sendall(fd,h,(size_t)n);sendall(fd,text,(size_t)len);free(text);
 }
 static void commit_request(int fd,const char *dir,const char *body,size_t len,unsigned long long revision){
  static unsigned long long sequence;unsigned long long id=++sequence;

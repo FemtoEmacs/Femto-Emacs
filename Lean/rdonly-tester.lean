@@ -5,6 +5,10 @@ Bounded streaming conformance checker for Chezweb's visible native tester.
 The proofs concern the pure specification/protocol, not C, the OS, or IO parsing.
 The normal workflow tests the existing text chosen at the filename prompt.
 Protocol v1 (numbered rows) is retained only for small regression fixtures.
+The first eleven theorems describe that historical profile and its counters.
+The next five cover shared report-size/reuse models; the final six describe
+the existing-file profile used by M-x chez-tester. A logical line is separated
+by a newline byte; wrapping it onto several screen rows does not add lines.
 -/
 /-!
 EDIT THE SETTINGS BELOW, then invoke M-x chez-tester in this buffer.
@@ -13,7 +17,7 @@ There is no need to save: Chezweb runs a private snapshot of this buffer.
 Lean checks every theorem before the first test step.
 
 READ means read-only navigation. Vim is the editor's copy-only Vim mode.
-Each pass starts at the beginning and presses Enter through the whole fixture,
+Each pass starts at the beginning and presses Enter through the chosen document,
 then eight more times to check that the cursor stays at the end of the file.
 -/
 namespace TestSettings
@@ -77,6 +81,17 @@ def fixtureByte (row col : Nat) : Nat :=
   else if col = 15 then 10
   else 48 + ((row + 1) / 10 ^ (14 - col)) % 10
 
+/-!
+### 1. fixture_newline_only_at_end
+For the artificial sample only, each row has a newline (byte 10) exactly at
+column 15, counting from zero, and nowhere earlier. Each generated row
+therefore has 15 ASCII characters followed by a newline: 16 bytes in total.
+
+This sample gives the historical protocol-v1 navigation tests predictable byte
+positions. It is not the file user choose with M-x chez-tester. That workflow
+uses the file's actual contents and the text_* theorems below; it imposes no
+15-character line limit.
+-/
 theorem fixture_newline_only_at_end (hc : col < 16) :
     fixtureByte row col = 10 ↔ col = 15 := by
   unfold fixtureByte
@@ -89,9 +104,10 @@ theorem fixture_newline_only_at_end (hc : col < 16) :
     next he => simp_all
     next he => omega
 
-/- One observation describes what the editor actually did after a reset or Enter.
-   Acceptance means: the right step, mode, byte position and line number;
-   the entire fixture is unchanged; no Scheme runtime failure was observed. -/
+/- One observation describes what the editor actually did after a reset
+or Enter.  Acceptance means: the right step, mode, byte position and line
+number; the entire fixture is unchanged; no Scheme runtime failure was
+observed. -/
 structure Observation where
   seq : Nat
   action : Nat  -- 0 reset/mode entry; 1 Enter
@@ -113,6 +129,15 @@ instance (c : Config) (o : Observation) : Decidable (Conforms c o) := inferInsta
 def checkObservation (c : Config) (next : Nat) (o : Observation) : Bool :=
   decide (o.seq = next ∧ next < c.total ∧ Conforms c o)
 
+/-!
+### 2. observation_sound
+In the fixed-width test, an accepted observation has the expected sequence
+number, is within the planned observation count, and satisfies Conforms: the
+planned action, mode, byte position and line number, plus intact = 1 and
+error = 0. This proves what the Boolean checker accepts, not that the
+C observer reports the editor's state truthfully. It does not concern
+parsing a string.
+-/
 theorem observation_sound (h : checkObservation c next o = true) :
     o.seq = next ∧ next < c.total ∧ Conforms c o := by
   exact of_decide_eq_true h
@@ -127,6 +152,13 @@ def checkBatch (c : Config) (start : Nat) : List Observation → Bool
   | [] => true
   | o :: os => checkObservation c start o && checkBatch c (start + 1) os
 
+/-!
+### 3. batch_sound
+If the fixed-width checker accepts a batch, its observations form a
+ConformingTrace starting at start. Sequence numbers are consecutive, every
+observation is within the plan, and each satisfies Conforms. An empty or
+partial batch can pass: this theorem does not require a complete run or validate parsing.
+-/
 theorem batch_sound (h : checkBatch c start os = true) : ConformingTrace c start os := by
   induction os generalizing start with
   | nil => exact .nil start
@@ -135,6 +167,14 @@ theorem batch_sound (h : checkBatch c start os = true) : ConformingTrace c start
     obtain ⟨hs, hb, hc⟩ := observation_sound h.1
     exact .cons hs hb hc (ih h.2)
 
+/-!
+### 4. batch_append
+Checking two lists together gives exactly the same Boolean result as checking
+the first list at start and the second at start + the first list's length.
+This permits incremental checking without retaining an already accepted prefix,
+provided its ending sequence count is retained. It does not itself delete logs
+or bound memory.
+-/
 theorem batch_append (xs ys : List Observation) :
     checkBatch c start (xs ++ ys) =
       (checkBatch c start xs && checkBatch c (start + xs.length) ys) := by
@@ -145,10 +185,17 @@ theorem batch_append (xs ys : List Observation) :
 
 -- A mathematical complete-run checker. Runtime streaming uses the same
 -- observation checker and batch_append to discard accepted prefixes safely.
+
 def planIndices (start : Nat) : Nat → List Nat
   | 0 => []
   | n + 1 => start :: planIndices (start + 1) n
 
+/-!
+### 5. conforming_indices
+The sequence numbers in a ConformingTrace are exactly start, start + 1,
+and so on, for as many observations as the trace contains. They have no gaps,
+duplicates or reordering. The first number is zero only when start is zero.
+-/
 theorem conforming_indices (h : ConformingTrace c start os) :
     os.map Observation.seq = planIndices start os.length := by
   induction h with
@@ -158,6 +205,14 @@ theorem conforming_indices (h : ConformingTrace c start os) :
 def checkComplete (c : Config) (os : List Observation) : Bool :=
   checkBatch c 0 os && decide (os.length = c.total)
 
+/-!
+### 6. complete_sound
+If the fixed-width complete-run checker accepts a list, the list is a
+ConformingTrace from zero, has exactly c.total observations, and its sequence
+numbers cover that entire range. The total counts observations, not elapsed
+time. This theorem describes the whole-list model; streaming completion is
+checked separately by finished and complete_not_prefix.
+-/
 theorem complete_sound (h : checkComplete c os = true) :
     ConformingTrace c 0 os ∧ os.length = c.total ∧
     os.map Observation.seq = planIndices 0 c.total := by
@@ -166,6 +221,8 @@ theorem complete_sound (h : checkComplete c os = true) :
   have ht := batch_sound h.1
   exact ⟨ht, hn, hn ▸ conforming_indices ht⟩
 
+-- next counts accepted observations; verified counts those covered by the last
+-- accepted batch checkpoint; pending counts those since that checkpoint.
 structure State where
   next : Nat := 0
   verified : Nat := 0
@@ -175,6 +232,13 @@ structure State where
 def State.valid (c : Config) (s : State) : Prop :=
   s.next = s.verified + s.pending ∧ s.next ≤ c.total ∧ s.pending ≤ c.batch
 
+/-!
+### 7. initial_valid
+The default State, with next, verified and pending all zero, satisfies
+State.valid for any configuration: next = verified + pending, next is within
+the planned total, and pending is within the batch capacity. This proves those
+counter invariants at initialization, not general startup or IO safety.
+-/
 theorem initial_valid (c : Config) : ({} : State).valid c := by
   simp [State.valid]
 
@@ -191,6 +255,13 @@ def acknowledge (s : State) (n : Nat) : Option State :=
 def finished (c : Config) (s : State) (n : Nat) : Bool :=
   decide (n = c.total ∧ s.next = c.total ∧ s.verified = c.total ∧ s.pending = 0)
 
+/-!
+### 8. feed_sound
+If feed accepts an observation in the fixed-width test, that observation
+satisfies Conforms, its sequence number equals the old next counter, and the
+new next counter is exactly one greater. This is an observation counter, not
+a clock or the editor's cursor position. Counter bounds are addressed next.
+-/
 theorem feed_sound (h : feed c s o = some t) :
     Conforms c o ∧ o.seq = s.next ∧ t.next = s.next + 1 := by
   unfold feed at h
@@ -202,6 +273,14 @@ theorem feed_sound (h : feed c s o = some t) :
     exact ⟨hp, hs, rfl⟩
   next => cases h
 
+/-!
+### 9. feed_preserves
+If the fixed-width streaming state satisfies State.valid before feed, and
+feed accepts an observation, the resulting state also satisfies State.valid.
+Thus the counter equation, total limit and pending-batch limit survive each
+accepted observation. This is a specific invariant, not a proof that all editor
+or runtime resources remain bounded.
+-/
 theorem feed_preserves (hv : s.valid c) (h : feed c s o = some t) : t.valid c := by
   unfold feed at h
   split at h
@@ -215,6 +294,15 @@ theorem feed_preserves (hv : s.valid c) (h : feed c s o = some t) : t.valid c :=
     omega
   next => cases h
 
+/-!
+### 10. acknowledge_preserves
+If a valid state accepts a batch checkpoint through acknowledge, the new
+state is valid, verified equals the old next counter, and pending is zero.
+acknowledge requires a matching count and a nonempty pending batch. The Lean
+checker processes that checkpoint and then sends ACK to the editor; the editor
+may use that reply to reuse its report storage. This theorem updates counters;
+it does not itself clear a file or move the editor's cursor.
+-/
 theorem acknowledge_preserves (hv : s.valid c) (h : acknowledge s n = some t) :
     t.valid c ∧ t.verified = s.next ∧ t.pending = 0 := by
   unfold acknowledge at h
@@ -224,6 +312,14 @@ theorem acknowledge_preserves (hv : s.valid c) (h : acknowledge s n = some t) :
     exact ⟨⟨by simp, hv.2.1, Nat.zero_le _⟩, rfl, rfl⟩
   next => cases h
 
+/-!
+### 11. complete_not_prefix
+If the fixed-width finished check returns true, next and verified both
+equal the planned total, and no observations remain pending. An incomplete
+or unacknowledged prefix cannot pass that check when the counters are
+maintained by the protocol. The theorem does not authenticate observations
+or prove that physical keypresses occurred.
+-/
 theorem complete_not_prefix (h : finished c s n = true) :
     s.next = c.total ∧ s.verified = c.total ∧ s.pending = 0 := by
   have hs := of_decide_eq_true h
@@ -233,12 +329,27 @@ theorem complete_not_prefix (h : finished c s n = true) :
 def reserve (used extra cap : Nat) : Option Nat :=
   if used + extra ≤ cap then some (used + extra) else none
 
+/-!
+### 12. reservation_bound
+In the writer's quota model, a successful reservation leaves the byte count
+at or below the supplied capacity; reserve refuses used + extra when it exceeds
+the capacity. Actual writes must follow this model; the theorem does not
+inspect files or prove the IO implementation follows it.
+-/
 theorem reservation_bound (h : reserve used extra cap = some n) : n ≤ cap := by
   unfold reserve at h
   split at h
   next hb => cases h; exact hb
   next => cases h
 
+/-!
+### 13. fixed_disk_bound
+If the pending report uses at most 8192 bytes, the failure report at most
+8192 bytes, and the summary at most 4096 bytes, their combined size is at most
+20480 bytes (20 KiB). These are assumptions about those three report contents.
+The theorem does not bound snapshots, other files, filesystem overhead, or
+reports retained from multiple runs.
+-/
 theorem fixed_disk_bound (hp : p ≤ batchBytes) (hf : f ≤ failureBytes)
     (hs : s ≤ summaryBytes) : p + f + s ≤ diskLimit := by
   unfold batchBytes failureBytes summaryBytes diskLimit at *
@@ -248,6 +359,14 @@ theorem fixed_disk_bound (hp : p ≤ batchBytes) (hf : f ≤ failureBytes)
 def recycle (_pending next ack : Nat) : Option Nat :=
   if ack = next then some 0 else none
 
+/-!
+### 14. recycle_requires_ack
+In the reuse model, successful recycle requires ack = next and returns
+zero as the new pending count. This expresses the rule that report storage is
+reused only after a matching acknowledgement. It does not authenticate the ACK,
+prove prior observations were checked, or perform the file truncation itself;
+those depend on the surrounding protocol and trusted IO.
+-/
 theorem recycle_requires_ack (h : recycle p next ack = some n) : ack = next ∧ n = 0 := by
   unfold recycle at h
   split at h
@@ -255,12 +374,26 @@ theorem recycle_requires_ack (h : recycle p next ack = some n) : ack = next ∧ 
   next => cases h
 
 -- A header and at most 62 bounded records fit the pending file.
+/-!
+### 15. batch_encoding_bound
+A header and checkpoint of at most 128 bytes each, plus at most 62 records
+whose combined size is at most count * 128 bytes, fit within the 8192-byte
+pending-report capacity. The theorem proves this arithmetic bound; it assumes
+the stated encoded lengths rather than proving the encoder produces them.
+-/
 theorem batch_encoding_bound (hh : header ≤ lineLimit) (hk : checkpoint ≤ lineLimit)
     (hc : count ≤ 62) (hb : bytes ≤ count * lineLimit) :
     header + checkpoint + bytes ≤ batchBytes := by
   unfold batchBytes lineLimit at *
   omega
 
+/-!
+### 16. reference_encoding_bound
+A reference trace with at most 60 * 128 bytes of observation records and
+three additional lines (header, batch marker and ending), each at most 128 bytes,
+fits within 8192 bytes. This explains the small-run reference-trace limit.
+As above, the encoded-length bounds are assumptions.
+-/
 theorem reference_encoding_bound (hh : header ≤ lineLimit) (hb : batch ≤ lineLimit)
     (he : ending ≤ lineLimit) (hr : records ≤ 60 * lineLimit) :
     header + records + batch + ending ≤ batchBytes := by
@@ -315,6 +448,18 @@ def feedText (p : TextPlan) (s : TextState) (o : Observation) : Option TextState
            eofHolds := if advance then 0 else holds }
   else none
 
+/-!
+### 17. text_step_sound
+For a chosen real file, feedText accepts an observation only if TextConforms
+holds: the sequence, pass, step and mode are appropriate; intact = 1 and
+error = 0; the cursor is within the snapshot; and its logical line number agrees
+with the newline table. A reset must report position zero. A later Enter must
+advance before EOF, stay at EOF afterward, and increase the logical line number
+by at most one. Wrapping may allow progress within the same logical line.
+
+These are checks on reported observations. They do not prove that C generates
+truthful observations or that a movement is exactly one visual screen row.
+-/
 theorem text_step_sound (h : feedText p s o = some t) : TextConforms p s o := by
   unfold feedText at h
   split at h
@@ -323,17 +468,43 @@ theorem text_step_sound (h : feedText p s o = some t) : TextConforms p s o := by
     exact of_decide_eq_true hc.1.1
   next => cases h
 
+/-!
+### 18. text_line_sound
+Every accepted real-file observation reports a byte position within the
+snapshot and a logical line number equal to one plus the number of newline
+offsets strictly before that position. Screen wrapping does not create another
+logical line. Unlike the fixed-width tests, this rule supports arbitrary line
+lengths.
+
+The conclusion uses p.newlines. runFile builds that table from the actual bytes
+with textNewlines; this theorem does not separately prove that construction is
+correct for every possible TextPlan.
+-/
 theorem text_line_sound (h : feedText p s o = some t) :
     o.position ≤ p.text.size ∧ o.line = textLine p o.position := by
   have hc := text_step_sound h
   exact ⟨hc.2.2.2.2.2.2.1, hc.2.2.2.2.2.2.2.1⟩
 
+/-!
+### 19. text_progress
+For an accepted real-file observation after the reset step, if the previous
+cursor position was before EOF, the reported position must be strictly greater.
+Thus an Enter that leaves the cursor stuck before EOF is rejected. This proves
+forward byte progress, not an exact movement distance or a time limit.
+-/
 theorem text_progress (h : feedText p s o = some t) (hs : s.step ≠ 0)
     (hp : s.position < p.text.size) : s.position < o.position := by
   have hc := (text_step_sound h).2.2.2.2.2.2.2.2
   simp only [if_neg hs, if_pos hp] at hc
   exact hc.2.2
 
+/-!
+### 20. text_feed_pending_bound
+Every successful feedText leaves at most 62 observations pending and
+increments the next sequence counter by exactly one. This bounds the pending
+record count. The separate encoding bounds explain how bounded-size records
+fit the byte quota; this theorem alone does not bound file sizes.
+-/
 theorem text_feed_pending_bound (h : feedText p s o = some t) :
     t.count.pending ≤ 62 ∧ t.count.next = s.count.next + 1 := by
   unfold feedText at h
@@ -348,6 +519,15 @@ theorem text_feed_pending_bound (h : feedText p s o = some t) :
     · rfl
   next => cases h
 
+/-!
+### 21. text_pass_requires_eof
+If an accepted real-file step advances the pass counter, both the previous
+and reported cursor positions are at EOF, and the old eofHolds counter plus
+one equals eight. With the resets and increments implemented in feedText, this
+is the intended eighth extra Enter while already at EOF. The theorem proves
+the transition condition; it does not independently prove that an arbitrary
+incoming state's counter accurately records eight earlier keypresses.
+-/
 theorem text_pass_requires_eof (h : feedText p s o = some t)
     (ha : s.pass < t.pass) :
     s.position = p.text.size ∧ o.position = p.text.size ∧ s.eofHolds + 1 = 8 := by
@@ -378,6 +558,15 @@ def textFinished (p : TextPlan) (s : TextState) (n : Nat) : Bool :=
   decide (s.pass = p.passes ∧ s.step = 0 ∧ s.count.next = n ∧
           s.count.verified = n ∧ s.count.pending = 0)
 
+/-!
+### 22. text_complete_not_prefix
+The real-file completion check accepts only when the pass counter equals
+the requested number of passes, step is reset to zero, both next and verified
+equal the supplied final count, and no observations remain pending. For states
+produced by the protocol, this rejects an unfinished or unacknowledged run.
+This theorem exposes the completion conditions; by itself it does not prove
+that an arbitrarily constructed state represents a real execution.
+-/
 theorem text_complete_not_prefix (h : textFinished p s n = true) :
     s.pass = p.passes ∧ s.step = 0 ∧ s.count.next = n ∧
     s.count.verified = n ∧ s.count.pending = 0 := of_decide_eq_true h
