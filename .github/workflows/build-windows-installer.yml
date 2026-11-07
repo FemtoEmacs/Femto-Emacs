@@ -3,6 +3,13 @@ on:
   push:
     branches: [windows]
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      source_ref:
+        description: Windows port revision to build
+        required: false
+        type: string
+        default: windows
 concurrency:
   group: chezweb-windows-${{ github.ref }}
   cancel-in-progress: true
@@ -17,6 +24,8 @@ jobs:
         shell: pwsh
         run: git config --global core.autocrlf false
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_ref || github.ref }}
       - name: Restore Cygwin package downloads
         id: downloads
         uses: actions/cache/restore@v4
