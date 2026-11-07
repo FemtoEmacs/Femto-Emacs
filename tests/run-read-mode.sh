@@ -5,6 +5,8 @@ cd "$(dirname "$0")/.."
 work=$(mktemp -d "${TMPDIR:-/tmp}/chezweb-read-mode.XXXXXX")
 trap 'rm -rf "$work"' EXIT HUP INT TERM
 cc=${CC:-cc}
+# Shared runners can be much slower than a local terminal.
+traversal_timeout=${CHEZWEB_READ_MODE_TIMEOUT:-180}
 # Fast typematic input; keep the existing PTY runner and its output checks.
 sed 's/drain(30)/drain(2)/' tests/pty-keys.c > "$work/pty.c"
 $cc -O2 "$work/pty.c" -o "$work/pty" -lutil 2>/dev/null || $cc -O2 "$work/pty.c" -o "$work/pty"
@@ -16,14 +18,32 @@ for mode in read vim; do
    printf 'wait 1000\n'
    if [ "$mode" = read ]; then printf 'keys ^X^Q\n'; else printf 'keys \\exvim-mode\\r\n'; fi
    printf 'wait 200\n'
-   awk -v key="$key" 'BEGIN {for(i=0;i<1900;i++) print (key=="down" ? "keys \\e[B" : "keys \\r")}'
+   # Acknowledged batches keep a slow runner's terminal input queue bounded.
+   # Every checkpoint verifies progress, rather than merely sleeping longer.
+   awk -v key="$key" 'BEGIN {
+    for(i=1;i<=1900;i++) {
+     print (key=="down" ? "keys \\e[B" : "keys \\r")
+     if(i%200==0) {
+      line=(i+1<1830 ? i+1 : 1830)
+      print "keys \\e:"
+      printf "keys (list (quote NAV-CHECKPOINT) %d (= (line-number) %d))\\r\n",i,line
+      printf "await-screen (NAV-CHECKPOINT %d #t)\n",i
+     }
+    }
+   }'
    printf 'keys \\e:\nwait 100\n'
    printf "keys (list 'NATIVE-END (line-number) (buffer-read-only?))\\\\r\n"
    # A final newline means EOF is logical line 1830, as in Emacs mode.
    printf 'await-screen (NATIVE-END 1830 #t)\n'
    printf 'keys i\nkeys ^X^C\n'
   } > "$work/keys"
-  CHEZEMAX_NO_INIT=1 "$work/pty" "$work/keys" 90 "$work/screen" ./chezemax "$work/long.md"
+  if CHEZEMAX_NO_INIT=1 "$work/pty" "$work/keys" "$traversal_timeout" "$work/screen" ./chezemax "$work/long.md"; then :
+  else
+   status=$?
+   # Keep failure evidence bounded, even for the long scrolling fixture.
+   tail -c 32768 "$work/screen" >&2
+   exit "$status"
+  fi
   if grep -aq 'Compiled Scheme.*error\|heap out of memory' "$work/screen"; then echo "FAIL $mode $key hook error";exit 1;fi
   cmp "$work/long.md" "$work/original"
   echo "PASS $mode $key traverses 1829 lines without edits or hook errors"
@@ -83,8 +103,8 @@ cp "$work/cumulative.md" "$work/cumulative.original"
  done
  printf 'keys i\nkeys ^X^C\n'
 } > "$work/keys"
-# 16,000 keys at the PTY runner's 30 ms typing delay take eight minutes
-# before editor processing and the per-pass evaluation prompts are counted.
+# 16,000 keys at this runner's 2 ms delay take at least 32 seconds,
+# plus rendering and per-pass evaluations; retain a generous overall budget.
 CHEZEMAX_NO_INIT=1 "$work/pty" "$work/keys" 600 "$work/screen" ./chezemax "$work/cumulative.md"
 if grep -aq 'Compiled Scheme.*error\|heap out of memory' "$work/screen"; then echo 'FAIL cumulative scrolling hook error';exit 1;fi
 cmp "$work/cumulative.md" "$work/cumulative.original"
