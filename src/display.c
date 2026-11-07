@@ -91,10 +91,12 @@ point_t segstart(buffer_t *bp, point_t start, point_t finish)
 			c = 0;
 			start = scan;
 		}
-		++scan;
+		scan += utf8_size(*p);
 		c += *p == '\t' ? 8 - (c & 7) : 1;
 	}
-	return (c < screen_cols() ? start : finish);
+	/* upup may ask about the last byte of a multi-byte character.
+	 * Keep that byte on its row; never return it as a cursor position. */
+	return (c < screen_cols() || scan > finish ? start : scan);
 }
 
 /* Forward scan for start of logical line segment following 'finish' */
@@ -110,7 +112,7 @@ point_t segnext(buffer_t *bp, point_t start, point_t finish)
 		p = ptr(bp, scan);
 		if (bp->b_ebuf <= p || screen_cols() <= c)
 			break;
-		++scan;
+		scan += utf8_size(*p);
 		if (*p == '\n')
 			break;
 		c += *p == '\t' ? 8 - (c & 7) : 1;
@@ -157,7 +159,7 @@ point_t lncolumn(buffer_t *bp, point_t offset, int column)
 	}
 	while ((p = ptr(bp, offset)) < bp->b_ebuf && *p != '\n' && c < column) {
 		c += *p == '\t' ? 8 - (c & 7) : 1;
-		++offset;
+		offset += utf8_size(*p);
 	}
 	return (offset);
 }

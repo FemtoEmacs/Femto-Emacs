@@ -353,30 +353,35 @@ int read_only_refuses(void)
 /* standard insert at the keyboard */
 void insert()
 {
+	char_t the_char[5], old[4];
+	point_t start;
+	int bytes, replaced = 0;
+
 	if (read_only_refuses()) return;
-	char_t the_char[2]; /* the inserted char plus a null */
+	bytes = utf8_size(*input);
+	if ((int)strlen((char *)input) < bytes) bytes = 1;
+	memcpy(the_char, input, (size_t)bytes);
+	if (the_char[0] == '\r') the_char[0] = '\n';
+	the_char[bytes] = '\0';
 	assert(curbp->b_gap <= curbp->b_egap);
-
-	if (curbp->b_gap == curbp->b_egap && !growgap(curbp, CHUNK))
+	if (curbp->b_egap - curbp->b_gap < bytes && !growgap(curbp, CHUNK))
 		return;
-	curbp->b_point = movegap(curbp, curbp->b_point);
-
-
-	/* overwrite if mid line, not EOL or EOF, CR will insert as normal */
-	if ((curbp->b_flags & B_OVERWRITE) && *input != '\r' && *(ptr(curbp, curbp->b_point)) != '\n' && curbp->b_point < pos(curbp,curbp->b_ebuf) ) {
-		char_t old = *(ptr(curbp, curbp->b_point));
-		*(ptr(curbp, curbp->b_point)) = *input;
-		record_change(curbp, 'd', curbp->b_point, &old, 1);
-		record_change(curbp, 'i', curbp->b_point, (char_t *) input, 1);
-		if (curbp->b_point < pos(curbp, curbp->b_ebuf))
-			++curbp->b_point;
-	} else {
-		the_char[0] = *input == '\r' ? '\n' : *input;
-		the_char[1] = '\0'; /* null terminate */
-		*curbp->b_gap++ = the_char[0];
-		record_change(curbp, 'i', curbp->b_point, the_char, 1);
-		curbp->b_point = pos(curbp, curbp->b_egap);
+	start = curbp->b_point = movegap(curbp, curbp->b_point);
+	/* Overwrite one whole character, whose UTF-8 length may differ. */
+	if ((curbp->b_flags & B_OVERWRITE) && *input != '\r' &&
+	    start < document_size(curbp) && *curbp->b_egap != '\n') {
+		replaced = utf8_size(*curbp->b_egap);
+		if (replaced > document_size(curbp) - start)
+			replaced = (int)(document_size(curbp) - start);
+		memcpy(old, curbp->b_egap, (size_t)replaced);
+		curbp->b_egap += replaced;
 	}
+	/* Insert the complete character before reporting it or repainting. */
+	memcpy(curbp->b_gap, the_char, (size_t)bytes);
+	curbp->b_gap += bytes;
+	if (replaced) record_change(curbp, 'd', start, old, replaced);
+	record_change(curbp, 'i', start, the_char, bytes);
+	curbp->b_point = pos(curbp, curbp->b_egap);
 	add_mode(curbp, B_MODIFIED);
 }
 

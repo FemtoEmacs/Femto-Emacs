@@ -70,6 +70,14 @@ jobs:
           export PATH=/usr/bin:$PATH
           cd "$(cygpath -u "$GITHUB_WORKSPACE")"
           bash windows/build-installer.sh 2>&1 | tee windows-build.log
+      - name: Check cursor input and Markdown Enter regressions
+        if: steps.product.outputs.cache-hit != 'true'
+        shell: C:\cygwin64\bin\bash.exe --noprofile --norc -o igncr -eo pipefail {0}
+        run: |
+          export PATH=/usr/bin:$PATH
+          cd "$(cygpath -u "$GITHUB_WORKSPACE")"
+          export PATH="$PWD:$PATH"
+          make check-navigation check-utf8-input check-utf8-typing check-markdown-blank-newline
       - name: Cache compiled Windows product
         if: steps.product.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
