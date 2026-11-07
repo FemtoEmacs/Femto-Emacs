@@ -46,3 +46,10 @@ jobs:
           make check-browser-assets
       - name: Test editor, runtime, prompts and mocked assistants
         run: make check check-ui check-selfhost
+
+  # The native Windows port is maintained on its own branch.
+  windows:
+    name: Windows x86_64 installer
+    uses: FemtoEmacs/Femto-Emacs/.github/workflows/build-windows-installer.yml@windows
+    with:
+      source_ref: windows
