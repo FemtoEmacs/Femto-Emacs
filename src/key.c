@@ -495,7 +495,24 @@ char_t *get_key(keymap_t *keys, keymap_t **key_return)
 		*key_return = &synth_key;
 		return record;
 	}
-	/* ordinary text: return the recorded bytes one at a time */
+	/* A UTF-8 character is one input event. Repainting between its bytes
+	 * would put point inside a half-written character and reframe the view.
+	 * Continuation bytes (including 0x9a) are text, never resize keys. */
+	if (buffer[0] >= 0xc2 && buffer[0] <= 0xf4) {
+		int bytes = utf8_size(buffer[0]);
+		while (record - buffer < bytes) {
+			int c = read_key_byte();
+			if (c < 0 || (c & 0xc0) != 0x80) {
+				if (c >= 0) { char next = (char)c; unread_key_bytes(&next, 1); }
+				break; /* Preserve malformed input without swallowing the next key. */
+			}
+			*record++ = (char_t)c;
+		}
+		*record = '\0';
+		if (record - buffer < bytes) record = buffer + 1;
+		return buffer;
+	}
+	/* Ordinary single-byte text. */
 	record = buffer;
 	return (record++);
 }

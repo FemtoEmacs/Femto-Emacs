@@ -10,6 +10,21 @@ explicitly retires it or the feature has been implemented and verified.
 This is a reminder, not authorization to implement the feature during unrelated
 tasks; the design and scope of sharding remain to be decided.
 
+## Persistent reminder: Lean cursor boundaries
+
+At Eduardo's explicit request (7 November 2026), remind him to implement a
+Lean specification of cursor positions in UTF-8 text. State which byte offsets
+are valid character boundaries and prove that cursor movement and editing keep
+the cursor on those boundaries, never between the bytes of one character.
+This follows two reproduced defects: unwrapped arrow navigation could land
+between the bytes of `ã`, and typing `ã` repainted after its first byte,
+causing a viewport jump. Include complete-character input/edit transitions:
+repainting must never observe a half-written UTF-8 character.
+Include this reminder alongside the editor-shards reminder until Eduardo
+explicitly retires it or the specification has been implemented and verified.
+This is a persistent reminder (Eduardo's reference: Darius' slave story), not
+an instruction to implement the specification during unrelated work.
+
 Chezemax is an Emacs-inspired editor: a C core and Scheme scripts. It was
 copied from Schememax (~/csand/c2s-cover/sbcl-rasp/schememax) on 1 November
 2026 to replace femtoscheme with Schemer, the user's Chez-inspired compiler to

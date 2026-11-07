@@ -239,9 +239,10 @@ after \"2. eggs\", \"> \" after a quotation.  Two values; the second is
          (let ((ctx (buffer-indent-context spec)))
            (and (not (md-inside-code-p (ictx-text ctx) (ictx-line ctx)))
                 (let-values (((next state) (markdown-continuation line)))
-                  (cond ((eq? state 'end)
-                         ;; "- " alone: take the marker away and leave the line
-                         ;; blank, which ends the list
+                  (cond ((or (eq? state 'end)
+                             (string=? (string-trim-both line) ""))
+                         ;; An empty item or blank prose line ends indentation.
+                         ;; Repeated RET leaves real blank lines at column zero.
                          (fe-delete-region ls le)
                          (goto-char ls)
                          (insert "\n")

@@ -233,3 +233,36 @@ check-lean-search: chezemax chezemax.wasm chezemax.cwasm
 
 # Native browser persistence helpers are included by the bridge.
 src/browser-launch.o: src/browser-save.h
+
+# Vertical motion without word wrapping must land on UTF-8 boundaries.
+ifeq ($(UNAME_S),Darwin)
+NAV_TEST_LDFLAGS = -Wl,-dead_strip
+else
+NAV_TEST_LDFLAGS = -Wl,--gc-sections
+endif
+.PHONY: check-navigation
+check-navigation:
+	@set -eu; work=$$(mktemp -d "$${TMPDIR:-/tmp}/chezweb-navigation.XXXXXX"); \
+	  trap 'rm -rf "$$work"' EXIT HUP INT TERM; \
+	  $(CC) $(CFLAGS) -ffunction-sections -fdata-sections -Isrc tests/unwrapped-navigation.c src/display.c $(NAV_TEST_LDFLAGS) -o "$$work/check"; \
+	  "$$work/check"
+check: check-navigation
+
+.PHONY: check-utf8-input
+check-utf8-input:
+	@set -eu; work=$$(mktemp -d "$${TMPDIR:-/tmp}/chezweb-utf8-input.XXXXXX"); \
+	  trap 'rm -rf "$$work"' EXIT HUP INT TERM; \
+	  $(CC) $(CFLAGS) -ffunction-sections -fdata-sections -Isrc -Deditor_mouse_event=input_test_mouse -DkeyboardDefinition=input_test_undefined -c src/key.c -o "$$work/key.o"; \
+	  $(CC) $(CFLAGS) -ffunction-sections -fdata-sections -Isrc tests/utf8-input.c "$$work/key.o" src/command.c src/gap.c src/display.c src/buffer.c $(NAV_TEST_LDFLAGS) -o "$$work/check"; \
+	  "$$work/check"
+check: check-utf8-input
+
+.PHONY: check-utf8-typing
+check-utf8-typing: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/utf8-typing.sh
+check: check-utf8-typing
+
+.PHONY: check-markdown-blank-newline
+check-markdown-blank-newline: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/markdown-blank-newline.sh
+check: check-markdown-blank-newline
