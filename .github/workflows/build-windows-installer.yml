@@ -59,6 +59,12 @@ jobs:
             build/windows/installed-packages.txt
             build/windows/SHA256SUMS
             windows-build.log
+      - name: Check cursor C harnesses
+        shell: C:\cygwin64\bin\bash.exe --noprofile --norc -o igncr -eo pipefail {0}
+        run: |
+          export PATH=/usr/bin:$PATH
+          cd "$(cygpath -u "$GITHUB_WORKSPACE")"
+          make check-navigation check-utf8-input
       - name: Install installer compiler
         if: steps.product.outputs.cache-hit != 'true'
         shell: pwsh
@@ -77,7 +83,7 @@ jobs:
           export PATH=/usr/bin:$PATH
           cd "$(cygpath -u "$GITHUB_WORKSPACE")"
           export PATH="$PWD:$PATH"
-          make check-navigation check-utf8-input check-utf8-typing check-markdown-blank-newline
+          make check-utf8-typing check-markdown-blank-newline
       - name: Cache compiled Windows product
         if: steps.product.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4

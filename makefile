@@ -211,11 +211,17 @@ NAV_TEST_LDFLAGS = -Wl,-dead_strip
 else
 NAV_TEST_LDFLAGS = -Wl,--gc-sections
 endif
+# PE linkers retain public routines; LTO removes unused test-only dependencies.
+NAV_TEST_CFLAGS = -ffunction-sections -fdata-sections
+ifneq ($(filter CYGWIN%,$(UNAME_S)),)
+NAV_TEST_CFLAGS += -flto -fwhole-program
+NAV_TEST_LDFLAGS += -Wl,--exclude-all-symbols
+endif
 .PHONY: check-navigation
 check-navigation:
 	@set -eu; work=$$(mktemp -d "$${TMPDIR:-/tmp}/chezweb-navigation.XXXXXX"); \
 	  trap 'rm -rf "$$work"' EXIT HUP INT TERM; \
-	  $(CC) $(CFLAGS) -ffunction-sections -fdata-sections -Isrc tests/unwrapped-navigation.c src/display.c $(NAV_TEST_LDFLAGS) -o "$$work/check"; \
+	  $(CC) $(CFLAGS) $(NAV_TEST_CFLAGS) -Isrc tests/unwrapped-navigation.c src/display.c $(NAV_TEST_LDFLAGS) -o "$$work/check"; \
 	  "$$work/check"
 check: check-navigation
 
@@ -223,8 +229,8 @@ check: check-navigation
 check-utf8-input:
 	@set -eu; work=$$(mktemp -d "$${TMPDIR:-/tmp}/chezweb-utf8-input.XXXXXX"); \
 	  trap 'rm -rf "$$work"' EXIT HUP INT TERM; \
-	  $(CC) $(CFLAGS) -ffunction-sections -fdata-sections -Isrc -Deditor_mouse_event=input_test_mouse -DkeyboardDefinition=input_test_undefined -c src/key.c -o "$$work/key.o"; \
-	  $(CC) $(CFLAGS) -ffunction-sections -fdata-sections -Isrc tests/utf8-input.c "$$work/key.o" src/command.c src/gap.c src/display.c src/buffer.c $(NAV_TEST_LDFLAGS) -o "$$work/check"; \
+	  $(CC) $(CFLAGS) $(NAV_TEST_CFLAGS) -Isrc -Deditor_mouse_event=input_test_mouse -DkeyboardDefinition=input_test_undefined -c src/key.c -o "$$work/key.o"; \
+	  $(CC) $(CFLAGS) $(NAV_TEST_CFLAGS) -Isrc tests/utf8-input.c "$$work/key.o" src/command.c src/gap.c src/display.c src/buffer.c $(NAV_TEST_LDFLAGS) -o "$$work/check"; \
 	  "$$work/check"
 check: check-utf8-input
 
