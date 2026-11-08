@@ -26,13 +26,13 @@ for mode in read vim; do
      if(i%200==0) {
       line=(i+1<1830 ? i+1 : 1830)
       print "keys \\e:"
-      printf "keys (list (quote NAV-CHECKPOINT) %d (= (line-number) %d))\\r\n",i,line
+      printf "keys (begin (write (list (quote NAV-CHECKPOINT) %d (= (line-number) %d))) (newline) #t)\\r\n",i,line
       printf "await-screen (NAV-CHECKPOINT %d #t)\n",i
      }
     }
    }'
    printf 'keys \\e:\nwait 100\n'
-   printf "keys (list 'NATIVE-END (line-number) (buffer-read-only?))\\\\r\n"
+   printf "keys (begin (write (list 'NATIVE-END (line-number) (buffer-read-only?))) (newline) #t)\\\\r\n"
    # A final newline means EOF is logical line 1830, as in Emacs mode.
    printf 'await-screen (NATIVE-END 1830 #t)\n'
    printf 'keys i\nkeys ^X^C\n'
@@ -101,13 +101,13 @@ cp "$work/cumulative.md" "$work/cumulative.original"
     print "keys \\r"
     if(i%200==0) {
      print "keys \\e:"
-     printf "keys (list (quote CUMULATIVE-BATCH) %d %d)\\r\n",pass,i
+     printf "keys (begin (write (list (quote CUMULATIVE-BATCH) %d %d)) (newline) #t)\\r\n",pass,i
      printf "await-screen (CUMULATIVE-BATCH %d %d)\n",pass,i
     }
    }
   }'
   printf 'keys \\e:\nwait 100\n'
-  printf "keys (list 'CUMULATIVE-%s (= (point) (buffer-size)) (buffer-read-only?))\\\\r\n" "$pass"
+  printf "keys (begin (write (list 'CUMULATIVE-%s (= (point) (buffer-size)) (buffer-read-only?))) (newline) #t)\\\\r\n" "$pass"
   printf 'await-screen (CUMULATIVE-%s #t #t)\n' "$pass"
  done
  printf 'keys i\nkeys ^X^C\n'
