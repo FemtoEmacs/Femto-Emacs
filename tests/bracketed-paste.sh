@@ -29,7 +29,13 @@ keys ^X^S
 wait 150
 keys ^X^C
 KEYS
-  (cd "$work"; CHEZEMAX_NO_INIT=1 CHEZEMAX_SCHEME=$runtime "$work/pty" "$work/keys" 30 "$work/screen" "$root/chezemax" text.md)
+  if (cd "$work"; CHEZEMAX_NO_INIT=1 CHEZEMAX_SCHEME=$runtime "$work/pty" "$work/keys" 30 "$work/screen" "$root/chezemax" text.md); then :
+  else
+   status=$?
+   echo "FAIL $runtime bracketed paste: $scenario (exit $status)" >&2
+   tail -c 32768 "$work/screen" >&2
+   exit "$status"
+  fi
   cmp "$work/text.md" "$work/expected"
   echo "PASS $runtime bracketed paste: $scenario"
  done
