@@ -1,0 +1,60 @@
+(verification
+  (recorded "2026-11-06" "America/Sao_Paulo")
+  (model "Lean/models/04-simgap.lean" (sha256 "7df5c875c33c7b0147c149f4b3e7ae5f3048f278d9741ae45d1082dffe815c74"))
+  (reference "src/gap.c" (sha256 "818ae296129e7993f6467145a8aec04121bc5d42e053ab6f1a81093bfa41d339"))
+  (reference-revision "2094969f28937a481c5e011b9e8641d1a6aafd07")
+  (tools (lean "Lean (version 4.30.0, arm64-apple-darwin24.6.0, commit d024af099ca4bf2c86f649261ebf59565dc8c622, Release)") (cc "Apple clang version 21.0.0 (clang-2100.3.34.2)"))
+  (coverage (c-procedure-heads 13) (buffer-fields 26)
+            (proved-theorems 10) (self-checked-scenarios 44))
+  (c-comparison (scenarios 43) (method bytewise-cmp) (result pass))
+  (undefined-case (name "stats-empty-uninitialized") (execution Lean-only))
+  (native-editor (command "M-!; lean --run 04-simgap.lean; C-c s")
+                 (isolated-PTY-exit 0) (result pass))
+  (output (default-bytes 12043)
+          (oracle-bytes 11703)
+          (checked-maximum-bytes 16384))
+  (production-C-edits none)
+  (test-instrumentation
+    (scope "Disposable copy of gap.c and a C driver")
+    (allocation "Inject NULL for selected malloc/realloc calls")
+    (stdio "Inject short transfers, close errors, denied opens, changed stat size")
+    (callbacks "Switch curbp in selected callbacks")
+    (size-limit "Replace MAX_SIZE_T with test_size_max in the test copy only")
+    (observation "Flush still-open streams before observing accepted file bytes")
+    (platform "Native macOS; Windows filename branch also checked in Lean"))
+  (compiler-warnings (count 5) (kind sign-compare) (origin reference-C)))
+
+(proof-audit
+  (SimGap04.pointer_roundtrip (axioms propext Quot.sound))
+  (SimGap04.pointer_bounds (axioms propext Classical.choice Quot.sound))
+  (SimGap04.clear_preserves_allocation (axioms ))
+  (SimGap04.undo_snapshot_offsets (axioms ))
+  (SimGap04.insert_mask_example (axioms propext Quot.sound))
+  (SimGap04.load_mask_example (axioms propext Quot.sound))
+  (SimGap04.minimum_growth (axioms propext))
+  (SimGap04.underscore_rejected (axioms propext Quot.sound))
+  (SimGap04.empty_name_passes (axioms ))
+  (SimGap04.first_line_starts_at_zero (axioms propext))
+)
+
+Developer reproduction (from the checkout root):
+
+  work=$(mktemp -d /tmp/simgap-check.XXXXXX)
+  awk '{print; if ($0 == "#include \"header.h\"") {
+    print "#undef MAX_SIZE_T"; print "#define MAX_SIZE_T test_size_max"
+  }}' src/gap.c > "$work/gap-test.c"
+  cc -O0 -Wall -Wextra -Isrc "-DSIMGAP_SOURCE=\"$work/gap-test.c\"" \
+    Lean/models/evidence/04-simgap-c-check.c -o "$work/check"
+  mkdir "$work/files"
+  "$work/check" "$work/files" > "$work/c.sexp"
+  lean --run Lean/models/04-simgap.lean --c-oracle > "$work/model.sexp"
+  cmp "$work/model.sexp" "$work/c.sexp"
+
+The test copy adds only the MAX_SIZE_T override after header.h.
+The original C procedures are unchanged. The small test limit reaches the
+file-too-big branch without allocating an enormous file.
+The C driver skips the unset-int case; the Lean default run labels it explicitly.
+The default simulation also checks the Windows filename-policy branch. The
+C-oracle run uses the native filename-policy branch for that comparison.
+
+The saved .sexp files are fixed observations, not growing run logs.

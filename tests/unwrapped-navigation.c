@@ -16,7 +16,9 @@ point_t pos(buffer_t *b,char_t *p) {
 }
 int main(void) {
     const unsigned char text[]="A\xc3\xa3\xc3\xa9\xf0\x9f\x99\x82" "B\nxy\n";
-    const point_t expected[]={0,1,3,5,9,10,10};
+    /* A ã é 🙂 B: 🙂 (U+1F642, an emoji) takes two columns (width.c), so
+     * column 4, inside it, lands after it, as Emacs's move-to-column does */
+    const point_t expected[]={0,1,3,5,9,9,10};
     unsigned char bytes[64];buffer_t b;
     size_t n=sizeof text-1;unsigned checks=0;
     for(size_t at=0;at<=n;at++) {
@@ -28,15 +30,17 @@ int main(void) {
         columns=3;
         assert(segnext(&b,0,0)==5);checks++;
         assert(segstart(&b,0,9)==5);checks++;
-        assert(segnext(&b,0,5)==11);checks++;
+        /* the row 🙂B fills the three columns: the newline starts the next */
+        assert(segnext(&b,0,5)==10);checks++;
         assert(upup(&b,9)==0);checks++;
         assert(dndn(&b,0)==5);checks++;
         /* Mouse placement starts from the same visual-row calculation. */
         window_t window={0};window.w_rows=4;window.w_bufp=&b;
         curbp=&b;b.b_page=segstart(&b,0,9);
         assert(window_position(&window,0,0) && b.b_point==5);checks++;
-        assert(window_position(&window,0,1) && b.b_point==9);checks++;
-        assert(window_position(&window,0,2) && b.b_point==10);checks++;
+        /* columns 0 and 1 are 🙂, column 2 is B */
+        assert(window_position(&window,0,1) && b.b_point==5);checks++;
+        assert(window_position(&window,0,2) && b.b_point==9);checks++;
         b.b_page=0;
         assert(window_position(&window,1,0) && b.b_point==5);checks++;
     }

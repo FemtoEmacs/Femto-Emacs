@@ -25,10 +25,14 @@ extern void set_scrap(unsigned char *);
 #define PAD 4                   /* margin around the text, in points */
 
 typedef struct {
-	Uint32 cp;                  /* Unicode code point, 0 = blank */
+	Uint32 cp;                  /* Unicode code point, 0 = blank, WIDE_TAIL =
+	                               the right half of the cell before */
+	Uint32 mark[2];             /* combining accents drawn with cp, 0 = none */
 	unsigned char face;         /* ID_COLOR_* */
 	unsigned char reverse;      /* the mark */
 } cell_t;
+#define WIDE_TAIL 0xFFFFFFFFu
+extern int char_width(unsigned long);   /* width.c */
 
 static SDL_Window   *window = NULL;
 static SDL_Renderer *renderer = NULL;
@@ -339,6 +343,7 @@ static void measure(int *out_rows, int *out_cols)
 static void blank(cell_t *c)
 {
 	c->cp = 0;
+	c->mark[0] = c->mark[1] = 0;
 	c->face = 1;
 	c->reverse = 0;
 }
@@ -401,13 +406,38 @@ static void advance(void)
 	}
 }
 
+/*
+ * A character into the cell at the cursor.  A combining accent (width 0,
+ * width.c) joins the character in the cell before; a wide one takes the
+ * next cell too, marked WIDE_TAIL, on the same row (display.c never
+ * starts one in the last column).
+ */
 static void put(Uint32 cp, int reverse)
 {
 	cell_t *c = &grid[cur_row * cols + cur_col];
+	int width = cp >= 0x300 ? char_width(cp) : 1;
+
+	if (width == 0) {
+		if (cur_col > 0) c--;
+		if (c->cp == WIDE_TAIL && c > grid + cur_row * cols) c--;
+		if (c->mark[0] == 0) c->mark[0] = cp;
+		else if (c->mark[1] == 0) c->mark[1] = cp;
+		dirty = 1;
+		return;
+	}
 	c->cp = cp;
+	c->mark[0] = c->mark[1] = 0;
 	c->face = (unsigned char) cur_face;
 	c->reverse = (unsigned char) reverse;
 	advance();
+	if (width == 2 && cur_col > 0) {
+		c = &grid[cur_row * cols + cur_col];
+		c->cp = WIDE_TAIL;
+		c->mark[0] = c->mark[1] = 0;
+		c->face = (unsigned char) cur_face;
+		c->reverse = (unsigned char) reverse;
+		advance();
+	}
 	dirty = 1;
 }
 
@@ -507,17 +537,51 @@ static void draw_glyph(Uint32 cp, int style, int x, int y, long color)
 	glyph_t *g;
 	SDL_Color c = rgb(color);
 	SDL_Rect dst;
+	int span = cp >= 0x1100 && char_width(cp) == 2 ? 2 : 1;
 
-	if (cp == 0 || cp == ' ') return;
+	if (cp == 0 || cp == ' ' || cp == WIDE_TAIL) return;
 	g = glyph(cp, style);
 	if (!g) return;
 	SDL_SetTextureColorMod(g->tex, c.r, c.g, c.b);
 	dst.x = x;
 	dst.y = y + (cell_h - g->h) / 2;
-	/* wide glyphs are squeezed into the cell rather than overlapping */
-	dst.w = g->w > cell_w + cell_w / 4 ? cell_w : g->w;
+	/* a glyph wider than its cells is squeezed rather than overlapping;
+	 * a wide character (CJK, emoji) has two cells */
+	dst.w = g->w > span * cell_w + cell_w / 4 ? span * cell_w : g->w;
 	dst.h = g->h;
 	SDL_RenderCopy(renderer, g->tex, NULL, &dst);
+}
+
+/* A cell's character with its combining accents, rendered together (not
+ * cached: accents are rare) so that the font places them */
+static void draw_cell(const cell_t *cell, int style, int x, int y, long color)
+{
+	char utf8[16];
+	int n;
+	SDL_Color c = rgb(color);
+	SDL_Surface *surf;
+	SDL_Texture *tex;
+	SDL_Rect dst;
+
+	if (cell->mark[0] == 0 || cell->cp == 0 || cell->cp == WIDE_TAIL) {
+		draw_glyph(cell->cp, style, x, y, color);
+		return;
+	}
+	n = encode_utf8(cell->cp, utf8);
+	n += encode_utf8(cell->mark[0], utf8 + n);
+	if (cell->mark[1]) encode_utf8(cell->mark[1], utf8 + n);
+	surf = TTF_RenderUTF8_Blended(fonts[style], utf8, c);
+	if (!surf) return;
+	tex = SDL_CreateTextureFromSurface(renderer, surf);
+	if (tex) {
+		dst.x = x;
+		dst.y = y + (cell_h - surf->h) / 2;
+		dst.w = surf->w > cell_w + cell_w / 4 ? cell_w : surf->w;
+		dst.h = surf->h;
+		SDL_RenderCopy(renderer, tex, NULL, &dst);
+		SDL_DestroyTexture(tex);
+	}
+	SDL_FreeSurface(surf);
 }
 
 static void cell_colors(const cell_t *c, long *fg, long *bg, int *style, int *underline)
@@ -546,6 +610,7 @@ static void render(void)
 
 	if (!active) return;
 	fill(0, 0, 100000, 100000, dbg);
+	/* backgrounds first, then glyphs: a wide glyph spans the next cell */
 	for (i = 0; i < rows; i++)
 		for (j = 0; j < cols; j++) {
 			const cell_t *c = &grid[i * cols + j];
@@ -559,7 +624,16 @@ static void render(void)
 				fill(x, y, cell_w, cell_h, bg);
 				if (j == cols - 1) fill(x + cell_w, y, 100000, cell_h, bg);
 			}
-			draw_glyph(c->cp, style, x, y, fg);
+		}
+	for (i = 0; i < rows; i++)
+		for (j = 0; j < cols; j++) {
+			const cell_t *c = &grid[i * cols + j];
+			long fg, bg;
+			int style, underline;
+			int x = pad + j * cell_w, y = pad + i * cell_h;
+
+			cell_colors(c, &fg, &bg, &style, &underline);
+			draw_cell(c, style, x, y, fg);
 			if (underline)
 				fill(x, y + cell_h - (int) scale - 1, cell_w, (int) scale, fg);
 		}
@@ -574,7 +648,7 @@ static void render(void)
 		cell_colors(c, &fg, &bg, &style, &underline);
 		if (focused) {
 			fill(x, y, cell_w, cell_h, cursor_color);
-			draw_glyph(c->cp, style, x, y, bg);
+			draw_cell(c, style, x, y, bg);
 		} else {
 			SDL_Color cc = rgb(cursor_color);
 			SDL_Rect r;

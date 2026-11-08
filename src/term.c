@@ -50,6 +50,8 @@ int screen_init(int mouse)
 		mouse_reporting(1);
 		mouse_on = 1;
 	}
+	fputs("\033[?2004h", stdout); /* Clipboard paste is one literal edit. */
+	fflush(stdout);
 	active = 1;
 	return 1;
 }
@@ -57,6 +59,8 @@ int screen_init(int mouse)
 void screen_end(void)
 {
 	if (!active) return;
+	fputs("\033[?2004l", stdout);
+	fflush(stdout);
 	move(LINES - 1, 0);
 	refresh();
 	if (mouse_on) {

@@ -567,6 +567,22 @@ static void b_fe_command_name(bridge_in *in, bridge_out *out)
 	bridge_put_string(out, r);
 }
 
+extern int fe_char_width(long cp);
+static void b_fe_char_width(bridge_in *in, bridge_out *out)
+{
+	long a1 = (long) bridge_int(in);
+	bridge_put_int(out, (long) fe_char_width(a1));
+}
+
+extern void fe_backdoor_note(char *s);
+static void b_fe_backdoor_note(bridge_in *in, bridge_out *out)
+{
+	char *a1 = bridge_string(in);
+	fe_backdoor_note(a1);
+	bridge_put_nothing(out);
+	free(a1);
+}
+
 extern void fe_message(char *s);
 static void b_fe_message(bridge_in *in, bridge_out *out)
 {
@@ -811,6 +827,8 @@ void bridge_register_editor(void)
 	bridge_register("fe-run-c-key", b_fe_run_c_key);
 	bridge_register("fe-execute-command", b_fe_execute_command);
 	bridge_register("fe-command-name", b_fe_command_name);
+	bridge_register("fe-char-width", b_fe_char_width);
+	bridge_register("fe-backdoor-note", b_fe_backdoor_note);
 	bridge_register("fe-message", b_fe_message);
 	bridge_register("fe-clear-message-line", b_fe_clear_message_line);
 	bridge_register("fe-log-debug", b_fe_log_debug);

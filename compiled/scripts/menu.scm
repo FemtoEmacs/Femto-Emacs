@@ -132,7 +132,8 @@ separated by RS."
 (define (mode-line-pieces name fname bname line flags cols)
   "The mode line of a window (called by the C core at every redisplay):
 NAME as shown, FNAME its file (\"\" if none), BNAME the buffer, LINE the
-cursor's line, FLAGS 1 selected, 2 modified, 4 overwrite, 8 special; COLS
+cursor's line, FLAGS 1 selected, 2 modified, 4 overwrite, 8 special, 16
+read-only, 32 backdoor open (M-x backdoor-claude); COLS
 the width.  The encoded pieces, or #f for the C core's own mode line."
   (set! *menu-region* (and (= 1 (bitwise-and flags 1)) (> (fe-buffer-count) 0) (> (window-count) 0) (menu-region-p)))
   (set! *menu-rendering* #t)
@@ -155,7 +156,14 @@ the width.  The encoded pieces, or #f for the C core's own mode line."
                                        (if (= 2 (bitwise-and flags 2)) "*" "")
                                        (if (= 16 (bitwise-and flags 16)) "%%" "")
                                        (if (top-level-bound? 'vim-tag) (vim-tag bname) "")
-                                       ", L. " (number->string line) " "))
+                                       ", L. " (number->string line)
+                                       ;; backdoor.c: the assistants' backdoor is open
+                                       (if (= 32 (bitwise-and flags 32)) " B/D" "")
+                                       ;; polytonic.scm: the Greek keyboard is on
+                                       (if (and (top-level-bound? '*polytonic*) (top-level-value '*polytonic*)) " Ἑλ" "")
+                                       ;; chinese.scm: Chinese input is on
+                                       (if (and (top-level-bound? '*chinese*) (top-level-value '*chinese*)) " 中" "")
+                                       " "))
                 (reserve (if quit 9 0)))
            ;; keep the controls ahead of the file name when space is scarce
            (let loop ()

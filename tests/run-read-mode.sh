@@ -96,7 +96,16 @@ cp "$work/cumulative.md" "$work/cumulative.original"
    if [ $((pass % 2)) = 0 ]; then printf 'keys ^X^Q\n'; else printf 'keys \\exvim-mode\\r\n'; fi
    printf 'keys gg\n'
   fi
-  awk 'BEGIN {for(i=0;i<4000;i++) print "keys \\r"}'
+  awk -v pass="$pass" 'BEGIN {
+   for(i=1;i<=4000;i++) {
+    print "keys \\r"
+    if(i%200==0) {
+     print "keys \\e:"
+     printf "keys (list (quote CUMULATIVE-BATCH) %d %d)\\r\n",pass,i
+     printf "await-screen (CUMULATIVE-BATCH %d %d)\n",pass,i
+    }
+   }
+  }'
   printf 'keys \\e:\nwait 100\n'
   printf "keys (list 'CUMULATIVE-%s (= (point) (buffer-size)) (buffer-read-only?))\\\\r\n" "$pass"
   printf 'await-screen (CUMULATIVE-%s #t #t)\n' "$pass"

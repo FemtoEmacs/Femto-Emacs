@@ -76,6 +76,8 @@
 (define fe-run-c-key (foreign-procedure "fe-run-c-key" (string) int))
 (define fe-execute-command (foreign-procedure "fe-execute-command" (string) int))
 (define fe-command-name (foreign-procedure "fe-command-name" (int) string))
+(define fe-char-width (foreign-procedure "fe-char-width" (long) int))
+(define fe-backdoor-note (foreign-procedure "fe-backdoor-note" (string) void))
 (define fe-message (foreign-procedure "fe-message" (string) void))
 (define fe-clear-message-line (foreign-procedure "fe-clear-message-line" () void))
 (define fe-log-debug (foreign-procedure "fe-log-debug" (string) void))

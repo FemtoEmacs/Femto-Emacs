@@ -131,7 +131,8 @@ separated by RS."
 (define (mode-line-pieces name fname bname line flags cols)
   "The mode line of a window (called by the C core at every redisplay):
 NAME as shown, FNAME its file (\"\" if none), BNAME the buffer, LINE the
-cursor's line, FLAGS 1 selected, 2 modified, 4 overwrite, 8 special; COLS
+cursor's line, FLAGS 1 selected, 2 modified, 4 overwrite, 8 special, 16
+read-only, 32 backdoor open (M-x backdoor-claude); COLS
 the width.  The encoded pieces, or #f for the C core's own mode line."
   (set! *menu-region* (and (= 1 (logand flags 1)) (> (fe-buffer-count) 0) (> (window-count) 0) (menu-region-p)))
   (set! *menu-rendering* #t)
@@ -154,7 +155,10 @@ the width.  The encoded pieces, or #f for the C core's own mode line."
                                        (if (= 2 (logand flags 2)) "*" "")
                                        (if (= 16 (logand flags 16)) "%%" "")
                                        (if (bound? 'vim-tag) (vim-tag bname) "")
-                                       ", L. " (number->string line) " "))
+                                       ", L. " (number->string line)
+                                       ;; backdoor.c: the assistants' backdoor is open
+                                       (if (= 32 (logand flags 32)) " B/D" "")
+                                       " "))
                 (reserve (if quit 9 0)))
            ;; keep the controls ahead of the file name when space is scarce
            (let loop ()

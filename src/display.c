@@ -54,6 +54,41 @@ point_t lnstart(buffer_t *bp, register point_t off)
 }
 
 /*
+ * The columns the character at OFF takes when it starts at column COL,
+ * as the painter draws it: a tab to the next stop of eight, a control
+ * character as ^X, a combining accent none (it is drawn on the character
+ * before it), a wide character (CJK, emoji) two -- width.c.
+ */
+static int cell_width(buffer_t *bp, point_t off, int col)
+{
+	char_t c = *ptr(bp, off);
+
+	if (c == '\t') return 8 - (col & 7);
+	if (c >= 0xC0 && utf8_size(c) > 1) return char_width(code_point_at(bp, off));
+	if (isprint(c) || c == '\n') return 1;
+	return (int) strlen(screen_unctrl(c));
+}
+
+/* A character that starts a row of its own: a wide one at column COL
+ * would cross the right edge (terminals move it to the next row) */
+static int crosses_edge(buffer_t *bp, point_t off, int col, int width)
+{
+	return col > 0 && width > 1 && col + width > screen_cols() && *ptr(bp, off) >= 0xC0;
+}
+
+/* After a cursor column was reached: the combining accents of the
+ * character before belong to it, so the cursor goes past them */
+static point_t past_accents(buffer_t *bp, point_t off, point_t end)
+{
+	char_t *p;
+
+	while (off < end && (p = ptr(bp, off)) < bp->b_ebuf && *p >= 0xC0 &&
+	       char_width(code_point_at(bp, off)) == 0)
+		off += utf8_size(*p);
+	return off;
+}
+
+/*
  * Forward scan for start of logical line segment containing 'finish'.
  * A segment of a logical line corresponds to a physical screen line.
  */
@@ -83,16 +118,19 @@ point_t segstart(buffer_t *bp, point_t start, point_t finish)
 		return start;
 	}
 	while (scan < finish) {
+		int w;
 		p = ptr(bp, scan);
+		w = cell_width(bp, scan, c);
 		if (*p == '\n') {
 			c = 0;
 			start = scan+1;
-		} else if (screen_cols() <= c) {
+		} else if (screen_cols() <= c || crosses_edge(bp, scan, c, w)) {
 			c = 0;
 			start = scan;
+			if (*p == '\t') w = 8;
 		}
 		scan += utf8_size(*p);
-		c += *p == '\t' ? 8 - (c & 7) : 1;
+		c += w;
 	}
 	/* upup may ask about the last byte of a multi-byte character.
 	 * Keep that byte on its row; never return it as a cursor position. */
@@ -109,13 +147,17 @@ point_t segnext(buffer_t *bp, point_t start, point_t finish)
 	point_t next = wrap_row_end(bp, scan);
 	if (next != NOMARK) return next;
 	for (;;) {
+		int w;
 		p = ptr(bp, scan);
 		if (bp->b_ebuf <= p || screen_cols() <= c)
+			break;
+		w = cell_width(bp, scan, c);
+		if (crosses_edge(bp, scan, c, w))
 			break;
 		scan += utf8_size(*p);
 		if (*p == '\n')
 			break;
-		c += *p == '\t' ? 8 - (c & 7) : 1;
+		c += w;
 	}
 	return (p < bp->b_ebuf ? scan : pos(bp, bp->b_ebuf));
 }
@@ -149,19 +191,18 @@ point_t lncolumn(buffer_t *bp, point_t offset, int column)
 		while (offset < end && (p = ptr(bp, offset)) < bp->b_ebuf &&
 		       *p != '\n' && c < column) {
 			int bytes = utf8_size(*p);
-			int width = *p == '\r' ? 0 : (*p == '\t' ? 8 - (c & 7) :
-			            (*p < 128 && !isprint(*p) ? (int) strlen(screen_unctrl(*p)) : 1));
+			int width = *p == '\r' ? 0 : cell_width(bp, offset, c);
 			if (offset + bytes == end && end < document_size(bp) && *p != '\r') break;
 			c += width;
 			offset += bytes;
 		}
-		return offset;
+		return past_accents(bp, offset, end);
 	}
 	while ((p = ptr(bp, offset)) < bp->b_ebuf && *p != '\n' && c < column) {
-		c += *p == '\t' ? 8 - (c & 7) : 1;
+		c += cell_width(bp, offset, c);
 		offset += utf8_size(*p);
 	}
-	return (offset);
+	return past_accents(bp, offset, document_size(bp));
 }
 
 int is_upper_or_lower(char_t c)
@@ -287,6 +328,30 @@ char *get_file_extension(char *filename)
 	return exts;
 }
 
+/*
+ * The end of the text is on the page starting at b_page, ROWS rows high:
+ * on the row of the last line, or on the row after it when the text ends
+ * with a newline (where the cursor is drawn).
+ */
+static int end_on_page(buffer_t *bp, int rows)
+{
+	point_t p = bp->b_page, size = document_size(bp);
+	int row = 0;
+
+	if (p > size) return 0;
+	while (p < size) {
+		point_t next = dndn(bp, p);
+		if (next <= p) break;
+		if (next >= size) {
+			if (*ptr(bp, size - 1) == '\n') row++;
+			break;
+		}
+		p = next;
+		if (++row >= rows) return 0;
+	}
+	return row < rows;
+}
+
 void display(window_t *wp, int flag)
 {
 	char_t *p;
@@ -305,8 +370,12 @@ again:
 	if (bp->b_point < bp->b_page)
 		bp->b_page = segstart(bp, lnstart(bp,bp->b_point), bp->b_point);
 
-	/* reframe when scrolled off bottom */
-	if (bp->b_epage <= bp->b_point) {
+	/* reframe when scrolled off bottom -- unless point is the end of the
+	 * text and that end is on the page: a click below the text of a
+	 * window scrolled past it (the ghost window of 8 November 2026) puts
+	 * point there, and the window must stay as it is, as in Emacs */
+	if (bp->b_epage <= bp->b_point &&
+	    !(bp->b_point == document_size(bp) && end_on_page(bp, wp->w_rows))) {
 		/* Find end of screen plus one. */
 		bp->b_page = dndn(bp, bp->b_point);
 		/* if we scoll to EOF we show 1 blank line at bottom of screen */
@@ -340,6 +409,22 @@ again:
 			bp->b_col = wrap_end != NOMARK && j >= screen_cols() ? screen_cols() - 1 : j;
 		}
 		p = ptr(bp, bp->b_epage);
+		/*
+		 * The guard: point inside a multi-byte character (a byte
+		 * offset computed by a script, say) moves to the start of
+		 * that character, where the cursor is drawn.  Lost, the
+		 * cursor made the window reframe: the jump of 7 November 2026.
+		 */
+		if (!found && bp->b_epage < bp->b_point && p < bp->b_ebuf &&
+		    bp->b_point < bp->b_epage + utf8_size(*p)) {
+			if (backdoor_on)
+				backdoor_note("guard: point %ld was inside the character at %ld",
+					      (long) bp->b_point, (long) bp->b_epage);
+			bp->b_point = bp->b_epage;
+			found = 1;
+			bp->b_row = i;
+			bp->b_col = wrap_end != NOMARK && j >= screen_cols() ? screen_cols() - 1 : j;
+		}
 		nch = 1;
 		if (wp->w_top + wp->w_rows <= i || bp->b_ebuf <= p) /* maxline */
 			break;
@@ -353,7 +438,21 @@ again:
 		} else if (*p != '\r') {
 			nch = utf8_size(*p);
 			if ( nch > 1) {
-				j++;
+				int w = cell_width(bp, bp->b_epage, j);
+				/* a wide character that would cross the edge starts the
+				 * next row, as the terminal draws it */
+				if (wrap_end == NOMARK && crosses_edge(bp, bp->b_epage, j, w)) {
+					screen_clrtoeol();
+					j = 0;
+					screen_move(++i, 0);
+					if (bp->b_point == bp->b_epage) {
+						bp->b_row = i;
+						bp->b_col = 0;
+					}
+					if (wp->w_top + wp->w_rows <= i)
+						break;
+				}
+				j += w;	/* 0 for an accent, drawn on the cell before */
 				face_on(face_for(bp, p));
 				display_utf8(bp, *p, nch);
 				face_on(ID_COLOR_SYMBOL);
@@ -403,6 +502,9 @@ again:
 	 * page's end): show it, rather than put the cursor at a row kept from
 	 * before, outside the window -- the mode line or the minibuffer. */
 	if (!found && tries++ == 0) {
+		if (backdoor_on)
+			backdoor_note("reframe: point %ld not on the page from %ld to %ld",
+				      (long) bp->b_point, (long) bp->b_page, (long) bp->b_epage);
 		bp->b_epage = bp->b_point;
 		goto again;
 	}
@@ -711,7 +813,8 @@ void modeline(window_t *wp)
 			| ((wp->w_bufp->b_flags & B_MODIFIED) ? 2 : 0)
 			| ((wp->w_bufp->b_flags & B_OVERWRITE) ? 4 : 0)
 			| ((wp->w_bufp->b_flags & B_SPECIAL) ? 8 : 0)
-			| ((wp->w_bufp->b_flags & B_READONLY) ? 16 : 0);
+			| ((wp->w_bufp->b_flags & B_READONLY) ? 16 : 0)
+			| (backdoor_on ? 32 : 0);
 
 		if (modeline_hook != NULL &&
 		    modeline_hook(name, wp->w_bufp->b_fname, wp->w_bufp->b_bname,
@@ -723,14 +826,14 @@ void modeline(window_t *wp)
 	}
 	hint = buffer_hint(wp->w_bufp);
 	if (hint != NULL)
-		snprintf(modeline_buf, sizeof(modeline_buf), "Chezemax: %s%s%s, L. %d %c%c %s ",
+		snprintf(modeline_buf, sizeof(modeline_buf), "Chezemax: %s%s%s, L. %d%s %c%c %s ",
 			 name, mch == '*' ? "*" : "", och == 'O' ? " [overwrite]" : "",
-			 line_number(wp->w_bufp, point), lch, lch, hint);
+			 line_number(wp->w_bufp, point), backdoor_on ? " B/D" : "", lch, lch, hint);
 	else
-		snprintf(modeline_buf, sizeof(modeline_buf), "Chezemax: %s %c%c %s%s%s, L. %d %c%c %s ",
+		snprintf(modeline_buf, sizeof(modeline_buf), "Chezemax: %s %c%c %s%s%s, L. %d%s %c%c %s ",
 			 modeline_help, lch, lch, name, mch == '*' ? "*" : "",
 			 och == 'O' ? " [overwrite]" : "",
-			 line_number(wp->w_bufp, point), lch, lch, modeline_tail);
+			 line_number(wp->w_bufp, point), backdoor_on ? " B/D" : "", lch, lch, modeline_tail);
 	/* too wide: "Ctrl-h" becomes "C-h", "Ctrl c r" "C-c r", then the end is cut */
 	if ((int) strlen(modeline_buf) > cols) {
 		char *p;
@@ -944,12 +1047,12 @@ int window_position(window_t *wp, int row, int col)
 			w = 8 - (j & 7);
 		else if (*c == '\n' || *c == '\r')
 			w = 1;
-		else if (*c >= 0x80)
-			w = 1;
-		else if (!isprint(*c))
-			w = (int) strlen(screen_unctrl(*c));
 		else
-			w = 1;
+			w = cell_width(bp, p, j);
+		if (crosses_edge(bp, p, j, w)) {
+			j = 0;
+			++i;
+		}
 
 		if (i == row && (col < j + w || *c == '\n'))
 			break;

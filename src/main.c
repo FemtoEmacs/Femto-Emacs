@@ -129,10 +129,13 @@ int fe_main(int argc, char **argv)
 
 	while (!done) {
 
+		if (backdoor_on) backdoor_refresh();
 		update_display();
+		if (backdoor_on) backdoor_shown();
 		editor_idle_wait = 1;
 		input = get_key(key_map, &key_return);
 		editor_idle_wait = 0;
+		if (backdoor_on) backdoor_key(input, key_return);
         { extern int chezweb_poll(void); chezweb_poll(); }
 		editor_dispatch_key();
 		chez_tester_poll();

@@ -378,6 +378,16 @@ static value_t wrap_fe_command_name(value_t *a, uint32_t n) {
  argcount("fe_command_name", n, 1);
  const char *s = fe_command_name(tofixnum(a[0], "fe_command_name")); return string_from_cstrn((char *)(s ? s : ""), s ? strlen(s) : 0);
 }
+extern int fe_char_width(long cp);
+static value_t wrap_fe_char_width(value_t *a, uint32_t n) {
+ argcount("fe_char_width", n, 1);
+ return fixnum(fe_char_width(tofixnum(a[0], "fe_char_width")));
+}
+extern void fe_backdoor_note(char *s);
+static value_t wrap_fe_backdoor_note(value_t *a, uint32_t n) {
+ argcount("fe_backdoor_note", n, 1);
+ fe_backdoor_note(tostring(a[0], "fe_backdoor_note")); return FL_T;
+}
 extern void fe_message(char *s);
 static value_t wrap_fe_message(value_t *a, uint32_t n) {
  argcount("fe_message", n, 1);
@@ -555,6 +565,8 @@ static builtinspec_t editor_builtins[] = {
  {"fe-run-c-key", wrap_fe_run_c_key},
  {"fe-execute-command", wrap_fe_execute_command},
  {"fe-command-name", wrap_fe_command_name},
+ {"fe-backdoor-note", wrap_fe_backdoor_note},
+ {"fe-char-width", wrap_fe_char_width},
  {"fe-message", wrap_fe_message},
  {"fe-clear-message-line", wrap_fe_clear_message_line},
  {"fe-log-debug", wrap_fe_log_debug},

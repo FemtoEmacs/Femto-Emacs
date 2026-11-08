@@ -8,14 +8,22 @@ Module.browsered=(function(){
  function text(s){new TextEncoder().encode(s).forEach(push);}
  function layout(){var d=devicePixelRatio||1,top=canvas.getBoundingClientRect().top;canvas.width=innerWidth*d;canvas.height=(innerHeight-top)*d;canvas.style.width=innerWidth+'px';canvas.style.height=(innerHeight-top)+'px';ctx.setTransform(d,0,0,d,0,0);ctx.font=points+'px Menlo,Consolas,monospace';cw=ctx.measureText('MMMMMMMMMM').width/10;ch=Math.ceil(points*1.35);cols=Math.max(20,Math.floor((innerWidth-8)/cw));rows=Math.max(4,Math.floor((innerHeight-top-8)/ch));}
  function rgb(n){return '#'+(n&0xffffff).toString(16).padStart(6,'0');}
+ // Six ints a cell (web/screen.c): code point (-1: the right half of a wide
+ // character), colours, style and two combining accents drawn with it.
+ // Backgrounds first, then text, so a wide glyph is not covered by the
+ // background of its second cell.
  function paint(p,nr,nc,r,c,bg,cursor){
-  var grid=HEAP32.slice(p>>2,(p>>2)+nr*nc*4);last={grid,nr,nc,r,c};
+  var grid=HEAP32.slice(p>>2,(p>>2)+nr*nc*6);last={grid,nr,nc,r,c};
   ctx.fillStyle=rgb(bg);ctx.fillRect(0,0,innerWidth,innerHeight);
   var lines=[];
+  for(var y=0;y<nr;y++)for(var x=0;x<nc;x++){
+   var i=(y*nc+x)*6;ctx.fillStyle=rgb(y===r&&x===c?cursor:grid[i+2]);ctx.fillRect(pad+x*cw,pad+y*ch,cw,ch);
+  }
   for(var y=0;y<nr;y++){var line='';for(var x=0;x<nc;x++){
-   var i=(y*nc+x)*4,cp=grid[i]||32,fg=grid[i+1],back=grid[i+2],style=grid[i+3];
-   ctx.fillStyle=rgb(y===r&&x===c?cursor:back);ctx.fillRect(pad+x*cw,pad+y*ch,cw,ch);
-   ctx.fillStyle=rgb(y===r&&x===c?back:fg);ctx.font=(style&2?'italic ':'')+(style&1?'bold ':'')+points+'px Menlo,Consolas,monospace';ctx.fillText(String.fromCodePoint(cp),pad+x*cw,pad+y*ch+points);line+=String.fromCodePoint(cp);
+   var i=(y*nc+x)*6,cp=grid[i]||32,fg=grid[i+1],back=grid[i+2],style=grid[i+3];
+   if(cp===-1)continue;
+   var s=String.fromCodePoint(cp)+(grid[i+4]?String.fromCodePoint(grid[i+4]):'')+(grid[i+5]?String.fromCodePoint(grid[i+5]):'');
+   ctx.fillStyle=rgb(y===r&&x===c?back:fg);ctx.font=(style&2?'italic ':'')+(style&1?'bold ':'')+points+'px Menlo,Consolas,monospace';ctx.fillText(s,pad+x*cw,pad+y*ch+points);line+=s;
   }lines.push(line);}document.getElementById('screen-text').textContent=lines.join('\n');
  }
   var shiftedPunct = { "`": "~", "1": "!", "2": "@", "3": "#", "4": "$", "5": "%",

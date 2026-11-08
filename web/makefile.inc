@@ -50,6 +50,8 @@ chezweb-gui: chezemax-gui
 .PHONY: check-browser run
 # Development only: npm's playwright package and an installed Google Chrome.
 check-browser: browser chezweb
+	node tests/chezweb-width.cjs
+	node tests/chezweb-polytonic.cjs
 	node tests/chezweb-server.cjs
 	node tests/chezweb-controls.cjs
 	node tests/chezweb-read-mode.cjs
