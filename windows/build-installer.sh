@@ -22,7 +22,7 @@ mkdir -p "$stage"/{app,bin,tmp,etc,licenses,usr/share/terminfo}
 # to compiling the portable WebAssembly, as on macOS/Linux.
 cp chezweb.exe chezweb-gui.exe chezweb-server.exe schemer-compile.exe irene-dixe.exe "$stage/app/"
 cp chezemax.wasm chezemax.cwasm Chezweb.html "$stage/app/"
-cp -R scheme compiled schemer tools femtoscheme "$stage/app/"
+cp -R Chinese scheme compiled schemer tools femtoscheme "$stage/app/"
 find "$stage/app" -type d -name bkp -prune -exec rm -rf {} +
 find "$stage/app" -type f \( -name '*.o' -o -name '*.a' -o -name '*.exe' \) ! -path "$stage/app/*.exe" -delete
 mkdir -p "$stage/app/build"

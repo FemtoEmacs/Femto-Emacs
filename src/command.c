@@ -689,6 +689,63 @@ void paste()
 	insert_string((char *)scrap);
 }
 
+/* Terminal Paste is one edit, not a sequence of typed Markdown commands.
+ * Keep collecting through the closing frame even after an allocation/size
+ * failure, so discarded paste bytes never become editor commands. */
+#ifndef TERMINAL_PASTE_LIMIT
+#define TERMINAL_PASTE_LIMIT (16U * 1024U * 1024U)
+#endif
+static int paste_byte(char **text, size_t *len, size_t *capacity, int c)
+{
+    if (*len == TERMINAL_PASTE_LIMIT) return 1;
+    if (*len == *capacity) {
+        size_t cap = *capacity ? *capacity * 2 : 4096;
+        if (cap > TERMINAL_PASTE_LIMIT) cap = TERMINAL_PASTE_LIMIT;
+        char *grown = realloc(*text, cap);
+        if (grown == NULL) return 2;
+        *text = grown; *capacity = cap;
+    }
+    (*text)[(*len)++] = (char)c;
+    return 0;
+}
+extern void fe_insert_bytes(long, char *, long);
+void paste_bracketed(void)
+{
+    static const unsigned char end[] = "\033[201~";
+    char *text = NULL;
+    size_t len = 0, capacity = 0, matched = 0, i, out;
+    int failure = 0, c;
+    for (;;) {
+        c = read_key_byte();
+        if (c < 0) { free(text); msg("Incomplete paste; nothing inserted"); return; }
+        if (c == end[matched]) {
+            if (++matched == sizeof(end) - 1) break;
+            continue;
+        }
+        for (i = 0; i < matched; ++i)
+            if (!failure) failure = paste_byte(&text, &len, &capacity, end[i]);
+        matched = 0;
+        if (c == end[0]) matched = 1;
+        else if (!failure) failure = paste_byte(&text, &len, &capacity, c);
+    }
+    if (failure) {
+        free(text);
+        if (failure == 1) msg("Paste exceeds %u bytes; nothing inserted", TERMINAL_PASTE_LIMIT);
+        else msg(m_alloc);
+        return;
+    }
+    /* Terminal emulators may send CR or CRLF for clipboard line ends. */
+    for (i = out = 0; i < len; ++i) {
+        if (text[i] == '\r') {
+            text[out++] = '\n';
+            if (i + 1 < len && text[i + 1] == '\n') ++i;
+        } else text[out++] = text[i];
+    }
+    if (out && !read_only_refuses() && !(curbp->b_flags & B_OVERWRITE))
+        fe_insert_bytes(curbp->b_point, text, (long)out);
+    free(text);
+}
+
 void insert_string(char *str)
 {
 	int len = (str == NULL) ? 0 : strlen(str);

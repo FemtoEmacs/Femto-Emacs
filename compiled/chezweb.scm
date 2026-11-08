@@ -59,6 +59,13 @@
 ;;; plots leave the mode line, the keys and the help page.  Done here, so
 ;;; the scripts stay Chezemax's own.
 
+;; M-x chinese-input reads its tables from the installation's Chinese/
+;; folder, which the page does not carry (it would weigh on every page);
+;; the browser's own text field takes the system's Chinese input instead.
+(defcommand (browser-chinese-input)
+  "Chinese input in the browser: the system's input method."
+  (message "Chinese input: in the browser, use your system's pinyin input method; M-x chinese-input works in the terminal and SDL window"))
+
 (defcommand (browser-native-only)
   "TTFY, plots and compile-scripts run in the terminal or SDL window."
   (message "Not in the browser editor: TTFY, plots (C-c p) and compile-scripts run in the terminal or SDL window."))
@@ -99,6 +106,7 @@
   (set! plot-save browser-native-only)
   (set! compile-scripts browser-native-only)
   (set! script-installer browser-script-installer)
+  (set! chinese-input browser-chinese-input)
   (global-unset-key "C-c f")
   (global-unset-key "C-c p")
   (set! *mode-line-menu* (%without-labels '("TTFY") *mode-line-menu*))

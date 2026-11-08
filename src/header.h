@@ -265,6 +265,10 @@ extern char *get_file_extension(char *);
 extern void display_char(buffer_t *, char_t *);
 extern void display(window_t *, int);
 extern int utf8_size(char_t);
+/* width.c: the columns a character takes (0 combining, 2 wide, else 1) */
+extern int char_width(unsigned long);
+extern int fe_char_width(long);
+extern unsigned long code_point_at(buffer_t *, point_t);
 extern int prev_utf8_char_size(void);
 extern void display_utf8(buffer_t *, char_t, int);
 extern void dispmsg(void);
@@ -310,6 +314,16 @@ extern int window_position(window_t *, int, int);
 extern int line_number(buffer_t *, point_t);
 extern void insert(void);
 extern void paste(void);
+extern void paste_bracketed(void);
+/* backdoor.c: M-x backdoor-claude / backdoor-codex (B/D on the mode line) */
+extern int backdoor_on;
+extern void backdoor_note(const char *, ...);
+extern void backdoor_key(char_t *, keymap_t *);
+extern void backdoor_shown(void);
+extern void backdoor_refresh(void);
+extern void backdoor_claude(void);
+extern void backdoor_codex(void);
+extern void fe_backdoor_note(char *);
 extern void quit(void);
 extern int yesno(int);
 extern void quit_ask(void);

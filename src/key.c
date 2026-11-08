@@ -8,6 +8,8 @@
 /* name, function */
 command_t commands[] = {
         {"apropos", apropos_command},
+	{"backdoor-claude", backdoor_claude},
+	{"backdoor-codex", backdoor_codex},
 	{"backspace", backsp},
 	{"backward-character", left},
 	{"backward-page", backward_page},
@@ -140,6 +142,7 @@ keymap_t keymap[] = {
 	{"C-x right", "next-buffer"           , "\x18\x1B\x5B\x43", next_buffer },
 	{"C-x o",     "other-window"          , "\x18\x6F", other_window },
 	{"C-x @",     "shell-command"         , "\x18\x40", i_shell_command },
+	{"terminal-paste", "bracketed-paste", "\x1B[200~", paste_bracketed },
 	{"mouse",     "mouse"                 , "\x1B\x5B\x4D", editor_mouse_event },
 	{"mouse",     "mouse"                 , "\x1B\x5B\x3C", editor_mouse_event },
 	{"F1",        "help"                  , "\x1B\x4F\x50", keyboardDefinition },

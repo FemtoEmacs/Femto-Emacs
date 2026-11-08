@@ -29,6 +29,8 @@ echo 'PASS personal scripts compile using only the installed package'
 # The packaged browser bundle is genuinely present, and the compiler starts.
 [ -s "$root/app/build/chezweb.wasm" ] && [ -s "$root/app/build/chezweb.js" ]
 [ -s "$root/app/schemer/compiler.wasm" ]
+[ -s "$root/app/Chinese/pinyin.txt" ] && [ -s "$root/app/Chinese/lianxiang.txt" ]
+[ "$(chezweb --eval '(list (fe-char-width 769) (fe-char-width 20013))')" = '(0 2)' ]
 [ "$(chezweb-gui --eval '(fe-screen-probe)')" = 1 ]
 chezweb --version
 printf 'PASS installed Windows editor: compiled Scheme, Fibonacci, browser assets\n'

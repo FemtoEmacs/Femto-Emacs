@@ -25,6 +25,23 @@ explicitly retires it or the specification has been implemented and verified.
 This is a persistent reminder (Eduardo's reference: Darius' slave story), not
 an instruction to implement the specification during unrelated work.
 
+## The backdoor: seeing what Eduardo's editor does
+
+You cannot see Eduardo's screen. Ask him to open the backdoor (M-x
+backdoor-codex or M-x backdoor-claude; the mode line shows B/D), repeat
+the keys that show the bug, and close it with the same command. Then read
+~/.chezemax/backdoor.txt (also the buffer *backdoor* while open): one line
+per key (#N KEY pt= page= cur=ROW,COL size= BUFFER) and notes, e.g.
+"guard: point P was inside the character at C" (src/display.c) and
+"reframe: point P not on the page" (the cursor was lost and the window
+moved). Only the last 120 lines are kept. Closed, it costs one test of
+`backdoor_on` per key and holds no memory (src/backdoor.c).
+
+To record more for a diagnosis, add `if (backdoor_on) backdoor_note(...)`
+in C, or `(fe-backdoor-note "text")` in a script; keep notes to one line
+and remove ones that are no longer needed. tests/backdoor-guard.sh shows
+how to drive and read it in a PTY.
+
 Chezemax is an Emacs-inspired editor: a C core and Scheme scripts. It was
 copied from Schememax (~/csand/c2s-cover/sbcl-rasp/schememax) on 1 November
 2026 to replace femtoscheme with Schemer, the user's Chez-inspired compiler to

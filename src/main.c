@@ -73,7 +73,9 @@ int fe_main(int argc, char **argv)
 		buffer_t *before_bp;
 		point_t before_size;
 
+		if (backdoor_on) backdoor_refresh();
 		update_display();
+		if (backdoor_on) backdoor_shown();
         for (;;) {
             input = get_key(key_map, &key_return);
             if (key_return != &idle_key) break;
@@ -83,6 +85,7 @@ int fe_main(int argc, char **argv)
             int changed = call_lisp_event("idle", "");
             if (changed || msgflag) update_display();
         }
+        if (backdoor_on) backdoor_key(input, key_return);
         { extern void chezweb_poll(void); chezweb_poll(); }
         /* Passive mouse motion is help, not an editing command: do not
          * break kill/yank sequences, selection, or modal key handlers. */

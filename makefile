@@ -132,6 +132,7 @@ clean:
 app: chezweb-gui irene-dixe chezemax.wasm chezemax.cwasm browser
 	rm -rf Chezweb.app/Contents/MacOS/scheme
 	mkdir -p Chezweb.app/Contents/MacOS/femtoscheme Chezweb.app/Contents/MacOS/ttfy \
+	    Chezweb.app/Contents/MacOS/Chinese \
 	    Chezweb.app/Contents/MacOS/scheme/languages Chezweb.app/Contents/MacOS/scheme/extensions \
 	    Chezweb.app/Contents/MacOS/scheme/modes
 	cp packaging/Info.plist Chezweb.app/Contents/Info.plist
@@ -144,6 +145,7 @@ app: chezweb-gui irene-dixe chezemax.wasm chezemax.cwasm browser
 	cp scheme/extensions/*.scm Chezweb.app/Contents/MacOS/scheme/extensions/
 	cp scheme/modes/*.scm Chezweb.app/Contents/MacOS/scheme/modes/
 	cp ttfy/plots-guidelines.md Chezweb.app/Contents/MacOS/ttfy/
+	cp Chinese/pinyin.txt Chinese/lianxiang.txt Chinese/README.md Chezweb.app/Contents/MacOS/Chinese/
 	cp femtoscheme/femtoscheme.boot Chezweb.app/Contents/MacOS/femtoscheme/
 	rm -f Chezweb.app/Contents/MacOS/femtoscheme/femtoscheme \
 	    Chezweb.app/Contents/MacOS/schemer/native-compile.scm \
@@ -221,7 +223,7 @@ endif
 check-navigation:
 	@set -eu; work=$$(mktemp -d "$${TMPDIR:-/tmp}/chezweb-navigation.XXXXXX"); \
 	  trap 'rm -rf "$$work"' EXIT HUP INT TERM; \
-	  $(CC) $(CFLAGS) $(NAV_TEST_CFLAGS) -Isrc tests/unwrapped-navigation.c src/display.c $(NAV_TEST_LDFLAGS) -o "$$work/check"; \
+	  $(CC) $(CFLAGS) $(NAV_TEST_CFLAGS) -Isrc tests/unwrapped-navigation.c src/display.c src/width.c $(NAV_TEST_LDFLAGS) -o "$$work/check"; \
 	  "$$work/check"
 check: check-navigation
 
@@ -230,7 +232,7 @@ check-utf8-input:
 	@set -eu; work=$$(mktemp -d "$${TMPDIR:-/tmp}/chezweb-utf8-input.XXXXXX"); \
 	  trap 'rm -rf "$$work"' EXIT HUP INT TERM; \
 	  $(CC) $(CFLAGS) $(NAV_TEST_CFLAGS) -Isrc -Deditor_mouse_event=input_test_mouse -DkeyboardDefinition=input_test_undefined -c src/key.c -o "$$work/key.o"; \
-	  $(CC) $(CFLAGS) $(NAV_TEST_CFLAGS) -Isrc tests/utf8-input.c "$$work/key.o" src/command.c src/gap.c src/display.c src/buffer.c $(NAV_TEST_LDFLAGS) -o "$$work/check"; \
+	  $(CC) $(CFLAGS) $(NAV_TEST_CFLAGS) -Isrc tests/utf8-input.c "$$work/key.o" src/command.c src/gap.c src/display.c src/width.c src/buffer.c $(NAV_TEST_LDFLAGS) -o "$$work/check"; \
 	  "$$work/check"
 check: check-utf8-input
 
@@ -239,7 +241,45 @@ check-utf8-typing: chezemax chezemax.wasm chezemax.cwasm
 	sh tests/utf8-typing.sh
 check: check-utf8-typing
 
+.PHONY: check-chinese-input
+check-chinese-input: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/chinese-input.sh
+check: check-chinese-input
+
+.PHONY: check-ghost-window
+check-ghost-window: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/ghost-window.sh
+check: check-ghost-window
+
+.PHONY: check-polytonic
+check-polytonic: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/polytonic.sh
+check: check-polytonic
+
+.PHONY: check-char-width
+check-char-width: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/char-width.sh
+check: check-char-width
+
+.PHONY: check-backdoor-guard
+check-backdoor-guard: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/backdoor-guard.sh
+check: check-backdoor-guard
+
 .PHONY: check-markdown-blank-newline
 check-markdown-blank-newline: chezemax chezemax.wasm chezemax.cwasm
 	sh tests/markdown-blank-newline.sh
 check: check-markdown-blank-newline
+
+.PHONY: check-bracketed-paste
+check-bracketed-paste: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/bracketed-paste.sh
+check: check-bracketed-paste
+
+.PHONY: check-paste-decoder
+check-paste-decoder:
+	@set -eu; work=$$(mktemp -d "$${TMPDIR:-/tmp}/chezweb-paste-decoder.XXXXXX"); \
+	  trap 'rm -rf "$$work"' EXIT HUP INT TERM; \
+	  $(CC) $(CFLAGS) $(NAV_TEST_CFLAGS) -DTERMINAL_PASTE_LIMIT=32 -Isrc tests/bracketed-paste.c src/command.c $(NAV_TEST_LDFLAGS) -o "$$work/check"; \
+	  "$$work/check"
+check: check-paste-decoder
