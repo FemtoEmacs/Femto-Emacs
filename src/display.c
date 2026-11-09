@@ -171,13 +171,20 @@ point_t upup(buffer_t *bp, point_t off)
 		off = segstart(bp, curr, seg-1);
 	else
 		off = segstart(bp, lnstart(bp,curr-1), curr-1);
+	/* fold.c: over a folded heading's text, to the heading's row */
+	if (bp->b_nfolds && fold_hidden(bp, off)) {
+		point_t a = fold_skip_backward(bp, off);
+		off = segstart(bp, lnstart(bp, a), a);
+	}
 	return (off);
 }
 
 /* Move down one screen line */
 point_t dndn(buffer_t *bp, point_t off)
 {
-	return (segnext(bp, lnstart(bp,off), off));
+	point_t next = segnext(bp, lnstart(bp,off), off);
+	/* fold.c: over a folded heading's text, to the row after it */
+	return bp->b_nfolds ? fold_skip_forward(bp, next) : next;
 }
 
 /* Return the offset of a column on the specified line */
@@ -335,7 +342,7 @@ char *get_file_extension(char *filename)
  */
 static int end_on_page(buffer_t *bp, int rows)
 {
-	point_t p = bp->b_page, size = document_size(bp);
+	point_t p = bp->b_page, size = visible_end(bp);   /* narrow.c */
 	int row = 0;
 
 	if (p > size) return 0;
@@ -352,35 +359,87 @@ static int end_on_page(buffer_t *bp, int rows)
 	return row < rows;
 }
 
+/*
+ * Point is on the page starting at b_page, ROWS rows high, counted now --
+ * not from b_epage, the page's end as last drawn, which an edit since then
+ * has made stale: a yank before that end pushed point past it, and the
+ * window jumped to put point on its last row (Complaint 2 of 9 November
+ * 2026).  The end of the text is end_on_page's case.
+ */
+static int point_on_page(buffer_t *bp, int rows)
+{
+	point_t p = bp->b_page, size = visible_end(bp), point = bp->b_point;
+	int row;
+
+	if (point < p || p > size) return 0;
+	if (point >= size) return end_on_page(bp, rows);
+	for (row = 0; row < rows; row++) {
+		point_t next = dndn(bp, p);
+		if (point < next) return 1;
+		if (next <= p || next >= size) return 0;
+		p = next;
+	}
+	return 0;
+}
+
 void display(window_t *wp, int flag)
 {
 	char_t *p;
 	int i, j, k, nch;
 	buffer_t *bp = wp->w_bufp;
-	point_t wrap_end;
-	int found, tries = 0;
+	point_t wrap_end, old_page, vend, fold_b;
+	int found, tries = 0, watching;
 
 again:
+	/* the backdoor's "watch page" (backdoor.c): each reason the page
+	 * moves here is said, with the values that decided it */
+	watching = backdoor_on && (backdoor_watch & BACKDOOR_PAGE);
+	/* narrow.c: point, mark and page inside the part shown */
+	if (bp->b_narrowed) narrow_clamp(bp);
+	/* fold.c: point moved into folded text (a search, M-<, a script)
+	 * opens the folds around it, as in Emacs; the page starts on a row
+	 * that is shown */
+	if (bp->b_nfolds) {
+		if (fold_hidden(bp, bp->b_point)) fold_reveal(bp, bp->b_point);
+		if (fold_hidden(bp, bp->b_page)) {
+			point_t a = fold_skip_backward(bp, bp->b_page);
+			bp->b_page = segstart(bp, lnstart(bp, a), a);
+		}
+	}
+	vend = visible_end(bp);
+	old_page = bp->b_page;
+
 	/* Recompute the visual row start after resizing or editing. */
 	if (wrap_row_end(bp, bp->b_page) != NOMARK)
 		bp->b_page = segstart(bp, lnstart(bp, bp->b_page), bp->b_page);
+	if (bp->b_narrowed && bp->b_page < visible_start(bp)) bp->b_page = visible_start(bp);
+	if (watching && bp->b_page != old_page)
+		backdoor_note("  display %s: page %ld -> %ld, the start of its wrapped row",
+			      bp->b_bname, (long) old_page, (long) bp->b_page);
+	old_page = bp->b_page;
 
 	/* find start of screen, handle scroll up off page or top of file  */
 	/* point is always within b_page and b_epage */
 	if (bp->b_point < bp->b_page)
 		bp->b_page = segstart(bp, lnstart(bp,bp->b_point), bp->b_point);
+	if (bp->b_narrowed && bp->b_page < visible_start(bp)) bp->b_page = visible_start(bp);
+	if (watching && bp->b_page != old_page)
+		backdoor_note("  display %s: page %ld -> %ld, point %ld was above the page",
+			      bp->b_bname, (long) old_page, (long) bp->b_page, (long) bp->b_point);
+	old_page = bp->b_page;
 
-	/* reframe when scrolled off bottom -- unless point is the end of the
-	 * text and that end is on the page: a click below the text of a
-	 * window scrolled past it (the ghost window of 8 November 2026) puts
-	 * point there, and the window must stay as it is, as in Emacs */
-	if (bp->b_epage <= bp->b_point &&
-	    !(bp->b_point == document_size(bp) && end_on_page(bp, wp->w_rows))) {
+	/* reframe when scrolled off bottom -- unless point is still on the
+	 * page, counted now: after an edit (a yank) the page's end as last
+	 * drawn is stale (Complaint 2 of 9 November 2026); and point at the
+	 * end of the text, that end on the page -- a click below the text of
+	 * a window scrolled past it (the ghost window of 8 November 2026) --
+	 * keeps the window as it is, as in Emacs */
+	if (bp->b_epage <= bp->b_point && !point_on_page(bp, wp->w_rows)) {
 		/* Find end of screen plus one. */
 		bp->b_page = dndn(bp, bp->b_point);
 		/* if we scoll to EOF we show 1 blank line at bottom of screen */
-		if (pos(bp, bp->b_ebuf) <= bp->b_page) {
-			bp->b_page = pos(bp, bp->b_ebuf);
+		if (vend <= bp->b_page) {
+			bp->b_page = vend;
 			i = wp->w_rows - 1;
 		} else {
 			i = wp->w_rows - 0;
@@ -388,6 +447,10 @@ again:
 		/* Scan backwards the required number of lines. */
 		while (0 < i--)
 			bp->b_page = upup(bp, bp->b_page);
+		if (bp->b_narrowed && bp->b_page < visible_start(bp)) bp->b_page = visible_start(bp);
+		if (watching)
+			backdoor_note("  display %s: page %ld -> %ld, point %ld at or past the page's end %ld (as last drawn): point on the last row",
+				      bp->b_bname, (long) old_page, (long) bp->b_page, (long) bp->b_point, (long) bp->b_epage);
 	}
 
 	highlight_window(bp, wp->w_rows);
@@ -426,8 +489,22 @@ again:
 			bp->b_col = wrap_end != NOMARK && j >= screen_cols() ? screen_cols() - 1 : j;
 		}
 		nch = 1;
-		if (wp->w_top + wp->w_rows <= i || bp->b_ebuf <= p) /* maxline */
+		if (wp->w_top + wp->w_rows <= i || bp->b_ebuf <= p ||
+		    (bp->b_narrowed && vend <= bp->b_epage))   /* maxline; narrow.c */
 			break;
+		/* fold.c: a folded heading -- "..." ends its row, and the
+		 * hidden text is skipped */
+		if (bp->b_nfolds && (fold_b = fold_end_at(bp, bp->b_epage)) != NOMARK) {
+			face_on(ID_COLOR_SYMBOL);
+			if (j + 3 <= screen_cols()) { screen_addstr("..."); j += 3; }
+			if (j < screen_cols()) screen_clrtoeol();
+			j = 0;
+			++i;
+			screen_move(i, 0);
+			bp->b_epage = fold_b + 1;
+			if (wrap_end != NOMARK) wrap_end = wrap_row_end(bp, bp->b_epage);
+			continue;
+		}
 		if (wrap_end != NOMARK && *p == '\n') {
 			/* A visual break never inserts a newline into the buffer. */
 			if (j < screen_cols()) screen_clrtoeol();
@@ -480,7 +557,7 @@ again:
 			/* The last row of a file that does not end in a newline keeps
 			 * the cursor after its last character, not on a new row. */
 			if (bp->b_epage >= wrap_end &&
-			    (bp->b_epage < document_size(bp) || *p == '\n')) {
+			    (bp->b_epage < vend || *p == '\n')) {
 				if (j < screen_cols()) screen_clrtoeol();
 				j = 0;
 				++i;
@@ -814,7 +891,8 @@ void modeline(window_t *wp)
 			| ((wp->w_bufp->b_flags & B_OVERWRITE) ? 4 : 0)
 			| ((wp->w_bufp->b_flags & B_SPECIAL) ? 8 : 0)
 			| ((wp->w_bufp->b_flags & B_READONLY) ? 16 : 0)
-			| (backdoor_on ? 32 : 0);
+			| (backdoor_on ? 32 : 0)
+			| (wp->w_bufp->b_narrowed ? 64 : 0);   /* narrow.c */
 
 		if (modeline_hook != NULL &&
 		    modeline_hook(name, wp->w_bufp->b_fname, wp->w_bufp->b_bname,

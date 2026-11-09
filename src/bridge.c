@@ -204,6 +204,11 @@ void bridge_register(const char *name, bridge_fn fn)
 }
 
 extern void bridge_register_editor(void);   /* bridge-functions.c */
+
+/* Set while the backdoor is open (backdoor.c): told the name of each C
+ * function a script calls, before (0) and after (1) it runs; NULL, it
+ * costs a test */
+void (*bridge_around_call)(const char *name, int after);
 static int registered;
 
 /* Scheme called C function N; its arguments are in the mailbox */
@@ -246,7 +251,9 @@ static int ccall(sc_module *m, int n, void *user)
 		free(name);
 		bridge_put_int(&out, found);
 	} else if (n > 0 && n <= ntable && !in.bad) {
+		if (bridge_around_call) bridge_around_call(table[n - 1].name, 0);
 		table[n - 1].fn(&in, &out);
+		if (bridge_around_call) bridge_around_call(table[n - 1].name, 1);
 		if (in.bad && !out.error) bridge_error(&out, "a C function got an argument of the wrong type");
 	} else {
 		bridge_error(&out, "no such C function");

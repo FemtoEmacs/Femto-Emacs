@@ -138,6 +138,7 @@ int fe_main(int argc, char **argv)
 		if (backdoor_on) backdoor_key(input, key_return);
         { extern int chezweb_poll(void); chezweb_poll(); }
 		editor_dispatch_key();
+		if (backdoor_on) backdoor_commanded();
 		chez_tester_poll();
 	}
 

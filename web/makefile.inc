@@ -62,11 +62,14 @@ check-browser: browser chezweb
 	node tests/chezweb-grammarly.cjs
 	node tests/chezweb-settings.cjs
 	node tests/chezweb-tab-pick.cjs
+	node tests/chezweb-tab-grant.cjs
 	node tests/chezweb-browser-only.cjs
 	sh tests/run-chezweb-program.sh
 	sh tests/chezweb-native-shell.sh
 	node tests/chezweb-save-native.cjs
 	node tests/chezweb-save-roundtrip.cjs
+	node tests/chezweb-native-update.cjs
+	node tests/chezweb-native-update-page.cjs
 	node tests/chezweb-native.cjs
 run: chezweb
 	./chezweb

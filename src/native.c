@@ -378,6 +378,56 @@ static value_t wrap_fe_command_name(value_t *a, uint32_t n) {
  argcount("fe_command_name", n, 1);
  const char *s = fe_command_name(tofixnum(a[0], "fe_command_name")); return string_from_cstrn((char *)(s ? s : ""), s ? strlen(s) : 0);
 }
+extern void fe_unfold_everywhere(void);
+static value_t wrap_fe_unfold_everywhere(value_t *a, uint32_t n) {
+ argcount("fe_unfold_everywhere", n, 0);
+ fe_unfold_everywhere(); return FL_T;
+}
+extern int fe_fold(long a, long b);
+static value_t wrap_fe_fold(value_t *a, uint32_t n) {
+ argcount("fe_fold", n, 2);
+ return fixnum(fe_fold(tofixnum(a[0], "fe_fold"), tofixnum(a[1], "fe_fold")));
+}
+extern void fe_unfold(long from, long to);
+static value_t wrap_fe_unfold(value_t *a, uint32_t n) {
+ argcount("fe_unfold", n, 2);
+ fe_unfold(tofixnum(a[0], "fe_unfold"), tofixnum(a[1], "fe_unfold")); return FL_T;
+}
+extern long fe_folded_at(long a);
+static value_t wrap_fe_folded_at(value_t *a, uint32_t n) {
+ argcount("fe_folded_at", n, 1);
+ return fixnum(fe_folded_at(tofixnum(a[0], "fe_folded_at")));
+}
+extern int fe_hidden_p(long p);
+static value_t wrap_fe_hidden_p(value_t *a, uint32_t n) {
+ argcount("fe_hidden_p", n, 1);
+ return fixnum(fe_hidden_p(tofixnum(a[0], "fe_hidden_p")));
+}
+extern char * fe_mouse_kind(void);
+static value_t wrap_fe_mouse_kind(value_t *a, uint32_t n) {
+ argcount("fe_mouse_kind", n, 0);
+ const char *s = fe_mouse_kind(); return string_from_cstrn((char *)(s ? s : ""), s ? strlen(s) : 0);
+}
+extern int fe_narrow(long from, long to);
+static value_t wrap_fe_narrow(value_t *a, uint32_t n) {
+ argcount("fe_narrow", n, 2);
+ return fixnum(fe_narrow(tofixnum(a[0], "fe_narrow"), tofixnum(a[1], "fe_narrow")));
+}
+extern void fe_widen(void);
+static value_t wrap_fe_widen(value_t *a, uint32_t n) {
+ argcount("fe_widen", n, 0);
+ fe_widen(); return FL_T;
+}
+extern long fe_narrow_start(void);
+static value_t wrap_fe_narrow_start(value_t *a, uint32_t n) {
+ argcount("fe_narrow_start", n, 0);
+ return fixnum(fe_narrow_start());
+}
+extern long fe_narrow_end(void);
+static value_t wrap_fe_narrow_end(value_t *a, uint32_t n) {
+ argcount("fe_narrow_end", n, 0);
+ return fixnum(fe_narrow_end());
+}
 extern int fe_char_width(long cp);
 static value_t wrap_fe_char_width(value_t *a, uint32_t n) {
  argcount("fe_char_width", n, 1);
@@ -566,6 +616,16 @@ static builtinspec_t editor_builtins[] = {
  {"fe-execute-command", wrap_fe_execute_command},
  {"fe-command-name", wrap_fe_command_name},
  {"fe-backdoor-note", wrap_fe_backdoor_note},
+ {"fe-mouse-kind", wrap_fe_mouse_kind},
+ {"fe-fold", wrap_fe_fold},
+ {"fe-unfold-everywhere", wrap_fe_unfold_everywhere},
+ {"fe-unfold", wrap_fe_unfold},
+ {"fe-folded-at", wrap_fe_folded_at},
+ {"fe-hidden-p", wrap_fe_hidden_p},
+ {"fe-narrow", wrap_fe_narrow},
+ {"fe-widen", wrap_fe_widen},
+ {"fe-narrow-start", wrap_fe_narrow_start},
+ {"fe-narrow-end", wrap_fe_narrow_end},
  {"fe-char-width", wrap_fe_char_width},
  {"fe-message", wrap_fe_message},
  {"fe-clear-message-line", wrap_fe_clear_message_line},

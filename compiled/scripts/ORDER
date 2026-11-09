@@ -39,3 +39,9 @@ compiled/scripts/load-mode.scm
 compiled/scripts/python-mode.scm
 compiled/scripts/nim-mode.scm
 compiled/scripts/modes.scm
+compiled/scripts/narrow.scm
+compiled/scripts/org.scm
+compiled/scripts/org-table.scm
+compiled/scripts/org-babel.scm
+compiled/scripts/org-goto.scm
+compiled/scripts/org-fold.scm

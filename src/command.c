@@ -63,6 +63,7 @@ void left()
 
 	while (0 < curbp->b_point && n-- > 0)
 		--curbp->b_point;
+	if (curbp->b_nfolds) curbp->b_point = fold_skip_backward(curbp, curbp->b_point);
 }
 
 void right()
@@ -71,6 +72,7 @@ void right()
 
 	while ((curbp->b_point < pos(curbp, curbp->b_ebuf)) && n-- > 0)
 		++curbp->b_point;
+	if (curbp->b_nfolds) curbp->b_point = fold_skip_forward(curbp, curbp->b_point);
 }
 
 /* look back 2,3,4 chars and determine utf8 size otherwise default to 1 byte */
@@ -117,6 +119,18 @@ static point_t mouse_old_mark = NOMARK;
 
 /* the id of the mode line button under a pressed mouse button, or -1 */
 static int menu_down_row = -1, menu_down_index = -1;
+
+/* (fe-mouse-kind): the mouse event just read, for a script that reads
+ * keys itself (the Org headings): "press", "release", "drag", "wheel" or
+ * "move" */
+char *fe_mouse_kind(void)
+{
+	int b = mouse_button;
+
+	if (b & 64) return "wheel";
+	if (b & 32) return (b & 3) == 3 ? "move" : "drag";
+	return mouse_release ? "release" : "press";
+}
 
 void editor_mouse_event()
 {

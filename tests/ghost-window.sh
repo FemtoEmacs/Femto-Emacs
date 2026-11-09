@@ -15,6 +15,8 @@ cc=${CC:-cc}
 $cc -O2 tests/pty-keys.c -o "$work/pty" -lutil 2>/dev/null ||
  $cc -O2 tests/pty-keys.c -o "$work/pty"
 mkdir -p "$work/home/.chezemax"
+# one line for each mouse event, in order: the records are counted below
+printf 'repeats keep\nmouse clicks\nwatch none\n' > "$work/home/.chezemax/backdoor-claude.conf"
 { echo 'await-screen [SAVE]'; echo 'keys \exbackdoor-claude\r'; echo 'wait 300'
   i=0; while [ $i -lt 20 ]; do echo 'keys \e[<65;10;5M'; i=$((i+1)); done
   echo 'wait 300'; echo 'keys \e[<0;10;15M'; echo 'keys \e[<0;10;15m'; echo 'wait 300'

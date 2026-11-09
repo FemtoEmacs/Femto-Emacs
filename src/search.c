@@ -84,7 +84,7 @@ void display_search_result(point_t found, int dir, char *prompt, char *search)
 
 point_t search_forward(char *stext)
 {
-	point_t end_p = pos(curbp, curbp->b_ebuf);
+	point_t end_p = visible_end(curbp);     /* narrow.c: not past the part shown */
 	point_t p,pp;
 	char* s;
 
@@ -106,12 +106,13 @@ point_t search_backwards(char *stext)
 {
 	point_t p,pp;
 	char* s;
-	point_t end_p = pos(curbp, curbp->b_ebuf);
+	point_t end_p = visible_end(curbp);
+	point_t start_p = visible_start(curbp);
 
 	if (0 == strlen(stext))
 		return curbp->b_point;
 
-	for (p=curbp->b_point - 1; p >= 0; p--) {
+	for (p=curbp->b_point - 1; p >= start_p; p--) {
 		for (s=stext, pp=p; *s != '\0' && pp < end_p && (unsigned char)*s == *(ptr(curbp, pp)); s++, pp++)
 			;
 

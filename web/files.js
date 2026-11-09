@@ -45,18 +45,35 @@ var ChezwebFiles=(function(){
   Module.browsered.notice('Folder available as '+(base.startsWith(home+'/')?'~'+base.slice(home.length):base)+'/');
   return base;
  }
+ // The folders a typed path names, outermost first: the first COUNT of its
+ // components (all of them if COUNT is omitted).  Below ~ every one may be
+ // granted; elsewhere only those the browser does not already have.
+ function candidates(path,count){
+  var top=path.startsWith(home+'/')?home:'',parts=path.slice(top.length+1).split('/').filter(Boolean),out=[],at=top;
+  if(count!==undefined)parts=parts.slice(0,count);
+  for(var part of parts){at+='/'+part;if(top||!FS.analyzePath(at).exists)out.push(at);}
+  return out;
+ }
+ function shown(path){return path.startsWith(home+'/')?'~'+path.slice(home.length):path;}
+ // Chrome tells a page a folder's name, never where it is.  For a typed path
+ // (~/mysand/chezmoi/or) any folder the path names will do -- mysand or
+ // chezmoi -- and is mapped where the path puts it (~/mysand/chezmoi), so
+ // the next TAB completes inside it instead of asking again.
  async function pickDirectory(requested){
   if(!window.showDirectoryPicker)throw Error('Choose a folder using Google Chrome.');
-  var expected=requested?requested.slice(requested.lastIndexOf('/')+1):'';
-  Module.browsered.notice(expected?'Choose the '+expected+' directory, or use Choose folder to select another.':'Choose any directory you want to use.');
+  var bases=typeof requested==='string'?candidates(requested):requested||[];
+  var names=bases.map(b=>b.slice(b.lastIndexOf('/')+1)).reverse();
+  names=names.filter((n,i)=>names.indexOf(n)===i);
+  var wanted=names.length===1?names[0]:names.slice(0,-1).join(', ')+' or '+names[names.length-1];
+  Module.browsered.notice(names.length?'Choose the '+wanted+' folder, or use Choose folder to select another.':'Choose any directory you want to use.');
   var handle=await window.showDirectoryPicker({id:'chezweb',mode:'readwrite'});
-  if(expected&&handle.name!==expected)throw Error('Select '+expected+' for that path, or use Choose folder / cd --pick to select '+handle.name+'.');
-  return await grant(handle,requested);
+  if(!names.length)return await grant(handle);
+  var base=null;for(var b of bases)if(b.slice(b.lastIndexOf('/')+1)===handle.name)base=b;   // the deepest
+  if(!base)throw Error('That path needs the '+wanted+' folder, not '+handle.name+'. To use '+handle.name+' itself, choose it with Choose folder or cd --pick: it becomes ~/'+handle.name+'/.');
+  return await grant(handle,base);
  }
- async function choose(path,partial,typed){
-  var first=path.slice(home.length+1).split('/')[0];
-  var single=partial&&!typed.endsWith('/')&&path.slice(home.length+1).indexOf('/')<0;
-  if(single||!first){await pickDirectory();}else{await pickDirectory(home+'/'+first);}
+ async function choose(path,bases){
+  await pickDirectory(bases);
   return folderOf(path);
  }
  async function directory(path){
@@ -76,14 +93,17 @@ var ChezwebFiles=(function(){
  }
  async function prepare(typed,partial){
   var path=normalize(typed),folder=folderOf(path);
-  if(!folder){
-   // Browser-internal paths keep ordinary completion. At ~/ the first
-   // Tab grants a local folder; an unknown ~/folder/... requests that root.
-   var root=path.slice(home.length+1).split('/')[0];
-   var tail=path.slice(home.length+1);
-   var knownPrefix=partial&&!typed.endsWith('/')&&FS.readdir(home).some(name=>name.startsWith(root));
-   var missingRoot=path.startsWith(home+'/')&&root&&!FS.analyzePath(home+'/'+root).exists&&(partial||tail.includes('/'))&&!knownPrefix;
-   if((partial&&path===home&&folders.size===0)||missingRoot){folder=await choose(path,partial,typed);}
+  if(!folder&&path===home){
+   // At ~/ the first Tab grants a local folder, whichever the user picks.
+   if(partial&&folders.size===0){await pickDirectory();folder=folderOf(path);}
+  }else if(!folder&&path.startsWith(home+'/')){
+   // Browser-internal paths keep ordinary completion.  A path whose folders
+   // the browser does not have yet asks for one of them; a single unknown
+   // name being completed at ~/ asks for any folder.
+   var parts=path.slice(home.length+1).split('/'),count=typed.endsWith('/')?parts.length:parts.length-1;
+   var bases=candidates(path,count);
+   if(count===0){if(partial&&!FS.readdir(home).some(name=>name.startsWith(parts[0]))){await pickDirectory();folder=folderOf(path);}}
+   else if(bases.some(b=>!FS.analyzePath(b).exists))folder=await choose(path,bases);
   }
   if(!folder)return true;
   var parts=path.slice(folder.base.length).split('/').filter(Boolean),at=folder.base;

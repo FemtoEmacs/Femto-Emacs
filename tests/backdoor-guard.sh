@@ -57,5 +57,6 @@ lines=$(wc -l < "$log")
 (cd "$work"; HOME="$work/home" CHEZEMAX_NO_INIT=1 "$work/pty" "$work/keys2" 60 "$work/screen2" "$root/chezemax" text.txt)
 lines=$(wc -l < "$log")
 [ "$lines" -le 120 ] && [ "$lines" -ge 100 ] || fail "after 300 keys the backdoor kept $lines lines (the cap is 120)"
-grep -q '^backdoor closed' "$log" && ! grep -q '^backdoor opened' "$log" || fail 'the oldest lines were not the ones dropped'
+grep -q '^backdoor closed' "$log" && grep -q '^backdoor opened' "$log" && ! grep -q '^#1 ' "$log" ||
+ fail 'the oldest keys were not the ones dropped, or the header (kept) was'
 echo 'PASS the backdoor records keys and notes, B/D shows, and point inside ç no longer moves the window'

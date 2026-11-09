@@ -18,6 +18,9 @@ point_t pos(buffer_t *b,char_t *p) {
     return p-b->b_buf-(p>=b->b_egap ? b->b_egap-b->b_gap : 0);
 }
 void display(window_t *w,int full){(void)w;(void)full;renders++;}
+/* narrow.c: this buffer is never narrowed */
+point_t visible_start(buffer_t *b){(void)b;return 0;}
+point_t visible_end(buffer_t *b){return pos(b,b->b_ebuf);}
 void dispmsg(void){}
 void msg(char *format,...){(void)format;}
 void display_prompt_and_response(char *p,char *s){(void)p;(void)s;}

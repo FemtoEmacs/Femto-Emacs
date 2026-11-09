@@ -567,6 +567,78 @@ static void b_fe_command_name(bridge_in *in, bridge_out *out)
 	bridge_put_string(out, r);
 }
 
+extern void fe_unfold_everywhere(void);
+static void b_fe_unfold_everywhere(bridge_in *in, bridge_out *out)
+{
+	fe_unfold_everywhere();
+	bridge_put_nothing(out);
+}
+
+extern int fe_fold(long a, long b);
+static void b_fe_fold(bridge_in *in, bridge_out *out)
+{
+	long a1 = (long) bridge_int(in);
+	long a2 = (long) bridge_int(in);
+	bridge_put_int(out, (long) fe_fold(a1, a2));
+}
+
+extern void fe_unfold(long from, long to);
+static void b_fe_unfold(bridge_in *in, bridge_out *out)
+{
+	long a1 = (long) bridge_int(in);
+	long a2 = (long) bridge_int(in);
+	fe_unfold(a1, a2);
+	bridge_put_nothing(out);
+}
+
+extern long fe_folded_at(long a);
+static void b_fe_folded_at(bridge_in *in, bridge_out *out)
+{
+	long a1 = (long) bridge_int(in);
+	bridge_put_int(out, (long) fe_folded_at(a1));
+}
+
+extern int fe_hidden_p(long p);
+static void b_fe_hidden_p(bridge_in *in, bridge_out *out)
+{
+	long a1 = (long) bridge_int(in);
+	bridge_put_int(out, (long) fe_hidden_p(a1));
+}
+
+extern char * fe_mouse_kind(void);
+static void b_fe_mouse_kind(bridge_in *in, bridge_out *out)
+{
+	const char *r = fe_mouse_kind();
+	bridge_put_string(out, r);
+}
+
+extern int fe_narrow(long from, long to);
+static void b_fe_narrow(bridge_in *in, bridge_out *out)
+{
+	long a1 = (long) bridge_int(in);
+	long a2 = (long) bridge_int(in);
+	bridge_put_int(out, (long) fe_narrow(a1, a2));
+}
+
+extern void fe_widen(void);
+static void b_fe_widen(bridge_in *in, bridge_out *out)
+{
+	fe_widen();
+	bridge_put_nothing(out);
+}
+
+extern long fe_narrow_start(void);
+static void b_fe_narrow_start(bridge_in *in, bridge_out *out)
+{
+	bridge_put_int(out, (long) fe_narrow_start());
+}
+
+extern long fe_narrow_end(void);
+static void b_fe_narrow_end(bridge_in *in, bridge_out *out)
+{
+	bridge_put_int(out, (long) fe_narrow_end());
+}
+
 extern int fe_char_width(long cp);
 static void b_fe_char_width(bridge_in *in, bridge_out *out)
 {
@@ -827,6 +899,16 @@ void bridge_register_editor(void)
 	bridge_register("fe-run-c-key", b_fe_run_c_key);
 	bridge_register("fe-execute-command", b_fe_execute_command);
 	bridge_register("fe-command-name", b_fe_command_name);
+	bridge_register("fe-unfold-everywhere", b_fe_unfold_everywhere);
+	bridge_register("fe-fold", b_fe_fold);
+	bridge_register("fe-unfold", b_fe_unfold);
+	bridge_register("fe-folded-at", b_fe_folded_at);
+	bridge_register("fe-hidden-p", b_fe_hidden_p);
+	bridge_register("fe-mouse-kind", b_fe_mouse_kind);
+	bridge_register("fe-narrow", b_fe_narrow);
+	bridge_register("fe-widen", b_fe_widen);
+	bridge_register("fe-narrow-start", b_fe_narrow_start);
+	bridge_register("fe-narrow-end", b_fe_narrow_end);
 	bridge_register("fe-char-width", b_fe_char_width);
 	bridge_register("fe-backdoor-note", b_fe_backdoor_note);
 	bridge_register("fe-message", b_fe_message);

@@ -29,6 +29,10 @@ void buffer_init(buffer_t *bp)
 	bp->b_bname[0] = '\0';
 	bp->b_fname[0] = '\0';
 	bp->b_id = ++buffer_ids;
+	bp->b_narrowed = 0;
+	bp->b_narrow_start = bp->b_narrow_tail = 0;
+	bp->b_folds = NULL;
+	bp->b_nfolds = bp->b_capfolds = 0;
 }
 
 void zero_buffer(buffer_t *bp)
@@ -169,6 +173,7 @@ int delete_buffer(buffer_t *bp)
 	/* now we can delete */
 	record_change(bp, 'r', 0, NULL, 0);
 	free(bp->b_buf);
+	fold_free(bp);
 	free(bp);
 	return TRUE;
 }

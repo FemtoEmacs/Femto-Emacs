@@ -155,8 +155,26 @@ Module.browsered=(function(){
   notice('Saved in temporary browser storage only. Choose folder and Save As to keep this file on disk.',false,true);
   return true;
  }
+ // M-x native-window-update: the text of the buffer C-c d opened goes into
+ // the native buffer, after any save still on its way.  ARG is the
+ // buffer's filename, a newline, then its text.
+ async function nativeUpdate(arg){
+  var cut=arg.indexOf('\n'),file=arg.slice(0,cut),body=arg.slice(cut+1);
+  if(!nativeSave)return 'No native window to update: this browser editor was not opened with C-c d.';
+  if(!file||ChezwebFiles.normalize(file)!==Module.chezwebSessionPath)return 'M-x native-window-update sends the buffer C-c d opened ('+(nativeTarget||Module.chezwebSessionPath)+'): switch to it first (C-x b).';
+  var job=lastSave.then(async()=>{
+   if(ended)return 'The browser editor has closed.';
+   try{
+    var response=await fetch('update',{method:'PUT',headers:{'Content-Type':'application/x-chezweb-text'},body:new TextEncoder().encode(body)});
+    var receipt=await response.text();
+    if(response.ok)nativeRevision=response.headers.get('X-Chezweb-Revision')||nativeRevision;
+    notice(receipt,!response.ok,!response.ok);return receipt;
+   }catch(e){notice(e.message,true);return e.message;}
+  });
+  lastSave=job.then(()=>true);return await job;
+ }
  function notice(s,bad,sticky){var el=document.getElementById('notice');clearTimeout(noticeTimer);el.textContent=s||'';el.title=s||'';el.hidden=!s;el.className=bad?'failure':'';if(s&&!bad&&!sticky)noticeTimer=setTimeout(()=>{el.hidden=true;},4500);}
  Module.preRun=Module.preRun||[];Module.preRun.push(()=>{addRunDependency('chezweb-page');init().then(()=>removeRunDependency('chezweb-page')).catch(e=>{notice(e.message,true);});});
- return {textLayer:json=>ChezwebGrammar.update(json),layerGeometry:()=>({cw,ch,pad,points,cols,top:canvas.getBoundingClientRect().top}),confirmSave,sendText:text,queueScheme:s=>{evals.push(s);push(-2);},isEnded:()=>ended,rows:()=>rows,settings,cols:()=>cols,paint,nextByte:()=>queue.length?Promise.resolve(queue.shift()):new Promise(r=>{waiter=r;}),takeEval:()=>evals.length?evals.shift():null,flushInput:()=>{queue=[];},copy:s=>navigator.clipboard.writeText(s).catch(()=>{}),paste:async()=>{try{return await navigator.clipboard.readText();}catch(_){return null;}},font:(f,p)=>{if(p>0)points=p;layout();},setOption:()=>{},ended:end,notice};
+ return {nativeUpdate,textLayer:json=>ChezwebGrammar.update(json),layerGeometry:()=>({cw,ch,pad,points,cols,top:canvas.getBoundingClientRect().top}),confirmSave,sendText:text,queueScheme:s=>{evals.push(s);push(-2);},isEnded:()=>ended,rows:()=>rows,settings,cols:()=>cols,paint,nextByte:()=>queue.length?Promise.resolve(queue.shift()):new Promise(r=>{waiter=r;}),takeEval:()=>evals.length?evals.shift():null,flushInput:()=>{queue=[];},copy:s=>navigator.clipboard.writeText(s).catch(()=>{}),paste:async()=>{try{return await navigator.clipboard.readText();}catch(_){return null;}},font:(f,p)=>{if(p>0)points=p;layout();},setOption:()=>{},ended:end,notice};
 })();
 Module.onAbort=e=>Module.browsered.notice('Chezweb failed: '+e,true);

@@ -252,7 +252,7 @@ endif
 check-navigation:
 	@set -eu; work=$$(mktemp -d "$${TMPDIR:-/tmp}/chezweb-navigation.XXXXXX"); \
 	  trap 'rm -rf "$$work"' EXIT HUP INT TERM; \
-	  $(CC) $(CFLAGS) $(NAV_TEST_CFLAGS) -Isrc tests/unwrapped-navigation.c src/display.c src/width.c $(NAV_TEST_LDFLAGS) -o "$$work/check"; \
+	  $(CC) $(CFLAGS) $(NAV_TEST_CFLAGS) -Isrc tests/unwrapped-navigation.c src/display.c src/width.c src/narrow.c src/fold.c $(NAV_TEST_LDFLAGS) -o "$$work/check"; \
 	  "$$work/check"
 check: check-navigation
 
@@ -261,7 +261,7 @@ check-utf8-input:
 	@set -eu; work=$$(mktemp -d "$${TMPDIR:-/tmp}/chezweb-utf8-input.XXXXXX"); \
 	  trap 'rm -rf "$$work"' EXIT HUP INT TERM; \
 	  $(CC) $(CFLAGS) $(NAV_TEST_CFLAGS) -Isrc -Deditor_mouse_event=input_test_mouse -DkeyboardDefinition=input_test_undefined -c src/key.c -o "$$work/key.o"; \
-	  $(CC) $(CFLAGS) $(NAV_TEST_CFLAGS) -Isrc tests/utf8-input.c "$$work/key.o" src/command.c src/gap.c src/display.c src/width.c src/buffer.c $(NAV_TEST_LDFLAGS) -o "$$work/check"; \
+	  $(CC) $(CFLAGS) $(NAV_TEST_CFLAGS) -Isrc tests/utf8-input.c "$$work/key.o" src/command.c src/gap.c src/display.c src/width.c src/buffer.c src/narrow.c src/fold.c $(NAV_TEST_LDFLAGS) -o "$$work/check"; \
 	  "$$work/check"
 check: check-utf8-input
 
@@ -294,6 +294,26 @@ check: check-char-width
 check-backdoor-guard: chezemax chezemax.wasm chezemax.cwasm
 	sh tests/backdoor-guard.sh
 check: check-backdoor-guard
+.PHONY: check-backdoor-config
+check-backdoor-config: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/backdoor-config.sh
+check: check-backdoor-config
+.PHONY: check-yank-window
+check-yank-window: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/yank-window.sh
+check: check-yank-window
+.PHONY: check-org-mode
+check-org-mode: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/org-mode.sh
+check: check-org-mode
+.PHONY: check-org-goto
+check-org-goto: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/org-goto.sh
+check: check-org-goto
+.PHONY: check-org-fold
+check-org-fold: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/org-fold.sh
+check: check-org-fold
 
 .PHONY: check-markdown-blank-newline
 check-markdown-blank-newline: chezemax chezemax.wasm chezemax.cwasm

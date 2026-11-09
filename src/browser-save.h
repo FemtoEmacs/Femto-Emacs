@@ -42,11 +42,29 @@ static int live_source(void)
  for(buffer_t *b=bheadp;b;b=b->b_next)if(b==source&&b->b_id==source_id)return 1;
  return 0;
 }
-static int source_unchanged(const char *text,size_t len)
+/* Why the browser's text may not go into the native buffer now, or NULL */
+enum {SOURCE_OK,SOURCE_CLOSED,SOURCE_RENAMED,SOURCE_READONLY,SOURCE_EDITED};
+static int source_problem(const char *text,size_t len)
 {
- if(!live_source()||strcmp(source->b_fname,source_name)||(source->b_flags&B_READONLY))return 0;
+ if(!live_source())return SOURCE_CLOSED;
+ if(strcmp(source->b_fname,source_name))return SOURCE_RENAMED;
+ if(source->b_flags&B_READONLY)return SOURCE_READONLY;
  size_t n;char *now=snapshot(source,&n);
- int ok=now&&(same_text(now,n,baseline,baseline_len)||same_text(now,n,text,len));free(now);return ok;
+ int ok=now&&(same_text(now,n,baseline,baseline_len)||same_text(now,n,text,len));free(now);
+ return ok?SOURCE_OK:SOURCE_EDITED;
+}
+static int source_unchanged(const char *text,size_t len){return source_problem(text,len)==SOURCE_OK;}
+/* What a refused browser save tells you, in both windows */
+static void problem_message(int problem,char *message,size_t size)
+{
+ const char *keep="Your text is kept in both windows (here and in a *web-* buffer of the native window).";
+ if(problem==SOURCE_READONLY)
+  snprintf(message,size,"Not saved: the native buffer is read-only. %s C-x C-q in the native window makes it writable; then C-x C-s here saves.",keep);
+ else if(problem==SOURCE_EDITED)
+  snprintf(message,size,"Not saved: the native buffer was edited after C-c d. %s M-x native-window-update puts your text in the native buffer (its edits go to a *native-* buffer); then C-x C-s saves.",keep);
+ else
+  snprintf(message,size,"Not saved: the native buffer was %s. %s M-x native-window-update opens the file again in the native window with your text; then C-x C-s saves.",
+	   problem==SOURCE_CLOSED?"closed":"saved under another name",keep);
 }
 static int replace_source(const char *text,size_t len)
 {
@@ -148,23 +166,69 @@ static void save_reply(unsigned long long id,int code,const char *message)
  int ok=fprintf(f,"%llu\n%d\n%llu\n%s",id,code,save_revision,message)>0;if(fclose(f))ok=0;
  if(ok)rename(temp,path);else unlink(temp);
 }
+/* TEXT in a new buffer *native-N*, kept out of the way: no window shows it */
+static void keep_native_copy(const char *text,size_t len,char *name,size_t size)
+{
+ static unsigned serial;
+ char bname[NBUFN];
+ do{snprintf(bname,sizeof bname,"*native-%u*",++serial);}while(find_buffer(bname,FALSE));
+ buffer_t *bp=find_buffer(bname,TRUE),*old=curbp;
+ snprintf(name,size,"%s",bp?bname:"");
+ if(!bp)return;
+ curbp=bp;fe_insert_bytes(0,(char*)text,(long)len);bp->b_flags|=B_MODIFIED;bp->b_point=0;curbp=old;
+}
+/* M-x native-window-update in the browser: its text replaces the native
+ * buffer's, which needs no save to be safe -- nothing is written to disk.
+ * A closed (or renamed) source is opened again from its file; native text
+ * that is neither the browser's nor on disk goes to *native-N* first.  A
+ * read-only buffer stays as it is: that was the user's choice. */
+static int update_native(const char *text,size_t len,char *message,size_t size)
+{
+ if(!*source_path){snprintf(message,size,"Not updated: the native buffer has no file. Save it there first (C-x C-s), then C-c d.");return 422;}
+ int problem=source_problem(text,len);
+ if(problem==SOURCE_CLOSED||problem==SOURCE_RENAMED){
+  /* the file opened again (or the buffer that visits it now), as C-x C-f does */
+  buffer_t *bp=find_buffer_by_fname(source_name);
+  if(!bp){snprintf(message,size,"Not updated: the native window cannot open %s again.",source_path);return 500;}
+  disassociate_b(curwp);curbp=bp;associate_b2w(bp,curwp);
+  if(!bp->b_fname[0]){(void)load_file(source_name);safe_strncpy(bp->b_fname,source_name,NAME_MAX);}
+  source=bp;source_id=bp->b_id;
+ }
+ if(source->b_flags&B_READONLY){snprintf(message,size,"Not updated: the native buffer is read-only. C-x C-q in the native window makes it writable; then M-x native-window-update again.");return 409;}
+ char kept[NBUFN]="";size_t n;char *now=snapshot(source,&n);
+ if(!now){snprintf(message,size,"Not updated: cannot read the native buffer.");return 500;}
+ if(!same_text(now,n,text,len)){
+  char *disk;size_t dlen;int exists,on_disk=read_disk(save_path,&disk,&dlen,&exists)&&exists&&same_text(now,n,disk,dlen);
+  free(disk);if(!on_disk)keep_native_copy(now,n,kept,sizeof kept);
+ }
+ free(now);
+ if(!prepare_source_import(len)||!replace_source(text,len)){snprintf(message,size,"Not updated: the native buffer could not take the browser text.");return 500;}
+ remember_browser_text(text,len);
+ int disk_changed=disk_known&&!disk_matches();
+ snprintf(message,size,"Native buffer updated from the browser%s%s. %s",
+	  *kept?"; its own text is in ":"",kept,
+	  disk_changed?"The file changed on disk since C-c d: C-x C-s in the native window decides which version it keeps.":"C-x C-s in either window saves the file.");
+ return 200;
+}
 static int process_save_request(void)
 {
  char path[8192],incoming[8192];snprintf(path,sizeof path,"%s/save.pending",session);snprintf(incoming,sizeof incoming,"%s/save.incoming",session);
  if(rename(path,incoming))return 0;
  FILE *f=fopen(incoming,"rb");if(!f){unlink(incoming);return 0;}
- char line[64];unsigned long long id,revision;char tail;
+ char line[64];unsigned long long id,revision=0;char tail;
  if(!fgets(line,sizeof line,f)||sscanf(line,"%llu %c",&id,&tail)!=1||
-    !fgets(line,sizeof line,f)||sscanf(line,"%llu %c",&revision,&tail)!=1){fclose(f);unlink(incoming);return 0;}
+    !fgets(line,sizeof line,f)||(sscanf(line,"%llu %c",&revision,&tail)!=1&&strcmp(line,"update\n"))){fclose(f);unlink(incoming);return 0;}
+ int update=!strcmp(line,"update\n");
  long offset=ftell(f);fseek(f,0,SEEK_END);long length=ftell(f)-offset;
  if(length<0||length>BROWSER_FILE_LIMIT){fclose(f);unlink(incoming);save_reply(id,413,"File exceeds the browser save limit.");return 1;}
  fseek(f,offset,SEEK_SET);char *text=malloc((size_t)length+1);
  int ok=text&&fread(text,1,(size_t)length,f)==(size_t)length;if(fclose(f))ok=0;
  unlink(incoming);if(!ok){free(text);save_reply(id,500,"Cannot read the browser save request.");return 1;}
  text[length]=0;int code=500;char message[4608],resolved[4096];
- if(!*source_path){code=422;snprintf(message,sizeof message,"Choose a filename with Save As in a granted browser folder, or save the native buffer first.");}
+ if(update){code=update_native(text,(size_t)length,message,sizeof message);fe_message(message);}
+ else if(!*source_path){code=422;snprintf(message,sizeof message,"Choose a filename with Save As in a granted browser folder, or save the native buffer first.");}
  else if(!source_unchanged(text,(size_t)length)){
-  code=409;snprintf(message,sizeof message,"Not saved: the native buffer changed, was closed, or is read-only. Browser text is preserved in both windows.");
+  code=409;problem_message(source_problem(text,(size_t)length),message,sizeof message);
   keep_conflict(text,(size_t)length,message);
  }else if(revision!=save_revision && !(same_text(text,(size_t)length,baseline,baseline_len)&&disk_known&&disk_matches())){
   code=409;snprintf(message,sizeof message,"Not saved: a newer document version exists. Your browser text is preserved; reopen the file before merging.");

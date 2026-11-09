@@ -123,6 +123,8 @@ typedef struct undo_t {
 
 
 
+typedef struct fold_t { point_t a, b; } fold_t;   /* fold.c: [a, b] hidden */
+
 typedef struct buffer_t
 {
 	struct buffer_t *b_next;  /* Link to next buffer_t */
@@ -149,6 +151,11 @@ typedef struct buffer_t
 	buffer_flags_t b_flags;   /* buffer flags */
 	undo_t b_ubuf;            /* undoset */
 	long b_id;                /* unique, never reused: undo history is kept by id */
+	int b_narrowed;           /* narrow.c: only a part is shown and edited */
+	point_t b_narrow_start;   /*   its first byte */
+	point_t b_narrow_tail;    /*   the bytes after its end */
+	fold_t *b_folds;          /* fold.c: Org's folded headings */
+	int b_nfolds, b_capfolds;
 } buffer_t;
 
 typedef struct window_t
@@ -316,8 +323,26 @@ extern void insert(void);
 extern void paste(void);
 extern void paste_bracketed(void);
 /* backdoor.c: M-x backdoor-claude / backdoor-codex (B/D on the mode line) */
+/* narrow.c: C-x n n, C-x n s, C-x n w */
+extern point_t visible_start(buffer_t *);
+extern point_t visible_end(buffer_t *);
+extern void narrow_clamp(buffer_t *);
+/* fold.c: hidden text (Org's TAB) */
+extern int fold_hidden(buffer_t *, point_t);
+extern point_t fold_skip_forward(buffer_t *, point_t);
+extern point_t fold_skip_backward(buffer_t *, point_t);
+extern point_t fold_end_at(buffer_t *, point_t);
+extern void fold_reveal(buffer_t *, point_t);
+extern void fold_change(buffer_t *, int, point_t, long);
+extern void fold_free(buffer_t *);
 extern int backdoor_on;
+extern int backdoor_watch;              /* what its configuration follows */
+#define BACKDOOR_PAGE  1
+#define BACKDOOR_POINT 2
+#define BACKDOOR_MARK  4
 extern void backdoor_note(const char *, ...);
+extern void backdoor_commanded(void);
+extern void (*bridge_around_call)(const char *, int);   /* bridge.c */
 extern void backdoor_key(char_t *, keymap_t *);
 extern void backdoor_shown(void);
 extern void backdoor_refresh(void);
