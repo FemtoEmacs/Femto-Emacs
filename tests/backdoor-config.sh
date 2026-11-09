@@ -81,10 +81,10 @@ keys \e:(goto-char 30)\r
 wait 300
 keys \exbackdoor-claude\r
 wait 1500
-keys ^X^C
+keys ^X^Cy
 KEYS
 rm -f "$log"
-run "$work/keys" || true      # the buffer was changed: C-x C-c asks, the run times out
+run "$work/keys"      # the buffer was changed: C-x C-c asks, y answers
 grep -q '^options (backdoor-claude.conf): mouse all, repeats collapse, watch page point mark, text 20, time on, alloc on$' "$log" ||
  fail 'the configuration was not read'
 grep -q '^not understood in backdoor-claude.conf: line 8: "colour" not understood;$' "$log" || fail 'the unknown option was not reported'

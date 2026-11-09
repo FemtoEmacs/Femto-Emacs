@@ -39,9 +39,9 @@ keys ^Y
 wait 300
 keys \exbackdoor-claude\r
 wait 1500
-keys ^X^C
+keys ^X^Cy
 KEYS
-(cd "$work"; HOME="$work/home" CHEZEMAX_NO_INIT=1 "$work/pty" "$work/keys" 60 "$work/screen" "$root/chezemax" text.md) || true
+(cd "$work"; HOME="$work/home" CHEZEMAX_NO_INIT=1 "$work/pty" "$work/keys" 60 "$work/screen" "$root/chezemax" text.md)
 before=$(sed -n 's/^#[0-9]* C-e .*page=\([0-9]*\) cur=\([0-9]*\),.*/\1 \2/p' "$log" | tail -n 1)
 after=$(sed -n 's/^#[0-9]* C-y .*page=\([0-9]*\) cur=\([0-9]*\),.*/\1 \2/p' "$log")
 [ -n "$before" ] && [ -n "$after" ] || fail 'no record of C-e and C-y'
