@@ -1058,3 +1058,38 @@ Eduardo copied the log of run #86 (step 8):
 browser tests pass. `femtoscheme/print.c` is also built into the browser
 bundle, so the bundle must be rebuilt (`make browser-rebuild`) before the
 commit.
+
+## November 10, 2026. macOS Intel: the read-mode test ran out of time (Claude)
+
+Run #87 (beb5440) passed everywhere but on macOS Intel. The femtoscheme
+repair held: the run got past `run-scripts.sh` and failed 33 minutes in,
+in `tests/run-read-mode.sh`:
+
+    Timed out: await-screen (CUMULATIVE-BATCH 3 3600)
+
+- **The test:** it scrolls a 1829-line wrapped Markdown file four times
+  with RET in Vim and READ modes, 16,000 keys in one editor process,
+  within 600 seconds. The runner was in pass 3 when the time ran out.
+- **My part, measured here (same machine, the test's own script):**
+  - the editor before this week's display changes: 308 s;
+  - after them (beb5440): 438 s, 42% slower;
+  - with the repair below: 316 s.
+- **The cause:** Complaint 2's repair (`point_on_page`, display.c) counts
+  the rows of the page whenever point is at or past the page's end as
+  last drawn, to catch an end made stale by an edit. Scrolling with RET
+  puts point there at every key, and in a wrapped file each row counted
+  asks the Markdown script where the row ends.
+- **The repair:**
+  - a buffer counts its changes (`b_changes`): text through
+    `record_change`, folds, narrowing;
+  - the display notes the count when it draws the page (`b_drawn`);
+  - when nothing has changed since, the page's end as drawn is right,
+    and the display decides as before Complaint 2;
+  - only after a change does it count the rows.
+- **The test's budget:** 900 s instead of 600 for this cumulative run;
+  GitHub's macOS Intel runner is the slowest of the four.
+- **Evidence:** `make`, `make check` (with `yank-window.sh`,
+  `ghost-window.sh`, `org-fold.sh`, `org-goto.sh` and the read-mode test),
+  `make check-ui`, `make check-selfhost` and the browser tests pass. The
+  browser bundle must be rebuilt (`make browser-rebuild`), then `make`,
+  before the commit.

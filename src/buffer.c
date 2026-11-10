@@ -33,6 +33,7 @@ void buffer_init(buffer_t *bp)
 	bp->b_narrow_start = bp->b_narrow_tail = 0;
 	bp->b_folds = NULL;
 	bp->b_nfolds = bp->b_capfolds = 0;
+	bp->b_changes = bp->b_drawn = 0;
 }
 
 void zero_buffer(buffer_t *bp)

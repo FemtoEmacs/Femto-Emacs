@@ -78,6 +78,7 @@ point_t fold_end_at(buffer_t *bp, point_t p)
 
 static void remove_fold(buffer_t *bp, int k)
 {
+	bp->b_changes++;                        /* display.c: rows changed */
 	bp->b_folds[k] = bp->b_folds[--bp->b_nfolds];
 	if (bp->b_nfolds == 0) {
 		free(bp->b_folds);
@@ -134,6 +135,7 @@ int fe_fold(long a, long b)
 		curbp->b_folds = f;
 		curbp->b_capfolds = cap;
 	}
+	curbp->b_changes++;
 	curbp->b_folds[curbp->b_nfolds].a = (point_t) a;
 	curbp->b_folds[curbp->b_nfolds].b = (point_t) b;
 	curbp->b_nfolds++;

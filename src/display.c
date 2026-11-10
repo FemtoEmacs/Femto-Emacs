@@ -434,7 +434,13 @@ again:
 	 * end of the text, that end on the page -- a click below the text of
 	 * a window scrolled past it (the ghost window of 8 November 2026) --
 	 * keeps the window as it is, as in Emacs */
-	if (bp->b_epage <= bp->b_point && !point_on_page(bp, wp->w_rows)) {
+	if (bp->b_epage <= bp->b_point &&
+	    (bp->b_changes == bp->b_drawn
+	     /* nothing changed since b_epage was drawn: it is right, and
+	      * only the end of the text on the page keeps the window */
+	     ? !(bp->b_point == vend && end_on_page(bp, wp->w_rows))
+	     /* it may be stale: count the rows (Complaint 2) */
+	     : !point_on_page(bp, wp->w_rows))) {
 		/* Find end of screen plus one. */
 		bp->b_page = dndn(bp, bp->b_point);
 		/* if we scoll to EOF we show 1 blank line at bottom of screen */
@@ -593,6 +599,7 @@ again:
 		j = 0; /* thereafter start of line */
 	}
 
+	bp->b_drawn = bp->b_changes;    /* b_epage is now this text's */
 	b2w(wp); /* save buffer stuff on window */
 	modeline(wp);
 	if (wp == curwp && flag) {

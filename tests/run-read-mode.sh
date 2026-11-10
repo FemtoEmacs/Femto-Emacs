@@ -114,7 +114,9 @@ cp "$work/cumulative.md" "$work/cumulative.original"
 } > "$work/keys"
 # 16,000 keys at this runner's 2 ms delay take at least 32 seconds,
 # plus rendering and per-pass evaluations; retain a generous overall budget.
-CHEZEMAX_NO_INIT=1 "$work/pty" "$work/keys" 600 "$work/screen" ./chezemax "$work/cumulative.md"
+# 900 s: GitHub's macOS Intel runner ran out of 600 at pass 3 (run #87,
+# 10 November 2026); here the whole run takes about 310 s.
+CHEZEMAX_NO_INIT=1 "$work/pty" "$work/keys" 900 "$work/screen" ./chezemax "$work/cumulative.md"
 if grep -aq 'Compiled Scheme.*error\|heap out of memory' "$work/screen"; then echo 'FAIL cumulative scrolling hook error';exit 1;fi
 cmp "$work/cumulative.md" "$work/cumulative.original"
 echo 'PASS four wrapped-file traversals and Vim/READ switches in one process'

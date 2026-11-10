@@ -62,6 +62,7 @@ int fe_narrow(long from, long to)
 	if (from < 0) from = 0;
 	if (to > size) to = size;
 	if (from >= to) return 0;
+	curbp->b_changes++;
 	curbp->b_narrowed = 1;
 	curbp->b_narrow_start = (point_t) from;
 	curbp->b_narrow_tail = size - (point_t) to;
@@ -73,6 +74,7 @@ int fe_narrow(long from, long to)
 /* (fe-widen): all the text again */
 void fe_widen(void)
 {
+	curbp->b_changes++;
 	curbp->b_narrowed = 0;
 	curbp->b_narrow_start = curbp->b_narrow_tail = 0;
 }

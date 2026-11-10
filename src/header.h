@@ -156,6 +156,8 @@ typedef struct buffer_t
 	point_t b_narrow_tail;    /*   the bytes after its end */
 	fold_t *b_folds;          /* fold.c: Org's folded headings */
 	int b_nfolds, b_capfolds;
+	unsigned long b_changes;  /* text, folds or narrowing changed (counted) */
+	unsigned long b_drawn;    /*   b_changes when b_epage was last drawn */
 } buffer_t;
 
 typedef struct window_t
