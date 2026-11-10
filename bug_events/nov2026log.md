@@ -1002,3 +1002,59 @@ could already have refused them.
 browser tests pass (`chezweb-read-mode.cjs` not run: it stops at L.640 in
 my environment). The browser bundle must be rebuilt: `make
 browser-rebuild`, then `make`.
+
+## November 10, 2026. The Portable build on GitHub: macOS (Claude)
+
+The push of 0c0adec (run #85) failed on macOS, and 3160e0d (run #86) did
+too.
+
+### 1. macOS Apple Silicon ran out of time
+
+The tests took 25-28 minutes on GitHub's runners, and the limit of a job
+was 35. Run #85 was cancelled at 35.
+
+- **My part:** two of my tests (`tests/yank-window.sh` and
+  `tests/backdoor-config.sh`) quit a modified buffer. C-x C-c asked "really
+  exit?", and each run waited out its 60-second timeout, three times in all.
+  They answer y now (3160e0d): 120 s became 14 s and 72 s became 20 s here.
+- **In run #86,** Apple Silicon passed in 28.5 minutes.
+- **The limit:** `.github/workflows/build.yml` now allows 50 minutes a job.
+
+### 2. macOS Intel: a test failed, in run #84 already
+
+Eduardo copied the log of run #86 (step 8):
+
+    FAIL the compiled scripts differ from femtoscheme's (< femtoscheme, > compiled):
+    73c73
+    < #0="C: statement after if" 8
+    ---
+    > "C: statement after if" 8
+
+- **Where:** `tests/run-scripts.sh` writes each case's name and value in
+  both runtimes and compares them.
+- **What went wrong:** femtoscheme wrote a lone string with a label `#0=`,
+  as if it were shared.
+- **Where the label comes from (`femtoscheme/print.c`):**
+  - before writing, `print_traverse` marks each object it meets in
+    `consflags`, a bit for each cell of the heap, and gives a label to
+    an object met twice;
+  - writing clears the marks of what it writes, and the table of
+    labels is emptied after writing a list or a vector -- not after a
+    string, a number or a symbol.
+  - So a bit left set by an earlier write (one that stopped half-way,
+    or a cell the collector has given to another object since) labels
+    whatever later sits in that cell.
+- **Why only macOS Intel:** where objects land depends on the platform's
+  allocator. That is why only this runner, run after run, met it, and why
+  Linux and my workspace never do.
+- **Repair:** every write that looks for shared objects now starts with
+  no mark and an empty table of labels. The cost is clearing
+  heapsize/128 bytes, under a kilobyte for femtoscheme's starting heap.
+- **Evidence, honestly limited:** I could not reproduce it on Linux,
+  where `make check` passed before and passes after. The proof is the
+  next run on macOS Intel.
+
+`make`, `make check`, `make check-ui`, `make check-selfhost` and the
+browser tests pass. `femtoscheme/print.c` is also built into the browser
+bundle, so the bundle must be rebuilt (`make browser-rebuild`) before the
+commit.

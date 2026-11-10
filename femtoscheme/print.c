@@ -856,7 +856,16 @@ void fl_print(ios_t *f, value_t v)
     P_LEVEL = 0;
 
     printlabel = 0;
-    if (!print_princ) print_traverse(v);
+    if (!print_princ) {
+        /* No mark or label left from an earlier print: the bits of
+           consflags are by heap cell, and one left set (a print that
+           stopped half-way, a cell reused since) made a string written
+           alone come out as #0="..." -- tests/run-scripts.sh on macOS
+           Intel, November 2026.  The cost: heapsize/128 bytes set to 0. */
+        memset(consflags, 0, 4*bitvector_nwords(heapsize/sizeof(cons_t)));
+        htable_reset(&printconses, 32);
+        print_traverse(v);
+    }
     HPOS = VPOS = 0;
 
     fl_print_child(f, v);
