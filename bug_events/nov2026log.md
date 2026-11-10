@@ -1148,3 +1148,43 @@ gksrmf dkssudgktpdy, ekfrdl rkffk, dho tnldj dmlxk, ekfrk, Rhc Wkek zz b,
 rkqt aksgdk 3roa, rkf DEL r, gks DEL DEL h; the saved file is 한글 안녕하세요
 / 닭이 갈라 / 왜 쉬어 의타 / 달가 / 꽃 짜다 ㅋㅋ ㅠ / 값 많아 3갬 / 각 호.
 `tests/chezweb-korean.cjs` (in `make check-browser`) types in Chrome.
+
+## November 10, 2026. Export to LaTeX from Org and Markdown (Claude)
+
+M-x latex-export, in an Org or a Markdown buffer, writes the LaTeX beside
+the file (paper.md -> paper.tex), asking first if that file exists, and
+opens it. In Org, C-c C-e l l does the same, as in Emacs (C-c C-e, then
+l l; C-c C-e is an Org key in .org files only). Choices (Eduardo): the
+.tex beside the file; XeLaTeX; code as verbatim; math passes through.
+
+- Text: fontspec, so Unicode goes through as typed. With Greek in the
+  text, the main font is Libertinus (TeX Live; Latin Modern has no
+  Greek); with Hangul, kotex; with Chinese characters, xeCJK.
+- Headings: Org * to *****, Markdown # to ######; Org's #+TITLE, #+AUTHOR,
+  #+DATE; in Markdown a single # heading on the first line is the title.
+  Org's TODO/DONE in type, tags dropped.
+- Inline: Org *bold* /italic/ _underline_ =verbatim= ~code~ +strike+
+  and [[url][text]], [[file.png]]; Markdown **bold** *em* `code`
+  ~~strike~~, [text](url), <url>, ![alt](file.png). Special characters
+  are escaped.
+- Math: $...$ (on one line, opening before no blank, closing after no
+  blank and before no digit: US$5 and $6 stay money), $$...$$, \(...\),
+  \[...\] and \begin{...}...\end{...} go through untouched.
+- Blocks: lists (nested by indentation; Org check boxes and term ::
+  lists), fenced code, #+BEGIN_SRC/EXAMPLE and ": " lines (verbatim),
+  quotes, | tables (booktabs; numeric columns right-aligned; Markdown's
+  :--: alignments), Org sexp tables (formulas computed by org-table.scm,
+  Title: as the caption), rules, #+LATEX: and #+BEGIN_EXPORT latex.
+- Left out: Org comments, drawers, other #+ lines; HTML comments.
+
+No burden: one script (compiled/scripts/latex-export.scm); nothing runs
+until the command.
+
+Evidence: tests/latex-export.sh (in make check) exports a .md and a .org
+in a PTY (M-x latex-export, then again with n and y at the replace
+question, C-c C-e l l, a .txt refused), checks the .tex lines, and
+compiles both with xelatex when it is installed (TeX Live 2023: they
+compile, no missing characters). tests/chezweb-latex-export.cjs (make
+check-browser) exports in Chrome: paper.tex is created in the granted
+folder. LuaLaTeX could not be tried here (its fonts do not load in this
+TeX Live, even for an empty document), so the .tex says xelatex.

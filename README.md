@@ -483,6 +483,17 @@ command. She can press and release the `Esc` key, then strike the κ
 key. Alternatively, she can keep the `Alt` key down and press the `κ`
 key.
 
+## Exporting to LaTeX
+**M-x latex-export**, in an Org or a Markdown file, writes the LaTeX
+beside it (`paper.md` gives `paper.tex`) and opens it; if that file
+exists, Chezweb asks before replacing it. In Org, **C-c C-e l l** does
+the same, as in Emacs. Compile the result with `xelatex paper.tex`.
+Headings, emphasis, links, images, lists, quotes, code blocks, tables
+(sexp tables too, with their formulas computed) and Org's title, author
+and date are exported. Math (`$...$`, `$$...$$`, `\(...\)`, `\[...\]`,
+`\begin{equation}`) goes through untouched, and Greek, Korean and
+Chinese get fonts that have them.
+
 ## Korean text input
 **M-x korean-input** turns on the standard Korean keyboard (2-set,
 두벌식); the same command turns it off. The mode line shows 한. You type

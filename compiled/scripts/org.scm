@@ -382,6 +382,7 @@ the heading above (one star when there is none)."
         (cons "C-c C-f" (lambda () (org-forward-same-level)))
         (cons "C-c C-b" (lambda () (org-backward-same-level)))
         (cons "C-c C-u" (lambda () (org-up-heading)))
+        (cons "C-c C-e" (lambda () (org-export-dispatch)))     ; latex-export.scm
         (cons "esc C-m" org-meta-return)        ; M-RET
         (cons "esc C-j" org-meta-return)))      ; M-RET, as terminals send it
 

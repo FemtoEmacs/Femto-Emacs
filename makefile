@@ -280,6 +280,11 @@ check-korean-input: chezemax chezemax.wasm chezemax.cwasm
 	sh tests/korean-input.sh
 check: check-korean-input
 
+.PHONY: check-latex-export
+check-latex-export: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/latex-export.sh
+check: check-latex-export
+
 .PHONY: check-ghost-window
 check-ghost-window: chezemax chezemax.wasm chezemax.cwasm
 	sh tests/ghost-window.sh

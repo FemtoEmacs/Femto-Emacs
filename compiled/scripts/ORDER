@@ -46,3 +46,4 @@ compiled/scripts/org-table.scm
 compiled/scripts/org-babel.scm
 compiled/scripts/org-goto.scm
 compiled/scripts/org-fold.scm
+compiled/scripts/latex-export.scm
