@@ -1093,3 +1093,15 @@ in `tests/run-read-mode.sh`:
   `make check-ui`, `make check-selfhost` and the browser tests pass. The
   browser bundle must be rebuilt (`make browser-rebuild`), then `make`,
   before the commit.
+
+## November 10, 2026. M-q in an Org file: "M-q fills comments and text, not code"
+
+Eduardo pressed M-q on a paragraph of orgmode/orgmode.org and got "M-q
+fills comments and text, not code". fill-paragraph (compiled/scripts/
+emacs-keys.scm) took only TeX and Markdown for text; an Org file has a
+language (for its colours), so it was taken for code. Now Org is text:
+M-q refills its paragraphs, a heading of any level (stars from the first
+column, then a blank) ends a paragraph, and on a heading or inside a
+#+BEGIN_ ... #+END_ block (a table, code) M-q says "Headings, tables and
+code are not refilled" (org-fill-refused?, compiled/scripts/org.scm).
+Test: tests/org-mode.sh, section 3, on a disposable file.

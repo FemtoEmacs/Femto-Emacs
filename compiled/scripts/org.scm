@@ -252,6 +252,23 @@ names ending in : (Title:)."
         (org-paint! colors from to +string+))))
 
 ;;; ------------------------------------------------------------------
+;;; M-q (emacs-keys.scm) refills Org's prose, not its headings or blocks
+;;; ------------------------------------------------------------------
+
+(define (org-fill-refused? ls)
+  "Is the line at LS an Org heading, or inside a #+BEGIN_ ... #+END_
+block (a table, code)?  Then M-q leaves it alone."
+  (and (org-buffer-p)
+       (let ((text (org-buffer-bytes)))
+         (or (and (org-heading-level text ls (org-line-end text ls)) #t)
+             (let up ((p ls))
+               (and (> p 0)
+                    (let* ((s (org-line-start text (- p 1))) (e (org-line-end text s)))
+                      (cond ((org-keyword-line? text s e "#+END_") #f)
+                            ((org-keyword-line? text s e "#+BEGIN_") #t)
+                            (else (up s))))))))))
+
+;;; ------------------------------------------------------------------
 ;;; Headings: M-RET and C-c C-t
 ;;; ------------------------------------------------------------------
 

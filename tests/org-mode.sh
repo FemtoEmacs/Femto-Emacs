@@ -193,3 +193,49 @@ grep -q 'Tangled 1 block to fib.scm' "$work/screen" || fail 'the tangle message'
 grep -q 'C-c C-c is not bound' "$work/screen" && grep -q 'C-c C-t is not bound' "$work/screen" || fail 'outside Org, the keys must be unbound'
 [ "$(cat "$work/plain.txt")" = 'plain text' ] || fail 'plain.txt changed'
 echo 'PASS C-c C-t, M-RET, C-c C-c (formulas, alignment), C-c C-v t; off: the keys do nothing; plain.txt untouched'
+
+# 3. M-q refills Org prose (Org is text), stops at a heading of any level,
+# and leaves headings and #+BEGIN_ blocks alone
+cat > "$work/fill.org" <<'ORG'
+* Notes
+** Header index
+If you type C-c C-j, this window will
+be reduced to the list of its headers.
+#+BEGIN_SEXP_TABLE
+(
+ (( a ) ( 1 ))
+)
+#+END_SEXP_TABLE
+ORG
+cat > "$work/keys" <<'KEYS'
+await-screen [SAVE]
+keys ^Sbe reduced\r
+wait 200
+keys \eq
+wait 300
+keys \e<^N\eq
+wait 300
+keys ^S(( a\r
+wait 200
+keys \eq
+wait 300
+keys ^X^S
+wait 300
+keys ^X^C
+KEYS
+(cd "$work"; HOME="$work/home" LC_ALL=C.UTF-8 CHEZEMAX_NO_INIT=1 "$work/pty" "$work/keys" 60 "$work/screen" "$root/chezemax" fill.org) || true
+cat > "$work/expected" <<'ORG'
+* Notes
+** Header index
+If you type C-c C-j, this window will be reduced to the list of its
+headers.
+#+BEGIN_SEXP_TABLE
+(
+ (( a ) ( 1 ))
+)
+#+END_SEXP_TABLE
+ORG
+cmp -s "$work/fill.org" "$work/expected" || { echo 'FAIL M-q in Org'; diff "$work/expected" "$work/fill.org"; exit 1; }
+! grep -q 'fills comments and text, not code' "$work/screen" || fail 'M-q took Org for code'
+[ "$(grep -o 'Headings, tables and code are not refilled' "$work/screen" | wc -l)" -ge 2 ] || fail 'M-q must refuse a heading and a line in a block'
+echo 'PASS M-q refills Org prose, stops at ** headings, leaves headings and blocks alone'

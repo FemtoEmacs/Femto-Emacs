@@ -576,7 +576,7 @@ Markdown ```scheme block is Scheme), or #f."
 (define (text-buffer-p)
   (let ((lang (language-for-file (or (buffer-filename) (get-buffer-name)))))
     (or (not lang) (string=? (language-name lang) "Text")
-        (and (member (language-name lang) '("TeX" "Markdown")) #t))))
+        (and (member (language-name lang) '("TeX" "Markdown" "Org")) #t))))
 
 (define (blank-char? c) (or (char=? c #\space) (char=? c #\tab)))
 
@@ -620,6 +620,14 @@ fence or table row?"
     (and (> (string-length l) 0)
          (or (and (memv (c@ l 0) '(35 124)) #t)
              (starts-with-p "```" l) (starts-with-p "~~~" l)))))
+
+(define (org-heading-text-p line)
+  "Is LINE an Org heading (stars from the first column, then a blank)?
+M-q in Org stops at it, whatever its level."
+  (let ((n (string-length line)))
+    (let loop ((i 0))
+      (cond ((and (< i n) (char=? (string-ref line i) #\*)) (loop (+ i 1)))
+            (else (and (> i 0) (or (= i n) (memv (string-ref line i) '(#\space #\tab))) #t))))))
 
 (define (fill-prefix-of line comment)
   "Leading blanks of LINE, plus the comment marker and one space when LINE
@@ -671,6 +679,8 @@ item keeps its marker, and the lines after it go under its text."
          (ls (line-start))
          (here (buffer-substring ls (line-end ls)))
          (text-mode (text-buffer-p))
+         (org (let ((lang (language-for-file (or (buffer-filename) (get-buffer-name)))))
+                (and lang (string=? (language-name lang) "Org"))))
          (comment (if (and text-mode (starts-with-p ">" (string-trim here))) ">" (line-comment-start)))
          (prefix (fill-prefix-of here comment))
          (in-comment (and comment (string-search comment prefix) #t))
@@ -680,10 +690,15 @@ item keeps its marker, and the lines after it go under its text."
             (let ((text (buffer-substring start (line-end start))))
               (and (not (blank-line-p buffer-get size start))
                    (not (and text-mode (unfillable-line-p text)))
+                   (not (and org (org-heading-text-p text)))
                    (if in-comment (and (string-search comment (fill-prefix-of text comment)) #t) #t))))))
     (cond ((blank-line-p buffer-get size ls) (message "No paragraph here"))
           ((not (or in-comment text-mode)) (message "M-q fills comments and text, not code"))
-          ((and text-mode (unfillable-line-p here)) (message "Headings, tables and code are not refilled"))
+          ((and text-mode (or (unfillable-line-p here)
+                              ;; org.scm: an Org heading, or a line in a #+BEGIN_ block
+                              (and (top-level-bound? 'org-fill-refused?)
+                                   ((top-level-value 'org-fill-refused?) ls))))
+           (message "Headings, tables and code are not refilled"))
           (else
            (let* ((a (let loop ((a ls))
                        (if (and (> a 0)
