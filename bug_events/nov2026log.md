@@ -1188,3 +1188,12 @@ compile, no missing characters). tests/chezweb-latex-export.cjs (make
 check-browser) exports in Chrome: paper.tex is created in the granted
 folder. LuaLaTeX could not be tried here (its fonts do not load in this
 TeX Live, even for an empty document), so the .tex says xelatex.
+
+## November 10, 2026. macOS Intel ran out of time again (Claude)
+
+The run of the LaTeX export commit (de1fc64) was cancelled at 50 minutes
+on macOS Intel only; the four other jobs passed. Nothing failed: the
+log stops in the middle of `make check`, after the read-mode tests. That
+runner was slow: it built in 8.5 minutes, where the earlier runs took 3.8
+to 5.4, and its tests had taken 34 to 39 minutes on the two runs
+before. The limit is now 75 minutes (`.github/workflows/build.yml`).
