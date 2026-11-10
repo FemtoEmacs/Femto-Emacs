@@ -166,6 +166,8 @@ the width.  The encoded pieces, or #f for the C core's own mode line."
                                        (if (and (top-level-bound? '*polytonic*) (top-level-value '*polytonic*)) " Ἑλ" "")
                                        ;; chinese.scm: Chinese input is on
                                        (if (and (top-level-bound? '*chinese*) (top-level-value '*chinese*)) " 中" "")
+                                       ;; korean.scm: Korean input is on
+                                       (if (and (top-level-bound? '*korean*) (top-level-value '*korean*)) " 한" "")
                                        " "))
                 (reserve (if quit 9 0)))
            ;; keep the controls ahead of the file name when space is scarce

@@ -275,6 +275,11 @@ check-chinese-input: chezemax chezemax.wasm chezemax.cwasm
 	sh tests/chinese-input.sh
 check: check-chinese-input
 
+.PHONY: check-korean-input
+check-korean-input: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/korean-input.sh
+check: check-korean-input
+
 .PHONY: check-ghost-window
 check-ghost-window: chezemax chezemax.wasm chezemax.cwasm
 	sh tests/ghost-window.sh

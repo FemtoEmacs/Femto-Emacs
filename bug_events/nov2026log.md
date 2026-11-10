@@ -1105,3 +1105,46 @@ column, then a blank) ends a paragraph, and on a heading or inside a
 #+BEGIN_ ... #+END_ block (a table, code) M-q says "Headings, tables and
 code are not refilled" (org-fill-refused?, compiled/scripts/org.scm).
 Test: tests/org-mode.sh, section 3, on a disposable file.
+
+## November 10, 2026. Korean input on the 2-set keyboard (Claude)
+
+M-x korean-input turns on Korean typed on the standard 2-set keyboard
+(두벌식, KS X 5002); the same command turns it off. The mode line shows 한.
+
+- r ㄱ s ㄴ e ㄷ f ㄹ a ㅁ q ㅂ t ㅅ d ㅇ w ㅈ c ㅊ z ㅋ x ㅌ v ㅍ g ㅎ;
+  Shift: R ㄲ E ㄸ Q ㅃ T ㅆ W ㅉ. k ㅏ o ㅐ i ㅑ j ㅓ p ㅔ u ㅕ h ㅗ
+  y ㅛ n ㅜ b ㅠ m ㅡ l ㅣ; Shift: O ㅒ P ㅖ. Other capitals type their
+  small letter's jamo, as on a Korean keyboard.
+- The syllable being composed is in the text, before the cursor, and
+  changes with each key (gksrmf: ㅎ 하 한 한ㄱ 한그 한글). A vowel after a
+  final takes it into the next syllable (갈 + ㅏ: 가라); of a double final
+  only the second part (닭 + ㅏ: 달가). Compound vowels and finals are
+  typed as their parts (dho 왜, rkqt 값).
+- DEL takes back the last jamo of the syllable (갈 DEL: 가); any other
+  key, or moving the cursor, ends it.
+
+No burden for anyone else: one script (`compiled/scripts/korean.scm`), no
+tables, no C. The syllables are computed (U+AC00 + 588 x initial + 28 x
+vowel + final). Off, its key handler is not installed: nothing runs.
+
+Why not leave it to the system's input method: the SDL window gets only
+the finished text from SDL (SDL_TEXTINPUT; it does not draw the
+composition, SDL_TEXTEDITING), and the browser page takes the composition
+in a hidden field, so in both the syllable being typed was not shown. The
+system's input method still works where it did (the terminal, the
+browser); M-x korean-input is for where it does not, or is not installed.
+
+Eduardo's suggestions (korean-suggestions/): the hook, the toggle with no
+cost when off, the 2-set map and the formula 0xAC00 + 588 x cho + 28 x
+jung + jong were kept. Changed: the hook is core.scm's modal key handler,
+which also sees DEL, chaining the handler it replaces (vim mode, Chinese
+input); the composition is shown in the text instead of only at commit;
+the final consonants have their own index (28, not the initials' 19);
+compound vowels are a table of pairs (#\hk is not a Scheme character); and
+the final that moves into the next syllable.
+
+Evidence: `tests/korean-input.sh` (in `make check`) types, in a PTY,
+gksrmf dkssudgktpdy, ekfrdl rkffk, dho tnldj dmlxk, ekfrk, Rhc Wkek zz b,
+rkqt aksgdk 3roa, rkf DEL r, gks DEL DEL h; the saved file is 한글 안녕하세요
+/ 닭이 갈라 / 왜 쉬어 의타 / 달가 / 꽃 짜다 ㅋㅋ ㅠ / 값 많아 3갬 / 각 호.
+`tests/chezweb-korean.cjs` (in `make check-browser`) types in Chrome.
