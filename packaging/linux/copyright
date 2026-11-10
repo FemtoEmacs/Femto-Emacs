@@ -1,0 +1,11 @@
+Chezweb (https://github.com/FemtoEmacs/Femto-Emacs)
+
+The editor: Public Domain.
+
+/opt/chezweb/runtime/wasmtime: Wasmtime, Apache License 2.0 with LLVM
+exception (its LICENSE file is beside the library).
+/opt/chezweb/browser-licenses: the licences of the parts of the browser
+bundle made by Emscripten (Emscripten, musl, compiler-rt, libunwind,
+libcxxabi).
+/opt/chezweb/Chinese: tables made from Unihan (Unicode License V3),
+pinyin-data (MIT) and jieba (MIT); see Chinese/README.md there.

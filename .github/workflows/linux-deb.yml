@@ -1,0 +1,90 @@
+name: Linux packages
+# The Debian/Ubuntu packages (tools/make-deb.sh), for Intel/AMD and ARM:
+# built on Ubuntu 22.04, so that they install on 22.04 and later and on
+# Debian 12; each is installed and tried on clean ubuntu:22.04,
+# ubuntu:24.04 and debian:12 containers (tests/deb-install.sh).  Run by
+# hand (Actions, Linux packages, Run workflow); with "publish", the
+# packages replace those of the release chezweb-linux, under names that
+# do not change, so that README.md can link to them:
+#   .../releases/download/chezweb-linux/chezweb_amd64.deb
+#   .../releases/download/chezweb-linux/chezweb_arm64.deb
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the packages in the release chezweb-linux
+        type: boolean
+        default: true
+permissions:
+  contents: read
+jobs:
+  deb:
+    name: ${{ matrix.arch }} package
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            os: ubuntu-22.04
+          - arch: arm64
+            os: ubuntu-22.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the build libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libncurses-dev pkg-config curl xz-utils \
+            libsdl2-dev libsdl2-ttf-dev dpkg-dev
+      - name: Build with the common makefile
+        run: make
+      - name: Make the package
+        run: DEB_REVISION=git$(git rev-parse --short=7 HEAD) make deb
+      - name: Install and try it on clean systems
+        run: |
+          deb=$(ls build/deb/*.deb)
+          for image in ubuntu:22.04 ubuntu:24.04 debian:12; do
+            echo "== $image"
+            docker run --rm -v "$PWD:/src:ro" "$image" sh /src/tests/deb-install.sh "/src/$deb"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chezweb-${{ matrix.arch }}-deb
+          path: build/deb/*.deb
+  publish:
+    if: inputs.publish
+    needs: deb
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: debs
+          merge-multiple: true
+      - name: Publish in the release chezweb-linux
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          cd debs
+          version=$(ls chezweb_*_amd64.deb | sed 's/^chezweb_\(.*\)_amd64\.deb$/\1/')
+          cp chezweb_*_amd64.deb chezweb_amd64.deb
+          cp chezweb_*_arm64.deb chezweb_arm64.deb
+          sha256sum chezweb_amd64.deb chezweb_arm64.deb > SHA256SUMS
+          cat > notes.md <<NOTES
+          Chezweb $version for Ubuntu (22.04 and later) and Debian (12 and later), built from ${GITHUB_SHA}.
+
+          Intel/AMD: **chezweb_amd64.deb**; ARM: **chezweb_arm64.deb** (\`dpkg --print-architecture\` says which). Install with
+
+              sudo apt install ./chezweb_amd64.deb
+
+          apt installs the libraries Chezweb needs; the installation then makes the machine code for your processor (about half a minute). \`chezweb\` opens the editor in the terminal, \`chezweb-gui\` (or Chezweb in the applications menu) in a window; C-c d opens Chrome. \`sudo apt remove chezweb\` removes it. \`SHA256SUMS\` verifies the packages.
+          NOTES
+          if gh release view chezweb-linux > /dev/null 2>&1; then
+            gh release edit chezweb-linux --title "Chezweb for Ubuntu and Debian" --notes-file notes.md
+          else
+            gh release create chezweb-linux --target "$GITHUB_SHA" --title "Chezweb for Ubuntu and Debian" --notes-file notes.md
+          fi
+          gh release upload chezweb-linux chezweb_amd64.deb chezweb_arm64.deb SHA256SUMS --clobber

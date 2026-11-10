@@ -1197,3 +1197,36 @@ log stops in the middle of `make check`, after the read-mode tests. That
 runner was slow: it built in 8.5 minutes, where the earlier runs took 3.8
 to 5.4, and its tests had taken 34 to 39 minutes on the two runs
 before. The limit is now 75 minutes (`.github/workflows/build.yml`).
+
+## November 10, 2026. An installer for Ubuntu and Debian (Claude)
+
+Marcus Santos (TMU) could not build on Ubuntu: `curses.h` was not found
+(the development packages missing, or a cc that is not the system's).
+Eduardo: an installer, as for Windows. Choices: a .deb; amd64 and arm64;
+made by a GitHub workflow.
+
+- `make deb` (tools/make-deb.sh) packages what `make` built:
+  /opt/chezweb (the layout of make app), /usr/bin/chezweb and
+  chezweb-gui (two-line scripts that exec /opt/chezweb/...), a menu
+  entry (Chezweb, the window). Depends: from dpkg-shlibdeps (libc6,
+  libncursesw6, libtinfo6, libsdl2, libsdl2-ttf); libwasmtime.so is the
+  package's own.
+- The package carries chezemax.wasm and schemer/compiler.wasm, not their
+  machine code: Wasmtime makes machine code for the processor it runs on
+  (a runner's code could use instructions the user's processor lacks; the
+  editor would then translate the WebAssembly at every start, 12 s). So
+  postinst makes the .cwasm files on the user's machine (27 s here), and
+  prerm removes them.
+- .github/workflows/linux-deb.yml (run by hand): builds on Ubuntu 22.04
+  (amd64) and 22.04-arm (arm64), so that the packages install on 22.04,
+  24.04 and Debian 12; installs and tries each in clean ubuntu:22.04,
+  ubuntu:24.04 and debian:12 containers (tests/deb-install.sh); with
+  "publish", replaces the assets of the release chezweb-linux, under
+  names that do not change (chezweb_amd64.deb, chezweb_arm64.deb), which
+  README.md links to.
+
+Evidence here (an Ubuntu 24.04 chroot made with debootstrap):
+tests/deb-install.sh passes: apt installs the package and the libraries it needs;
+postinst makes the machine code; chezweb runs from /tmp, finds
+/opt/chezweb, types, M-x korean-input (한글), saves; apt remove leaves
+nothing. The workflow itself runs only on GitHub.

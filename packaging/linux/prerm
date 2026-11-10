@@ -1,0 +1,6 @@
+#!/bin/sh
+# The machine code postinst made is not in the package's file list
+set -e
+rm -f /opt/chezweb/chezemax.cwasm /opt/chezweb/schemer/compiler.cwasm \
+      /opt/chezweb/chezemax.cwasm.tmp /opt/chezweb/schemer/compiler.cwasm.tmp
+exit 0

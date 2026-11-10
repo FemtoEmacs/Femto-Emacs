@@ -164,6 +164,13 @@ app: chezweb-gui irene-dixe chezemax.wasm chezemax.cwasm browser
 	mkdir -p Chezweb.app/Contents/Resources/browser-licenses
 	cp web/prebuilt/licenses/* Chezweb.app/Contents/Resources/browser-licenses/
 
+# A Debian/Ubuntu package of what was built here (tools/make-deb.sh):
+# build/deb/chezweb_VERSION_ARCH.deb.  For maintainers and the workflow
+# .github/workflows/linux-deb.yml; it needs dpkg-dev and SDL2.
+.PHONY: deb
+deb: chezweb chezweb-gui irene-dixe chezweb-server schemer-compile chezemax.wasm chezemax.cwasm browser
+	sh tools/make-deb.sh
+
 .PHONY: check-ui
 check-ui: chezemax chezweb browser
 	sh tests/terminal-hover.sh

@@ -3,15 +3,32 @@ Chezweb is a simpler implementation of Emacs, where simpler means fewer
 features, but also means it's easier to learn and install.
 
 ## Installation on Silicon macOS
-There is no macOS installer yet. On the Mac, as on Linux, you build
-Chezweb from its sources with one command, `make`, which takes care of
-everything else; see [Building from sources](#building-from-sources).
+There is no macOS installer yet. On the Mac, you build Chezweb from
+its sources with one command, `make`, which takes care of everything
+else; see [Building from sources](#building-from-sources).
 The same steps work on Intel Macs.
 
 ## Installation on Linux
-There is no Linux installer yet either: build from the sources, as
-explained in [Building from sources](#building-from-sources). The same
-`make` builds on any 64-bit Linux.
+On Ubuntu (22.04 or later) and Debian (12 or later), download the
+installer for your processor:
+[chezweb_amd64.deb](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/chezweb-linux/chezweb_amd64.deb)
+for Intel and AMD, or
+[chezweb_arm64.deb](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/chezweb-linux/chezweb_arm64.deb)
+for ARM (`dpkg --print-architecture` says which). Then, in the folder
+where it is:
+
+```sh
+sudo apt install ./chezweb_amd64.deb
+```
+
+apt installs the libraries that Chezweb needs, and the installation
+makes the machine code for your processor, which takes about half a
+minute. Then `chezweb notes.md` opens the editor in the terminal, in any
+folder, and **Chezweb** in the applications menu opens it in a window.
+`sudo apt remove chezweb` removes it. The
+[release page](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/chezweb-linux)
+has the checksums. On other distributions, build from the sources, as
+explained in [Building from sources](#building-from-sources).
 
 ## Installation on Windows
 Download **Chezweb-Windows-x86_64-Setup.exe** from the
