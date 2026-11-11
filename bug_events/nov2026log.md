@@ -1230,3 +1230,35 @@ tests/deb-install.sh passes: apt installs the package and the libraries it needs
 postinst makes the machine code; chezweb runs from /tmp, finds
 /opt/chezweb, types, M-x korean-input (한글), saves; apt remove leaves
 nothing. The workflow itself runs only on GitHub.
+
+## November 11, 2026. Korean: the gaps between syllables, and the window (Claude)
+
+Eduardo, typing 이상순 in the browser: "there is a space between 상 and
+순. Space is very important in Korean": 아버지가 방에 들어 갔습니다 (Father
+went into the room), 아버지 가방에 들어 갔습니다 (into the bag). And: the
+GUI version does not show Korean.
+
+The text had no space: dltkdtns gives 9 bytes, 이상순, in the terminal and
+in Chrome. The gap was the drawing. A wide character has two cells, two
+of Menlo's (9 px at 15 points: 18 px); the Korean font's glyph is about
+1 em (15 px) and was drawn from the left of its cells, so each syllable
+left a gap after it, nearly a third of a space.
+
+- Browser (web/page.js, wideText): a wide character is widened to fill
+  its two cells (at most 30% wider, at most 10% taller, so that it stays
+  in its row) and centred; one wider than its cells is narrowed. Measured
+  in Chrome: between the syllables of 이상순 한글 the blank columns are 4,
+  4 and 1 px, the space 11 px (a cell is 9).
+- Window (src/gui.c): it had no font for Hangul or Chinese at all: Menlo,
+  DejaVu Sans Mono and Consolas have none, and SDL_ttf does not look in
+  other fonts, so they were boxes. Now a character the main font lacks
+  is drawn with the first fallback that has it: Apple SD Gothic Neo,
+  Hiragino Sans GB or STHeiti, Arial Unicode (macOS); Noto Sans CJK,
+  Nanum Gothic or UnDotum, Droid Sans Fallback, DejaVu Sans (Linux);
+  Malgun Gothic, Microsoft YaHei or SimSun, Segoe UI Symbol (Windows).
+  A wide glyph is widened and centred as in the browser. Seen under Xvfb
+  with Noto Sans CJK: 이상순 한글 아버지가 방에 들어 갔습니다. 中文.
+
+Evidence: tests/chezweb-korean.cjs (make check-browser) types 이상순 한글
+and reads the canvas: one blank as wide as a cell (the space), the others
+under half a cell. It fails with the old drawing.

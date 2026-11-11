@@ -37,6 +37,11 @@ extern int char_width(unsigned long);   /* width.c */
 static SDL_Window   *window = NULL;
 static SDL_Renderer *renderer = NULL;
 static TTF_Font     *fonts[4];  /* regular, bold, italic, bold italic */
+/* fonts for the characters the main font has not (Hangul, Chinese ...),
+ * in the order of wide_candidates; NULL where absent */
+#define NWIDE 4
+static TTF_Font     *wide_fonts[NWIDE];
+static TTF_Font     *font_for(Uint32 cp, int style);
 static int active = 0;
 static int focused = 1;
 
@@ -226,7 +231,7 @@ static glyph_t *glyph(Uint32 cp, int style)
 		if (g->key == key && g->tex) return g;
 		if (g->key == 0) {
 			encode_utf8(cp, utf8);
-			surf = TTF_RenderUTF8_Blended(fonts[style], utf8, white);
+			surf = TTF_RenderUTF8_Blended(font_for(cp, style), utf8, white);
 			if (!surf) return NULL;
 			g->tex = SDL_CreateTextureFromSurface(renderer, surf);
 			g->w = surf->w;
@@ -239,6 +244,69 @@ static glyph_t *glyph(Uint32 cp, int style)
 	}
 	clear_glyphs();             /* full: start again */
 	return glyph(cp, style);
+}
+
+/* Fonts for what a Latin monospace font has not: Menlo, DejaVu Sans Mono
+ * and Consolas have no Hangul nor Chinese characters, which would show as
+ * boxes (M-x korean-input, M-x chinese-input).  The first that exists of
+ * each line is opened, at the size of the main font. */
+static const char *wide_candidates[NWIDE][4] = {
+#if defined(__APPLE__)
+	{ "/System/Library/Fonts/AppleSDGothicNeo.ttc", NULL },
+	{ "/System/Library/Fonts/Hiragino Sans GB.ttc", "/System/Library/Fonts/STHeiti Medium.ttc", NULL },
+	{ "/System/Library/Fonts/Supplemental/Arial Unicode.ttf", "/Library/Fonts/Arial Unicode.ttf", NULL },
+	{ NULL },
+#elif defined(_WIN32)
+	{ "C:\\Windows\\Fonts\\malgun.ttf", NULL },
+	{ "C:\\Windows\\Fonts\\msyh.ttc", "C:\\Windows\\Fonts\\simsun.ttc", NULL },
+	{ "C:\\Windows\\Fonts\\seguisym.ttf", NULL },
+	{ NULL },
+#else
+	{ "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+	  "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
+	  "/usr/share/fonts/google-noto-cjk/NotoSansCJK-Regular.ttc", NULL },
+	{ "/usr/share/fonts/truetype/nanum/NanumGothic.ttf",
+	  "/usr/share/fonts/truetype/unfonts-core/UnDotum.ttf", NULL },
+	{ "/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf",
+	  "/usr/share/fonts/truetype/arphic/uming.ttc", NULL },
+	{ "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", NULL },
+#endif
+};
+
+static int has_glyph(TTF_Font *f, Uint32 cp)
+{
+#if SDL_TTF_VERSION_ATLEAST(2, 0, 18)
+	return TTF_GlyphIsProvided32(f, cp) != 0;
+#else
+	return cp < 0x10000 && TTF_GlyphIsProvided(f, (Uint16) cp) != 0;
+#endif
+}
+
+/* The font that draws CP: the main one, or the first fallback that has it */
+static TTF_Font *font_for(Uint32 cp, int style)
+{
+	int i;
+
+	if (cp < 0x370 || has_glyph(fonts[style], cp)) return fonts[style];
+	for (i = 0; i < NWIDE; i++)
+		if (wide_fonts[i] && has_glyph(wide_fonts[i], cp)) {
+			TTF_SetFontStyle(wide_fonts[i], style & 1 ? TTF_STYLE_BOLD : TTF_STYLE_NORMAL);
+			return wide_fonts[i];
+		}
+	return fonts[style];
+}
+
+static void open_wide_fonts(int px)
+{
+	int i, k;
+
+	for (i = 0; i < NWIDE; i++) {
+		if (wide_fonts[i]) TTF_CloseFont(wide_fonts[i]);
+		wide_fonts[i] = NULL;
+		for (k = 0; k < 4 && wide_candidates[i][k] && !wide_fonts[i]; k++)
+			wide_fonts[i] = TTF_OpenFontIndex(wide_candidates[i][k], px, 0);
+		if (wide_fonts[i]) TTF_SetFontHinting(wide_fonts[i], TTF_HINTING_LIGHT);
+	}
 }
 
 static const char *font_candidates[] = {
@@ -304,6 +372,7 @@ static int load_fonts(void)
 			return 0;
 		}
 	}
+	open_wide_fonts((int) (font_points * scale + 0.5f));
 	TTF_SizeUTF8(fonts[0], "M", &w, &h);
 	cell_w = w > 0 ? w : 8;
 	cell_h = TTF_FontLineSkip(fonts[0]);
@@ -549,6 +618,19 @@ static void draw_glyph(Uint32 cp, int style, int x, int y, long color)
 	 * a wide character (CJK, emoji) has two cells */
 	dst.w = g->w > span * cell_w + cell_w / 4 ? span * cell_w : g->w;
 	dst.h = g->h;
+	if (span == 2 && g->w > 0 && g->w < 2 * cell_w) {
+		/* narrower than its two cells (Hangul, CJK in a Latin font's
+		 * cells): widened to fill them (by at most 30%, at most 10%
+		 * taller, within its row) and centred, or 이상순 reads 이 상 순 */
+		double kx = (double) (2 * cell_w) / g->w, ky;
+		if (kx > 1.3) kx = 1.3;
+		ky = kx < 1.1 ? kx : 1.1;
+		if (g->h * ky > cell_h) ky = (double) cell_h / g->h;
+		dst.w = (int) (g->w * kx + 0.5);
+		dst.h = (int) (g->h * ky + 0.5);
+		dst.x = x + (2 * cell_w - dst.w) / 2;
+		dst.y = y + (cell_h - dst.h) / 2;
+	}
 	SDL_RenderCopy(renderer, g->tex, NULL, &dst);
 }
 
