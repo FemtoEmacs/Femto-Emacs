@@ -158,10 +158,10 @@ int fe_main(int argc, char **argv)
 		if (key_return && key_return->func == editor_mouse_event &&
 		    (mouse_button & 32) && (mouse_button & 3) == 3) {
 			editor_mouse_event();
-			continue;
+		} else {
+			clear_button_hover();
+			editor_dispatch_key();
 		}
-		clear_button_hover();
-		editor_dispatch_key();
 		if (backdoor_on) backdoor_commanded();
 		chez_tester_poll();
 	}
