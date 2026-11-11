@@ -1366,3 +1366,13 @@ before.
 Evidence: tests/terminal.sh: CSI ?25l while in the terminal, CSI ?25h
 after C-c b, the cursor cell on yellow (43m). Neovim 0.12.6 under the pty:
 the cell after ":e" black on orange, the screen's cursor hidden.
+
+## November 11, 2026. Linux CI: Ubuntu's mirrors hung (Claude)
+
+The run of the cursor commit (d77c0d0) failed on Linux twice, at its first
+step: apt-get waited 65 and then 50 minutes for Ubuntu's mirrors on Linux
+Intel and failed (exit code 100); Linux ARM64 took 54 minutes to install
+and ran out of the 75 minutes in its tests. Both macOS jobs, which build
+and test the same code, passed. The install step now gives up a try
+after six minutes (apt's own timeouts 30 s, three retries), tries three
+times (finishing an install cut short first), and has 20 minutes in all.

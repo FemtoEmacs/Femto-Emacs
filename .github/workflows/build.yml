@@ -28,11 +28,23 @@ jobs:
             os: macos-15
     steps:
       - uses: actions/checkout@v4
+      # Ubuntu's mirrors hung for an hour twice on 11 November 2026: each try
+      # gives up after six minutes, and there are three tries
       - name: Install Linux development libraries
         if: runner.os == 'Linux'
+        timeout-minutes: 20
         run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential libncurses-dev libsdl2-dev libsdl2-ttf-dev pkg-config curl xz-utils
+          apt="-o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30"
+          for try in 1 2 3; do
+            if timeout 360 sudo apt-get $apt update &&
+               timeout 360 sudo apt-get $apt install -y build-essential libncurses-dev libsdl2-dev libsdl2-ttf-dev pkg-config curl xz-utils; then
+              exit 0
+            fi
+            echo "apt failed (try $try); trying again in 20 s"
+            sleep 20
+            sudo dpkg --configure -a || true   # an install cut short
+          done
+          exit 1
       - name: Install optional Mac SDL libraries
         if: runner.os == 'macOS'
         run: brew install pkg-config sdl2 sdl2_ttf
