@@ -78,7 +78,8 @@ jobs:
           cd "$(cygpath -u "$GITHUB_WORKSPACE")"
           bash windows/build-installer.sh 2>&1 | tee windows-build.log
           export PATH="$PWD:$PATH"
-          make check-org-mode
+          make check-navigation check-utf8-input check-paste-decoder
+          make check-utf8-typing check-markdown-blank-newline check-bracketed-paste check-backdoor-guard check-char-width check-ghost-window check-chinese-input check-polytonic check-org-mode
       - name: Cache compiled Windows product
         if: steps.product.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4

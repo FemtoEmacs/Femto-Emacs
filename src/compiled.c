@@ -7,6 +7,9 @@
 #include "llt/llt.h"
 #include "flisp.h"
 #include "../schemer/native-host.h"
+#ifdef __CYGWIN__
+#include "process-windows.h"
+#endif
 #ifdef _WIN32
 #include <windows.h>
 #include <process.h>
@@ -42,7 +45,15 @@ static int compile_request(const char *request,unsigned char **bytes,size_t *siz
  );
  FILE *f=fopen(input,"wb");int ok=f!=NULL;if(f){ok=fwrite(request,1,strlen(request),f)==strlen(request);if(fclose(f))ok=0;}
  if(ok){
-#ifdef _WIN32
+#ifdef __CYGWIN__
+  /* Cygwin spawn can map a PID page inside Wasmtime's reserved memory.
+   * Start a fresh process through the same native helper as run-program. */
+  char *argv[]={exe,input,output,root,NULL};win_process child=NULL;
+  const char *why=win_process_start(exe,argv,NULL,NULL,log,log,&child);
+  int status=-1;ok=!why && win_process_wait(child,-1,&status)==1 && status==0;
+  if(child)win_process_close(child);
+  if(why){FILE *f=fopen(log,"wb");if(f){fputs(why,f);fclose(f);}}
+#elif defined(_WIN32)
   /* The CRT launcher needs quoted arguments when installation paths contain spaces. */
   char qexe[8192],qin[8192],qout[8192],qroot[8192];snprintf(qexe,sizeof qexe,"\"%s\"",exe);snprintf(qin,sizeof qin,"\"%s\"",input);snprintf(qout,sizeof qout,"\"%s\"",output);snprintf(qroot,sizeof qroot,"\"%s\"",root);const char *argv[]={qexe,qin,qout,qroot,NULL};ok=_spawnv(_P_WAIT,exe,argv)==0;
 #else
