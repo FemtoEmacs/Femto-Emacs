@@ -1,0 +1,51 @@
+01-rdonly.lean verification: 2026-11-06 (America/Sao_Paulo)
+Source SHA-256: 2e179842435c864c04c4997c49a2864f2274751513ac94012adc432968d3165c
+Lean (version 4.30.0, arm64-apple-darwin24.6.0, commit d024af099ca4bf2c86f649261ebf59565dc8c622, Release)
+
+Execution: lean --run 01-rdonly.lean
+Lean checked eight theorems and interpreted main. No leanc or C-generation command was used.
+
+Chezweb integration:
+A disposable copy was opened in a separate native terminal editor.
+M-! opened its command window; C-c s executed lean --run 01-rdonly.lean.
+The output showed the first simulation, then the empty-buffer simulation and its passing result after M->.
+The editor exited successfully (PTY test exit status 0).
+
+Kernel dependency audit:
+'ReadOnly01.gap_keeps_text' depends on axioms: [propext]
+'ReadOnly01.enter_in_buffer' depends on axioms: [propext]
+'ReadOnly01.enter_progress' depends on axioms: [propext, Quot.sound]
+'ReadOnly01.enter_stays_at_eof' depends on axioms: [propext, Quot.sound]
+'ReadOnly01.enter_preserves' does not depend on any axioms
+'ReadOnly01.cursors_agree' does not depend on any axioms
+'ReadOnly01.cursor_visible' depends on axioms: [propext, Quot.sound]
+'ReadOnly01.repetition_preserves' does not depend on any axioms
+
+Simulation output (three S-expressions; all read successfully by SBCL):
+(simulation (name "short-next-line")
+  (step 0 (buffer-cursor 3) (window-cursor 3)
+    (row 0) (column 3) (top-line 0))
+  (step 1 (buffer-cursor 6) (window-cursor 6)
+    (row 1) (column 1) (top-line 0))
+  (step 2 (buffer-cursor 7) (window-cursor 7)
+    (row 1) (column 0) (top-line 1))
+  (step 3 (buffer-cursor 7) (window-cursor 7)
+    (row 1) (column 0) (top-line 1))
+  (result pass))
+(simulation (name "no-final-newline")
+  (step 0 (buffer-cursor 2) (window-cursor 2)
+    (row 0) (column 2) (top-line 0))
+  (step 1 (buffer-cursor 5) (window-cursor 5)
+    (row 1) (column 1) (top-line 0))
+  (step 2 (buffer-cursor 5) (window-cursor 5)
+    (row 1) (column 1) (top-line 0))
+  (result pass))
+(simulation (name "empty-buffer")
+  (step 0 (buffer-cursor 0) (window-cursor 0)
+    (row 0) (column 0) (top-line 0))
+  (step 1 (buffer-cursor 0) (window-cursor 0)
+    (row 0) (column 0) (top-line 0))
+  (step 2 (buffer-cursor 0) (window-cursor 0)
+    (row 0) (column 0) (top-line 0))
+  (result pass))
+

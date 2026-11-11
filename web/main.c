@@ -1,3 +1,4 @@
+#include "../src/header.h"
 #include <emscripten.h>
 #include <errno.h>
 #include <spawn.h>
@@ -5,6 +6,7 @@
 extern int app_main(int,char **);
 EM_JS(void,web_ended,(),{Module.browsered.ended();});
 EM_JS(char *,web_initial_file,(),{return stringToNewUTF8(Module.chezwebSessionPath);});
+EM_JS(int,web_initial_modified,(),{return Module.chezwebInitialModified ? 1 : 0;});
 int main(void){char *path=web_initial_file();char *argv[]={"/chezweb",path,NULL};int r=app_main(2,argv);web_ended();return r;}
 int posix_spawnp(pid_t *p,const char *f,const posix_spawn_file_actions_t *a,const posix_spawnattr_t *b,char *const v[],char *const e[]){(void)p;(void)f;(void)a;(void)b;(void)v;(void)e;return ENOSYS;}
 
@@ -28,6 +30,8 @@ int __wrap_line_edit(char *prompt,char *buf,int n,int flags,int (*complete)(char
  return r;
 }
 int __wrap_call_lisp_event(char *kind,char *arg){
+ /* The virtual snapshot may contain native edits not yet saved to disk. */
+ if(!strcmp(kind,"startup")&&web_initial_modified())curbp->b_flags|=B_MODIFIED;
  if(filename_prompt&&!strcmp(kind,"complete-file"))web_prepare_filename(arg,1);
  return __real_call_lisp_event(kind,arg);
 }

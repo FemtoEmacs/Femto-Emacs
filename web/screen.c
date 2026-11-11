@@ -18,6 +18,8 @@
 #include <string.h>
 #include "screen.h"
 
+extern int char_width(unsigned long);
+
 extern void set_scrap(unsigned char *);
 extern char *scheme_eval(char *);
 extern void web_layer_update(void);
@@ -26,9 +28,11 @@ extern void web_layer_update(void);
 
 /* one cell as the page reads it: 4 int32 words */
 typedef struct {
-	int cp;         /* Unicode code point, 0 = blank */
+	int cp;         /* Unicode code point, 0 = blank, -1 = the right half
+	                   of the wide character in the cell before */
 	int fg, bg;     /* 24-bit colours, resolved */
 	int style;      /* 1 bold, 2 italic, 4 underline */
+	int mark[2];    /* combining accents drawn with cp (width.c), 0 = none */
 } cell_t;
 
 static int active = 0;
@@ -172,6 +176,7 @@ static void resize_grid(int r, int c)
 static void blank(int i)
 {
 	grid[i].cp = 0;
+	grid[i].mark[0] = grid[i].mark[1] = 0;
 	faces[i] = (unsigned char) cur_face;
 	reversed[i] = 0;
 }
@@ -204,13 +209,38 @@ static void advance(void)
 	}
 }
 
+/*
+ * A character into the cell at the cursor.  A combining accent (width 0)
+ * joins the character in the cell before; a wide one (width 2) also takes
+ * the next cell, marked -1, on the same row (display.c never starts one
+ * in the last column).
+ */
 static void put(int cp, int reverse)
 {
 	int i = cur_row * cols + cur_col;
+	int width = cp >= 0x300 ? char_width((unsigned long) cp) : 1;
+
+	if (width == 0) {
+		int k = cur_col > 0 ? i - 1 : i;
+		if (grid[k].cp == -1 && k % cols > 0) k--;
+		if (grid[k].mark[0] == 0) grid[k].mark[0] = cp;
+		else if (grid[k].mark[1] == 0) grid[k].mark[1] = cp;
+		dirty = 1;
+		return;
+	}
 	grid[i].cp = cp;
+	grid[i].mark[0] = grid[i].mark[1] = 0;
 	faces[i] = (unsigned char) cur_face;
 	reversed[i] = (unsigned char) reverse;
 	advance();
+	if (width == 2 && cur_col > 0) {
+		i = cur_row * cols + cur_col;
+		grid[i].cp = -1;
+		grid[i].mark[0] = grid[i].mark[1] = 0;
+		faces[i] = (unsigned char) cur_face;
+		reversed[i] = (unsigned char) reverse;
+		advance();
+	}
 	dirty = 1;
 }
 
@@ -342,6 +372,10 @@ void screen_pause(int ms)
  * whenever the browser window changed size.  Here the windows keep their
  * share (web_relayout, web-layer.c) and everything is drawn again.
  */
+/* terminal.c needs it natively only: the browser has no M-x term */
+int screen_key_waiting(int ms) { (void) ms; return 0; }
+void screen_cursor_shown(int on) { (void) on; }
+
 extern void web_relayout(int rows);
 extern void web_redisplay(void);
 int screen_getch(void)
@@ -446,3 +480,10 @@ void screen_end(void)
 {
 	active = 0;
 }
+
+int screen_test_cancelled(void) { return 0; } /* Native tester only. */
+
+/* A virtual fclose is not proof that a granted file or native document saved. */
+EM_ASYNC_JS(int,screen_save_file,(const char *path),{
+ return await Module.browsered.confirmSave(UTF8ToString(path)) ? 1 : 0;
+});

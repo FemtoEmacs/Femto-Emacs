@@ -83,5 +83,5 @@ var ChezwebShell=(function(){
    return prefix+value.replace(/[\s'"\\;$&|<>`()*?!#[\]{}]/g,'\\$&');
   }).join('\n');
  }
- return {run,async selectDirectory(path){context(FS.cwd());await read(path);FS.chdir(path);previous=directory;directory=FS.cwd();explicit=true;return display(directory);},async request(name,arg){if(name==='grammarly-toggle'){Module._web_layer_set(!Module._web_layer_on());return 'ok';}if(name==='command-context'){context(arg);return 'ok';}if(name==='command-complete')return await complete(arg);if(name==='settings-reload')return String(await Module.browsered.settings());throw Error('Unknown browser command request');}};
+ return {run,async selectDirectory(path){context(FS.cwd());await read(path);FS.chdir(path);previous=directory;directory=FS.cwd();explicit=true;return display(directory);},async request(name,arg){if(name==='grammarly-toggle'){Module._web_layer_set(!Module._web_layer_on());return 'ok';}if(name==='command-context'){context(arg);return 'ok';}if(name==='command-complete')return await complete(arg);if(name==='native-update')return await Module.browsered.nativeUpdate(arg);if(name==='settings-reload')return String(await Module.browsered.settings());throw Error('Unknown browser command request');}};
 })();

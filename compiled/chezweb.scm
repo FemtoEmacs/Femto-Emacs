@@ -38,6 +38,18 @@
       (begin (web-request "grammarly-toggle" "") (update-display))
       (message "Grammarly is available in the browser editor.")))
 
+;;; M-x native-window-update: when a browser C-x C-s is refused because the
+;;; native buffer was edited, closed or saved under another name, send the
+;;; browser's text to the native buffer (the native text, if it is on no
+;;; disk, goes to a *native-N* buffer there); then C-x C-s saves.
+(defcommand (native-window-update)
+  "In the browser: put this text in the native window's buffer."
+  (if (in-browser?)
+      (message (web-request "native-update"
+                            (string-append (or (buffer-filename) "") "\n"
+                                           (buffer-substring 0 (buffer-size)))))
+      (message "M-x native-window-update runs in the browser editor (C-c d).")))
+
 ;;; Your ~/.chezemax files: the page fetched them at start-up (web/page.js),
 ;;; read-only, from the native window's server.  C-x C-r fetches them again,
 ;;; so it loads what you last saved there, then reloads them as natively.
@@ -58,6 +70,13 @@
 ;;; on your computer: in the browser they say where they are.  TTFY and the
 ;;; plots leave the mode line, the keys and the help page.  Done here, so
 ;;; the scripts stay Chezemax's own.
+
+;; M-x chinese-input reads its tables from the installation's Chinese/
+;; folder, which the page does not carry (it would weigh on every page);
+;; the browser's own text field takes the system's Chinese input instead.
+(defcommand (browser-chinese-input)
+  "Chinese input in the browser: the system's input method."
+  (message "Chinese input: in the browser, use your system's pinyin input method; M-x chinese-input works in the terminal and SDL window"))
 
 (defcommand (browser-native-only)
   "TTFY, plots and compile-scripts run in the terminal or SDL window."
@@ -99,6 +118,7 @@
   (set! plot-save browser-native-only)
   (set! compile-scripts browser-native-only)
   (set! script-installer browser-script-installer)
+  (set! chinese-input browser-chinese-input)
   (global-unset-key "C-c f")
   (global-unset-key "C-c p")
   (set! *mode-line-menu* (%without-labels '("TTFY") *mode-line-menu*))

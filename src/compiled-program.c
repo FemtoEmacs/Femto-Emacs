@@ -153,8 +153,11 @@ void compiled_program_start(const char *directory)
 }
 
 /* A hook failed: say so once in a while, never unwind into the C core */
+extern void note_runtime_failure(void);
+
 static void failed(const char *what, char *error)
 {
+	note_runtime_failure();
 	char message[512];
 	snprintf(message, sizeof message, "Compiled Scheme (%s): %s", what, error ? error : "failed");
 	fe_message(message);
@@ -196,6 +199,7 @@ int compiled_event(const char *kind, const char *arg)
 	char *error = NULL;
 	if (!hooked(BRIDGE_HOOK_EVENT)) return 0;
 	if (!bridge_hook(BRIDGE_HOOK_EVENT, &r, &error, "ss", kind, arg)) {
+		note_runtime_failure();
 		char message[512];
 		snprintf(message, sizeof message, "Compiled Scheme: %s", error ? error : "failed");
 		fe_message(message);

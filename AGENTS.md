@@ -10,6 +10,61 @@ explicitly retires it or the feature has been implemented and verified.
 This is a reminder, not authorization to implement the feature during unrelated
 tasks; the design and scope of sharding remain to be decided.
 
+## Persistent reminder: Lean cursor boundaries
+
+At Eduardo's explicit request (7 November 2026), remind him to implement a
+Lean specification of cursor positions in UTF-8 text. State which byte offsets
+are valid character boundaries and prove that cursor movement and editing keep
+the cursor on those boundaries, never between the bytes of one character.
+This follows two reproduced defects: unwrapped arrow navigation could land
+between the bytes of `ã`, and typing `ã` repainted after its first byte,
+causing a viewport jump. Include complete-character input/edit transitions:
+repainting must never observe a half-written UTF-8 character.
+Include this reminder alongside the editor-shards reminder until Eduardo
+explicitly retires it or the specification has been implemented and verified.
+This is a persistent reminder (Eduardo's reference: Darius' slave story), not
+an instruction to implement the specification during unrelated work.
+
+## The backdoor: seeing what Eduardo's editor does
+
+You cannot see Eduardo's screen. Ask him to open the backdoor (M-x
+backdoor-codex or M-x backdoor-claude; the mode line shows B/D), repeat
+the keys that show the bug, and close it with the same command. Then read
+~/.chezemax/backdoor.txt (also the buffer *backdoor* while open). It
+starts with a header that is never dropped: the date, the options in
+effect, any option not understood, the front end, the screen and the
+window. Then one line per key (#N KEY pt= page= cur=ROW,COL size= BUFFER,
+and with `time` its milliseconds, with `alloc` its page faults), and,
+indented under it, what the key changed that is watched and who changed it:
+"page 0 -> 8 by the command (forward-page)", "... in fe-set-point (a C
+function a script called) during the command", "... by the C core during
+the display, before a script called hook-text (23 changes)", and the
+display's own reasons ("display BUF: page A -> B, point P at or past the
+page's end E (as last drawn): point on the last row"). Identical
+consecutive key lines collapse ("#65..72 ... (8 times)"). The guard and
+reframe notes of src/display.c remain.
+
+Configure it for the diagnosis BEFORE Eduardo opens it: write
+~/.chezemax/backdoor-codex.conf (Claude: backdoor-claude.conf; both:
+backdoor.conf), one option a line, # comments:
+
+    lines N                  lines kept, header included (20-5000; 120)
+    mouse off|clicks|all     clicks: presses, releases, drags, wheel (default)
+    repeats collapse|keep    (collapse)
+    watch page point mark    or watch none (default: watch page)
+    text N                   first N bytes each key inserted, escaped (0)
+    time [MS]                ms of command and display; MS: slow keys only
+    alloc                    page faults; buffer capacity and max resident
+                             size when they change
+
+The configuration is read when the backdoor opens. Closed, it holds no
+memory and costs one test of an int per hook (main.c, display.c) and of a
+NULL pointer around each C function a script calls (bridge.c). To record
+more, add `if (backdoor_on) backdoor_note(...)` in C, or
+`(fe-backdoor-note "text")` in a script; keep notes to one line and remove
+ones no longer needed. tests/backdoor-guard.sh and tests/backdoor-config.sh
+show how to drive and read it in a PTY.
+
 Chezemax is an Emacs-inspired editor: a C core and Scheme scripts. It was
 copied from Schememax (~/csand/c2s-cover/sbcl-rasp/schememax) on 1 November
 2026 to replace femtoscheme with Schemer, the user's Chez-inspired compiler to
@@ -34,7 +89,9 @@ the order of the work) first.
 - **Backups** of edited files go in a `bkp/` folder beside the file, never
   beside the file itself. `bkp/` is ignored by git.
 - **Git** only through git/gitcommit.sh and git/gitpush.sh, with the message
-  in git/next-commit.txt; push only when the user asks. This checkout publishes to
+  in git/next-commit.txt and the paths to commit in git/next-commit-paths.txt
+  (one a line; leave the user's own files out), so that `sh git/gitcommit.sh`
+  alone is enough; push only when the user asks. This checkout publishes to
   https://github.com/FemtoEmacs/Femto-Emacs on master. Preserve history and
   the separate legacy, sbcl and windows branches.
 - **Schememax and Browsered are separate products** (sbcl-rasp/schememax and

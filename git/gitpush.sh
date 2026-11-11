@@ -2,8 +2,22 @@
 # Publish the current master without rewriting history. Only on user request.
 set -eu
 cd "$(dirname "$0")/.."
-remote=$(git remote get-url origin)
-[ "${remote%.git}" = https://github.com/FemtoEmacs/Femto-Emacs ] || { echo 'Unexpected publishing repository' >&2;exit 1; }
+origin_url=$(git remote get-url origin)
+[ "${origin_url%.git}" = https://github.com/FemtoEmacs/Femto-Emacs ] || { echo 'Unexpected publishing repository' >&2;exit 1; }
+# An independent checkout keeps platform work away from local documents.
+if [ "${1:-}" = --windows-checkout ]; then
+ [ "$#" -eq 2 ] || { echo 'Supply an empty destination path' >&2;exit 1; }
+ source_root=$(pwd)
+ git clone --shared --no-checkout "$source_root" "$2"
+ git -C "$2" fetch "$source_root" refs/remotes/origin/windows:refs/remotes/origin/windows
+ git -C "$2" switch --create windows --track origin/windows
+ git -C "$2" remote set-url origin "$origin_url"
+ for field in user.name user.email; do
+  value=$(git config "$field" || true)
+  [ -z "$value" ] || git -C "$2" config "$field" "$value"
+ done
+ exit
+fi
 if [ "${1:-}" = --delete-codemax ]; then
  [ "$#" -eq 2 ] || { echo 'Supply the verified codemax SHA' >&2;exit 1; }
  expected=$2

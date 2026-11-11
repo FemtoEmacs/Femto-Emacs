@@ -18,7 +18,7 @@ currently requires macOS. Windows ARM64 is not a native build target here.
 
 Settings and personal scripts stay in %USERPROFILE%\.chezemax. Uninstallation
 preserves that folder and documents. Close Chezweb before updating/uninstalling.
-Paths inside the terminal use Cygwin notation, e.g. /c/Users/nia/Documents.
+Cygwin shell tools use paths such as `/c/Users/nia/Documents`. The Windows command interpreter uses paths such as `C:\Users\nia\Documents`.
 The included shell tools support ordinary ls, cd and pwd commands.
 
 Maintainers: the GitHub workflow installs build dependencies, runs
@@ -28,3 +28,15 @@ Cygwin component sources accompany the binary artifact to satisfy redistribution
 requirements: https://cygwin.com/licensing.html. Do not publish a binary without
 its matching source artifact. This installer is unsigned; Windows may display
 an unknown-publisher warning.
+
+## Org and the embedded terminal
+
+Open a file ending in `.org` to use the shared Org mode, including folding,
+tables, source blocks, and LaTeX export. Generating a PDF requires a separate
+TeX installation.
+
+In the terminal editor or SDL window, `M-x term` starts the Windows command
+interpreter configured in `ComSpec` (normally `cmd.exe`). This requires Windows
+10 version 1809 or later. ConPTY connects the shell to the same libvterm
+renderer used on macOS and Linux. Use `C-c C-c` to interrupt the shell,
+`C-c C-j` for copy mode, and `C-c C-k` to resume sending keys to the shell.

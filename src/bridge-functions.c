@@ -205,6 +205,30 @@ static void b_fe_line_start(bridge_in *in, bridge_out *out)
 	bridge_put_int(out, (long) fe_line_start(a1));
 }
 
+extern void fe_read_mode(int mode);
+static void b_fe_read_mode(bridge_in *in, bridge_out *out)
+{
+	int a1 = (int) bridge_int(in);
+	fe_read_mode(a1);
+	bridge_put_nothing(out);
+}
+
+extern int fe_read_state(char *name);
+static void b_fe_read_state(bridge_in *in, bridge_out *out)
+{
+	char *a1 = bridge_string(in);
+	bridge_put_int(out, (long) fe_read_state(a1));
+	free(a1);
+}
+
+extern int fe_read_key(char *key);
+static void b_fe_read_key(bridge_in *in, bridge_out *out)
+{
+	char *a1 = bridge_string(in);
+	bridge_put_int(out, (long) fe_read_key(a1));
+	free(a1);
+}
+
 extern void fe_insert(char *s);
 static void b_fe_insert(bridge_in *in, bridge_out *out)
 {
@@ -534,6 +558,114 @@ static void b_fe_command_name(bridge_in *in, bridge_out *out)
 	bridge_put_string(out, r);
 }
 
+extern void fe_unfold_everywhere(void);
+static void b_fe_unfold_everywhere(bridge_in *in, bridge_out *out)
+{
+	fe_unfold_everywhere();
+	bridge_put_nothing(out);
+}
+
+extern int fe_fold(long a, long b);
+static void b_fe_fold(bridge_in *in, bridge_out *out)
+{
+	long a1 = (long) bridge_int(in);
+	long a2 = (long) bridge_int(in);
+	bridge_put_int(out, (long) fe_fold(a1, a2));
+}
+
+extern void fe_unfold(long from, long to);
+static void b_fe_unfold(bridge_in *in, bridge_out *out)
+{
+	long a1 = (long) bridge_int(in);
+	long a2 = (long) bridge_int(in);
+	fe_unfold(a1, a2);
+	bridge_put_nothing(out);
+}
+
+extern long fe_folded_at(long a);
+static void b_fe_folded_at(bridge_in *in, bridge_out *out)
+{
+	long a1 = (long) bridge_int(in);
+	bridge_put_int(out, (long) fe_folded_at(a1));
+}
+
+extern int fe_hidden_p(long p);
+static void b_fe_hidden_p(bridge_in *in, bridge_out *out)
+{
+	long a1 = (long) bridge_int(in);
+	bridge_put_int(out, (long) fe_hidden_p(a1));
+}
+
+extern char * fe_mouse_kind(void);
+static void b_fe_mouse_kind(bridge_in *in, bridge_out *out)
+{
+	const char *r = fe_mouse_kind();
+	bridge_put_string(out, r);
+}
+
+extern int fe_narrow(long from, long to);
+static void b_fe_narrow(bridge_in *in, bridge_out *out)
+{
+	long a1 = (long) bridge_int(in);
+	long a2 = (long) bridge_int(in);
+	bridge_put_int(out, (long) fe_narrow(a1, a2));
+}
+
+extern void fe_widen(void);
+static void b_fe_widen(bridge_in *in, bridge_out *out)
+{
+	fe_widen();
+	bridge_put_nothing(out);
+}
+
+extern long fe_narrow_start(void);
+static void b_fe_narrow_start(bridge_in *in, bridge_out *out)
+{
+	bridge_put_int(out, (long) fe_narrow_start());
+}
+
+extern long fe_narrow_end(void);
+static void b_fe_narrow_end(bridge_in *in, bridge_out *out)
+{
+	bridge_put_int(out, (long) fe_narrow_end());
+}
+
+extern int fe_char_width(long cp);
+static void b_fe_char_width(bridge_in *in, bridge_out *out)
+{
+	long a1 = (long) bridge_int(in);
+	bridge_put_int(out, (long) fe_char_width(a1));
+}
+
+extern char * fe_term_open(void);
+static void b_fe_term_open(bridge_in *in, bridge_out *out)
+{
+	const char *r = fe_term_open();
+	bridge_put_string(out, r);
+}
+
+extern int fe_term_state(void);
+static void b_fe_term_state(bridge_in *in, bridge_out *out)
+{
+	bridge_put_int(out, (long) fe_term_state());
+}
+
+extern int fe_term_copy_mode(int on);
+static void b_fe_term_copy_mode(bridge_in *in, bridge_out *out)
+{
+	int a1 = (int) bridge_int(in);
+	bridge_put_int(out, (long) fe_term_copy_mode(a1));
+}
+
+extern void fe_backdoor_note(char *s);
+static void b_fe_backdoor_note(bridge_in *in, bridge_out *out)
+{
+	char *a1 = bridge_string(in);
+	fe_backdoor_note(a1);
+	bridge_put_nothing(out);
+	free(a1);
+}
+
 extern void fe_message(char *s);
 static void b_fe_message(bridge_in *in, bridge_out *out)
 {
@@ -722,6 +854,21 @@ static void b_fe_gui_set_option(bridge_in *in, bridge_out *out)
 	free(a1);
 }
 
+extern void fe_tester_history_stats(long a, long b, long c, long d, long e, long f, long g, long h);
+static void b_fe_tester_history_stats(bridge_in *in, bridge_out *out)
+{
+	long a1 = (long) bridge_int(in);
+	long a2 = (long) bridge_int(in);
+	long a3 = (long) bridge_int(in);
+	long a4 = (long) bridge_int(in);
+	long a5 = (long) bridge_int(in);
+	long a6 = (long) bridge_int(in);
+	long a7 = (long) bridge_int(in);
+	long a8 = (long) bridge_int(in);
+	fe_tester_history_stats(a1, a2, a3, a4, a5, a6, a7, a8);
+	bridge_put_nothing(out);
+}
+
 void bridge_register_editor(void)
 {
 	bridge_register("fe-set-color", b_fe_set_color);
@@ -751,6 +898,9 @@ void bridge_register_editor(void)
 	bridge_register("fe-set-point", b_fe_set_point);
 	bridge_register("fe-char-at", b_fe_char_at);
 	bridge_register("fe-line-start", b_fe_line_start);
+	bridge_register("fe-read-mode", b_fe_read_mode);
+	bridge_register("fe-read-state", b_fe_read_state);
+	bridge_register("fe-read-key", b_fe_read_key);
 	bridge_register("fe-insert", b_fe_insert);
 	bridge_register("fe-backward-delete-char", b_fe_backward_delete_char);
 	bridge_register("fe-delete-char", b_fe_delete_char);
@@ -795,6 +945,21 @@ void bridge_register_editor(void)
 	bridge_register("fe-run-c-key", b_fe_run_c_key);
 	bridge_register("fe-execute-command", b_fe_execute_command);
 	bridge_register("fe-command-name", b_fe_command_name);
+	bridge_register("fe-unfold-everywhere", b_fe_unfold_everywhere);
+	bridge_register("fe-fold", b_fe_fold);
+	bridge_register("fe-unfold", b_fe_unfold);
+	bridge_register("fe-folded-at", b_fe_folded_at);
+	bridge_register("fe-hidden-p", b_fe_hidden_p);
+	bridge_register("fe-mouse-kind", b_fe_mouse_kind);
+	bridge_register("fe-narrow", b_fe_narrow);
+	bridge_register("fe-widen", b_fe_widen);
+	bridge_register("fe-narrow-start", b_fe_narrow_start);
+	bridge_register("fe-narrow-end", b_fe_narrow_end);
+	bridge_register("fe-char-width", b_fe_char_width);
+	bridge_register("fe-term-open", b_fe_term_open);
+	bridge_register("fe-term-state", b_fe_term_state);
+	bridge_register("fe-term-copy-mode", b_fe_term_copy_mode);
+	bridge_register("fe-backdoor-note", b_fe_backdoor_note);
 	bridge_register("fe-message", b_fe_message);
 	bridge_register("fe-clear-message-line", b_fe_clear_message_line);
 	bridge_register("fe-log-debug", b_fe_log_debug);
@@ -818,4 +983,5 @@ void bridge_register_editor(void)
 	bridge_register("fe-gui-set-font", b_fe_gui_set_font);
 	bridge_register("fe-gui-set-colors", b_fe_gui_set_colors);
 	bridge_register("fe-gui-set-option", b_fe_gui_set_option);
+	bridge_register("fe-tester-history-stats", b_fe_tester_history_stats);
 }

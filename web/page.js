@@ -3,18 +3,39 @@ Module.browsered=(function(){
  'use strict';
  var canvas,ctx,keys,queue=[],waiter=null,evals=[],rows=30,cols=100,last=null;
  var cw=9,ch=20,pad=4,points=15,ended=false,noticeTimer=null;
+ var saveJobs=new Map(),lastSave=Promise.resolve(true),nativeSave=false,nativeTarget='',nativeRevision='0';
  function push(n){if(waiter){var w=waiter;waiter=null;w(n);}else queue.push(n);}
  function text(s){new TextEncoder().encode(s).forEach(push);}
  function layout(){var d=devicePixelRatio||1,top=canvas.getBoundingClientRect().top;canvas.width=innerWidth*d;canvas.height=(innerHeight-top)*d;canvas.style.width=innerWidth+'px';canvas.style.height=(innerHeight-top)+'px';ctx.setTransform(d,0,0,d,0,0);ctx.font=points+'px Menlo,Consolas,monospace';cw=ctx.measureText('MMMMMMMMMM').width/10;ch=Math.ceil(points*1.35);cols=Math.max(20,Math.floor((innerWidth-8)/cw));rows=Math.max(4,Math.floor((innerHeight-top-8)/ch));}
  function rgb(n){return '#'+(n&0xffffff).toString(16).padStart(6,'0');}
+ // Six ints a cell (web/screen.c): code point (-1: the right half of a wide
+ // character), colours, style and two combining accents drawn with it.
+ // Backgrounds first, then text, so a wide glyph is not covered by the
+ // background of its second cell.
+ // A wide character (Hangul, CJK, emoji) has two cells, but its font's
+ // glyph is narrower than two of Menlo's: drawn as it is, it leaves a gap
+ // after it, so that 이상순 reads as 이 상 순.  It is widened to fill its two
+ // cells (by at most 30%, and at most 10% taller, so that it stays in its
+ // row) and centred in them; a glyph wider than its cells is narrowed.
+ function wideText(s,x,top){
+  var w=ctx.measureText(s).width,want=2*cw;
+  if(!(w>0)){ctx.fillText(s,x,top+points);return;}
+  var kx=Math.min(want/w,1.3),ky=Math.min(kx,1.1);
+  ctx.save();ctx.translate(x+(want-w*kx)/2,top+(ch-points*ky)/2+points*ky*0.85);ctx.scale(kx,ky);ctx.fillText(s,0,0);ctx.restore();
+ }
  function paint(p,nr,nc,r,c,bg,cursor){
-  var grid=HEAP32.slice(p>>2,(p>>2)+nr*nc*4);last={grid,nr,nc,r,c};
+  var grid=HEAP32.slice(p>>2,(p>>2)+nr*nc*6);last={grid,nr,nc,r,c};
   ctx.fillStyle=rgb(bg);ctx.fillRect(0,0,innerWidth,innerHeight);
   var lines=[];
+  for(var y=0;y<nr;y++)for(var x=0;x<nc;x++){
+   var i=(y*nc+x)*6;ctx.fillStyle=rgb(y===r&&x===c?cursor:grid[i+2]);ctx.fillRect(pad+x*cw,pad+y*ch,cw,ch);
+  }
   for(var y=0;y<nr;y++){var line='';for(var x=0;x<nc;x++){
-   var i=(y*nc+x)*4,cp=grid[i]||32,fg=grid[i+1],back=grid[i+2],style=grid[i+3];
-   ctx.fillStyle=rgb(y===r&&x===c?cursor:back);ctx.fillRect(pad+x*cw,pad+y*ch,cw,ch);
-   ctx.fillStyle=rgb(y===r&&x===c?back:fg);ctx.font=(style&2?'italic ':'')+(style&1?'bold ':'')+points+'px Menlo,Consolas,monospace';ctx.fillText(String.fromCodePoint(cp),pad+x*cw,pad+y*ch+points);line+=String.fromCodePoint(cp);
+   var i=(y*nc+x)*6,cp=grid[i]||32,fg=grid[i+1],back=grid[i+2],style=grid[i+3];
+   if(cp===-1)continue;
+   var s=String.fromCodePoint(cp)+(grid[i+4]?String.fromCodePoint(grid[i+4]):'')+(grid[i+5]?String.fromCodePoint(grid[i+5]):'');
+   ctx.fillStyle=rgb(y===r&&x===c?back:fg);ctx.font=(style&2?'italic ':'')+(style&1?'bold ':'')+points+'px Menlo,Consolas,monospace';
+   if(x+1<nc&&grid[i+6]===-1)wideText(s,pad+x*cw,pad+y*ch);else ctx.fillText(s,pad+x*cw,pad+y*ch+points);line+=s;
   }lines.push(line);}document.getElementById('screen-text').textContent=lines.join('\n');
  }
   var shiftedPunct = { "`": "~", "1": "!", "2": "@", "3": "#", "4": "$", "5": "%",
@@ -83,21 +104,52 @@ Module.browsered=(function(){
   document.addEventListener('keydown',key,true);keys.addEventListener('input',e=>{if(!e.isComposing){text(keys.value);keys.value='';}});keys.addEventListener('compositionend',()=>{text(keys.value);keys.value='';});
   document.addEventListener('paste',e=>{var s=e.clipboardData.getData('text/plain');if(s){e.preventDefault();var p=stringToNewUTF8(s);Module._web_set_scrap(p);text('\x19');}});
   function mouse(e,button,release){var box=canvas.getBoundingClientRect(),col=Math.floor((e.clientX-box.left-pad)/cw),row=Math.floor((e.clientY-box.top-pad)/ch);col=Math.max(0,Math.min(cols-1,col));row=Math.max(0,Math.min(rows-1,row));text('\x1b[<'+button+';'+(col+1)+';'+(row+1)+(release?'m':'M'));}
-  var dragging=false;canvas.addEventListener('mousedown',e=>{if(e.button===0){keys.focus();dragging=true;mouse(e,0,false);e.preventDefault();}});window.addEventListener('mouseup',e=>{if(dragging){dragging=false;mouse(e,0,true);}});window.addEventListener('mousemove',e=>{if(dragging)mouse(e,32,false);else mouse(e,35,false);});canvas.addEventListener('wheel',e=>{e.preventDefault();mouse(e,e.deltaY<0?64:65,false);},{passive:false});
+  var dragging=false;canvas.addEventListener('mousedown',e=>{if(e.button===0){keys.focus();dragging=true;mouse(e,0,false);e.preventDefault();}});window.addEventListener('mouseup',e=>{if(dragging){dragging=false;mouse(e,0,true);}});window.addEventListener('mousemove',e=>{if(dragging)mouse(e,32,false);});var hoverCell='';canvas.addEventListener('mousemove',e=>{if(dragging)return;var box=canvas.getBoundingClientRect(),cell=Math.floor((e.clientX-box.left-pad)/cw)+','+Math.floor((e.clientY-box.top-pad)/ch);if(cell!==hoverCell){hoverCell=cell;mouse(e,35,false);}});canvas.addEventListener('mouseleave',()=>{hoverCell='';if(!dragging)text('\x1b[<35;0;0M');});canvas.addEventListener('wheel',e=>{e.preventDefault();mouse(e,e.deltaY<0?64:65,false);},{passive:false});
   window.addEventListener('resize',()=>{layout();push(154);});keys.focus();
   FS.mkdirTree('/home/web_user');FS.chdir('/home/web_user');ENV.HOME='/home/web_user';await settings();await program();
   var initial='Welcome to Chezweb.\n\nC-x C-f opens files. C-x C-s saves.\nAsk Codex or Claude in your terminal or SDL window.\n';
-  try{var r=await fetch('session',{cache:'no-store'});if(r.ok){initial=await r.text();Module.chezwebSession=true;}}catch(_){}
+  try{var r=await fetch('snapshot',{cache:'no-store'});if(!r.ok)r=await fetch('session',{cache:'no-store'});if(r.ok){initial=new Uint8Array(await r.arrayBuffer());Module.chezwebSession=true;nativeRevision=r.headers.get('X-Chezweb-Revision')||'0';Module.chezwebInitialModified=r.headers.get('X-Chezweb-Modified')==='1';}}catch(_){}
+  if(Module.chezwebSession)try{var target=await fetch('target',{cache:'no-store'});if(target.ok){nativeSave=true;nativeTarget=await target.text();}}catch(_){}
   var name='browser.txt';try{var nr=await fetch('name',{cache:'no-store'});if(nr.ok){var value=await nr.text();if(value&&!/[\/\\\x00-\x1f]/.test(value))name=value;}}catch(_){}
   Module.chezwebSessionPath='/home/web_user/'+name;FS.writeFile(Module.chezwebSessionPath,initial);
-  // Only explicitly closed write streams on the session file are returned
-  // to the native editor. Ordinary typing, listing and startup never save.
-  var close=FS.close;FS.close=function(stream){var save=!Module.chezwebLoading&&Module.chezwebSession&&stream.path===Module.chezwebSessionPath&&(stream.flags&3)!==0;var result=close(stream);if(save){var body=FS.readFile(stream.path);Module.chezwebSave=fetch('session',{method:'PUT',headers:{'Content-Type':'application/x-chezweb-text'},body}).then(r=>{if(!r.ok)throw Error('Native window rejected save');notice('Saved to the native window. Return there and press a key to import it.');}).catch(e=>notice(e.message,true));}return result;};
   document.getElementById('grammarly-toggle').onclick=()=>{evals.push('(toggle-grammarly)');push(-2);keys.focus();};
   document.getElementById('choose-folder').onclick=async()=>{try{var path=await ChezwebFiles.pickDirectory();var shown=await ChezwebShell.selectDirectory(path);notice('Current directory: '+shown);}catch(e){if(e.name==='AbortError')notice('Folder selection cancelled.');else notice(e.message,true);}finally{keys.focus();}};
-  document.getElementById('open-file').onclick=async()=>{try{var handles=await window.showOpenFilePicker(),h=handles[0],f=await h.getFile(),path='/home/web_user/'+f.name;var bytes=new Uint8Array(await f.arrayBuffer());Module.chezwebLoading=true;try{FS.writeFile(path,bytes);}finally{Module.chezwebLoading=false;}Module.chezwebHandles=Module.chezwebHandles||new Map();Module.chezwebHandles.set(path,h);evals.push('(find-file '+JSON.stringify(path)+')');push(-2);keys.focus();}catch(e){if(e.name!=='AbortError')notice(e.message,true);}};
+  document.getElementById('open-file').onclick=async()=>{try{
+   var picked=await window.showOpenFilePicker(),h=picked[0],f=await h.getFile(),path=null;
+   Module.chezwebHandles=Module.chezwebHandles||new Map();
+   for(var [known,handle] of Module.chezwebHandles)if(handle===h||(h.isSameEntry&&await h.isSameEntry(handle))){path=known;break;}
+   if(!path){path='/home/web_user/'+f.name;var n=1;while(FS.analyzePath(path).exists){path='/home/web_user/.picked-'+n+++'/'+f.name;}FS.mkdirTree(path.slice(0,path.lastIndexOf('/')));}
+   var bytes=new Uint8Array(await f.arrayBuffer());Module.chezwebLoading=true;
+   try{FS.writeFile(path,bytes);}finally{Module.chezwebLoading=false;}
+   Module.chezwebHandles.set(path,h);evals.push('(find-file '+JSON.stringify(path)+')');push(-2);keys.focus();
+  }catch(e){if(e.name!=='AbortError')notice(e.message,true);}};
   ChezwebFiles.install();
-  var originalClose=FS.close;FS.close=function(stream){var path=stream.path,h=ChezwebFiles.target(path),save=h&&!Module.chezwebLoading&&(stream.flags&3)!==0,result=originalClose(stream);if(save){var bytes=FS.readFile(path);Module.chezwebSave=(async()=>{await ChezwebFiles.write(path,bytes);notice('File saved.');})().catch(e=>notice(e.message,true));}return result;};
+  // A save has exactly one destination: a granted handle OR the fixed native
+  // source. Merely choosing a folder never retargets an already-open buffer.
+  var close=FS.close;FS.close=function(stream){
+   var path=stream.path,local=ChezwebFiles.target(path),handoff=Module.chezwebSession&&path===Module.chezwebSessionPath;
+   var save=!Module.chezwebLoading&&(stream.flags&3)!==0&&(local||handoff),result=close(stream);
+   if(save){var bytes=FS.readFile(path);var job=lastSave.then(async()=>{
+    if(ended)return false;
+    notice('Saving '+(local?ChezwebFiles.describe(path):nativeTarget||'native buffer')+'…',false,true);
+    try{
+     if(local){await ChezwebFiles.write(path,bytes);
+      if(Module.chezwebSession)try{await fetch('refresh',{method:'POST',headers:{'Content-Type':'application/x-chezweb-refresh'}});}catch(_){}
+      notice('Saved '+ChezwebFiles.describe(path));
+     }else{
+      var response=await fetch(nativeSave?'save':'session',{method:'PUT',headers:{'Content-Type':'application/x-chezweb-text',...(nativeSave?{'X-Chezweb-Revision':nativeRevision}:{})},body:bytes});
+      var receipt=await response.text();
+      if(!response.ok)throw Error(receipt||'Save failed; browser changes remain unsaved.');
+      if(nativeSave){nativeRevision=response.headers.get('X-Chezweb-Revision')||nativeRevision;notice(receipt);}
+      else notice('Returned to the native buffer. Save there to write the file to disk.',false,true);
+     }
+     return true;
+    }catch(e){notice(e.message+' Changes remain unsaved.',true);return false;}
+   });
+   lastSave=job;saveJobs.set(path,job);Module.chezwebSave=job;
+  }
+   return result;
+  };
   document.getElementById('starting').hidden=true;
  }
  async function end(){
@@ -109,8 +161,32 @@ Module.browsered=(function(){
   window.close();
   if(!window.closed)notice('Chezweb browser editor closed. Your native window remains open. You can close this tab.',true);
  }
- function notice(s,bad){var el=document.getElementById('notice');clearTimeout(noticeTimer);el.textContent=s||'';el.title=s||'';el.hidden=!s;el.className=bad?'failure':'';if(s&&!bad)noticeTimer=setTimeout(()=>{el.hidden=true;},4500);}
+ async function confirmSave(path){
+  path=ChezwebFiles.normalize(path);var job=saveJobs.get(path);
+  if(job)return await job;
+  notice('Saved in temporary browser storage only. Choose folder and Save As to keep this file on disk.',false,true);
+  return true;
+ }
+ // M-x native-window-update: the text of the buffer C-c d opened goes into
+ // the native buffer, after any save still on its way.  ARG is the
+ // buffer's filename, a newline, then its text.
+ async function nativeUpdate(arg){
+  var cut=arg.indexOf('\n'),file=arg.slice(0,cut),body=arg.slice(cut+1);
+  if(!nativeSave)return 'No native window to update: this browser editor was not opened with C-c d.';
+  if(!file||ChezwebFiles.normalize(file)!==Module.chezwebSessionPath)return 'M-x native-window-update sends the buffer C-c d opened ('+(nativeTarget||Module.chezwebSessionPath)+'): switch to it first (C-x b).';
+  var job=lastSave.then(async()=>{
+   if(ended)return 'The browser editor has closed.';
+   try{
+    var response=await fetch('update',{method:'PUT',headers:{'Content-Type':'application/x-chezweb-text'},body:new TextEncoder().encode(body)});
+    var receipt=await response.text();
+    if(response.ok)nativeRevision=response.headers.get('X-Chezweb-Revision')||nativeRevision;
+    notice(receipt,!response.ok,!response.ok);return receipt;
+   }catch(e){notice(e.message,true);return e.message;}
+  });
+  lastSave=job.then(()=>true);return await job;
+ }
+ function notice(s,bad,sticky){var el=document.getElementById('notice');clearTimeout(noticeTimer);el.textContent=s||'';el.title=s||'';el.hidden=!s;el.className=bad?'failure':'';if(s&&!bad&&!sticky)noticeTimer=setTimeout(()=>{el.hidden=true;},4500);}
  Module.preRun=Module.preRun||[];Module.preRun.push(()=>{addRunDependency('chezweb-page');init().then(()=>removeRunDependency('chezweb-page')).catch(e=>{notice(e.message,true);});});
- return {textLayer:json=>ChezwebGrammar.update(json),layerGeometry:()=>({cw,ch,pad,points,cols,top:canvas.getBoundingClientRect().top}),sendText:text,queueScheme:s=>{evals.push(s);push(-2);},isEnded:()=>ended,rows:()=>rows,settings,cols:()=>cols,paint,nextByte:()=>queue.length?Promise.resolve(queue.shift()):new Promise(r=>{waiter=r;}),takeEval:()=>evals.length?evals.shift():null,flushInput:()=>{queue=[];},copy:s=>navigator.clipboard.writeText(s).catch(()=>{}),paste:async()=>{try{return await navigator.clipboard.readText();}catch(_){return null;}},font:(f,p)=>{if(p>0)points=p;layout();},setOption:()=>{},ended:end,notice};
+ return {nativeUpdate,textLayer:json=>ChezwebGrammar.update(json),layerGeometry:()=>({cw,ch,pad,points,cols,top:canvas.getBoundingClientRect().top}),confirmSave,sendText:text,queueScheme:s=>{evals.push(s);push(-2);},isEnded:()=>ended,rows:()=>rows,settings,cols:()=>cols,paint,nextByte:()=>queue.length?Promise.resolve(queue.shift()):new Promise(r=>{waiter=r;}),takeEval:()=>evals.length?evals.shift():null,flushInput:()=>{queue=[];},copy:s=>navigator.clipboard.writeText(s).catch(()=>{}),paste:async()=>{try{return await navigator.clipboard.readText();}catch(_){return null;}},font:(f,p)=>{if(p>0)points=p;layout();},setOption:()=>{},ended:end,notice};
 })();
 Module.onAbort=e=>Module.browsered.notice('Chezweb failed: '+e,true);

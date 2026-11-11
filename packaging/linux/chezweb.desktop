@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Chezweb
+GenericName=Text Editor
+Comment=A simpler Emacs, in a window
+Exec=chezweb-gui %F
+Icon=accessories-text-editor
+Terminal=false
+Categories=Utility;TextEditor;Development;
+MimeType=text/plain;text/markdown;text/x-tex;text/x-csrc;text/x-scheme;
+Keywords=Emacs;editor;Org;Markdown;

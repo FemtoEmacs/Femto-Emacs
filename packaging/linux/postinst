@@ -1,0 +1,17 @@
+#!/bin/sh
+# Wasmtime makes machine code for the processor it runs on, so it is made
+# here, on this machine, from the WebAssembly the package carries.  If it
+# cannot be made, the editor still starts: it translates the WebAssembly
+# at each start (slower).
+set -e
+if [ "$1" = configure ]; then
+ cd /opt/chezweb
+ echo 'Chezweb: making the machine code for this processor (about half a minute)...'
+ rm -f schemer/compiler.cwasm chezemax.cwasm
+ ./schemer-compile --machine-code schemer/compiler.wasm schemer/compiler.cwasm ||
+  echo 'Chezweb: could not make schemer/compiler.cwasm; the editor will start more slowly.'
+ ./schemer-compile --machine-code chezemax.wasm chezemax.cwasm ||
+  echo 'Chezweb: could not make chezemax.cwasm; the editor will start more slowly.'
+ chmod 0644 schemer/compiler.cwasm chezemax.cwasm 2>/dev/null || true
+fi
+exit 0

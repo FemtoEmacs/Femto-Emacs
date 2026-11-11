@@ -63,6 +63,12 @@
 #define ID_COLOR_LINK      14
 #define ID_COLOR_MENU      15      /* the buttons of the mode line menu */
 #define ID_COLOR_MENU_PRESSED 16   /* a button while it is clicked */
+#define ID_COLOR_TERM0     17      /* terminal.c: the 16 ANSI colours, 17-32 */
+#define ID_COLOR_TERM_REVERSE 33   /*   and reverse video */
+#define ID_COLOR_TERM_CURSOR 34    /*   the cursor, drawn by the editor */
+#define ID_COLOR_TERM_POOL 35      /*   then faces made for the colour pairs */
+#define ID_COLOR_LAST      127     /*   programs use (backgrounds, 256 colours) */
+extern void term_face(int id, long fg, long bg, int attr);   /* interface.c */
 
 /* undo types, in matched pairs */
 #define UNDO_T_NONE        0
@@ -123,6 +129,8 @@ typedef struct undo_t {
 
 
 
+typedef struct fold_t { point_t a, b; } fold_t;   /* fold.c: [a, b] hidden */
+
 typedef struct buffer_t
 {
 	struct buffer_t *b_next;  /* Link to next buffer_t */
@@ -144,9 +152,18 @@ typedef struct buffer_t
 	int b_col;                /* cursor col */
 	char b_fname[NAME_MAX + 1]; /* filename */
 	char b_bname[NBUFN];      /* buffer name */
+	int b_read_mode, b_read_visual, b_read_pending;
+	unsigned b_read_count;
 	buffer_flags_t b_flags;   /* buffer flags */
 	undo_t b_ubuf;            /* undoset */
 	long b_id;                /* unique, never reused: undo history is kept by id */
+	int b_narrowed;           /* narrow.c: only a part is shown and edited */
+	point_t b_narrow_start;   /*   its first byte */
+	point_t b_narrow_tail;    /*   the bytes after its end */
+	fold_t *b_folds;          /* fold.c: Org's folded headings */
+	int b_nfolds, b_capfolds;
+	unsigned long b_changes;  /* text, folds or narrowing changed (counted) */
+	unsigned long b_drawn;    /*   b_changes when b_epage was last drawn */
 } buffer_t;
 
 typedef struct window_t
@@ -265,6 +282,10 @@ extern char *get_file_extension(char *);
 extern void display_char(buffer_t *, char_t *);
 extern void display(window_t *, int);
 extern int utf8_size(char_t);
+/* width.c: the columns a character takes (0 combining, 2 wide, else 1) */
+extern int char_width(unsigned long);
+extern int fe_char_width(long);
+extern unsigned long code_point_at(buffer_t *, point_t);
 extern int prev_utf8_char_size(void);
 extern void display_utf8(buffer_t *, char_t, int);
 extern void dispmsg(void);
@@ -310,6 +331,45 @@ extern int window_position(window_t *, int, int);
 extern int line_number(buffer_t *, point_t);
 extern void insert(void);
 extern void paste(void);
+extern void paste_bracketed(void);
+/* backdoor.c: M-x backdoor-claude / backdoor-codex (B/D on the mode line) */
+/* narrow.c: C-x n n, C-x n s, C-x n w */
+extern point_t visible_start(buffer_t *);
+extern point_t visible_end(buffer_t *);
+extern void narrow_clamp(buffer_t *);
+/* fold.c: hidden text (Org's TAB) */
+extern int fold_hidden(buffer_t *, point_t);
+extern point_t fold_skip_forward(buffer_t *, point_t);
+extern point_t fold_skip_backward(buffer_t *, point_t);
+extern point_t fold_end_at(buffer_t *, point_t);
+extern void fold_reveal(buffer_t *, point_t);
+extern void fold_change(buffer_t *, int, point_t, long);
+extern void fold_free(buffer_t *);
+/* terminal.c: M-x term */
+extern int term_poll(void);
+extern int term_takes_keys(buffer_t *);
+extern void term_take_key(void);
+extern int term_faces(buffer_t *, point_t, char_t *, long);
+extern void term_buffer_gone(buffer_t *);
+extern int term_running(void);
+extern int term_state(buffer_t *);
+extern int term_owns_cursor(buffer_t *);
+extern int term_poll_ms(void);
+extern int key_bytes_waiting(int);
+extern int backdoor_on;
+extern int backdoor_watch;              /* what its configuration follows */
+#define BACKDOOR_PAGE  1
+#define BACKDOOR_POINT 2
+#define BACKDOOR_MARK  4
+extern void backdoor_note(const char *, ...);
+extern void backdoor_commanded(void);
+extern void (*bridge_around_call)(const char *, int);   /* bridge.c */
+extern void backdoor_key(char_t *, keymap_t *);
+extern void backdoor_shown(void);
+extern void backdoor_refresh(void);
+extern void backdoor_claude(void);
+extern void backdoor_codex(void);
+extern void fe_backdoor_note(char *);
 extern void quit(void);
 extern int yesno(int);
 extern void quit_ask(void);
@@ -375,6 +435,7 @@ extern int getfilename(char *, char *, int);
 extern int getfilename_default(char *, char *, int);
 extern int getcommand(char *, int);
 extern void unread_key_bytes(const char *, int);
+extern int tester_inject_key_bytes(const char *, int);
 extern void scroll_window(int);
 extern int select_screen_window(int);
 #define WHEEL_ROWS 3            /* rows the text moves for a notch of the wheel */
@@ -420,3 +481,20 @@ extern void record_change(buffer_t *, int, point_t, const char_t *, long);
  * include public Femto interface functions definitions 
  */
 #include "public.h"
+
+/* Native read-only navigation; modes 0 Emacs, 1 READ, 2 copy-only Vim. */
+extern void fe_read_mode(int);
+extern int fe_read_state(char *);
+extern int fe_read_key(char *);
+extern int read_mode_event(const char *, const char *);
+
+/* Visible bounded tester, scheduled outside Scheme callbacks. */
+extern void chez_tester(void);
+void run_tester(void);
+extern void chez_tester_poll(void);
+extern void editor_dispatch_key(void);
+extern int tester_can_inject(void);
+extern void note_runtime_failure(void);
+extern unsigned long runtime_failure_serial(void);
+
+extern int chez_tester_clipboard_isolated(void);

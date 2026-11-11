@@ -3,6 +3,11 @@ on:
   push:
     branches: [windows]
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      source_ref:
+        type: string
+        default: windows
 concurrency:
   group: chezweb-windows-${{ github.ref }}
   cancel-in-progress: true
@@ -17,6 +22,8 @@ jobs:
         shell: pwsh
         run: git config --global core.autocrlf false
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_ref || github.ref }}
       - name: Restore Cygwin package downloads
         id: downloads
         uses: actions/cache/restore@v4
@@ -70,6 +77,8 @@ jobs:
           export PATH=/usr/bin:$PATH
           cd "$(cygpath -u "$GITHUB_WORKSPACE")"
           bash windows/build-installer.sh 2>&1 | tee windows-build.log
+          export PATH="$PWD:$PATH"
+          make check-org-mode
       - name: Cache compiled Windows product
         if: steps.product.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4

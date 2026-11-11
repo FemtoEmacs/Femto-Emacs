@@ -258,6 +258,11 @@
    ("TeX wrap" (let* ((text "\\section{Introdução} café ação e texto")
                       (end (markdown-wrap-row "document.tex" (test-bytes text) 26)))
                  (list end (apply string-append (wrap-rows text 26)))))
+   ;; width.c through fe-char-width: accents take no column, CJK two
+   ("wrap: combining accents and wide characters"
+    (list (wrap-rows "a\x301;b\x301;c\x301;d\x301;e\x301; f\x301;g\x301;h\x301;i\x301;j\x301;" 6)
+          (wrap-rows "中文中文 abc 中文中" 6)
+          (map fe-char-width (list #x41 #x301 #x342 #x1F00 #x4E2D #x1F600 #xFF21))))
    ;; defaults.scm
    ("what-day" (list (what-day '(2016 9 3)) (what-day '(2026 10 5)) (what-day '(2000 2 29)) (weekday 9)))
    ("read-string" (read-string "(2016 8 31)"))

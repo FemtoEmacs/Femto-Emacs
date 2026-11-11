@@ -18,6 +18,8 @@ void buffer_init(buffer_t *bp)
 	bp->b_size = 0;
 	bp->b_psize = 0;
 	bp->b_flags = 0;
+	bp->b_read_mode = bp->b_read_visual = bp->b_read_pending = 0;
+	bp->b_read_count = 0;
 	bp->b_cnt = 0;
 	bp->b_buf = NULL;
 	bp->b_ebuf = NULL;
@@ -27,6 +29,11 @@ void buffer_init(buffer_t *bp)
 	bp->b_bname[0] = '\0';
 	bp->b_fname[0] = '\0';
 	bp->b_id = ++buffer_ids;
+	bp->b_narrowed = 0;
+	bp->b_narrow_start = bp->b_narrow_tail = 0;
+	bp->b_folds = NULL;
+	bp->b_nfolds = bp->b_capfolds = 0;
+	bp->b_changes = bp->b_drawn = 0;
 }
 
 void zero_buffer(buffer_t *bp)
@@ -167,6 +174,8 @@ int delete_buffer(buffer_t *bp)
 	/* now we can delete */
 	record_change(bp, 'r', 0, NULL, 0);
 	free(bp->b_buf);
+	fold_free(bp);
+	term_buffer_gone(bp);           /* terminal.c: its shell goes */
 	free(bp);
 	return TRUE;
 }
@@ -281,8 +290,7 @@ int save_buffer_byname(char *bname)
 	if (bp == NULL) return FALSE;
 	if (bp->b_fname[0] == '\0') return FALSE;
 
-	save_buffer(bp, bp->b_fname);
-	return TRUE;
+	return save_buffer(bp, bp->b_fname);
 }
 
 char *get_current_bufname()

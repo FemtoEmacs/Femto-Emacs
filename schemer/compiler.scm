@@ -429,7 +429,13 @@
 GROUP: variables of a letrec group, whose slots are filled later."
   (let* ((idx (or idx (lambda-func! node)))
          (_ (let ((i (lambda-info node))) (set-car! (cdr i) idx)))
-         (free (lambda-free node))
+         ;; A singleton letrec already receives its own closure as local 0.
+         ;; Capturing that closure in its environment creates an unnecessary
+         ;; cycle (closure -> environment -> closure). Wasmtime's DRC cannot
+         ;; reclaim such a cycle or any text/bytevectors it captures.
+         (self (and (pair? group) (pair? (car group)) (null? (cdar group)) (caar group)))
+         (free (if self (filter (lambda (v) (not (eq? v self))) (lambda-free node))
+                   (lambda-free node)))
          (req (cadr node)) (rest (caddr node))
          (variadic (lambda-variadic? node))
          (ct (lambda-clo-type node))
@@ -438,6 +444,11 @@ GROUP: variables of a letrec group, whose slots are filled later."
          (env-prologue '())
          (prologue '()))
     (unless variadic (vector-set! g 4 idx))
+    (when self
+      ;; Keep letrec's environment-slot numbering consistent with the reduced
+      ;; capture list, and resolve first-class self references through local 0.
+      (set-car! (cddr (lambda-info node)) free)
+      (fctx-bind! g self (list 'local 0 #f)))
     ;; the environment
     (when (pair? free)
       (let ((envl (fctx-new-local! g (list 'ref 'null T-VEC))))

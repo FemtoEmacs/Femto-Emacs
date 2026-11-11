@@ -1,0 +1,124 @@
+sh tools/browser-assets.sh check
+CC="cc" CPPFLAGS="-Isrc -Ifemtoscheme -Ifemtoscheme/llt -Iruntime/wasmtime/include" CFLAGS="-O2 -Wall -std=gnu11" LDFLAGS="" CURSES_CFLAGS="" CURSES_LIBS="-lncurses" sh tools/check-build.sh
+/Library/Developer/CommandLineTools/usr/bin/make -C femtoscheme release CC="cc"
+cc -O2 -DNDEBUG -Wall -Wno-strict-aliasing -Illt  -DUSE_COMPUTED_GOTO flisp.o builtins.o string.o equalhash.o table.o iostream.o flmain.o -o femtoscheme llt/libllt.a -lm libfemtoscheme.a
+cc  src/assistant.o src/bridge-functions.o src/bridge-more.o src/bridge.o src/browser-launch.o src/buffer.o src/chez-tester.o src/command.o src/compile-scripts.o src/compiled-eval.o src/compiled-program.o src/compiled.o src/complete.o src/data.o src/display.o src/extra.o src/fileprompt.o src/flcall.o src/funcmap.o src/gap.o src/highlight.o src/hooks.o src/interface.o src/key.o src/lineedit.o src/main.o src/native.o src/pdf-pages.o src/primitives.o src/read-mode.o src/replace.o src/search.o src/system.o src/undo.o src/utils.o src/window.o schemer/native-host.o src/term.o src/app.o femtoscheme/libfemtoscheme.a femtoscheme/llt/libllt.a -lncurses -framework CoreGraphics -framework ImageIO -framework CoreFoundation -Lruntime/wasmtime/lib -lwasmtime -Wl,-rpath,@loader_path/runtime/wasmtime/lib -lm -o chezemax
+rm -f chezweb
+cp chezemax chezweb
+node tests/chezweb-server.cjs
+PASS loopback token, Host, Origin, explicit writes, reload state, traversal and absent AI/shell endpoints
+node tests/chezweb-controls.cjs
+PASS empty kill ring returns without consuming the next command
+PASS populated kill ring still copies and exits
+PASS C-x w enlarges the selected window
+PASS C-backslash redoes the change undone by C-slash
+PASS all browser button hints, movement within SAVE, and hint recovery without edits
+node tests/chezweb-read-mode.cjs
+PASS Chrome read ArrowDown: long-file navigation
+PASS Chrome read-mode state belongs to its buffer
+PASS Chrome read ArrowDown: 1829 lines, edit protection and visual copy
+PASS Chrome read Enter: long-file navigation
+PASS Chrome read Enter: 1829 lines, edit protection and visual copy
+PASS Chrome vim ArrowDown: long-file navigation
+PASS Chrome vim ArrowDown: 1829 lines, edit protection and visual copy
+PASS Chrome vim Enter: long-file navigation
+PASS Chrome vim Enter: 1829 lines, edit protection and visual copy
+PASS Chrome four traversals and Vim/READ switches in one page
+PASS navigation and copying never saved the source
+node tests/chezweb-web.cjs
+PASS real Chrome JSPI, unchanged compiled editor startup
+PASS C-x b prompt suspends through compiled Scheme and selects a buffer
+PASS C-x C-b modal menu: navigation and selection
+PASS [?] click, compiled modal Help menu and ChatGPT guidance
+PASS Codex/Claude keyboard and Help paths use native-window advice
+PASS file prompts and Save As through nested compiled frames
+PASS explicit save handoff; typing alone never sends a save
+PASS local file picker: opening/reopening writes nothing; explicit Save writes once
+PASS compiled Scheme evaluation in Chrome, with retained compiler reused after file opening
+PASS C-x C-c waits for pending save and closes its tab only
+PASS blocked tab closure displays a clear fallback
+PASS unsupported browser shows a clear JSPI requirement
+node tests/chezweb-files.cjs
+PASS Tab grants a Chrome folder; partial root completes to its real name; listing is lazy and writes nothing
+PASS common-prefix and cycling completion opens real file bytes, without a second picker
+PASS subdirectories are listed on demand, with nested file completion
+PASS Unicode filename completion and opening
+PASS Enter opens a granted file even without first pressing Tab
+PASS only explicit Save/Save As writes; new files are created in the granted folder
+PASS cancelling completion or the folder picker writes nothing
+PASS a large listed file is read lazily without emptying or writing it
+node tests/chezweb-shell.cjs
+PASS reserved notice row stays outside buffer; ordinary notices expire
+PASS M-! command buffer executes ls without reading file contents or writing
+PASS C-c m executes pwd with command-name Tab completion
+PASS cd path completion updates C-x C-f starting directory
+PASS shared cwd, relative navigation, cd -, quotes and read-only listings
+PASS M-! path completion and minibuffer cancellation preserve the command directory
+PASS non-whitelisted commands, pipes, redirects and expansion rejected; no writes, processes or shell endpoint
+node tests/chezweb-multiple-folders.cjs
+PASS cd leaves the first grant, requests a second directory, and retains both grants without file-content reads
+PASS ls requests its missing target directly, including absolute paths outside browser HOME
+PASS cd --pick selects any directory and updates the editable file prompt
+PASS Choose folder grants another location; identical directory names receive separate paths instead of replacing a grant
+PASS cancelled picker preserves the directory and all existing grants
+PASS ls --pick lists an independently selected folder without changing the working directory
+PASS nested file completion across retained grants; no file writes, creates or native-shell endpoint
+node tests/chezweb-grammarly.cjs
+PASS Grammarly starts off with no text field
+PASS on-demand real textarea overlays the selected buffer with fixed-width formatting
+PASS extension-style correction returns to the editor and one undo restores it
+PASS corrections after UTF-8 and surrogate pairs retain byte positions
+PASS stale corrections cannot overwrite changed text
+PASS overlay follows the selected split window
+PASS normal typing and Emacs editing stay in the compiled editor; no automatic saves
+PASS off removes the real text field and stays off while typing
+PASS filename prompt remains usable while on; switching buffers turns Grammarly off
+PASS corrections persist only on explicit Save; no page errors
+node tests/chezweb-settings.cjs
+PASS the server gives only languages/, extensions/ and init.scm
+PASS init.scm set *fill-column*
+PASS init.scm bound C-c 8
+PASS an extension bound C-c 9
+PASS an error says what went wrong, as in the terminal
+PASS C-x C-r fetches your files again
+PASS your ~/.chezemax files in the browser editor
+node tests/chezweb-tab-pick.cjs
+PASS C-c m: "cd " TAB asks for a folder
+PASS C-c m: "ls ~/" TAB asks for a folder
+node tests/chezweb-browser-only.cjs
+PASS no [TTFY] on the mode line
+PASS assistants and TTFY say where they are
+PASS C-c f and C-c p are unbound
+PASS the help page says what the browser does
+sh tests/run-chezweb-program.sh
+PASS your compiled scripts, with your users/ code, run in the browser
+PASS older compiled scripts are not used, and the editor says why
+PASS compiled scripts that do not start are replaced by Chezweb's own, and the editor says why
+sh tests/chezweb-native-shell.sh
+PASS native M-! keeps the full system shell, including pipelines
+node tests/chezweb-save-native.cjs
+PASS idle native commit, repeated UTF-8/empty saves, clean quit and file permissions
+PASS original filenames with spaces and Unicode
+PASS unsaved native text at handoff is included in the first disk save
+PASS native concurrent edits reject overwrite and preserve browser conflict text
+PASS external disk changes reject overwrite
+PASS denied writes leave disk intact and a later retry succeeds
+PASS explicitly saving a named new file creates only its fixed source target
+PASS direct local saves refresh native text and stale browser revisions cannot overwrite them
+PASS read-only native buffers reject browser mutation
+PASS prompts prevent reentrant saves; timed-out requests are cancelled and retry works
+PASS native Save As cannot silently retarget an existing browser session
+PASS unnamed native buffers require an explicit Save As target
+PASS closing the native source cannot redirect a browser save to another buffer
+PASS independent stale browser versions cannot clobber a newer committed save
+PASS fixed-source native save suite
+node tests/chezweb-save-roundtrip.cjs
+PASS choosing docs then saving the native snapshot writes the original disk file with no native key
+PASS failed native writes preserve the browser dirty flag; retry persists and acknowledges
+PASS granted-folder saves write once, fail honestly, and refresh the same native file
+PASS picking an unrelated file with the same basename has its own save destination
+PASS an older snapshot cannot overwrite a newer direct save and remains unsaved
+PASS Save then quit waits for disk confirmation and leaves the idle native file clean
+node tests/chezweb-native.cjs
+PASS C-c d keeps native terminal alive, imports browser save, explicit native save writes fixture
+PASS concurrent native edits preserved; browser text saved separately from conflict buffer

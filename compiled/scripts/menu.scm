@@ -132,7 +132,9 @@ separated by RS."
 (define (mode-line-pieces name fname bname line flags cols)
   "The mode line of a window (called by the C core at every redisplay):
 NAME as shown, FNAME its file (\"\" if none), BNAME the buffer, LINE the
-cursor's line, FLAGS 1 selected, 2 modified, 4 overwrite, 8 special; COLS
+cursor's line, FLAGS 1 selected, 2 modified, 4 overwrite, 8 special, 16
+read-only, 32 backdoor open (M-x backdoor-claude), 64 narrowed (C-x n);
+COLS
 the width.  The encoded pieces, or #f for the C core's own mode line."
   (set! *menu-region* (and (= 1 (bitwise-and flags 1)) (> (fe-buffer-count) 0) (> (window-count) 0) (menu-region-p)))
   (set! *menu-rendering* #t)
@@ -155,7 +157,21 @@ the width.  The encoded pieces, or #f for the C core's own mode line."
                                        (if (= 2 (bitwise-and flags 2)) "*" "")
                                        (if (= 16 (bitwise-and flags 16)) "%%" "")
                                        (if (top-level-bound? 'vim-tag) (vim-tag bname) "")
-                                       ", L. " (number->string line) " "))
+                                       ", L. " (number->string line)
+                                       ;; backdoor.c: the assistants' backdoor is open
+                                       (if (= 32 (bitwise-and flags 32)) " B/D" "")
+                                       ;; narrow.c: only a part is shown (C-x n w: all)
+                                       (if (= 64 (bitwise-and flags 64)) " Narrow" "")
+                                       ;; terminal.c: a shell (C-c C-j: copy mode)
+                                       (if (= 128 (bitwise-and flags 128)) " Term" "")
+                                       (if (= 256 (bitwise-and flags 256)) " Copy" "")
+                                       ;; polytonic.scm: the Greek keyboard is on
+                                       (if (and (top-level-bound? '*polytonic*) (top-level-value '*polytonic*)) " Ἑλ" "")
+                                       ;; chinese.scm: Chinese input is on
+                                       (if (and (top-level-bound? '*chinese*) (top-level-value '*chinese*)) " 中" "")
+                                       ;; korean.scm: Korean input is on
+                                       (if (and (top-level-bound? '*korean*) (top-level-value '*korean*)) " 한" "")
+                                       " "))
                 (reserve (if quit 9 0)))
            ;; keep the controls ahead of the file name when space is scarce
            (let loop ()
@@ -418,6 +434,10 @@ or #f."
              (call-in-window-of *more-menu-buffer*
                                 (lambda () (if (and created (> (window-count) 1)) (delete-window) (select-buffer origin)))))
            (unless (string=? (get-buffer-name) origin) (select-buffer origin))
+           ;; the menu's buffer goes with it: left in the buffer list, C-x b
+           ;; or C-x <right> would show a menu nothing answers any more
+           (unless (or (string=? *more-menu-buffer* origin) (buffer-shown-p *more-menu-buffer*))
+             (kill-buffer *more-menu-buffer*))
            (goto-char saved-point)
            (if saved-mark (set-mark saved-mark) (clear-mark))
            (unless saved-active (deactivate-mark))

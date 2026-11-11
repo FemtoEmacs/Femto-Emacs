@@ -1,0 +1,103 @@
+CC="cc" CPPFLAGS="-Isrc -Ifemtoscheme -Ifemtoscheme/llt -Iruntime/wasmtime/include" CFLAGS="-O2 -Wall -std=gnu11" LDFLAGS="" CURSES_CFLAGS="" CURSES_LIBS="-lncurses" sh tools/check-build.sh
+/Library/Developer/CommandLineTools/usr/bin/make -C femtoscheme release CC="cc"
+cc -O2 -DNDEBUG -Wall -Wno-strict-aliasing -Illt  -DUSE_COMPUTED_GOTO flisp.o builtins.o string.o equalhash.o table.o iostream.o flmain.o -o femtoscheme llt/libllt.a -lm libfemtoscheme.a
+cc  src/assistant.o src/bridge-functions.o src/bridge-more.o src/bridge.o src/browser-launch.o src/buffer.o src/chez-tester.o src/command.o src/compile-scripts.o src/compiled-eval.o src/compiled-program.o src/compiled.o src/complete.o src/data.o src/display.o src/extra.o src/fileprompt.o src/flcall.o src/funcmap.o src/gap.o src/highlight.o src/hooks.o src/interface.o src/key.o src/lineedit.o src/main.o src/native.o src/pdf-pages.o src/primitives.o src/read-mode.o src/replace.o src/search.o src/system.o src/undo.o src/utils.o src/window.o schemer/native-host.o src/term.o src/app.o femtoscheme/libfemtoscheme.a femtoscheme/llt/libllt.a -lncurses -framework CoreGraphics -framework ImageIO -framework CoreFoundation -Lruntime/wasmtime/lib -lwasmtime -Wl,-rpath,@loader_path/runtime/wasmtime/lib -lm -o chezemax
+sh tests/history-limits.sh
+PASS compiled and legacy kill-ring/undo/redo retention policies and exact accounting
+PASS M-g positions: unterminated last line, trailing empty line, empty buffer
+sh tests/run-gc-allocation.sh
+PASS recursive closure semantics and 100000 allocations in one store (no forced GC)
+sh tests/platform.sh
+PASS host platform: Intel/ARM Macs, Intel/ARM Linux, aliases and unsupported targets
+sh tests/browser-assets.sh
+PASS portable browser assets install and missing outputs are restored
+PASS concurrent restoration installs complete assets without temporary-file races
+PASS generated bridge outputs do not race the bundle verifier
+PASS corrupt assets, changed sources and new source files are rejected without replacing valid output
+sh tests/emcc-toolchain.sh
+PASS default make and make browser install bundled assets without invoking any browser compiler
+PASS browser toolchain checks apply only to explicit maintainer rebuilds
+cc -Isrc -Ifemtoscheme -Ifemtoscheme/llt -Iruntime/wasmtime/include -O2 -Wall -std=gnu11 tests/native-host-test.c schemer/native-host.o -Lruntime/wasmtime/lib -lwasmtime -Wl,-rpath,@loader_path/runtime/wasmtime/lib -Wl,-rpath,/private/tmp/chez-save-unchanged-a70hqmm0/runtime/wasmtime/lib -lm -o tests/native-host-test
+sh tests/run-compiled.sh
+ok    compiled basic
+ok    compiled bench
+ok    compiled errors
+ok    compiled features
+ok    compiled flonums
+ok    compiled hygiene
+ok    compiled integers
+ok    compiled reader
+ok    compiled selfhost-integers
+ok    compiled tables
+Error: stop
+Elapsed time: 0.660885986328125 seconds
+"18 native compiled integration tests passed"
+cc -Isrc -Ifemtoscheme -Ifemtoscheme/llt -Iruntime/wasmtime/include -O2 -Wall -std=gnu11 tests/bridge-test.c src/bridge.o schemer/native-host.o -Lruntime/wasmtime/lib -lwasmtime -Wl,-rpath,@loader_path/runtime/wasmtime/lib -Wl,-rpath,/private/tmp/chez-save-unchanged-a70hqmm0/runtime/wasmtime/lib -lm -o tests/bridge-test
+sh tests/run-bridge.sh
+ok    Scheme's own tests, calling C
+ok    C calls Scheme: Unicode and a number
+ok    C gives Scheme 2 MB
+ok    Scheme's error comes back as text
+      Scheme failed on purpose: 42
+ok    a raised non-error comes back too
+ok    an unknown hook is an error
+ok    C -> Scheme -> C, 100000 hooks
+ok    Scheme -> C, 100000 calls
+      a hook from C: 2.84 us; a C call from Scheme: 0.54 us
+all passed
+ok    the compiled program is running
+ok    a compiled key inserts through the C core
+ok    an unbound key goes on to the scripts
+ok    a failing compiled command is handled, the editor goes on
+ok    colours: a compiled highlighter
+ok    colours: another file goes on to the scripts
+ok    mode line: compiled
+ok    mode line: another buffer goes on to the scripts
+ok    undo: recorded in compiled Scheme
+ok    undo: not recorded there goes on to the scripts
+ok    word wrap: does the file wrap?
+ok    word wrap: bytes in the row
+ok    word wrap: another file goes on to the scripts
+ok    unregistered hooks are not called
+ok    CHEZEMAX_PROGRAM= runs without one
+ok    files, programs, the system, highlighters
+ok    the same colours as femtoscheme's builtin
+PASS bridge between compiled Scheme and the C core
+sh tests/run-library.sh
+PASS 52 checks of Schemer's library
+PASS 17 checks of femtoscheme's names
+PASS Schemer's library for the scripts
+sh tests/run-scripts.sh
+ok    239 cases give the same values in both
+PASS the compiled scripts: pending.scm core.scm api.scm highlight.scm indent.scm theme.scm undo.scm gui.scm c.scm common-lisp.scm haskell.scm html.scm lean.scm markdown.scm ml.scm prolog.scm ruby.scm scheme.scm tex.scm vhdl-lisp.scm defaults.scm assistant.scm buffer-menu.scm codex.scm dired.scm emacs-keys.scm grep.scm help.scm kill-ring.scm menu.scm read-only.scm shell.scm sketch.scm tag-view.scm ttfy.scm load-mode.scm python-mode.scm nim-mode.scm modes.scm 
+/Library/Developer/CommandLineTools/usr/bin/make -C femtoscheme test
+cd tests && ../femtoscheme unittest.scm && ../femtoscheme r7rs-test.scm
+all tests pass
+137 passed, 0 failed
+./chezemax --eval '(+ 20 22)' | grep -x 42
+42
+./chezemax --eval '(get-version-string)' | grep femtoscheme
+"Chezweb 0.1, compiled Scheme (femtoscheme compatibility core), Public Domain"
+CHEZEMAX_SCHEME=femtoscheme CHEZEMAX_NO_INIT=1 ./chezemax --eval '(load "tests/run-tests.scm")'
+"257/257 tests passed"
+! ./chezemax --eval '(error "expected test error")'
+Error: expected test error
+sh tests/run-editor.sh
+ok    compiled fib(30): 0.005257080078125 seconds
+ok    --eval runs in the compiled program
+ok    typed, a key and a variable set by ~/.chezemax/init.scm, C-c q closing the [?] menu and the help page, M-: compiled (a session), C-x C-s, C-x C-c
+PASS the editor runs on the compiled program
+sh tests/run-read-mode.sh
+PASS read down traverses 1829 lines without edits or hook errors
+PASS read enter traverses 1829 lines without edits or hook errors
+PASS vim down traverses 1829 lines without edits or hook errors
+PASS vim enter traverses 1829 lines without edits or hook errors
+PASS compiled UTF-8 selection, yy, Vim edit refusal and explicit exit
+PASS femtoscheme UTF-8 selection, yy, Vim edit refusal and explicit exit
+PASS compiled counted yy, cancelled counts/selections and gg
+PASS femtoscheme counted yy, cancelled counts/selections and gg
+PASS four wrapped-file traversals and Vim/READ switches in one process
+sh tests/run-compile-scripts.sh
+ok    your code is compiled with the scripts and used at the next start
+ok    a failed compilation is reported and changes nothing
+PASS chezemax --compile-scripts and M-x compile-scripts

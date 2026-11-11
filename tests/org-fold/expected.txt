@@ -1,0 +1,33 @@
+outline.org * A: * A...|* B|b text|* C|* D|** D1
+outline.org * A: * A|a text|** A1...|** A2...|* B|b text|* C|* D|** D1
+outline.org * A: * A|a text|** A1|a1 text|*** A1x|deep|** A2|a2 text|* B|b text|* C|* D|** D1
+outline.org * A: * A...|* B|b text|* C|* D|** D1
+outline.org ** A1: * A|a text|** A1...|** A2|a2 text|* B|b text|* C|* D|** D1
+outline.org ** A1: * A|a text|** A1|a1 text|*** A1x...|** A2|a2 text|* B|b text|* C|* D|** D1
+outline.org ** A1: * A|a text|** A1|a1 text|*** A1x|deep|** A2|a2 text|* B|b text|* C|* D|** D1
+outline.org * B: * A|a text|** A1|a1 text|*** A1x|deep|** A2|a2 text|* B...|* C|* D|** D1
+outline.org * B: * A|a text|** A1|a1 text|*** A1x|deep|** A2|a2 text|* B|b text|* C|* D|** D1
+outline.org * B: * A|a text|** A1|a1 text|*** A1x|deep|** A2|a2 text|* B...|* C|* D|** D1
+outline.org * C: * A|a text|** A1|a1 text|*** A1x|deep|** A2|a2 text|* B|b text|* C|* D|** D1
+outline.org * D: * A|a text|** A1|a1 text|*** A1x|deep|** A2|a2 text|* B|b text|* C|* D...
+outline.org * D: * A|a text|** A1|a1 text|*** A1x|deep|** A2|a2 text|* B|b text|* C|* D|** D1
+outline.org * D: * A|a text|** A1|a1 text|*** A1x|deep|** A2|a2 text|* B|b text|* C|* D|** D1
+outline.org ** A1: * A|a text|** A1...|** A2|a2 text|* B|b text|* C|* D|** D1
+outline.org * A: * A...|* B|b text|* C|* D|** D1
+outline.org * A: * A|a text|** A1...|** A2...|* B|b text|* C|* D|** D1
+outline.org * A: * A|a text|** A1|a1 text|*** A1x|deep|** A2|a2 text|* B|b text|* C|* D|** D1
+outline.org * A: * A...|* B|b text|* C|* D|** D1
+outline.org *** A1x: * A|a text|** A1|a1 text|*** A1x...|** A2|a2 text|* B|b text|* C|* D|** D1
+outline.org ** A1: * A|a text|** A1...|** A2|a2 text|* B|b text|* C|* D|** D1
+outline.org * A: * A...|* B|b text|* C|* D|** D1
+outline.org * A: * A|a text|** A1...|** A2...|* B|b text|* C|* D|** D1
+levels.org * Top: * Top...|* Last|no final newline
+levels.org * Top: * Top|intro|*** Deep...|** Mid...|* Last|no final newline
+levels.org * Top: * Top|intro|*** Deep|d|** Mid|m|* Last|no final newline
+levels.org * Top: * Top...|* Last|no final newline
+levels.org * Last: * Top|intro|*** Deep|d|** Mid|m|* Last...
+levels.org * Last: * Top|intro|*** Deep|d|** Mid|m|* Last|no final newline
+levels.org * Last: * Top|intro|*** Deep|d|** Mid|m|* Last...
+levels.org *** Deep: * Top|intro|*** Deep...|** Mid|m|* Last|no final newline
+levels.org * Top: * Top...|* Last|no final newline
+levels.org * Top: * Top|intro|*** Deep...|** Mid...|* Last|no final newline

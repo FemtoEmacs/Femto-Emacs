@@ -239,9 +239,10 @@ after \"2. eggs\", \"> \" after a quotation.  Two values; the second is
          (let ((ctx (buffer-indent-context spec)))
            (and (not (md-inside-code-p (ictx-text ctx) (ictx-line ctx)))
                 (let-values (((next state) (markdown-continuation line)))
-                  (cond ((eq? state 'end)
-                         ;; "- " alone: take the marker away and leave the line
-                         ;; blank, which ends the list
+                  (cond ((or (eq? state 'end)
+                             (string=? (string-trim-both line) ""))
+                         ;; An empty item or blank prose line ends indentation.
+                         ;; Repeated RET leaves real blank lines at column zero.
                          (fe-delete-region ls le)
                          (goto-char ls)
                          (insert "\n")
@@ -282,9 +283,25 @@ after \"2. eggs\", \"> \" after a quotation.  Two values; the second is
           ((and (= (b@ text pos) 13) (< (+ pos 1) size) (= (b@ text (+ pos 1)) 10)) (+ pos 2))
           (else pos))))
 
+;; The columns of the UTF-8 character of BYTES bytes at POS: 0 for a
+;; combining accent, 2 for a wide character (CJK, emoji), else 1 -- the C
+;; core's table (src/width.c), so that the rows wrap where it draws them.
+(define (markdown-char-width text pos bytes size)
+  (if (or (< bytes 2) (> (+ pos bytes) size)) 1
+      (let ((lead (b@ text pos)) (b1 (bitwise-and (b@ text (+ pos 1)) 63)))
+        (fe-char-width
+         (cond ((= bytes 2) (+ (* 64 (bitwise-and lead 31)) b1))
+               ((= bytes 3) (+ (* 4096 (bitwise-and lead 15))
+                               (+ (* 64 b1) (bitwise-and (b@ text (+ pos 2)) 63))))
+               (else (+ (* 262144 (bitwise-and lead 7))
+                        (+ (* 4096 b1)
+                           (+ (* 64 (bitwise-and (b@ text (+ pos 2)) 63))
+                              (bitwise-and (b@ text (+ pos 3)) 63))))))))))
+
 (define (markdown-wrap-end text columns)
   "Bytes in one visual row: words are kept together where they fit.  Tabs
-use eight-column stops; every UTF-8 character takes one cell."
+use eight-column stops; a character takes the columns the C core gives it
+(markdown-char-width): accents none, wide characters two."
   (let ((size (blen text)))
     (let loop ((pos 0) (column 0) (boundary #f))
       (if (>= pos size) pos
@@ -293,6 +310,7 @@ use eight-column stops; every UTF-8 character takes one cell."
                  (width (cond ((= byte 13) 0)
                               ((= byte 9) (- 8 (modulo column 8)))
                               ((or (< byte 32) (= byte 127)) 2)
+                              ((>= byte #xC2) (markdown-char-width text pos bytes size))
                               (else 1))))
             (cond ((= byte 10) (+ pos 1))
                   ((> (+ column width) columns)

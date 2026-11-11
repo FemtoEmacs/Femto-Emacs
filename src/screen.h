@@ -70,9 +70,13 @@ extern int  screen_colors(void);           /* 8, 256, or 16777216 for 24-bit */
 
 /* wait MS milliseconds (a clicked button stays lit that long) */
 extern void screen_pause(int ms);
+/* Pump events, discard test-time input; Escape/C-g/resize cancels. */
+extern int screen_test_cancelled(void);
 
 /* input */
 extern int  screen_getch(void);            /* blocks; returns one byte */
+extern int  screen_key_waiting(int ms);   /* a byte within MS ms? (it stays to be read) */
+extern void screen_cursor_shown(int on);  /* the screen's own cursor on or off (M-x term draws its own) */
 extern void screen_flushinp(void);        /* discard pending input */
 
 /*
@@ -92,5 +96,11 @@ extern void screen_set_font(const char *path, int points);
 extern void screen_set_default_colors(long fg, long bg, long cursor);
 extern void screen_set_title(const char *title);
 extern void screen_set_option(const char *name, int value);
+
+/* Core idle callback: screen backends call it only between ordinary keys. */
+extern int editor_is_idle(void);
+extern void editor_idle_poll(void);
+/* Confirm an external browser write before marking a virtual file saved. */
+extern int screen_save_file(const char *path);
 
 #endif

@@ -23,6 +23,12 @@ void end_of_buffer()
 
 void quit_ask()
 {
+	if (term_running() > 0) {       /* terminal.c: shells still run */
+		screen_mvaddstr(MSGLINE, 0, "A terminal is still running; quit anyway (y/n) ?");
+		screen_clrtoeol();
+		if (!yesno(FALSE))
+			return;
+	}
 	if (modified_buffers() > 0) {
 		screen_mvaddstr(MSGLINE, 0, str_modified_buffers);
 		screen_clrtoeol();
@@ -63,6 +69,7 @@ void left()
 
 	while (0 < curbp->b_point && n-- > 0)
 		--curbp->b_point;
+	if (curbp->b_nfolds) curbp->b_point = fold_skip_backward(curbp, curbp->b_point);
 }
 
 void right()
@@ -71,6 +78,7 @@ void right()
 
 	while ((curbp->b_point < pos(curbp, curbp->b_ebuf)) && n-- > 0)
 		++curbp->b_point;
+	if (curbp->b_nfolds) curbp->b_point = fold_skip_forward(curbp, curbp->b_point);
 }
 
 /* look back 2,3,4 chars and determine utf8 size otherwise default to 1 byte */
@@ -129,6 +137,18 @@ void clear_button_hover(void)
   msgflag = TRUE;
  }
  hover_id = -1;
+}
+
+/* (fe-mouse-kind): the mouse event just read, for a script that reads
+ * keys itself (the Org headings): "press", "release", "drag", "wheel" or
+ * "move" */
+char *fe_mouse_kind(void)
+{
+	int b = mouse_button;
+
+	if (b & 64) return "wheel";
+	if (b & 32) return (b & 3) == 3 ? "move" : "drag";
+	return mouse_release ? "release" : "press";
 }
 
 void editor_mouse_event()
@@ -353,30 +373,35 @@ int read_only_refuses(void)
 /* standard insert at the keyboard */
 void insert()
 {
+	char_t the_char[5], old[4];
+	point_t start;
+	int bytes, replaced = 0;
+
 	if (read_only_refuses()) return;
-	char_t the_char[2]; /* the inserted char plus a null */
+	bytes = utf8_size(*input);
+	if ((int)strlen((char *)input) < bytes) bytes = 1;
+	memcpy(the_char, input, (size_t)bytes);
+	if (the_char[0] == '\r') the_char[0] = '\n';
+	the_char[bytes] = '\0';
 	assert(curbp->b_gap <= curbp->b_egap);
-
-	if (curbp->b_gap == curbp->b_egap && !growgap(curbp, CHUNK))
+	if (curbp->b_egap - curbp->b_gap < bytes && !growgap(curbp, CHUNK))
 		return;
-	curbp->b_point = movegap(curbp, curbp->b_point);
-
-
-	/* overwrite if mid line, not EOL or EOF, CR will insert as normal */
-	if ((curbp->b_flags & B_OVERWRITE) && *input != '\r' && *(ptr(curbp, curbp->b_point)) != '\n' && curbp->b_point < pos(curbp,curbp->b_ebuf) ) {
-		char_t old = *(ptr(curbp, curbp->b_point));
-		*(ptr(curbp, curbp->b_point)) = *input;
-		record_change(curbp, 'd', curbp->b_point, &old, 1);
-		record_change(curbp, 'i', curbp->b_point, (char_t *) input, 1);
-		if (curbp->b_point < pos(curbp, curbp->b_ebuf))
-			++curbp->b_point;
-	} else {
-		the_char[0] = *input == '\r' ? '\n' : *input;
-		the_char[1] = '\0'; /* null terminate */
-		*curbp->b_gap++ = the_char[0];
-		record_change(curbp, 'i', curbp->b_point, the_char, 1);
-		curbp->b_point = pos(curbp, curbp->b_egap);
+	start = curbp->b_point = movegap(curbp, curbp->b_point);
+	/* Overwrite one whole character, whose UTF-8 length may differ. */
+	if ((curbp->b_flags & B_OVERWRITE) && *input != '\r' &&
+	    start < document_size(curbp) && *curbp->b_egap != '\n') {
+		replaced = utf8_size(*curbp->b_egap);
+		if (replaced > document_size(curbp) - start)
+			replaced = (int)(document_size(curbp) - start);
+		memcpy(old, curbp->b_egap, (size_t)replaced);
+		curbp->b_egap += replaced;
 	}
+	/* Insert the complete character before reporting it or repainting. */
+	memcpy(curbp->b_gap, the_char, (size_t)bytes);
+	curbp->b_gap += bytes;
+	if (replaced) record_change(curbp, 'd', start, old, replaced);
+	record_change(curbp, 'i', start, the_char, bytes);
+	curbp->b_point = pos(curbp, curbp->b_egap);
 	add_mode(curbp, B_MODIFIED);
 }
 
@@ -647,7 +672,7 @@ void copy_cut(int cut)
 		undoset();
 		(void) memcpy(scrap, p, nscrap * sizeof (char_t));
 		*(scrap + nscrap) = '\0';  /* null terminate for insert_string */
-		screen_set_clipboard((char *) scrap);  /* the system clipboard, in the GUI */
+		if (!chez_tester_clipboard_isolated()) screen_set_clipboard((char *) scrap);  /* the system clipboard, in the GUI */
 		if (cut) {
 			//debug("CUT: pt=%ld nscrap=%d\n", curbp->b_point, nscrap);
 			record_change(curbp, 'd', (curbp->b_point < curbp->b_mark ? curbp->b_point : curbp->b_mark), scrap, nscrap);
@@ -682,6 +707,63 @@ void set_scrap(unsigned char *ptr)
 void paste()
 {
 	insert_string((char *)scrap);
+}
+
+/* Terminal Paste is one edit, not a sequence of typed Markdown commands.
+ * Keep collecting through the closing frame even after an allocation/size
+ * failure, so discarded paste bytes never become editor commands. */
+#ifndef TERMINAL_PASTE_LIMIT
+#define TERMINAL_PASTE_LIMIT (16U * 1024U * 1024U)
+#endif
+static int paste_byte(char **text, size_t *len, size_t *capacity, int c)
+{
+    if (*len == TERMINAL_PASTE_LIMIT) return 1;
+    if (*len == *capacity) {
+        size_t cap = *capacity ? *capacity * 2 : 4096;
+        if (cap > TERMINAL_PASTE_LIMIT) cap = TERMINAL_PASTE_LIMIT;
+        char *grown = realloc(*text, cap);
+        if (grown == NULL) return 2;
+        *text = grown; *capacity = cap;
+    }
+    (*text)[(*len)++] = (char)c;
+    return 0;
+}
+extern void fe_insert_bytes(long, char *, long);
+void paste_bracketed(void)
+{
+    static const unsigned char end[] = "\033[201~";
+    char *text = NULL;
+    size_t len = 0, capacity = 0, matched = 0, i, out;
+    int failure = 0, c;
+    for (;;) {
+        c = read_key_byte();
+        if (c < 0) { free(text); msg("Incomplete paste; nothing inserted"); return; }
+        if (c == end[matched]) {
+            if (++matched == sizeof(end) - 1) break;
+            continue;
+        }
+        for (i = 0; i < matched; ++i)
+            if (!failure) failure = paste_byte(&text, &len, &capacity, end[i]);
+        matched = 0;
+        if (c == end[0]) matched = 1;
+        else if (!failure) failure = paste_byte(&text, &len, &capacity, c);
+    }
+    if (failure) {
+        free(text);
+        if (failure == 1) msg("Paste exceeds %u bytes; nothing inserted", TERMINAL_PASTE_LIMIT);
+        else msg(m_alloc);
+        return;
+    }
+    /* Terminal emulators may send CR or CRLF for clipboard line ends. */
+    for (i = out = 0; i < len; ++i) {
+        if (text[i] == '\r') {
+            text[out++] = '\n';
+            if (i + 1 < len && text[i + 1] == '\n') ++i;
+        } else text[out++] = text[i];
+    }
+    if (out && !read_only_refuses() && !(curbp->b_flags & B_OVERWRITE))
+        fe_insert_bytes(curbp->b_point, text, (long)out);
+    free(text);
 }
 
 void insert_string(char *str)

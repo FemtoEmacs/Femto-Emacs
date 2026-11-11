@@ -8,6 +8,10 @@
 /* name, function */
 command_t commands[] = {
         {"apropos", apropos_command},
+        {"chez-tester", chez_tester},
+        {"run-tester", run_tester},
+	{"backdoor-claude", backdoor_claude},
+	{"backdoor-codex", backdoor_codex},
 	{"backspace", backsp},
 	{"backward-character", left},
 	{"backward-page", backward_page},
@@ -140,6 +144,7 @@ keymap_t keymap[] = {
 	{"C-x right", "next-buffer"           , "\x18\x1B\x5B\x43", next_buffer },
 	{"C-x o",     "other-window"          , "\x18\x6F", other_window },
 	{"C-x @",     "shell-command"         , "\x18\x40", i_shell_command },
+	{"terminal-paste", "bracketed-paste", "\x1B[200~", paste_bracketed },
 	{"mouse",     "mouse"                 , "\x1B\x5B\x4D", editor_mouse_event },
 	{"mouse",     "mouse"                 , "\x1B\x5B\x3C", editor_mouse_event },
 	{"F1",        "help"                  , "\x1B\x4F\x50", keyboardDefinition },
@@ -245,6 +250,28 @@ void unread_key_bytes(const char *s, int n)
 	memmove(unread + n, unread, (size_t) nunread);   /* before what is there */
 	memcpy(unread, s, (size_t) n);
 	nunread += n;
+}
+
+int tester_can_inject(void)
+{
+ return nunread == 0 && !macro_recording && macro_play < 0 && !macro_repeat;
+}
+
+/* Checked tester entry: a rejected injection must never become a blocking
+ * read from the physical keyboard. */
+int tester_inject_key_bytes(const char *bytes, int count)
+{
+ if (!tester_can_inject() || count < 1 || count > (int)sizeof unread) return 0;
+ unread_key_bytes(bytes,count);
+ return 1;
+}
+
+/* Is a key byte there, or does one come within MS milliseconds?
+ * (terminal.c: an Esc alone, or the start of a sequence) */
+int key_bytes_waiting(int ms)
+{
+	if (nunread > 0 || macro_play >= 0) return 1;
+	return screen_key_waiting(ms);
 }
 
 int read_key_byte(void)
@@ -495,7 +522,24 @@ char_t *get_key(keymap_t *keys, keymap_t **key_return)
 		*key_return = &synth_key;
 		return record;
 	}
-	/* ordinary text: return the recorded bytes one at a time */
+	/* A UTF-8 character is one input event. Repainting between its bytes
+	 * would put point inside a half-written character and reframe the view.
+	 * Continuation bytes (including 0x9a) are text, never resize keys. */
+	if (buffer[0] >= 0xc2 && buffer[0] <= 0xf4) {
+		int bytes = utf8_size(buffer[0]);
+		while (record - buffer < bytes) {
+			int c = read_key_byte();
+			if (c < 0 || (c & 0xc0) != 0x80) {
+				if (c >= 0) { char next = (char)c; unread_key_bytes(&next, 1); }
+				break; /* Preserve malformed input without swallowing the next key. */
+			}
+			*record++ = (char_t)c;
+		}
+		*record = '\0';
+		if (record - buffer < bytes) record = buffer + 1;
+		return buffer;
+	}
+	/* Ordinary single-byte text. */
 	record = buffer;
 	return (record++);
 }

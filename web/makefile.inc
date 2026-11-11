@@ -23,7 +23,7 @@ Chezweb.html: web/shell.html build/chezweb.js build/chezweb.wasm
 # editor sources. Ordinary make/browser never executes a browser compiler.
 check-web-toolchain:
 	EMCC="$(EMCC)" sh tools/check-emcc.sh
-browser-rebuild: check-web-toolchain chezemax.wasm
+browser-rebuild: check-web-toolchain chezemax.wasm src/bridge-functions.c
 	mkdir -p build/browser-dev
 	$(EMCC) $(WEB_CFLAGS) -Dmain=app_main -c src/app.c -o build/browser-dev/web-app.o
 	$(EMCC) $(WEB_CFLAGS) -sJSPI=1 -sJSPI_EXPORTS=main,web_ccall,web_editor_request -sALLOW_MEMORY_GROWTH=1 -sSTACK_SIZE=4194304 -sENVIRONMENT=web -sEXIT_RUNTIME=0 -sEXPORTED_FUNCTIONS=$(WEB_EXPORTS) -sEXPORTED_RUNTIME_METHODS=UTF8ToString,stringToUTF8,lengthBytesUTF8,stringToNewUTF8,FS \
@@ -50,7 +50,14 @@ chezweb-gui: chezemax-gui
 .PHONY: check-browser run
 # Development only: npm's playwright package and an installed Google Chrome.
 check-browser: browser chezweb
+	node tests/chezweb-width.cjs
+	node tests/chezweb-polytonic.cjs
+	node tests/chezweb-korean.cjs
+	node tests/chezweb-latex-export.cjs
+	node tests/chezweb-term.cjs
 	node tests/chezweb-server.cjs
+	node tests/chezweb-controls.cjs
+	node tests/chezweb-read-mode.cjs
 	node tests/chezweb-web.cjs
 	node tests/chezweb-files.cjs
 	node tests/chezweb-shell.cjs
@@ -58,9 +65,14 @@ check-browser: browser chezweb
 	node tests/chezweb-grammarly.cjs
 	node tests/chezweb-settings.cjs
 	node tests/chezweb-tab-pick.cjs
+	node tests/chezweb-tab-grant.cjs
 	node tests/chezweb-browser-only.cjs
 	sh tests/run-chezweb-program.sh
 	sh tests/chezweb-native-shell.sh
+	node tests/chezweb-save-native.cjs
+	node tests/chezweb-save-roundtrip.cjs
+	node tests/chezweb-native-update.cjs
+	node tests/chezweb-native-update-page.cjs
 	node tests/chezweb-native.cjs
 run: chezweb
 	./chezweb

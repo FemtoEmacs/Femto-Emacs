@@ -234,5 +234,7 @@ a folder ends in /."
 
 (defcommand (enlarge-window-command) (execute-builtin "enlarge-window"))
 
+(global-set-key "C-\\" 'redo)
+(global-set-key "C-x w" 'enlarge-window-command)
 (global-set-key "C-^" 'enlarge-window-command)
 (global-set-key "C-\\" 'enlarge-window-command)

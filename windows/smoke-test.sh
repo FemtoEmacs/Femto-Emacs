@@ -55,3 +55,22 @@ KEYS
 grep -q 'Saved through installed editor' "$root/tmp/source.txt"
 grep -q '^http://127.0.0.1:' "$HOME/launched-url"
 echo 'PASS installed terminal keyboard/save/quit and C-c d server/browser launch'
+
+# Exercise M-x term through the installed executable, including ConPTY
+# input, output and exit status after the compiled editor has started.
+cat > "$root/tmp/term-keys" <<'KEYS'
+await-screen [SAVE]
+keys \exterm\r
+await-screen Terminal: C-c C-c interrupts
+keys set "CHEZWEB_TAIL=PTY-OK"\r
+keys echo CHEZWEB-CON%CHEZWEB_TAIL%\r
+await-screen CHEZWEB-CONPTY-OK
+keys exit 7\r
+await-screen [Process exited with status 7]
+keys ^X^C
+KEYS
+if ! "$root/tmp/pty-test.exe" "$root/tmp/term-keys" 90 "$root/tmp/term-screen" "$root/app/chezweb.exe"; then
+  tail -c 32768 "$root/tmp/term-screen"
+  exit 1
+fi
+echo 'PASS installed M-x term through ConPTY'

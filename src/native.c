@@ -137,6 +137,21 @@ static value_t wrap_fe_line_start(value_t *a, uint32_t n) {
  argcount("fe_line_start", n, 1);
  return fixnum(fe_line_start(tofixnum(a[0], "fe_line_start")));
 }
+extern void fe_read_mode(int mode);
+static value_t wrap_fe_read_mode(value_t *a, uint32_t n) {
+ argcount("fe_read_mode", n, 1);
+ fe_read_mode(tofixnum(a[0], "fe_read_mode")); return FL_T;
+}
+extern int fe_read_state(char *name);
+static value_t wrap_fe_read_state(value_t *a, uint32_t n) {
+ argcount("fe_read_state", n, 1);
+ return fixnum(fe_read_state(tostring(a[0], "fe_read_state")));
+}
+extern int fe_read_key(char *key);
+static value_t wrap_fe_read_key(value_t *a, uint32_t n) {
+ argcount("fe_read_key", n, 1);
+ return fixnum(fe_read_key(tostring(a[0], "fe_read_key")));
+}
 extern void fe_insert(char *s);
 static value_t wrap_fe_insert(value_t *a, uint32_t n) {
  argcount("fe_insert", n, 1);
@@ -357,6 +372,81 @@ static value_t wrap_fe_command_name(value_t *a, uint32_t n) {
  argcount("fe_command_name", n, 1);
  const char *s = fe_command_name(tofixnum(a[0], "fe_command_name")); return string_from_cstrn((char *)(s ? s : ""), s ? strlen(s) : 0);
 }
+extern void fe_unfold_everywhere(void);
+static value_t wrap_fe_unfold_everywhere(value_t *a, uint32_t n) {
+ argcount("fe_unfold_everywhere", n, 0);
+ fe_unfold_everywhere(); return FL_T;
+}
+extern int fe_fold(long a, long b);
+static value_t wrap_fe_fold(value_t *a, uint32_t n) {
+ argcount("fe_fold", n, 2);
+ return fixnum(fe_fold(tofixnum(a[0], "fe_fold"), tofixnum(a[1], "fe_fold")));
+}
+extern void fe_unfold(long from, long to);
+static value_t wrap_fe_unfold(value_t *a, uint32_t n) {
+ argcount("fe_unfold", n, 2);
+ fe_unfold(tofixnum(a[0], "fe_unfold"), tofixnum(a[1], "fe_unfold")); return FL_T;
+}
+extern long fe_folded_at(long a);
+static value_t wrap_fe_folded_at(value_t *a, uint32_t n) {
+ argcount("fe_folded_at", n, 1);
+ return fixnum(fe_folded_at(tofixnum(a[0], "fe_folded_at")));
+}
+extern int fe_hidden_p(long p);
+static value_t wrap_fe_hidden_p(value_t *a, uint32_t n) {
+ argcount("fe_hidden_p", n, 1);
+ return fixnum(fe_hidden_p(tofixnum(a[0], "fe_hidden_p")));
+}
+extern char * fe_mouse_kind(void);
+static value_t wrap_fe_mouse_kind(value_t *a, uint32_t n) {
+ argcount("fe_mouse_kind", n, 0);
+ const char *s = fe_mouse_kind(); return string_from_cstrn((char *)(s ? s : ""), s ? strlen(s) : 0);
+}
+extern int fe_narrow(long from, long to);
+static value_t wrap_fe_narrow(value_t *a, uint32_t n) {
+ argcount("fe_narrow", n, 2);
+ return fixnum(fe_narrow(tofixnum(a[0], "fe_narrow"), tofixnum(a[1], "fe_narrow")));
+}
+extern void fe_widen(void);
+static value_t wrap_fe_widen(value_t *a, uint32_t n) {
+ argcount("fe_widen", n, 0);
+ fe_widen(); return FL_T;
+}
+extern long fe_narrow_start(void);
+static value_t wrap_fe_narrow_start(value_t *a, uint32_t n) {
+ argcount("fe_narrow_start", n, 0);
+ return fixnum(fe_narrow_start());
+}
+extern long fe_narrow_end(void);
+static value_t wrap_fe_narrow_end(value_t *a, uint32_t n) {
+ argcount("fe_narrow_end", n, 0);
+ return fixnum(fe_narrow_end());
+}
+extern int fe_char_width(long cp);
+static value_t wrap_fe_char_width(value_t *a, uint32_t n) {
+ argcount("fe_char_width", n, 1);
+ return fixnum(fe_char_width(tofixnum(a[0], "fe_char_width")));
+}
+extern char * fe_term_open(void);
+static value_t wrap_fe_term_open(value_t *a, uint32_t n) {
+ argcount("fe_term_open", n, 0);
+ const char *s = fe_term_open(); return string_from_cstrn((char *)(s ? s : ""), s ? strlen(s) : 0);
+}
+extern int fe_term_state(void);
+static value_t wrap_fe_term_state(value_t *a, uint32_t n) {
+ argcount("fe_term_state", n, 0);
+ return fixnum(fe_term_state());
+}
+extern int fe_term_copy_mode(int on);
+static value_t wrap_fe_term_copy_mode(value_t *a, uint32_t n) {
+ argcount("fe_term_copy_mode", n, 1);
+ return fixnum(fe_term_copy_mode(tofixnum(a[0], "fe_term_copy_mode")));
+}
+extern void fe_backdoor_note(char *s);
+static value_t wrap_fe_backdoor_note(value_t *a, uint32_t n) {
+ argcount("fe_backdoor_note", n, 1);
+ fe_backdoor_note(tostring(a[0], "fe_backdoor_note")); return FL_T;
+}
 extern void fe_message(char *s);
 static value_t wrap_fe_message(value_t *a, uint32_t n) {
  argcount("fe_message", n, 1);
@@ -474,6 +564,11 @@ static value_t wrap_fe_gui_set_option(value_t *a, uint32_t n) {
  argcount("fe_gui_set_option", n, 2);
  fe_gui_set_option(tostring(a[0], "fe_gui_set_option"), tofixnum(a[1], "fe_gui_set_option")); return FL_T;
 }
+extern void fe_tester_history_stats(long a, long b, long c, long d, long e, long f, long g, long h);
+static value_t wrap_fe_tester_history_stats(value_t *a, uint32_t n) {
+ argcount("fe_tester_history_stats", n, 8);
+ fe_tester_history_stats(tofixnum(a[0],"tester"),tofixnum(a[1],"tester"),tofixnum(a[2],"tester"),tofixnum(a[3],"tester"),tofixnum(a[4],"tester"),tofixnum(a[5],"tester"),tofixnum(a[6],"tester"),tofixnum(a[7],"tester")); return FL_T;
+}
 static builtinspec_t editor_builtins[] = {
  {"fe-set-color", wrap_fe_set_color},
  {"fe-set-theme-face", wrap_fe_set_theme_face},
@@ -502,6 +597,9 @@ static builtinspec_t editor_builtins[] = {
  {"fe-set-point", wrap_fe_set_point},
  {"fe-char-at", wrap_fe_char_at},
  {"fe-line-start", wrap_fe_line_start},
+ {"fe-read-mode", wrap_fe_read_mode},
+ {"fe-read-state", wrap_fe_read_state},
+ {"fe-read-key", wrap_fe_read_key},
  {"fe-insert", wrap_fe_insert},
  {"fe-backward-delete-char", wrap_fe_backward_delete_char},
  {"fe-delete-char", wrap_fe_delete_char},
@@ -532,6 +630,7 @@ static builtinspec_t editor_builtins[] = {
  {"fe-find-file", wrap_fe_find_file},
  {"fe-list-buffers", wrap_fe_list_buffers},
  {"fe-rename-buffer", wrap_fe_rename_buffer},
+ {"fe-tester-history-stats", wrap_fe_tester_history_stats},
  {"fe-delete-other-windows", wrap_fe_delete_other_windows},
  {"fe-other-window", wrap_fe_other_window},
  {"fe-split-window", wrap_fe_split_window},
@@ -546,6 +645,21 @@ static builtinspec_t editor_builtins[] = {
  {"fe-run-c-key", wrap_fe_run_c_key},
  {"fe-execute-command", wrap_fe_execute_command},
  {"fe-command-name", wrap_fe_command_name},
+ {"fe-backdoor-note", wrap_fe_backdoor_note},
+ {"fe-mouse-kind", wrap_fe_mouse_kind},
+ {"fe-fold", wrap_fe_fold},
+ {"fe-unfold-everywhere", wrap_fe_unfold_everywhere},
+ {"fe-unfold", wrap_fe_unfold},
+ {"fe-folded-at", wrap_fe_folded_at},
+ {"fe-hidden-p", wrap_fe_hidden_p},
+ {"fe-term-open", wrap_fe_term_open},
+ {"fe-term-state", wrap_fe_term_state},
+ {"fe-term-copy-mode", wrap_fe_term_copy_mode},
+ {"fe-narrow", wrap_fe_narrow},
+ {"fe-widen", wrap_fe_widen},
+ {"fe-narrow-start", wrap_fe_narrow_start},
+ {"fe-narrow-end", wrap_fe_narrow_end},
+ {"fe-char-width", wrap_fe_char_width},
  {"fe-message", wrap_fe_message},
  {"fe-clear-message-line", wrap_fe_clear_message_line},
  {"fe-log-debug", wrap_fe_log_debug},

@@ -145,7 +145,14 @@ int save_buffer(buffer_t *bp, char *fn)
 {
 	FILE *fp;
 	point_t length;
+	struct stat saved_file;
 
+	/* Save As and a never-created file still need an actual write. */
+	if (!(bp->b_flags & B_MODIFIED) && !strcmp(fn, bp->b_fname) &&
+	    stat(fn, &saved_file) == 0 && S_ISREG(saved_file.st_mode)) {
+		msg("(No changes need to be saved)");
+		return TRUE;
+	}
 	if (!posix_file(fn)) {
 		msg(m_badname);
 		return (FALSE);
@@ -167,9 +174,14 @@ int save_buffer(buffer_t *bp, char *fn)
 		msg(m_close, fn);
 		return (FALSE);
 	}
+ if (!screen_save_file(fn)) {
+  msg("Save failed; changes are still unsaved. See the browser notice.");
+  return FALSE;
+ }
 	delete_mode(bp, B_MODIFIED);
 	record_change(bp, 's', 0, NULL, 0);
-	msg(m_saved, fn, pos(bp, bp->b_ebuf));
+	if (!strcmp(screen_backend(),"browser")) msg("File saved. See the destination above.");
+	else msg(m_saved, fn, pos(bp, bp->b_ebuf));
 	return (TRUE);
 }
 
@@ -238,18 +250,12 @@ void undoset()
 /* find the point for start of line ln */
 point_t line_to_point(int ln)
 {
-	point_t end_p = pos(curbp, curbp->b_ebuf);
-	point_t p, start;
-
-	for (p=0, start=0; p < end_p; p++) {
-		if ( *(ptr(curbp, p)) == '\n') {
-			if (--ln == 0)
-				return start;
-			if (p + 1 < end_p)
-				start = p + 1;
-		}
-	}
-	return -1;
+ if (ln < 1) return -1;
+ if (ln == 1) return 0;
+ point_t end = document_size(curbp);
+ for (point_t p = 0; p < end; p++)
+  if (*ptr(curbp, p) == '\n' && --ln == 1) return p + 1;
+ return -1;
 }
 
 /* scan buffer and fill in curline and lastline */

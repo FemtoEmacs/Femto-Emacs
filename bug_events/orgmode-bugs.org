@@ -1,0 +1,159 @@
+* Bugs in tiny Org
+This is a test of tiny org. To format a table,
+go inside it and type C-c C-c.
+
+If the separator has more than one element
+per column, I get an error.
+
+- ~/mysand/chezmoi/bug_events/nov2026-figs/nov-09-complaint3-fig1.png
+- ~/mysand/chezmoi/bug_events/nov2026-figs/nov-09-complaint3-fig2.png
+
+#+BEGIN_SEXP_TABLE
+(
+ ((Title: "Org table:"))
+ (( Name  ) ( Phone ) ( Age ) (    ))
+ (( ----- ) ( ----- ) ( --- ) ( -- ))
+ (( Peter ) ( 1234  ) ( 24  ) ( 0  ))
+ (( Anna  ) ( 4321  ) ( 25  ) ( 1  ))
+ (( Susan ) ( 9876  ) ( 18  ) ( -6 ))
+)
+#+TBLFM: $4=(- $3 24)
+#+END_SEXP_TABLE
+
+Result:
+
+#+BEGIN_SEXP_TABLE
+(
+ ((Title: "Org table:"))
+ (( Name  ) ( Phone ) ( Age ) (    ))
+ (( ----- ) ( ----- ) ( --- ) ( -- ))
+ (( Peter ) ( 1234  ) ( 24  ) ( 0  ))
+ (( Anna  ) ( 4321  ) ( 25  ) ( 1  ))
+ (( Susan ) ( 9876  ) ( 18  ) ( -6 ))
+)
+#+TBLFM: $4=(- $3 24)
+#+END_SEXP_TABLE
+
+
+If the separator is missing, I get an error.
+
+- ~/mysand/chezmoi/bug_events/nov2026-figs/nov-09-complaint3-fig3.png
+- ~/mysand/chezmoi/bug_events/nov2026-figs/nov-09-complaint3-fig4.png
+
+#+BEGIN_SEXP_TABLE
+(
+ ((Title: "Org table:"))
+ (( Name  ) ( Phone ) ( Age ) (    ))
+ (( Peter ) ( 1234  ) ( 24  ) ( 0  ))
+ (( Anna  ) ( 4321  ) ( 25  ) ( 1  ))
+ (( Susan ) ( 9876  ) ( 18  ) ( -6 ))
+)
+#+TBLFM: $4=(- $3 24)
+#+END_SEXP_TABLE
+
+
+Result:
+
+#+BEGIN_SEXP_TABLE
+(
+ ((Title: "Org table:"))
+ (( Name  ) ( Phone ) ( Age ) (    ))
+ (( Peter ) ( 1234  ) ( 24  ) ( 0  ))
+ (( Anna  ) ( 4321  ) ( 25  ) ( 1  ))
+ (( Susan ) ( 9876  ) ( 18  ) ( -6 ))
+)
+#+TBLFM: $4=(- $3 24)
+#+END_SEXP_TABLE
+
+If separator and headers are missing,
+it works. Check it anyway.
+
+#+BEGIN_SEXP_TABLE
+(
+ ((Title: "Org table:"))
+ (( Peter ) ( 1234 ) ( 24 ) ( 0  ))
+ (( Anna  ) ( 4321 ) ( 25 ) ( 1  ))
+ (( Susan ) ( 9876 ) ( 18 ) ( -6 ))
+)
+#+TBLFM: $4=(- $3 24)
+#+END_SEXP_TABLE
+
+Result:
+
+#+BEGIN_SEXP_TABLE
+(
+ ((Title: "Org table:"))
+ (( Peter ) ( 1234 ) ( 24 ) ( 0  ))
+ (( Anna  ) ( 4321 ) ( 25 ) ( 1  ))
+ (( Susan ) ( 9876 ) ( 18 ) ( -6 ))
+)
+#+TBLFM: $4=(- $3 24)
+#+END_SEXP_TABLE
+
+#+BEGIN_SRC C :tangle orgmodefib.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+#include <errno.h>
+
+// Naive recursive Fibonacci implementation with overflow detection
+int fib(int n, int *overflow) {
+    if (n <= 0) return 0;
+    if (n == 1) return 1;
+
+    int a = fib(n - 1, overflow);
+    if (*overflow) return 0; // Short-circuit if a deeper call already overflowed
+
+    int b = fib(n - 2, overflow);
+    if (*overflow) return 0;
+
+    // Check for standard addition overflow: a + b > INT_MAX
+    if (a > INT_MAX - b) {
+        *overflow = 1;
+        return 0;
+    }
+
+    return a + b;
+}
+
+int main(int argc, char *argv[]) {
+    // 1. Verify command-line argument exists
+    if (argc < 2) {
+        fprintf(stderr, "Usage: %s <integer>\n", argv[0]);
+        return 1;
+    }
+
+    // 2. Parse string to integer safely using strtol to detect parsing errors
+    char *endptr;
+    errno = 0;
+    long parsed_val = strtol(argv[1], &endptr, 10);
+
+    // Check if no digits were found or if trailing garbage characters exist
+    if (endptr == argv[1] || *endptr != '\0') {
+        fprintf(stderr, "Error: '%s' is not a valid integer.\n", argv[1]);
+        return 1;
+    }
+
+    // Check for bounds out-of-range for a standard 'long' or negative numbers
+    if (errno == ERANGE || parsed_val < 0 || parsed_val > INT_MAX) {
+        fprintf(stderr, "Error: Input must be a positive integer between 0 and %d.\n", INT_MAX);
+        return 1;
+    }
+
+    int n = (int)parsed_val;
+    int overflow = 0;
+    int result = fib(n, &overflow);
+
+    // 3. Handle calculation overflow
+    if (overflow) {
+        fprintf(stderr, "Error: Fibonacci(%d) exceeds the maximum limit for a 32-bit signed integer (%d).\n", n, INT_MAX);
+        return 1;
+    }
+
+    // Print successful result
+    printf("Fibonacci(%d) = %d\n", n, result);
+    return 0;
+}
+#+END_SRC
+
+

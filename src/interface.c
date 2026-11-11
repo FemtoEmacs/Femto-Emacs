@@ -99,7 +99,7 @@ int call_lisp_highlight(buffer_t *bp, point_t start, char_t *text, int len, char
  * that are remembered and applied on top of it.
  */
 
-#define FE_MAX_COLOR 16
+#define FE_MAX_COLOR 127        /* ID_COLOR_LAST: terminal.c's faces from 34 */
 
 /* attribute bits used by fe_set_color: the same as SCR_* in screen.h */
 #define FE_BOLD      SCR_BOLD
@@ -131,7 +131,8 @@ static void face(int id, long fg, long bg, int attr)
 static void default_theme(int many_colors)
 {
 	int i;
-	for (i = 0; i <= FE_MAX_COLOR; i++)
+	/* the faces terminal.c made (from ID_COLOR_TERM_POOL) keep their colours */
+	for (i = 0; i < ID_COLOR_TERM_POOL; i++)
 		face(i, -1, -1, 0);
 
 	face(ID_COLOR_MODELINE, -1, -1, FE_REVERSE);
@@ -141,6 +142,16 @@ static void default_theme(int many_colors)
 	face(ID_COLOR_EMPHASIS, -1, -1, FE_ITALIC);
 	face(ID_COLOR_STRONG, -1, -1, FE_BOLD);
 	face(ID_COLOR_LINK, -1, -1, FE_UNDERLINE);
+	/* a terminal's colours (terminal.c): the 16 ANSI colours, the bright
+	 * eight as the eight in bold where the terminal has only eight */
+	for (i = 0; i < 16; i++)
+		if (i < 8 || screen_colors() >= 16)
+			face(ID_COLOR_TERM0 + i, i, -1, 0);
+		else
+			face(ID_COLOR_TERM0 + i, i - 8, -1, FE_BOLD);
+	face(ID_COLOR_TERM_REVERSE, -1, -1, FE_REVERSE);
+	/* M-x term's cursor: black on orange, seen on white and on black */
+	face(ID_COLOR_TERM_CURSOR, C_BLACK, many_colors ? 208 : C_YELLOW, 0);
 
 	if (many_colors) {
 		face(ID_COLOR_KEYWORD,  127, -1, FE_BOLD);  /* purple */
@@ -160,6 +171,14 @@ static void default_theme(int many_colors)
 static void install_face(int id)
 {
 	screen_set_face(id, color_fg[id], color_bg[id], color_attr[id]);
+}
+
+/* A face terminal.c made for the colours a program uses (M-x term) */
+void term_face(int id, long fg, long bg, int attr)
+{
+	if (id < ID_COLOR_TERM_POOL || id > FE_MAX_COLOR) return;
+	face(id, fg, bg, attr);
+	if (colors_ready) install_face(id);
 }
 
 /* draw with a face from now on */

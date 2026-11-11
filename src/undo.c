@@ -29,6 +29,9 @@ void fe_set_change_hook(fe_change_hook_t hook)
 
 void record_change(buffer_t *bp, int kind, point_t pos, const char_t *text, long len)
 {
+	if (bp != NULL) bp->b_changes++;         /* display.c: b_epage is stale */
+	if (bp != NULL && bp->b_nfolds > 0)     /* fold.c: folds follow the text */
+		fold_change(bp, kind, pos, len);
 	if (change_hook == NULL || bp == NULL)
 		return;
 	if ((kind == 'i' || kind == 'd') && len <= 0)

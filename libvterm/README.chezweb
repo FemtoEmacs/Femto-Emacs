@@ -1,0 +1,14 @@
+libvterm 0.3.3, the terminal emulator of M-x term (src/terminal.c)
+
+From https://github.com/neovim/libvterm (the mirror of Paul Evans's
+libvterm, https://www.leonerd.org.uk/code/libvterm/), commit
+934bc2fbf21800ac3458a499df8820ca5fb45fd3.  MIT licence: LICENSE.
+
+Copied: include/*.h, src/*.c, src/*.h, src/*.inc, src/encoding/*.inc (the
+.inc files are made by Perl upstream; they are kept as made, so that make
+needs only cc).  Left out: the tests, the tools, bin/, doc/.
+
+Changed, so that GCC's -Wall says nothing (both are warnings about
+variables GCC cannot see are always set):
+  src/parser.c   const char *string_start = NULL;
+  src/state.c    int reply = 0;   (in the DECRQSS handler)

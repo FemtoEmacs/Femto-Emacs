@@ -5,6 +5,72 @@
 
 #include "header.h"
 
+/* Background handoffs may run only while the top-level editor waits for a
+ * key, never inside a Scheme command, search or filename prompt. */
+static int editor_idle_wait;
+int editor_is_idle(void) { return editor_idle_wait; }
+void editor_idle_poll(void)
+{
+ extern int chezweb_poll(void);
+ int changed;
+ if (!editor_idle_wait) return;
+ changed = chezweb_poll();
+ if (term_poll()) changed = 1;        /* terminal.c: the shells' output */
+ if (changed) {
+  update_display();
+  screen_refresh();
+  if (backdoor_on)
+   backdoor_note("  shown: the cursor at screen row %d, column %d, in %s", curbp->b_row, curbp->b_col, curbp->b_bname);
+ }
+}
+
+void editor_dispatch_key(void)
+{
+	buffer_t *before_bp;
+	point_t before_size;
+	before_bp = curbp;
+	before_size = document_size(curbp);
+
+	if (key_return != NULL) {
+		/*
+		 * Every key goes to the Lisp keymap first, so scripts
+		 * can bind any key; the C binding runs when Lisp has
+		 * none.  (Lisp may read keys itself, which changes
+		 * key_return: take the function first.)
+		 */
+		void (*func)(void) = key_return->func;
+		whatKey = key_return->key_name;
+		if (!call_lisp_event("key", whatKey))
+			func();
+	} else {
+		mark_active = 0;    /* typing ends the selection */
+		/*
+		 * if first char of input is a control char then
+		 * key is not bound, except TAB and NEWLINE
+		 */
+		if (*input > 31 || *input == 0x0A || *input == 0x0D || *input == 0x09) {
+			/*
+			 * Lisp may take over a printable ASCII key, TAB or
+			 * RET: indentation, electric characters
+			 */
+			char key[2];
+			key[0] = (char) *input;
+			key[1] = '\0';
+			if (*input >= 128 || !call_lisp_event("self-insert", key))
+				insert();
+		}
+		else
+			msg(str_not_bound);
+	}
+
+	/* as in Emacs, changing the text deactivates the region */
+	if (curbp != before_bp || document_size(curbp) != before_size)
+		mark_active = 0;
+
+	/* debug_stats("main loop:"); */
+	match_parens();
+}
+
 /*
  * Entry point, called from SBCL (see lisp/sbemacs.lisp) after the Lisp
  * side has installed its hooks with fe_set_hooks() and loaded the user's
@@ -68,71 +134,33 @@ int fe_main(int argc, char **argv)
 	key_map = keymap;
 	match_parens();         /* the parens at the cursor before the first key */
 
+	if (getenv("CHEZ_TESTER_AUTORUN")) { chez_tester(); chez_tester_poll(); }
 
 	while (!done) {
-		buffer_t *before_bp;
-		point_t before_size;
 
+		if (backdoor_on) backdoor_refresh();
 		update_display();
-        for (;;) {
-            input = get_key(key_map, &key_return);
-            if (key_return != &idle_key) break;
-            /* Run callbacks only between commands, never through a
-             * suspended Scheme prompt or a partially typed key sequence.
-             * Redraw only on a notification, so messages remain visible. */
-            int changed = call_lisp_event("idle", "");
-            if (changed || msgflag) update_display();
-        }
-        { extern void chezweb_poll(void); chezweb_poll(); }
-        /* Passive mouse motion is help, not an editing command: do not
-         * break kill/yank sequences, selection, or modal key handlers. */
-        if (key_return && key_return->func == editor_mouse_event &&
-            (mouse_button & 32) && (mouse_button & 3) == 3) {
-            editor_mouse_event();
-            continue;
-        }
-        clear_button_hover();
-		before_bp = curbp;
-		before_size = document_size(curbp);
-
-		if (key_return != NULL) {
-			/*
-			 * Every key goes to the Lisp keymap first, so scripts
-			 * can bind any key; the C binding runs when Lisp has
-			 * none.  (Lisp may read keys itself, which changes
-			 * key_return: take the function first.)
-			 */
-			void (*func)(void) = key_return->func;
-			whatKey = key_return->key_name;
-			if (!call_lisp_event("key", whatKey))
-				func();
-		} else {
-			mark_active = 0;    /* typing ends the selection */
-			/*
-			 * if first char of input is a control char then
-			 * key is not bound, except TAB and NEWLINE
-			 */
-			if (*input > 31 || *input == 0x0A || *input == 0x0D || *input == 0x09) {
-				/*
-				 * Lisp may take over a printable ASCII key, TAB or
-				 * RET: indentation, electric characters
-				 */
-				char key[2];
-				key[0] = (char) *input;
-				key[1] = '\0';
-				if (*input >= 128 || !call_lisp_event("self-insert", key))
-					insert();
-			}
-                        else
-				msg(str_not_bound);
+		if (backdoor_on) backdoor_shown();
+		if (term_takes_keys(curbp)) {   /* terminal.c: the keys are the shell's */
+			editor_idle_wait = 1;
+			term_take_key();
+			editor_idle_wait = 0;
+			continue;
 		}
-
-		/* as in Emacs, changing the text deactivates the region */
-		if (curbp != before_bp || document_size(curbp) != before_size)
-			mark_active = 0;
-
-		/* debug_stats("main loop:"); */
-		match_parens();
+		editor_idle_wait = 1;
+		input = get_key(key_map, &key_return);
+		editor_idle_wait = 0;
+		if (backdoor_on) backdoor_key(input, key_return);
+        { extern int chezweb_poll(void); chezweb_poll(); }
+		if (key_return && key_return->func == editor_mouse_event &&
+		    (mouse_button & 32) && (mouse_button & 3) == 3) {
+			editor_mouse_event();
+			continue;
+		}
+		clear_button_hover();
+		editor_dispatch_key();
+		if (backdoor_on) backdoor_commanded();
+		chez_tester_poll();
 	}
 
 	if (scrap != NULL)

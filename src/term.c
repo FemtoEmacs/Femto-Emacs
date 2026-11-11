@@ -10,21 +10,22 @@
 #include <stdlib.h>
 #include <string.h>
 #include "screen.h"
+extern int term_poll_ms(void);
 
-#define MAX_FACE 16
+#define MAX_FACE 127             /* interface.c's FE_MAX_COLOR */
 
 static int active = 0;
 static int mouse_on = 0;
 
 /*
- * xterm mouse reporting: 1003 reports presses, releases and all pointer motion;
+ * xterm mouse reporting: 1003 includes passive motion for button hints;
  * 1006 is the SGR encoding (ESC [ < b ; x ; y M/m),
  * which has no 223-column limit.  key.c decodes it.  Most terminals still
  * select text natively with Shift (Option in Terminal.app) held down.
  */
 static void mouse_reporting(int on)
 {
-	fputs(on ? "\033[?1000h\033[?1003h\033[?1006h" : "\033[?1006l\033[?1003l\033[?1000l", stdout);
+	fputs(on ? "\033[?1000h\033[?1003h\033[?1006h" : "\033[?1006l\033[?1003l\033[?1002l\033[?1000l", stdout);
 	fflush(stdout);
 }
 static attr_t face_attrs[MAX_FACE + 1];
@@ -51,6 +52,8 @@ int screen_init(int mouse)
 		mouse_reporting(1);
 		mouse_on = 1;
 	}
+	fputs("\033[?2004h", stdout); /* Clipboard paste is one literal edit. */
+	fflush(stdout);
 	active = 1;
 	return 1;
 }
@@ -58,6 +61,8 @@ int screen_init(int mouse)
 void screen_end(void)
 {
 	if (!active) return;
+	fputs("\033[?2004l", stdout);
+	fflush(stdout);
 	move(LINES - 1, 0);
 	refresh();
 	if (mouse_on) {
@@ -89,14 +94,39 @@ void screen_addch(int c)
 	addch(ch);
 }
 
+int screen_save_file(const char *path) { (void)path; return 1; }
 int screen_getch(void)
 {
-	int c = getch();
+ int c;
+ if (editor_is_idle()) {
+  timeout(term_poll_ms());    /* terminal.c: shorter while a shell runs */
+  while ((c = getch()) == ERR) editor_idle_poll();
+  timeout(-1);
+ } else c = getch();
 	/* KEY_RESIZE (0x19A) arrives as its low byte, SCR_KEY_RESIZE */
 	return c == ERR ? SCR_KEY_IDLE : (c & 0xFF);
 }
 
 void screen_flushinp(void) { flushinp(); }
+
+void screen_cursor_shown(int on)
+{
+	static int shown = 1;
+	if (on == shown) return;
+	shown = on;
+	curs_set(on ? 1 : 0);
+}
+
+int screen_key_waiting(int ms)
+{
+	int c;
+	timeout(ms);
+	c = getch();
+	timeout(-1);
+	if (c == ERR) return 0;
+	ungetch(c);
+	return 1;
+}
 
 int screen_colors(void)
 {
@@ -299,3 +329,12 @@ void screen_set_font(const char *path, int points) { (void) path; (void) points;
 void screen_set_default_colors(long fg, long bg, long cursor) { (void) fg; (void) bg; (void) cursor; }
 void screen_set_title(const char *title) { (void) title; }
 void screen_set_option(const char *name, int value) { (void) name; (void) value; }
+
+int screen_test_cancelled(void)
+{
+ int cancel = 0, c;
+ nodelay(stdscr, TRUE);
+ while ((c = getch()) != ERR) if (c == 7 || c == 27 || c == KEY_RESIZE) cancel = 1;
+ nodelay(stdscr, FALSE);
+ return cancel;
+}
