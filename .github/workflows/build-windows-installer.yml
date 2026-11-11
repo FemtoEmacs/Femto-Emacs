@@ -94,6 +94,33 @@ jobs:
       - name: Archive the matching current source
         shell: pwsh
         run: git archive --format=tar.gz -o build/windows/Chezweb-source.tar.gz HEAD
+      - name: Download corresponding component sources
+        shell: C:\cygwin64\bin\bash.exe --noprofile --norc -o igncr -eo pipefail {0}
+        run: |
+          export PATH=/usr/bin:$PATH
+          cd "$(cygpath -u "$GITHUB_WORKSPACE")"
+          sh .github/scripts/windows-sources.sh build/windows/installed-packages.txt build/windows/cygwin-sources
+      - name: Upload matching component sources
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Chezweb-Windows-corresponding-source
+          path: |
+            build/windows/*source.tar.gz
+            build/windows/cygwin-sources/
+            build/windows/installed-packages.txt
+          retention-days: 30
+      - name: Upload test installer
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Chezweb-Windows-x86_64-test
+          path: |
+            build/windows/*Setup.exe
+            build/windows/SHA256SUMS
+            build/windows/installed-packages.txt
+            windows-build.log
+          retention-days: 30
       - name: Install into a clean directory and test
         timeout-minutes: 9
         shell: pwsh
@@ -122,33 +149,6 @@ jobs:
           if ($gui.ExitCode -ne 0) { throw 'GUI exit failed' }
           $u = Start-Process "$dest\Uninstall.exe" -WorkingDirectory $env:RUNNER_TEMP -ArgumentList '/S' -Wait -PassThru
           if ($u.ExitCode -ne 0) { throw 'Uninstaller failed' }
-      - name: Download corresponding component sources
-        shell: C:\cygwin64\bin\bash.exe --noprofile --norc -o igncr -eo pipefail {0}
-        run: |
-          export PATH=/usr/bin:$PATH
-          cd "$(cygpath -u "$GITHUB_WORKSPACE")"
-          sh .github/scripts/windows-sources.sh build/windows/installed-packages.txt build/windows/cygwin-sources
-      - name: Upload installer
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: Chezweb-Windows-x86_64
-          path: |
-            build/windows/*Setup.exe
-            build/windows/SHA256SUMS
-            build/windows/installed-packages.txt
-            windows-build.log
-          retention-days: 30
-      - name: Upload matching component sources
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: Chezweb-Windows-corresponding-source
-          path: |
-            build/windows/*source.tar.gz
-            build/windows/cygwin-sources/
-            build/windows/installed-packages.txt
-          retention-days: 30
       - name: Upload failed build diagnostics
         if: failure()
         uses: actions/upload-artifact@v4
