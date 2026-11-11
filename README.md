@@ -500,6 +500,26 @@ command. She can press and release the `Esc` key, then strike the κ
 key. Alternatively, she can keep the `Alt` key down and press the `κ`
 key.
 
+## A terminal inside the editor
+**M-x term** opens `*terminal*`, a shell in a window of the editor, as
+Emacs's `term` and Neovim's `:terminal` do. Full-screen programs work in
+it: `vim`, `less`, `htop`, `claude`. What scrolls off the top stays in the
+buffer, and the colours of `ls` and `git` show. The keys go to the shell,
+except **C-c**, which is the editor's:
+
+|           |                                                        |
+| :-------- | :----------------------------------------------------- |
+| `C-c C-c` | send C-c to the shell (interrupt)                       |
+| `C-c C-j` | copy mode: the editor's keys (C-s, C-Spc, M-w) in the terminal's text |
+| `C-c C-k` | back from copy mode to the shell                        |
+| `C-c b`   | another buffer; `C-c o` the other window; any `C-c KEY` is `C-x KEY` |
+| `C-c M-x` | M-x                                                     |
+| `C-c C-x C-c` | quit the editor (it asks while a shell runs)        |
+
+M-x term again goes back to the same shell. The mouse stays the editor's.
+The terminal is in the text window and the graphical window; a browser
+page cannot start a shell.
+
 ## Exporting to LaTeX
 **M-x latex-export**, in an Org or a Markdown file, writes the LaTeX
 beside it (`paper.md` gives `paper.tex`) and opens it; if that file

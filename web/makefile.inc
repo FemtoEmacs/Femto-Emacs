@@ -54,6 +54,7 @@ check-browser: browser chezweb
 	node tests/chezweb-polytonic.cjs
 	node tests/chezweb-korean.cjs
 	node tests/chezweb-latex-export.cjs
+	node tests/chezweb-term.cjs
 	node tests/chezweb-server.cjs
 	node tests/chezweb-controls.cjs
 	node tests/chezweb-read-mode.cjs

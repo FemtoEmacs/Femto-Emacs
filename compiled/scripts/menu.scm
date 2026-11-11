@@ -162,6 +162,9 @@ the width.  The encoded pieces, or #f for the C core's own mode line."
                                        (if (= 32 (bitwise-and flags 32)) " B/D" "")
                                        ;; narrow.c: only a part is shown (C-x n w: all)
                                        (if (= 64 (bitwise-and flags 64)) " Narrow" "")
+                                       ;; terminal.c: a shell (C-c C-j: copy mode)
+                                       (if (= 128 (bitwise-and flags 128)) " Term" "")
+                                       (if (= 256 (bitwise-and flags 256)) " Copy" "")
                                        ;; polytonic.scm: the Greek keyboard is on
                                        (if (and (top-level-bound? '*polytonic*) (top-level-value '*polytonic*)) " Ἑλ" "")
                                        ;; chinese.scm: Chinese input is on

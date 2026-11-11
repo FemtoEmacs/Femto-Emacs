@@ -28,6 +28,17 @@ ifeq ($(UNAME_S),Darwin)
 WASMTIME_LIBS = -L$(WASMTIME_ROOT)/lib -lwasmtime -Wl,-rpath,@loader_path/runtime/wasmtime/lib
 endif
 OBJECTS += schemer/native-host.o
+# libvterm (libvterm/, bundled source): the terminal emulator of M-x term
+CPPFLAGS += -Ilibvterm/include
+VTERM_OBJECTS = $(patsubst %.c,%.o,$(wildcard libvterm/src/*.c))
+OBJECTS += $(VTERM_OBJECTS)
+$(VTERM_OBJECTS): libvterm/include/vterm.h libvterm/src/vterm_internal.h
+# forkpty: in libutil on Linux and the BSDs, in libSystem on macOS
+ifeq ($(UNAME_S),Darwin)
+PTY_LIBS =
+else
+PTY_LIBS = -lutil
+endif
 RUNTIME = femtoscheme/libfemtoscheme.a femtoscheme/llt/libllt.a
 .PHONY: all runtime check check-compiled check-library check-scripts check-compile-scripts fetch-wasmtime clean
 fetch-wasmtime:
@@ -80,9 +91,9 @@ src/bridge.o src/bridge-functions.o src/compiled-program.o: src/bridge.h schemer
 runtime:
 	$(MAKE) -C femtoscheme release CC="$(CC)"
 chezemax: $(OBJECTS) src/term.o src/app.o runtime schemer-compile
-	$(CC) $(LDFLAGS) $(OBJECTS) src/term.o src/app.o $(RUNTIME) $(CURSES_LIBS) $(PDF_LIBS) $(WASMTIME_LIBS) -lm -o $@
+	$(CC) $(LDFLAGS) $(OBJECTS) src/term.o src/app.o $(RUNTIME) $(CURSES_LIBS) $(PDF_LIBS) $(WASMTIME_LIBS) $(PTY_LIBS) -lm -o $@
 chezemax-gui: $(OBJECTS) src/gui.o src/app-gui.o runtime schemer-compile
-	$(CC) $(LDFLAGS) $(OBJECTS) src/gui.o src/app-gui.o $(RUNTIME) $(SDL_LIBS) $(PDF_LIBS) $(WASMTIME_LIBS) -lm -o $@
+	$(CC) $(LDFLAGS) $(OBJECTS) src/gui.o src/app-gui.o $(RUNTIME) $(SDL_LIBS) $(PDF_LIBS) $(WASMTIME_LIBS) $(PTY_LIBS) -lm -o $@
 irene-dixe: src/irene-dixe.c
 	$(CC) $(CFLAGS) $(SDL_CFLAGS) $< $(LDFLAGS) $(SDL_LIBS) -lm -o $@
 src/gui.o: src/gui.c src/screen.h
@@ -259,7 +270,7 @@ endif
 check-navigation:
 	@set -eu; work=$$(mktemp -d "$${TMPDIR:-/tmp}/chezweb-navigation.XXXXXX"); \
 	  trap 'rm -rf "$$work"' EXIT HUP INT TERM; \
-	  $(CC) $(CFLAGS) $(NAV_TEST_CFLAGS) -Isrc tests/unwrapped-navigation.c src/display.c src/width.c src/narrow.c src/fold.c $(NAV_TEST_LDFLAGS) -o "$$work/check"; \
+	  $(CC) $(CFLAGS) $(NAV_TEST_CFLAGS) -Isrc tests/unwrapped-navigation.c tests/no-terminal.c src/display.c src/width.c src/narrow.c src/fold.c $(NAV_TEST_LDFLAGS) -o "$$work/check"; \
 	  "$$work/check"
 check: check-navigation
 
@@ -268,7 +279,7 @@ check-utf8-input:
 	@set -eu; work=$$(mktemp -d "$${TMPDIR:-/tmp}/chezweb-utf8-input.XXXXXX"); \
 	  trap 'rm -rf "$$work"' EXIT HUP INT TERM; \
 	  $(CC) $(CFLAGS) $(NAV_TEST_CFLAGS) -Isrc -Deditor_mouse_event=input_test_mouse -DkeyboardDefinition=input_test_undefined -c src/key.c -o "$$work/key.o"; \
-	  $(CC) $(CFLAGS) $(NAV_TEST_CFLAGS) -Isrc tests/utf8-input.c "$$work/key.o" src/command.c src/gap.c src/display.c src/width.c src/buffer.c src/narrow.c src/fold.c $(NAV_TEST_LDFLAGS) -o "$$work/check"; \
+	  $(CC) $(CFLAGS) $(NAV_TEST_CFLAGS) -Isrc tests/utf8-input.c tests/no-terminal.c "$$work/key.o" src/command.c src/gap.c src/display.c src/width.c src/buffer.c src/narrow.c src/fold.c $(NAV_TEST_LDFLAGS) -o "$$work/check"; \
 	  "$$work/check"
 check: check-utf8-input
 
@@ -291,6 +302,11 @@ check: check-korean-input
 check-latex-export: chezemax chezemax.wasm chezemax.cwasm
 	sh tests/latex-export.sh
 check: check-latex-export
+
+.PHONY: check-terminal
+check-terminal: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/terminal.sh
+check: check-terminal
 
 .PHONY: check-ghost-window
 check-ghost-window: chezemax chezemax.wasm chezemax.cwasm
@@ -346,6 +362,6 @@ check: check-bracketed-paste
 check-paste-decoder:
 	@set -eu; work=$$(mktemp -d "$${TMPDIR:-/tmp}/chezweb-paste-decoder.XXXXXX"); \
 	  trap 'rm -rf "$$work"' EXIT HUP INT TERM; \
-	  $(CC) $(CFLAGS) $(NAV_TEST_CFLAGS) -DTERMINAL_PASTE_LIMIT=32 -Isrc tests/bracketed-paste.c src/command.c $(NAV_TEST_LDFLAGS) -o "$$work/check"; \
+	  $(CC) $(CFLAGS) $(NAV_TEST_CFLAGS) -DTERMINAL_PASTE_LIMIT=32 -Isrc tests/bracketed-paste.c tests/no-terminal.c src/command.c $(NAV_TEST_LDFLAGS) -o "$$work/check"; \
 	  "$$work/check"
 check: check-paste-decoder

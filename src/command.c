@@ -23,6 +23,12 @@ void end_of_buffer()
 
 void quit_ask()
 {
+	if (term_running() > 0) {       /* terminal.c: shells still run */
+		screen_mvaddstr(MSGLINE, 0, "A terminal is still running; quit anyway (y/n) ?");
+		screen_clrtoeol();
+		if (!yesno(FALSE))
+			return;
+	}
 	if (modified_buffers() > 0) {
 		screen_mvaddstr(MSGLINE, 0, str_modified_buffers);
 		screen_clrtoeol();

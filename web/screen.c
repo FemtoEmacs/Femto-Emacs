@@ -372,6 +372,9 @@ void screen_pause(int ms)
  * whenever the browser window changed size.  Here the windows keep their
  * share (web_relayout, web-layer.c) and everything is drawn again.
  */
+/* terminal.c needs it natively only: the browser has no M-x term */
+int screen_key_waiting(int ms) { (void) ms; return 0; }
+
 extern void web_relayout(int rows);
 extern void web_redisplay(void);
 int screen_getch(void)

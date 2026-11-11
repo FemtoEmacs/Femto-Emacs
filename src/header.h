@@ -63,6 +63,8 @@
 #define ID_COLOR_LINK      14
 #define ID_COLOR_MENU      15      /* the buttons of the mode line menu */
 #define ID_COLOR_MENU_PRESSED 16   /* a button while it is clicked */
+#define ID_COLOR_TERM0     17      /* terminal.c: the 16 ANSI colours, 17-32 */
+#define ID_COLOR_TERM_REVERSE 33   /*   and reverse video */
 
 /* undo types, in matched pairs */
 #define UNDO_T_NONE        0
@@ -337,6 +339,16 @@ extern point_t fold_end_at(buffer_t *, point_t);
 extern void fold_reveal(buffer_t *, point_t);
 extern void fold_change(buffer_t *, int, point_t, long);
 extern void fold_free(buffer_t *);
+/* terminal.c: M-x term */
+extern int term_poll(void);
+extern int term_takes_keys(buffer_t *);
+extern void term_take_key(void);
+extern int term_faces(buffer_t *, point_t, char_t *, long);
+extern void term_buffer_gone(buffer_t *);
+extern int term_running(void);
+extern int term_state(buffer_t *);
+extern int term_poll_ms(void);
+extern int key_bytes_waiting(int);
 extern int backdoor_on;
 extern int backdoor_watch;              /* what its configuration follows */
 #define BACKDOOR_PAGE  1

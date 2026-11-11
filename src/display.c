@@ -272,7 +272,8 @@ static void highlight_window(buffer_t *bp, int rows)
 
 	hl_start = start;
 	hl_len = len;
-	hl_active = call_lisp_highlight(bp, start, hl_text, len, hl_colors);
+	/* a terminal's faces are its own (terminal.c), not a language's */
+	hl_active = term_faces(bp, start, hl_colors, len) || call_lisp_highlight(bp, start, hl_text, len, hl_colors);
 }
 
 static int color_at(buffer_t *bp, char_t *p)
@@ -283,8 +284,10 @@ static int color_at(buffer_t *bp, char_t *p)
 	if (!hl_active || off < 0 || off >= hl_len)
 		return is_upper_or_lower(*p) ? ID_COLOR_ALPHA : ID_COLOR_SYMBOL;
 	c = hl_colors[off];
-	/* the token faces, and the prose faces from ID_COLOR_HEADING on */
-	if (c < 1 || c > ID_COLOR_LINK || c == ID_COLOR_REGION) c = ID_COLOR_ALPHA;
+	/* the token faces, the prose faces from ID_COLOR_HEADING on, and a
+	 * terminal's colours (terminal.c) */
+	if (c < 1 || (c > ID_COLOR_LINK && c < ID_COLOR_TERM0) || c > ID_COLOR_TERM_REVERSE || c == ID_COLOR_REGION)
+		c = ID_COLOR_ALPHA;
 	return c;
 }
 
@@ -900,6 +903,8 @@ void modeline(window_t *wp)
 			| ((wp->w_bufp->b_flags & B_READONLY) ? 16 : 0)
 			| (backdoor_on ? 32 : 0)
 			| (wp->w_bufp->b_narrowed ? 64 : 0);   /* narrow.c */
+		int ts = term_state(wp->w_bufp);       /* terminal.c */
+		if (ts == 1 || ts == 2) flags = (flags & ~16) | (ts == 2 ? 256 : 128);
 
 		if (modeline_hook != NULL &&
 		    modeline_hook(name, wp->w_bufp->b_fname, wp->w_bufp->b_bname,

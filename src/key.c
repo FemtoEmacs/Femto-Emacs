@@ -265,6 +265,14 @@ int tester_inject_key_bytes(const char *bytes, int count)
  return 1;
 }
 
+/* Is a key byte there, or does one come within MS milliseconds?
+ * (terminal.c: an Esc alone, or the start of a sequence) */
+int key_bytes_waiting(int ms)
+{
+	if (nunread > 0 || macro_play >= 0) return 1;
+	return screen_key_waiting(ms);
+}
+
 int read_key_byte(void)
 {
 	int c;

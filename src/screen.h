@@ -73,6 +73,7 @@ extern int screen_test_cancelled(void);
 
 /* input */
 extern int  screen_getch(void);            /* blocks; returns one byte */
+extern int  screen_key_waiting(int ms);   /* a byte within MS ms? (it stays to be read) */
 extern void screen_flushinp(void);        /* discard pending input */
 
 /*

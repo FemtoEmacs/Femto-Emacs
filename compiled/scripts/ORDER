@@ -33,6 +33,7 @@ compiled/scripts/shell.scm
 compiled/scripts/polytonic.scm
 compiled/scripts/chinese.scm
 compiled/scripts/korean.scm
+compiled/scripts/terminal.scm
 compiled/scripts/sketch.scm
 compiled/scripts/tag-view.scm
 compiled/scripts/ttfy.scm

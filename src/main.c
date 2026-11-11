@@ -12,7 +12,11 @@ int editor_is_idle(void) { return editor_idle_wait; }
 void editor_idle_poll(void)
 {
  extern int chezweb_poll(void);
- if (editor_idle_wait && chezweb_poll()) { update_display(); screen_refresh(); }
+ int changed;
+ if (!editor_idle_wait) return;
+ changed = chezweb_poll();
+ if (term_poll()) changed = 1;        /* terminal.c: the shells' output */
+ if (changed) { update_display(); screen_refresh(); }
 }
 
 void editor_dispatch_key(void)
@@ -132,6 +136,12 @@ int fe_main(int argc, char **argv)
 		if (backdoor_on) backdoor_refresh();
 		update_display();
 		if (backdoor_on) backdoor_shown();
+		if (term_takes_keys(curbp)) {   /* terminal.c: the keys are the shell's */
+			editor_idle_wait = 1;
+			term_take_key();
+			editor_idle_wait = 0;
+			continue;
+		}
 		editor_idle_wait = 1;
 		input = get_key(key_map, &key_return);
 		editor_idle_wait = 0;

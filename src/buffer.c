@@ -175,6 +175,7 @@ int delete_buffer(buffer_t *bp)
 	record_change(bp, 'r', 0, NULL, 0);
 	free(bp->b_buf);
 	fold_free(bp);
+	term_buffer_gone(bp);           /* terminal.c: its shell goes */
 	free(bp);
 	return TRUE;
 }

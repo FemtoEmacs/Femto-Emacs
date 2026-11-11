@@ -99,7 +99,7 @@ int call_lisp_highlight(buffer_t *bp, point_t start, char_t *text, int len, char
  * that are remembered and applied on top of it.
  */
 
-#define FE_MAX_COLOR 16
+#define FE_MAX_COLOR 33         /* ID_COLOR_TERM_REVERSE */
 
 /* attribute bits used by fe_set_color: the same as SCR_* in screen.h */
 #define FE_BOLD      SCR_BOLD
@@ -141,6 +141,14 @@ static void default_theme(int many_colors)
 	face(ID_COLOR_EMPHASIS, -1, -1, FE_ITALIC);
 	face(ID_COLOR_STRONG, -1, -1, FE_BOLD);
 	face(ID_COLOR_LINK, -1, -1, FE_UNDERLINE);
+	/* a terminal's colours (terminal.c): the 16 ANSI colours, the bright
+	 * eight as the eight in bold where the terminal has only eight */
+	for (i = 0; i < 16; i++)
+		if (i < 8 || screen_colors() >= 16)
+			face(ID_COLOR_TERM0 + i, i, -1, 0);
+		else
+			face(ID_COLOR_TERM0 + i, i - 8, -1, FE_BOLD);
+	face(ID_COLOR_TERM_REVERSE, -1, -1, FE_REVERSE);
 
 	if (many_colors) {
 		face(ID_COLOR_KEYWORD,  127, -1, FE_BOLD);  /* purple */

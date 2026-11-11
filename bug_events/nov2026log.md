@@ -1262,3 +1262,53 @@ left a gap after it, nearly a third of a space.
 Evidence: tests/chezweb-korean.cjs (make check-browser) types 이상순 한글
 and reads the canvas: one blank as wide as a cell (the space), the others
 under half a cell. It fails with the old drawing.
+
+## November 11, 2026. M-x term: a terminal inside the editor (Claude)
+
+Eduardo: "Start, with M-x term and C-c as the escape key", libvterm in the
+sources, so that there is no dependency.
+
+- libvterm/: libvterm 0.3.3 (MIT), from github.com/neovim/libvterm at
+  934bc2fb: include/, src/*.c *.h *.inc, src/encoding/*.inc (made by Perl
+  upstream, kept as made: make needs only cc). About 7,000 lines, not the
+  10,000 I estimated. Two variables initialised so that GCC's -Wall is
+  silent (libvterm/README.chezweb). The makefile compiles it into the
+  terminal and SDL programs; forkpty needs -lutil on Linux.
+- src/terminal.c: forkpty runs $SHELL (TERM=xterm-256color) in a pty;
+  libvterm reads its output. The buffer *terminal* is the history (the
+  lines that scroll off, at most 10,000) and then the screen's rows,
+  written again from libvterm's grid after each read; point goes to the
+  terminal's cursor. A face per byte gives the colours: 16 new faces for
+  the ANSI colours (17-32) and one for reverse video (33); 256-colour and
+  RGB colours go to the nearest of the 16; a coloured background is drawn
+  reversed. The text is written without undo history and the buffer is
+  read-only for the editor's commands; when the shell exits it becomes an
+  ordinary buffer ("[Process exited with status N]").
+- Keys: while the terminal is the current buffer the main loop gives the
+  keyboard's bytes to the shell (term_take_key): Esc alone after 25 ms,
+  Meta-keys, arrows and other sequences as the terminal sent them, a
+  paste bracketed if the program asked. C-c is the escape: C-c C-c sends
+  C-c; C-c C-j copy mode (mode line Copy), C-c C-k back (Term); C-c KEY
+  is C-x KEY as in Emacs's ansi-term (C-c b, C-c o, C-c 2, C-c k);
+  C-c M-x is M-x; C-c C-x is C-x, so C-c C-x C-c quits, asking first while
+  a shell runs. The mouse stays the editor's.
+- Output is read by the idle poll, every 15 ms while a shell runs (100
+  otherwise). The window's size is the terminal's (TIOCSWINSZ on change).
+- compiled/scripts/terminal.scm: M-x term (*terminal*, or back to it;
+  *terminal<2>* once the first has exited), C-c C-k.
+- The browser: terminal.c is stubs there; M-x term says that a browser
+  page cannot start a shell, and leaves no buffer.
+
+Evidence: tests/terminal.sh (make check), in a PTY with /bin/sh: echo,
+seq 1 60 (the history), less (the alternate screen leaves nothing),
+coloured output (RED drawn with ESC[31m), C-c C-c on sleep, C-c 2 (stty
+size: 10 rows), C-c C-j and C-c C-k, C-c b *scratch* and M-x term back to
+the same shell, C-c C-x C-c asked and refused, exit, the buffer saved and
+checked; with vim, a file written in it. Seen in the SDL window under Xvfb
+(colours). tests/chezweb-term.cjs (make check-browser): M-x term refused
+in Chrome. Not tried here: macOS (forkpty from util.h).
+
+On macOS, `make` stopped at src/terminal.c: "static declaration of 'send'
+follows non-static declaration". util.h (forkpty) brings in sys/socket.h,
+whose send() is the sockets' own; Linux's pty.h does not. The function
+that writes to the shell is now to_shell.

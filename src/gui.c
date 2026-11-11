@@ -21,7 +21,8 @@
 /* from the editor core */
 extern void set_scrap(unsigned char *);
 
-#define MAX_FACE 16
+#define MAX_FACE 33              /* interface.c's FE_MAX_COLOR */
+extern int term_poll_ms(void);    /* terminal.c */
 #define PAD 4                   /* margin around the text, in points */
 
 typedef struct {
@@ -1053,13 +1054,27 @@ int screen_getch(void)
 	if (queue_empty() && dirty) render();
 	while (queue_empty()) {
 		if (editor_is_idle()) {
-			if (!SDL_WaitEventTimeout(&e,100)) { editor_idle_poll(); continue; }
+			if (!SDL_WaitEventTimeout(&e, term_poll_ms())) { editor_idle_poll(); continue; }
 		} else if (!SDL_WaitEvent(&e)) continue;
 		handle(&e);
 		/* take everything that is already waiting */
 		while (SDL_PollEvent(&e)) handle(&e);
 	}
 	return pop_byte();
+}
+
+int screen_key_waiting(int ms)
+{
+	SDL_Event e;
+	Uint32 end = SDL_GetTicks() + (Uint32) ms;
+
+	while (queue_empty()) {
+		Sint32 left = (Sint32) (end - SDL_GetTicks());
+		if (left <= 0 || !SDL_WaitEventTimeout(&e, left)) break;
+		handle(&e);
+		while (SDL_PollEvent(&e)) handle(&e);
+	}
+	return !queue_empty();
 }
 
 /* ------------------------------------------------------------------ */

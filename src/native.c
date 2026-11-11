@@ -433,6 +433,21 @@ static value_t wrap_fe_char_width(value_t *a, uint32_t n) {
  argcount("fe_char_width", n, 1);
  return fixnum(fe_char_width(tofixnum(a[0], "fe_char_width")));
 }
+extern char * fe_term_open(void);
+static value_t wrap_fe_term_open(value_t *a, uint32_t n) {
+ argcount("fe_term_open", n, 0);
+ const char *s = fe_term_open(); return string_from_cstrn((char *)(s ? s : ""), s ? strlen(s) : 0);
+}
+extern int fe_term_state(void);
+static value_t wrap_fe_term_state(value_t *a, uint32_t n) {
+ argcount("fe_term_state", n, 0);
+ return fixnum(fe_term_state());
+}
+extern int fe_term_copy_mode(int on);
+static value_t wrap_fe_term_copy_mode(value_t *a, uint32_t n) {
+ argcount("fe_term_copy_mode", n, 1);
+ return fixnum(fe_term_copy_mode(tofixnum(a[0], "fe_term_copy_mode")));
+}
 extern void fe_backdoor_note(char *s);
 static value_t wrap_fe_backdoor_note(value_t *a, uint32_t n) {
  argcount("fe_backdoor_note", n, 1);
@@ -622,6 +637,9 @@ static builtinspec_t editor_builtins[] = {
  {"fe-unfold", wrap_fe_unfold},
  {"fe-folded-at", wrap_fe_folded_at},
  {"fe-hidden-p", wrap_fe_hidden_p},
+ {"fe-term-open", wrap_fe_term_open},
+ {"fe-term-state", wrap_fe_term_state},
+ {"fe-term-copy-mode", wrap_fe_term_copy_mode},
  {"fe-narrow", wrap_fe_narrow},
  {"fe-widen", wrap_fe_widen},
  {"fe-narrow-start", wrap_fe_narrow_start},

@@ -10,8 +10,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include "screen.h"
+extern int term_poll_ms(void);
 
-#define MAX_FACE 16
+#define MAX_FACE 33              /* interface.c's FE_MAX_COLOR */
 
 static int active = 0;
 static int mouse_on = 0;
@@ -97,7 +98,7 @@ int screen_getch(void)
 {
  int c;
  if (editor_is_idle()) {
-  timeout(100);
+  timeout(term_poll_ms());    /* terminal.c: shorter while a shell runs */
   while ((c = getch()) == ERR) editor_idle_poll();
   timeout(-1);
  } else c = getch();
@@ -106,6 +107,17 @@ int screen_getch(void)
 }
 
 void screen_flushinp(void) { flushinp(); }
+
+int screen_key_waiting(int ms)
+{
+	int c;
+	timeout(ms);
+	c = getch();
+	timeout(-1);
+	if (c == ERR) return 0;
+	ungetch(c);
+	return 1;
+}
 
 int screen_colors(void)
 {

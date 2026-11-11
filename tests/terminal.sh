@@ -1,0 +1,106 @@
+#!/bin/sh
+# M-x term (src/terminal.c, compiled/scripts/terminal.scm, libvterm/), in a
+# PTY: a shell runs in *terminal*; its output and colours show; the history
+# keeps what scrolled off; a full-screen program (less: the alternate
+# screen) comes and goes; C-c C-c interrupts; C-c 2 splits the window and the
+# shell learns its new size; C-c C-j and C-c C-k switch to copy mode and
+# back; C-c b goes to another buffer and M-x term back to the same shell;
+# C-x C-c asks while the shell runs; when it exits the buffer is an
+# ordinary one, and is saved to be checked.  With vim, a file is edited in
+# it.  Disposable home, files and PTY.
+set -eu
+cd "$(dirname "$0")/.."
+root=$(pwd)
+work=$(mktemp -d "${TMPDIR:-/tmp}/chezweb-terminal.XXXXXX")
+trap '[ -n "${KEEP:-}" ] || rm -rf "$work"' EXIT HUP INT TERM
+cc=${CC:-cc}
+$cc -O2 tests/pty-keys.c -o "$work/pty" -lutil 2>/dev/null ||
+ $cc -O2 tests/pty-keys.c -o "$work/pty"
+mkdir -p "$work/home"
+fail() { echo "FAIL $1"; exit 1; }
+printf 'printf "X\\033[31mRED\\033[0mY\\n"\n' > "$work/color.sh"
+awk 'BEGIN { for (i = 1; i <= 200; i++) print "line " i }' > "$work/lines.txt"
+if command -v vim > /dev/null 2>&1; then vim='vim -u NONE -i NONE v.txt'; else vim=''; fi
+cat > "$work/keys" <<KEYS
+await-screen [SAVE]
+keys \\exterm\\r
+wait 1500
+keys echo hello \$((6*7))\\r
+wait 600
+keys less lines.txt\\r
+wait 1000
+keys q
+wait 600
+keys seq 1 60\\r
+wait 600
+keys sh color.sh\\r
+wait 800
+keys sleep 30\\r
+wait 400
+keys ^C^C
+wait 600
+keys echo after-interrupt\\r
+wait 600
+keys ^C2
+wait 800
+keys stty size\\r
+wait 600
+keys ^C^J
+wait 500
+keys ^C^K
+wait 500
+keys ^Cb*scratch*\\r
+wait 600
+keys \\exterm\\r
+wait 800
+keys echo still-here\\r
+wait 600
+KEYS
+if [ -n "$vim" ]; then cat >> "$work/keys" <<KEYS
+keys $vim\\r
+wait 1500
+keys ihello from vim
+wait 300
+keys \\e
+wait 300
+keys :wq\\r
+wait 1000
+KEYS
+fi
+cat >> "$work/keys" <<'KEYS'
+keys ^C^X^C
+wait 500
+keys n
+wait 400
+keys exit\r
+wait 1500
+keys ^X^Wsession.txt\r
+wait 800
+keys ^X^C
+wait 800
+KEYS
+(cd "$work"; SHELL=/bin/sh PS1='$ ' HOME="$work/home" LC_ALL=C.UTF-8 CHEZEMAX_NO_INIT=1 "$work/pty" "$work/keys" 60 "$work/screen" "$root/chezemax") ||
+ fail 'the editor did not finish'
+s="$work/session.txt"
+[ -f "$s" ] || fail 'the terminal was not saved after its shell exited'
+has() { grep -q -- "$1" "$s" || { cat "$s"; fail "$2"; }; }
+has '^hello 42$' 'the shell did not answer'
+has '^1$' 'the history lost what scrolled off'
+has '^60$' 'seq 1 60 is missing'
+! grep -q '^line 1$' "$s" || fail 'less (the alternate screen) stayed in the history'
+has '^XREDY$' 'the coloured output is missing'
+grep -a -q "$(printf '\033')\[31mRED" "$work/screen" || fail 'RED was not drawn in red'
+has '^after-interrupt$' 'C-c C-c did not interrupt sleep'
+has '^[0-9]* 80$' 'stty size gave nothing'
+rows=$(grep '^[0-9]* 80$' "$s" | cut -d' ' -f1)
+[ "$rows" -lt 20 ] || fail "C-c 2: the shell was not told the smaller window ($rows rows)"
+has '^still-here$' 'M-x term did not go back to the same shell'
+has '^\[Process exited with status 0\]$' 'the end of the shell was not shown'
+grep -a -q 'L\. [0-9]* Term' "$work/screen" || fail 'the mode line did not show Term'
+grep -a -q 'opy mode: the editor' "$work/screen" || fail 'C-c C-j did not enter copy mode'
+grep -a -q 'A terminal is still running; quit anyway' "$work/screen" || fail 'C-x C-c did not ask while the shell ran'
+grep -a -q '\*scratch\*' "$work/screen" || fail 'C-c b did not go to *scratch*'
+if [ -n "$vim" ]; then
+ [ "$(cat "$work/v.txt")" = 'hello from vim' ] || fail 'vim in the terminal did not write v.txt'
+fi
+echo "PASS M-x term: a shell with colours, history, the alternate screen, C-c C-c, resizing, copy mode, C-c b and back, the quit question${vim:+, vim}"
