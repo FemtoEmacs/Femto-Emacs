@@ -1312,3 +1312,33 @@ On macOS, `make` stopped at src/terminal.c: "static declaration of 'send'
 follows non-static declaration". util.h (forkpty) brings in sys/socket.h,
 whose send() is the sockets' own; Linux's pty.h does not. The function
 that writes to the shell is now to_shell.
+
+## November 11, 2026. M-x term on GitHub, and Neovim in it (Claude)
+
+GitHub stopped at chezemax.wasm: "Schemer: unbound variables: (fe-term-open
+fe-term-copy-mode fe-term-state)". compiled/editor-functions.scm and
+src/bridge-functions.c are made by make from src/native.c, but they are
+also in git, and the commit had left them out: in a fresh checkout every
+file has the same time, so make kept the old ones. They go in now (make
+had already made them, the same, on Eduardo's Mac and here).
+
+Eduardo ran Neovim 0.12 in M-x term, in Ghostty with a white background:
+every other row was blank, and the rows were black.
+
+- Blank rows: Neovim paints every cell of a row, so its rows are as wide
+  as the terminal, and the editor's display shows a line that fills a row
+  exactly with an empty row under it (display.c, as segstart and the
+  other row counts take it). The terminal is now one column narrower than
+  the screen. (A display that put the newline on the full row would
+  disagree with C-n, C-p and the page counts; left as it is.)
+- Black rows: Neovim's colour scheme gives every cell a background, and a
+  background was drawn as reverse video. Now terminal.c makes a face for
+  each colour pair a program uses -- the 256 colours, RGB, a background,
+  bold, underline, italic, reverse -- from 34 to 127, shared by the
+  terminals (interface.c, term_face; the screens take faces up to 127);
+  when they run out, the nearest of the sixteen.
+
+Evidence: tests/terminal.sh adds lines as wide as the terminal on a blue
+background (drawn with ESC[44m, one row each) and stty size: 79 columns.
+Neovim 0.9 with a dark RGB Normal background, under the pty and in the SDL
+window under Xvfb: consecutive rows, the background painted.

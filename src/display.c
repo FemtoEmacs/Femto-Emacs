@@ -286,7 +286,7 @@ static int color_at(buffer_t *bp, char_t *p)
 	c = hl_colors[off];
 	/* the token faces, the prose faces from ID_COLOR_HEADING on, and a
 	 * terminal's colours (terminal.c) */
-	if (c < 1 || (c > ID_COLOR_LINK && c < ID_COLOR_TERM0) || c > ID_COLOR_TERM_REVERSE || c == ID_COLOR_REGION)
+	if (c < 1 || (c > ID_COLOR_LINK && c < ID_COLOR_TERM0) || c > ID_COLOR_LAST || c == ID_COLOR_REGION)
 		c = ID_COLOR_ALPHA;
 	return c;
 }

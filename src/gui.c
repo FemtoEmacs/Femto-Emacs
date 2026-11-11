@@ -21,7 +21,7 @@
 /* from the editor core */
 extern void set_scrap(unsigned char *);
 
-#define MAX_FACE 33              /* interface.c's FE_MAX_COLOR */
+#define MAX_FACE 127             /* interface.c's FE_MAX_COLOR */
 extern int term_poll_ms(void);    /* terminal.c */
 #define PAD 4                   /* margin around the text, in points */
 

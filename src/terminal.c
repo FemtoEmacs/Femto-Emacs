@@ -75,11 +75,9 @@ char *fe_term_open(void) { return (char *) term_open(); }
 #define TERM_HISTORY 10000      /* lines kept above the screen */
 #define TERM_POLL_MS 15         /* how often output is read while idle */
 
-/* The faces of a terminal's colours (header.h's ID_COLOR_* go to 16):
- * 17-32 the sixteen ANSI colours, 33 reverse video.  interface.c gives
- * them their colours. */
-#define FACE_ANSI0   17
-#define FACE_REVERSE 33
+/* The faces of a terminal's colours (header.h): 17-32 the sixteen ANSI
+ * colours, 33 reverse video (interface.c gives them their colours), and
+ * from 34 faces made for the pairs programs use (cell_face) */
 
 typedef struct term_t {
 	struct term_t *next;
@@ -200,12 +198,27 @@ static int nearest_ansi(int r, int g, int b)
 	return best;
 }
 
-static int cell_face(term_t *t, const VTermScreenCell *c)
+/* The faces made for the colour pairs programs use: a background, the 256
+ * colours, RGB (ID_COLOR_TERM_POOL to ID_COLOR_LAST, shared by all the
+ * terminals); when they run out, the nearest of the simple faces */
+typedef struct { long fg, bg; int attr; } pen_t;
+static pen_t pens[ID_COLOR_LAST - ID_COLOR_TERM_POOL + 1];
+static int npens;
+
+static long color_value(term_t *t, VTermColor c)
+{
+	if (VTERM_COLOR_IS_DEFAULT_FG(&c) || VTERM_COLOR_IS_DEFAULT_BG(&c)) return -1;
+	if (VTERM_COLOR_IS_INDEXED(&c)) return c.indexed.idx;
+	vterm_screen_convert_color_to_rgb(t->vs, &c);
+	return SCR_RGB(c.rgb.red, c.rgb.green, c.rgb.blue);
+}
+
+static int simple_face(term_t *t, const VTermScreenCell *c)
 {
 	VTermColor fg = c->fg;
 
 	if (c->attrs.reverse || !VTERM_COLOR_IS_DEFAULT_BG(&c->bg))
-		return FACE_REVERSE;
+		return ID_COLOR_TERM_REVERSE;
 	if (VTERM_COLOR_IS_DEFAULT_FG(&fg)) {
 		if (c->attrs.bold) return ID_COLOR_STRONG;
 		if (c->attrs.italic) return ID_COLOR_EMPHASIS;
@@ -215,10 +228,33 @@ static int cell_face(term_t *t, const VTermScreenCell *c)
 	if (VTERM_COLOR_IS_INDEXED(&fg) && fg.indexed.idx < 16) {
 		int i = fg.indexed.idx;
 		if (c->attrs.bold && i < 8) i += 8;
-		return FACE_ANSI0 + i;
+		return ID_COLOR_TERM0 + i;
 	}
 	vterm_screen_convert_color_to_rgb(t->vs, &fg);
-	return FACE_ANSI0 + nearest_ansi(fg.rgb.red, fg.rgb.green, fg.rgb.blue);
+	return ID_COLOR_TERM0 + nearest_ansi(fg.rgb.red, fg.rgb.green, fg.rgb.blue);
+}
+
+static int cell_face(term_t *t, const VTermScreenCell *c)
+{
+	long fg = color_value(t, c->fg), bg = color_value(t, c->bg);
+	int attr = (c->attrs.bold ? SCR_BOLD : 0) | (c->attrs.underline ? SCR_UNDERLINE : 0)
+		 | (c->attrs.reverse ? SCR_REVERSE : 0) | (c->attrs.italic ? SCR_ITALIC : 0);
+	int k;
+
+	/* plain text, and the sixteen colours on the default background */
+	if (bg < 0 && !c->attrs.reverse && !c->attrs.italic && !c->attrs.underline &&
+	    (fg < 0 || (!SCR_IS_RGB(fg) && fg < 16)))
+		return simple_face(t, c);
+	for (k = 0; k < npens; k++)
+		if (pens[k].fg == fg && pens[k].bg == bg && pens[k].attr == attr)
+			return ID_COLOR_TERM_POOL + k;
+	if (npens == (int) (sizeof pens / sizeof pens[0]))
+		return simple_face(t, c);
+	pens[npens].fg = fg;
+	pens[npens].bg = bg;
+	pens[npens].attr = attr;
+	term_face(ID_COLOR_TERM_POOL + npens, fg, bg, attr);
+	return ID_COLOR_TERM_POOL + npens++;
 }
 
 /* Row ROW of the grid, without its trailing blanks (but up to column
@@ -365,12 +401,15 @@ static term_t *find(buffer_t *bp)
 	return NULL;
 }
 
-/* the size of the window showing T: its rows, the screen's columns */
+/* the size of the window showing T: its rows, and the screen's columns
+ * but one -- a line that fills a row exactly is followed by an empty row
+ * in the editor's display (display.c, segstart), which would show every
+ * full-width line of Neovim or less with a blank row under it */
 static void window_size(term_t *t, int *rows, int *cols)
 {
 	window_t *wp;
 	*rows = 24;
-	*cols = screen_cols();
+	*cols = screen_cols() - 1;
 	for (wp = wheadp; wp != NULL; wp = wp->w_next)
 		if (wp->w_bufp == t->bp) { *rows = wp->w_rows; break; }
 	if (*rows < 2) *rows = 2;

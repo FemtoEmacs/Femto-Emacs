@@ -65,6 +65,9 @@
 #define ID_COLOR_MENU_PRESSED 16   /* a button while it is clicked */
 #define ID_COLOR_TERM0     17      /* terminal.c: the 16 ANSI colours, 17-32 */
 #define ID_COLOR_TERM_REVERSE 33   /*   and reverse video */
+#define ID_COLOR_TERM_POOL 34      /*   then faces made for the colour pairs */
+#define ID_COLOR_LAST      127     /*   programs use (backgrounds, 256 colours) */
+extern void term_face(int id, long fg, long bg, int attr);   /* interface.c */
 
 /* undo types, in matched pairs */
 #define UNDO_T_NONE        0

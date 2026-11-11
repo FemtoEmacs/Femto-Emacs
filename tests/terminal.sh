@@ -19,6 +19,12 @@ $cc -O2 tests/pty-keys.c -o "$work/pty" -lutil 2>/dev/null ||
 mkdir -p "$work/home"
 fail() { echo "FAIL $1"; exit 1; }
 printf 'printf "X\\033[31mRED\\033[0mY\\n"\n' > "$work/color.sh"
+# lines as wide as the terminal, on a blue background (Neovim paints its
+# whole screen so)
+cat > "$work/wide.sh" <<'SH'
+c=$(stty size | cut -d' ' -f2)
+for i in 1 2 3; do printf "\033[44m%-${c}s\033[0m\n" "wide $i"; done
+SH
 awk 'BEGIN { for (i = 1; i <= 200; i++) print "line " i }' > "$work/lines.txt"
 if command -v vim > /dev/null 2>&1; then vim='vim -u NONE -i NONE v.txt'; else vim=''; fi
 cat > "$work/keys" <<KEYS
@@ -34,6 +40,8 @@ wait 600
 keys seq 1 60\\r
 wait 600
 keys sh color.sh\\r
+wait 800
+keys sh wide.sh\\r
 wait 800
 keys sleep 30\\r
 wait 400
@@ -89,10 +97,12 @@ has '^1$' 'the history lost what scrolled off'
 has '^60$' 'seq 1 60 is missing'
 ! grep -q '^line 1$' "$s" || fail 'less (the alternate screen) stayed in the history'
 has '^XREDY$' 'the coloured output is missing'
+[ "$(grep -c '^wide [123] *$' "$s")" = 3 ] || fail 'the lines as wide as the terminal are missing'
+grep -a -q "$(printf '\033')\[44mwide 1" "$work/screen" || fail 'the blue background was not drawn'
 grep -a -q "$(printf '\033')\[31mRED" "$work/screen" || fail 'RED was not drawn in red'
 has '^after-interrupt$' 'C-c C-c did not interrupt sleep'
-has '^[0-9]* 80$' 'stty size gave nothing'
-rows=$(grep '^[0-9]* 80$' "$s" | cut -d' ' -f1)
+has '^[0-9]* 79$' 'stty size gave nothing, or not 79 columns (80 but one)'
+rows=$(grep '^[0-9]* 79$' "$s" | cut -d' ' -f1)
 [ "$rows" -lt 20 ] || fail "C-c 2: the shell was not told the smaller window ($rows rows)"
 has '^still-here$' 'M-x term did not go back to the same shell'
 has '^\[Process exited with status 0\]$' 'the end of the shell was not shown'

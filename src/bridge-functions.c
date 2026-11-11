@@ -646,6 +646,26 @@ static void b_fe_char_width(bridge_in *in, bridge_out *out)
 	bridge_put_int(out, (long) fe_char_width(a1));
 }
 
+extern char * fe_term_open(void);
+static void b_fe_term_open(bridge_in *in, bridge_out *out)
+{
+	const char *r = fe_term_open();
+	bridge_put_string(out, r);
+}
+
+extern int fe_term_state(void);
+static void b_fe_term_state(bridge_in *in, bridge_out *out)
+{
+	bridge_put_int(out, (long) fe_term_state());
+}
+
+extern int fe_term_copy_mode(int on);
+static void b_fe_term_copy_mode(bridge_in *in, bridge_out *out)
+{
+	int a1 = (int) bridge_int(in);
+	bridge_put_int(out, (long) fe_term_copy_mode(a1));
+}
+
 extern void fe_backdoor_note(char *s);
 static void b_fe_backdoor_note(bridge_in *in, bridge_out *out)
 {
@@ -910,6 +930,9 @@ void bridge_register_editor(void)
 	bridge_register("fe-narrow-start", b_fe_narrow_start);
 	bridge_register("fe-narrow-end", b_fe_narrow_end);
 	bridge_register("fe-char-width", b_fe_char_width);
+	bridge_register("fe-term-open", b_fe_term_open);
+	bridge_register("fe-term-state", b_fe_term_state);
+	bridge_register("fe-term-copy-mode", b_fe_term_copy_mode);
 	bridge_register("fe-backdoor-note", b_fe_backdoor_note);
 	bridge_register("fe-message", b_fe_message);
 	bridge_register("fe-clear-message-line", b_fe_clear_message_line);

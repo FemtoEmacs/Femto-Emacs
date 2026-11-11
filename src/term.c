@@ -12,7 +12,7 @@
 #include "screen.h"
 extern int term_poll_ms(void);
 
-#define MAX_FACE 33              /* interface.c's FE_MAX_COLOR */
+#define MAX_FACE 127             /* interface.c's FE_MAX_COLOR */
 
 static int active = 0;
 static int mouse_on = 0;

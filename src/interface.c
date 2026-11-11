@@ -99,7 +99,7 @@ int call_lisp_highlight(buffer_t *bp, point_t start, char_t *text, int len, char
  * that are remembered and applied on top of it.
  */
 
-#define FE_MAX_COLOR 33         /* ID_COLOR_TERM_REVERSE */
+#define FE_MAX_COLOR 127        /* ID_COLOR_LAST: terminal.c's faces from 34 */
 
 /* attribute bits used by fe_set_color: the same as SCR_* in screen.h */
 #define FE_BOLD      SCR_BOLD
@@ -131,7 +131,8 @@ static void face(int id, long fg, long bg, int attr)
 static void default_theme(int many_colors)
 {
 	int i;
-	for (i = 0; i <= FE_MAX_COLOR; i++)
+	/* the faces terminal.c made (from ID_COLOR_TERM_POOL) keep their colours */
+	for (i = 0; i < ID_COLOR_TERM_POOL; i++)
 		face(i, -1, -1, 0);
 
 	face(ID_COLOR_MODELINE, -1, -1, FE_REVERSE);
@@ -168,6 +169,14 @@ static void default_theme(int many_colors)
 static void install_face(int id)
 {
 	screen_set_face(id, color_fg[id], color_bg[id], color_attr[id]);
+}
+
+/* A face terminal.c made for the colours a program uses (M-x term) */
+void term_face(int id, long fg, long bg, int attr)
+{
+	if (id < ID_COLOR_TERM_POOL || id > FE_MAX_COLOR) return;
+	face(id, fg, bg, attr);
+	if (colors_ready) install_face(id);
 }
 
 /* draw with a face from now on */
