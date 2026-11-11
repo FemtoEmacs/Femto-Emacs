@@ -8,6 +8,42 @@ cd -- "${root:-/}"
 export CHEZEMAX_NO_INIT=1
 export PATH="$root/bin:$root/app" HOME="$root/tmp/test-home" TERM=xterm-256color
 mkdir -p "$HOME"
+
+# Exercise M-x term through the installed executable, including ConPTY
+# input, output and exit status after the compiled editor has started.
+cat > "$root/tmp/term-keys" <<'KEYS'
+await-screen [SAVE]
+keys \exterm\r
+await-screen Terminal: C-c C-c interrupts
+keys set "CHEZWEB_TAIL=PTY-OK"\r
+keys echo CHEZWEB-CON%CHEZWEB_TAIL%\r
+await-screen CHEZWEB-CONPTY-OK
+keys exit 7\r
+await-screen [Process exited with status 7]
+keys ^X^C
+KEYS
+"$helper" "$root/tmp/term-keys" 90 "$root/tmp/term-screen" "$root/app/chezweb.exe" &
+term_pid=$!
+(
+  for ((second=0; second<100; ++second)); do
+    kill -0 "$term_pid" 2>/dev/null || exit 0
+    sleep 1
+  done
+  echo 'ConPTY smoke-test watchdog expired' >&2
+  tail -c 32768 "$root/tmp/term-screen" >&2
+  kill -KILL "$term_pid" 2>/dev/null || true
+) &
+watchdog=$!
+status=0
+wait "$term_pid" || status=$?
+kill "$watchdog" 2>/dev/null || true
+wait "$watchdog" 2>/dev/null || true
+if [ "$status" -ne 0 ]; then
+  tail -c 32768 "$root/tmp/term-screen"
+  exit "$status"
+fi
+echo 'PASS installed M-x term through ConPTY'
+
 [ "$(chezweb --eval '(+ 20 22)')" = 42 ]
 [ "$(chezweb --eval '(let fib ((n 20)) (if (< n 2) n (+ (fib (- n 1)) (fib (- n 2)))))')" = 6765 ]
 # Start processes after Wasmtime is active, using only packaged executables.
@@ -61,21 +97,3 @@ grep -q 'Saved through installed editor' "$root/tmp/source.txt"
 grep -q '^http://127.0.0.1:' "$HOME/launched-url"
 echo 'PASS installed terminal keyboard/save/quit and C-c d server/browser launch'
 
-# Exercise M-x term through the installed executable, including ConPTY
-# input, output and exit status after the compiled editor has started.
-cat > "$root/tmp/term-keys" <<'KEYS'
-await-screen [SAVE]
-keys \exterm\r
-await-screen Terminal: C-c C-c interrupts
-keys set "CHEZWEB_TAIL=PTY-OK"\r
-keys echo CHEZWEB-CON%CHEZWEB_TAIL%\r
-await-screen CHEZWEB-CONPTY-OK
-keys exit 7\r
-await-screen [Process exited with status 7]
-keys ^X^C
-KEYS
-if ! "$root/tmp/pty-test.exe" "$root/tmp/term-keys" 90 "$root/tmp/term-screen" "$root/app/chezweb.exe"; then
-  tail -c 32768 "$root/tmp/term-screen"
-  exit 1
-fi
-echo 'PASS installed M-x term through ConPTY'

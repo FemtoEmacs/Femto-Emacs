@@ -95,6 +95,7 @@ jobs:
         shell: pwsh
         run: git archive --format=tar.gz -o build/windows/Chezweb-source.tar.gz HEAD
       - name: Install into a clean directory and test
+        timeout-minutes: 9
         shell: pwsh
         run: |
           $dest = "$env:RUNNER_TEMP\Chezweb installed test"
