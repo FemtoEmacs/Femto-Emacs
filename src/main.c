@@ -16,7 +16,12 @@ void editor_idle_poll(void)
  if (!editor_idle_wait) return;
  changed = chezweb_poll();
  if (term_poll()) changed = 1;        /* terminal.c: the shells' output */
- if (changed) { update_display(); screen_refresh(); }
+ if (changed) {
+  update_display();
+  screen_refresh();
+  if (backdoor_on)
+   backdoor_note("  shown: the cursor at screen row %d, column %d, in %s", curbp->b_row, curbp->b_col, curbp->b_bname);
+ }
 }
 
 void editor_dispatch_key(void)

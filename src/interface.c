@@ -150,6 +150,8 @@ static void default_theme(int many_colors)
 		else
 			face(ID_COLOR_TERM0 + i, i - 8, -1, FE_BOLD);
 	face(ID_COLOR_TERM_REVERSE, -1, -1, FE_REVERSE);
+	/* M-x term's cursor: black on orange, seen on white and on black */
+	face(ID_COLOR_TERM_CURSOR, C_BLACK, many_colors ? 208 : C_YELLOW, 0);
 
 	if (many_colors) {
 		face(ID_COLOR_KEYWORD,  127, -1, FE_BOLD);  /* purple */

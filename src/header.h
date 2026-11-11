@@ -65,7 +65,8 @@
 #define ID_COLOR_MENU_PRESSED 16   /* a button while it is clicked */
 #define ID_COLOR_TERM0     17      /* terminal.c: the 16 ANSI colours, 17-32 */
 #define ID_COLOR_TERM_REVERSE 33   /*   and reverse video */
-#define ID_COLOR_TERM_POOL 34      /*   then faces made for the colour pairs */
+#define ID_COLOR_TERM_CURSOR 34    /*   the cursor, drawn by the editor */
+#define ID_COLOR_TERM_POOL 35      /*   then faces made for the colour pairs */
 #define ID_COLOR_LAST      127     /*   programs use (backgrounds, 256 colours) */
 extern void term_face(int id, long fg, long bg, int attr);   /* interface.c */
 
@@ -350,6 +351,7 @@ extern int term_faces(buffer_t *, point_t, char_t *, long);
 extern void term_buffer_gone(buffer_t *);
 extern int term_running(void);
 extern int term_state(buffer_t *);
+extern int term_owns_cursor(buffer_t *);
 extern int term_poll_ms(void);
 extern int key_bytes_waiting(int);
 extern int backdoor_on;

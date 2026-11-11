@@ -48,6 +48,7 @@ int term_faces(buffer_t *bp, point_t start, char_t *faces, long len) { (void) bp
 void term_buffer_gone(buffer_t *bp) { (void) bp; }
 int term_running(void) { return 0; }
 int term_state(buffer_t *bp) { (void) bp; return 0; }
+int term_owns_cursor(buffer_t *bp) { (void) bp; return 0; }
 int term_poll_ms(void) { return 100; }
 int fe_term_state(void) { return 0; }
 int fe_term_copy_mode(int on) { (void) on; return 0; }
@@ -94,6 +95,7 @@ typedef struct term_t {
 	int copy;               /* copy mode: the editor's keys, point left alone */
 	int damaged;            /* the grid changed since it was last written */
 	int exited;
+	int cursor_hidden;       /* the program hid the cursor (CSI ?25l): for the backdoor */
 } term_t;
 
 static term_t *terms;
@@ -272,7 +274,8 @@ static void row_text(term_t *t, int row, out_t *o, int cursor, long *at)
 	while (col < t->cols) {
 		p.col = col;
 		if (!vterm_screen_get_cell(t->vs, p, &cell)) break;
-		if (col == cursor) { *at = o->n; keep_to = o->n; }
+		int here = col == cursor;
+		if (here) *at = o->n;
 		if (cell.chars[0] == (uint32_t) -1) { col++; continue; }   /* a wide char's right half */
 		n = 0;
 		if (cell.chars[0] == 0) buf[n++] = ' ';
@@ -280,12 +283,14 @@ static void row_text(term_t *t, int row, out_t *o, int cursor, long *at)
 			n += utf8_encode(cell.chars[i], buf + n);
 		int face = cell_face(t, &cell);
 		out_put(o, buf, n, face);
+		if (here) keep_to = o->n;               /* the cursor's cell stays, blank or not */
 		if (!(n == 1 && buf[0] == ' ' && face == ID_COLOR_ALPHA)) last = o->n;
 		col += cell.width > 0 ? cell.width : 1;
 	}
-	if (cursor >= col && cursor >= 0) {          /* the cursor past the cells */
+	if (cursor >= col && cursor >= 0) {          /* the cursor past the cells: a blank cell for it */
 		while (col < cursor) { out_put(o, " ", 1, ID_COLOR_ALPHA); col++; }
 		*at = o->n;
+		out_put(o, " ", 1, ID_COLOR_ALPHA);
 		keep_to = o->n;
 	}
 	if (keep_to > last) last = keep_to;
@@ -306,10 +311,25 @@ static void draw(term_t *t)
 		row_text(t, row, &o, row == cursor.row ? cursor.col : -1, &at);
 		if (row + 1 < t->rows) out_put(&o, "\n", 1, ID_COLOR_ALPHA);
 	}
+	/* The cursor is drawn by the editor, as a cell of its own colour: the
+	 * terminal's own cursor is hidden while the shell has the keys
+	 * (term_owns_cursor), because a terminal draws it in its text colour,
+	 * which vanished on the black cells of Neovim (11 November 2026).
+	 * Not when the program hid it, nor in copy mode. */
+	if (!t->copy && !t->cursor_hidden && at < o.n && o.s[at] != '\n') {
+		unsigned char c = (unsigned char) o.s[at];
+		long len = c >= 0xf0 ? 4 : c >= 0xe0 ? 3 : c >= 0xc0 ? 2 : 1;
+		if (at + len > o.n) len = o.n - at;
+		memset(o.f + at, ID_COLOR_TERM_CURSOR, (size_t) len);
+	}
 	put_text(t, t->screen_start, document_size(t->bp), o.s ? o.s : "", o.f, o.n);
 	free(o.s);
 	free(o.f);
 	t->damaged = 0;
+	if (backdoor_on)
+		backdoor_note("  terminal %s: drawn, its cursor at row %d, column %d%s; point %ld%s",
+			      t->bp->b_bname, cursor.row, cursor.col, t->cursor_hidden ? " (the program hid it)" : "",
+			      (long) (t->screen_start + at), t->copy ? " (copy mode: point stays)" : "");
 	if (t->copy) return;
 	/* the screen at the window's top, the cursor where the terminal's is */
 	t->bp->b_point = t->screen_start + at;
@@ -328,7 +348,21 @@ static void draw(term_t *t)
 
 static int on_damage(VTermRect rect, void *user) { (void) rect; ((term_t *) user)->damaged = 1; return 1; }
 static int on_movecursor(VTermPos p, VTermPos old, int visible, void *user)
-{ (void) p; (void) old; (void) visible; ((term_t *) user)->damaged = 1; return 1; }
+{
+	term_t *t = user;
+	(void) p; (void) old;
+	t->cursor_hidden = !visible;
+	t->damaged = 1;
+	return 1;
+}
+
+/* the program shows or hides the cursor (CSI ?25h / ?25l) */
+static int on_settermprop(VTermProp prop, VTermValue *val, void *user)
+{
+	term_t *t = user;
+	if (prop == VTERM_PROP_CURSORVISIBLE) { t->cursor_hidden = !val->boolean; t->damaged = 1; }
+	return 1;
+}
 
 /* a line leaves the top of the screen: it joins the history, before the
  * screen (whose rows draw writes again) */
@@ -386,6 +420,7 @@ static void on_output(const char *s, size_t len, void *user)
 static VTermScreenCallbacks callbacks = {
 	.damage = on_damage,
 	.movecursor = on_movecursor,
+	.settermprop = on_settermprop,
 	.sb_pushline = on_pushline,
 };
 
@@ -428,7 +463,8 @@ static void close_term(term_t *t, int status_known, int status)
 		}
 		t->pid = 0;
 	}
-	if (t->damaged) draw(t);
+	t->cursor_hidden = 1;                  /* the last drawing without the cursor's cell */
+	if (t->vt) draw(t);
 	snprintf(note, sizeof note, "\n[Process exited%s%d]\n",
 		 status_known && WIFSIGNALED(status) ? ": signal " : " with status ",
 		 status_known ? (WIFSIGNALED(status) ? WTERMSIG(status) : WEXITSTATUS(status)) : 0);
@@ -582,7 +618,21 @@ int term_takes_keys(buffer_t *bp)
 	return t != NULL && !t->exited && !t->copy;
 }
 
-static void to_shell(term_t *t, const char *s, size_t n) { on_output(s, n, t); }
+static void to_shell(term_t *t, const char *s, size_t n)
+{
+	if (backdoor_on) {             /* the key bytes, escaped */
+		char shown[64];
+		size_t i, k = 0;
+		for (i = 0; i < n && k + 5 < sizeof shown; i++) {
+			unsigned char c = (unsigned char) s[i];
+			if (c >= 0x20 && c < 0x7f && c != '\\') shown[k++] = (char) c;
+			else k += (size_t) snprintf(shown + k, sizeof shown - k, "\\x%02x", c);
+		}
+		shown[k] = '\0';
+		backdoor_note("  terminal %s: %zu bytes to the shell: %s", t->bp->b_bname, n, shown);
+	}
+	on_output(s, n, t);
+}
 
 /* the next key byte, if one comes within MS milliseconds, or -1 */
 static int next_byte(int ms)
@@ -748,13 +798,17 @@ int term_state(buffer_t *bp)
 /* (fe-term-state): the same, for the current buffer */
 int fe_term_state(void) { return term_state(curbp); }
 
+/* Does the editor draw BP's cursor itself (the shell has the keys), so
+ * that the screen's own cursor is hidden? (display.c) */
+int term_owns_cursor(buffer_t *bp) { return term_state(bp) == 1; }
+
 /* (fe-term-copy-mode ON): copy mode on (1) or off (0); 1 if a terminal */
 int fe_term_copy_mode(int on)
 {
 	term_t *t = terms ? find(curbp) : NULL;
 	if (t == NULL || t->exited) return 0;
 	t->copy = on != 0;
-	if (!t->copy) t->damaged = 1;            /* point back to the cursor */
+	t->damaged = 1;                          /* point back to the cursor; its cell drawn or not */
 	return 1;
 }
 #endif

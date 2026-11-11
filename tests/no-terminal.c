@@ -8,4 +8,5 @@ int term_faces(buffer_t *bp, point_t start, char_t *faces, long len) { (void) bp
 void term_buffer_gone(buffer_t *bp) { (void) bp; }
 int term_running(void) { return 0; }
 int term_state(buffer_t *bp) { (void) bp; return 0; }
+int term_owns_cursor(buffer_t *bp) { (void) bp; return 0; }
 int term_poll_ms(void) { return 100; }

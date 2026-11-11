@@ -374,6 +374,7 @@ void screen_pause(int ms)
  */
 /* terminal.c needs it natively only: the browser has no M-x term */
 int screen_key_waiting(int ms) { (void) ms; return 0; }
+void screen_cursor_shown(int on) { (void) on; }
 
 extern void web_relayout(int rows);
 extern void web_redisplay(void);

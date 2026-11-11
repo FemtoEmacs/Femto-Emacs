@@ -110,6 +110,14 @@ grep -a -q 'L\. [0-9]* Term' "$work/screen" || fail 'the mode line did not show 
 grep -a -q 'opy mode: the editor' "$work/screen" || fail 'C-c C-j did not enter copy mode'
 grep -a -q 'A terminal is still running; quit anyway' "$work/screen" || fail 'C-x C-c did not ask while the shell ran'
 grep -a -q '\*scratch\*' "$work/screen" || fail 'C-c b did not go to *scratch*'
+# the cursor: the screen's own is hidden while the shell has the keys, and
+# the editor draws one, black on yellow (orange with 256 colours), then the
+# screen's own comes back (in *scratch*)
+esc=$(printf '\033')
+grep -a -q "$esc\[?25l" "$work/screen" || fail "the screen's cursor was not hidden in the terminal"
+grep -a "$esc\[?25l" "$work/screen" > /dev/null && tr -d '\n' < "$work/screen" | grep -a -q "$esc\[?25l.*$esc\[?25h" ||
+ fail "the screen's cursor did not come back after the terminal"
+grep -a -q "43m" "$work/screen" || fail 'the cursor was not drawn on yellow'
 if [ -n "$vim" ]; then
  [ "$(cat "$work/v.txt")" = 'hello from vim' ] || fail 'vim in the terminal did not write v.txt'
 fi

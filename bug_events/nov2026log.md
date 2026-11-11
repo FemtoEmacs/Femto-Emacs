@@ -1342,3 +1342,27 @@ Evidence: tests/terminal.sh adds lines as wide as the terminal on a blue
 background (drawn with ESC[44m, one row each) and stty size: 79 columns.
 Neovim 0.9 with a dark RGB Normal background, under the pty and in the SDL
 window under Xvfb: consecutive rows, the background painted.
+
+## November 11, 2026. M-x term: the editor draws the cursor (Claude)
+
+Eduardo: Neovim in M-x term showed no cursor, in iTerm and in Ghostty.
+The backdoor (which now records the terminal's keys and drawings) showed
+the editor putting the cursor where Neovim had it; `script` recorded the
+bytes iTerm received: the cursor shown (CSI ?25h) and moved to the cell
+after ":e". That cell is pure black (colour 16, Neovim's background), and
+both terminals draw their cursor in the text colour, black on a white
+profile: invisible. Settings in each terminal would fix it; Eduardo: "I'd
+rather not depend on terminal settings, for the benefit of users."
+
+Now, while the shell has the keys, the editor hides the screen's own
+cursor (screen_cursor_shown, term.c: curs_set) and draws the cursor's
+cell itself in a face of its own, ID_COLOR_TERM_CURSOR (34; the pool of
+colour pairs starts at 35): black on orange (208), black on yellow with
+eight colours. Not when the program hides its cursor (htop), nor in copy
+mode, where the screen's cursor is back; a cursor past the end of a line
+gets a blank cell to be drawn on. The SDL window draws its own cursor as
+before.
+
+Evidence: tests/terminal.sh: CSI ?25l while in the terminal, CSI ?25h
+after C-c b, the cursor cell on yellow (43m). Neovim 0.12.6 under the pty:
+the cell after ":e" black on orange, the screen's cursor hidden.

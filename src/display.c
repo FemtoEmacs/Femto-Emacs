@@ -983,6 +983,7 @@ void update_display()
 
 	bp = curwp->w_bufp;
 	bp->b_cpoint = bp->b_point; /* cpoint only ever set here */
+	screen_cursor_shown(!term_owns_cursor(bp));   /* terminal.c draws a shell's cursor */
 
 	/* only one window */
 	if (wheadp->w_next == NULL) {

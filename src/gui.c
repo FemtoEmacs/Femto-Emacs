@@ -1063,6 +1063,9 @@ int screen_getch(void)
 	return pop_byte();
 }
 
+/* the window draws its own cursor, which a terminal's dark cells do not hide */
+void screen_cursor_shown(int on) { (void) on; }
+
 int screen_key_waiting(int ms)
 {
 	SDL_Event e;

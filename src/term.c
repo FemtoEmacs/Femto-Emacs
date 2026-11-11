@@ -108,6 +108,14 @@ int screen_getch(void)
 
 void screen_flushinp(void) { flushinp(); }
 
+void screen_cursor_shown(int on)
+{
+	static int shown = 1;
+	if (on == shown) return;
+	shown = on;
+	curs_set(on ? 1 : 0);
+}
+
 int screen_key_waiting(int ms)
 {
 	int c;
