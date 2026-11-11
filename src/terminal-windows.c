@@ -105,6 +105,11 @@ static COORD dimensions(int rows, int cols)
 const char *windows_terminal_open(windows_terminal **result, int rows, int cols)
 {
     HMODULE kernel = GetModuleHandleW(L"kernel32.dll");
+    /* Cygwin patches the executable's imported CreateProcessW in a tty.
+     * That hook prepares the outer tty for native programs. This child
+     * has its own ConPTY, so call the kernel export directly. */
+    __typeof__(&CreateProcessW) start_process =
+        (__typeof__(&CreateProcessW))GetProcAddress(kernel, "CreateProcessW");
     create_console create = (create_console)GetProcAddress(kernel, "CreatePseudoConsole");
     resize_console resize = (resize_console)GetProcAddress(kernel, "ResizePseudoConsole");
     close_console close = (close_console)GetProcAddress(kernel, "ClosePseudoConsole");
@@ -122,6 +127,7 @@ const char *windows_terminal_open(windows_terminal **result, int rows, int cols)
 
     *result = NULL;
     if (!create || !resize || !close) return "M-x term requires Windows ConPTY (Windows 10 1809 or later)";
+    if (!start_process) return "Cannot resolve the native Windows process launcher";
     t = calloc(1, sizeof *t);
     if (!t) return "No memory for a terminal";
     t->close = close;
@@ -161,7 +167,7 @@ const char *windows_terminal_open(windows_terminal **result, int rows, int cols)
             directory = NULL;
         }
     }
-    if (!directory || !CreateProcessW(shell, command, NULL, NULL, FALSE,
+    if (!directory || !start_process(shell, command, NULL, NULL, FALSE,
                                       EXTENDED_STARTUPINFO_PRESENT, NULL, directory,
                                       &start.StartupInfo, &child))
         goto cleanup;
