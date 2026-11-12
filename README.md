@@ -44,9 +44,6 @@ Run the installer to add **Chezweb**, **Chezweb GUI**, and **Uninstall**
 to your Start menu. It installs for your account and bundles Cygwin and
 the tools it needs. The browser editor uses Google Chrome.
 
-The [7 November Windows preview](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/chezweb-windows-0.1-2026-11-07)
-is also available.
-
 ## Building from sources
 First, the tools that every Mac and Linux machine can have:
 
