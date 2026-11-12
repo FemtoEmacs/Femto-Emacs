@@ -2,7 +2,6 @@
 #define _GNU_SOURCE
 #include <windows.h>
 #include <sys/cygwin.h>
-#include <sys/stat.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,28 +31,43 @@ int main(int argc, char **argv)
     wchar_t *bin = wcsrchr(module, L'\\');
     if (!bin || lstrcmpiW(bin, L"\\bin"))
         return launch_error(L"The Chezweb launcher must be in the bin folder.");
-    bin[1] = L'\0';
+    size_t root_length = (size_t)(bin - module);
+    if (root_length + sizeof(L"\\app\\chezweb-gui.exe") / sizeof(*module) >
+        sizeof(module) / sizeof(*module))
+        return launch_error(L"The Chezweb installation path is too long.");
 
-    char *root = cygwin_create_path(CCP_WIN_W_TO_POSIX, module);
-    if (!root)
-        return launch_error(L"Cannot resolve the Chezweb installation folder.");
-    size_t root_length = strlen(root);
-    if (root_length && root[root_length - 1] == '/')
-        root[root_length - 1] = '\0';
+    /* Create the folder using the physical Windows path. The installer may
+       omit empty directories, and Cygwin can remap a POSIX /tmp. */
+    wcscpy(bin, L"\\tmp");
+    if (!CreateDirectoryW(module, NULL)) {
+        DWORD error = GetLastError();
+        DWORD attributes = GetFileAttributesW(module);
+        if (error != ERROR_ALREADY_EXISTS || attributes == INVALID_FILE_ATTRIBUTES ||
+            !(attributes & FILE_ATTRIBUTE_DIRECTORY)) {
+            wchar_t detail[32768];
+            swprintf(detail, sizeof(detail) / sizeof(*detail),
+                     L"Cannot create the Chezweb temporary folder (Windows error %lu).\n%ls",
+                     (unsigned long)error, module);
+            return launch_error(detail);
+        }
+    }
+    char *tmp = cygwin_create_path(CCP_WIN_W_TO_POSIX, module);
 
+    wcscpy(bin, L"\\app\\chezweb-gui.exe");
+    char *editor = cygwin_create_path(CCP_WIN_W_TO_POSIX, module);
+    wcscpy(bin, L"\\app");
+    char *app = cygwin_create_path(CCP_WIN_W_TO_POSIX, module);
+    wcscpy(bin, L"\\bin");
+    char *tools = cygwin_create_path(CCP_WIN_W_TO_POSIX, module);
     const char *profile = getenv("USERPROFILE");
     char *home = profile ? cygwin_create_path(CCP_WIN_A_TO_POSIX, profile) : NULL;
     const char *old_path = getenv("PATH");
-    char *editor, *tmp, *path;
-    if (!home ||
-        asprintf(&editor, "%s/app/chezweb-gui.exe", root) < 0 ||
-        asprintf(&tmp, "%s/tmp", root) < 0 ||
-        asprintf(&path, "%s/bin:%s/app%s%s", root, root,
+    char *path;
+    if (!tmp || !editor || !app || !tools || !home ||
+        asprintf(&path, "%s:%s%s%s", tools, app,
                  old_path && *old_path ? ":" : "", old_path ? old_path : "") < 0)
         return launch_error(L"Cannot prepare the Chezweb startup paths.");
 
-    if (mkdir(tmp, 0700) < 0 && errno != EEXIST)
-        return launch_error(L"Cannot create the Chezweb temporary folder.");
     if (setenv("PATH", path, 1) || setenv("HOME", home, 1) ||
         setenv("TMPDIR", tmp, 1) || setenv("TERM", "xterm-256color", 1) ||
         setenv("LANG", "C.UTF-8", 1) || (argc == 1 && chdir(home) < 0))
