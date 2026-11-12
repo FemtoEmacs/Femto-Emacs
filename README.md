@@ -32,12 +32,9 @@ explained in [Building from sources](#building-from-sources).
 
 ## Installation on Windows
 
-[Download the Chezweb Windows x86-64 test installer (Setup.exe)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/chezweb-windows-preview-9f36c1d/Chezweb-Windows-x86_64-Setup.exe)
+[Download the Chezweb Windows x86-64 preview (Setup.exe)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/chezweb-windows-preview-ba6d0662af11d6c7d33cb9b0dbbe36dc9fad41be/Chezweb-Windows-x86_64-Setup.exe)
 
-This preview fixes temporary-folder creation when launching Chezweb GUI.
-The build and editor checks passed.
-The launcher change still needs a Wine test.
-[Release notes, checksums, and matching sources](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/chezweb-windows-preview-9f36c1d)
+Preview built from `ba6d0662af11`. [Release notes, checksums, and matching sources](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/chezweb-windows-preview-ba6d0662af11d6c7d33cb9b0dbbe36dc9fad41be)
 
 Run the installer to add **Chezweb**, **Chezweb GUI**, and **Uninstall**
 to your Start menu. It installs for your account and bundles Cygwin and
