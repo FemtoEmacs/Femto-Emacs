@@ -32,12 +32,12 @@ explained in [Building from sources](#building-from-sources).
 
 ## Installation on Windows
 
-[Download the Chezweb Windows x86-64 test installer (Setup.exe)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/chezweb-windows-preview-0a5fbc6/Chezweb-Windows-x86_64-Setup.exe)
+[Download the Chezweb Windows x86-64 test installer (Setup.exe)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/chezweb-windows-preview-31bfe5f/Chezweb-Windows-x86_64-Setup.exe)
 
-This preview includes a launcher change to suppress the extra Bash window
-when opening Chezweb GUI. The build and editor checks passed. The installed
+This preview starts Chezweb GUI directly, without Bash. The build and
+editor checks passed. The installed
 ConPTY smoke test timed out, and the launcher change still needs a Wine test.
-[Release notes, checksums, and matching sources](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/chezweb-windows-preview-0a5fbc6)
+[Release notes, checksums, and matching sources](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/chezweb-windows-preview-31bfe5f)
 
 Run the installer to add **Chezweb**, **Chezweb GUI**, and **Uninstall**
 to your Start menu. It installs for your account and bundles Cygwin and
