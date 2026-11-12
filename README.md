@@ -32,13 +32,12 @@ explained in [Building from sources](#building-from-sources).
 
 ## Installation on Windows
 
-[Download the Chezweb Windows x86-64 test installer (Setup.exe, 22.1 MB)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/chezweb-windows-org-terminal-test-2026-11-11/Chezweb-Windows-x86_64-Setup.exe)
+[Download the Chezweb Windows x86-64 test installer (Setup.exe)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/chezweb-windows-preview-0a5fbc6/Chezweb-Windows-x86_64-Setup.exe)
 
-The 11 November 2026 test build includes Org mode, Korean input, and the
-embedded terminal (`M-x term`). The Windows build and Org tests passed.
-The terminal smoke test opened the Windows command prompt and stalled
-while sending its first command. Terminal input and Wine behavior remain
-unverified. [Release notes, checksums, and matching sources](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/chezweb-windows-org-terminal-test-2026-11-11)
+This preview includes a launcher change to suppress the extra Bash window
+when opening Chezweb GUI. The build and editor checks passed. The installed
+ConPTY smoke test timed out, and the launcher change still needs a Wine test.
+[Release notes, checksums, and matching sources](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/chezweb-windows-preview-0a5fbc6)
 
 Run the installer to add **Chezweb**, **Chezweb GUI**, and **Uninstall**
 to your Start menu. It installs for your account and bundles Cygwin and
