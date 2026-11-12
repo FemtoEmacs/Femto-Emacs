@@ -1,0 +1,22 @@
+name: Windows preview
+
+on:
+  push:
+    branches: [windows]
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    uses: ./.github/workflows/build-windows-installer.yml
+    with:
+      source_ref: ${{ github.sha }}
+
+  publish:
+    needs: package
+    permissions:
+      contents: write
+    uses: FemtoEmacs/Femto-Emacs/.github/workflows/publish-windows-preview.yml@master
+    with:
+      source_sha: ${{ github.sha }}

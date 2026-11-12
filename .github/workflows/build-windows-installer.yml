@@ -1,7 +1,5 @@
-name: Windows installer
+name: Build Windows package
 on:
-  push:
-    branches: [windows]
   workflow_dispatch:
     inputs:
       installed_smoke_test:
