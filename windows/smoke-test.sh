@@ -22,9 +22,10 @@ keys exit 7\r
 await-screen [Process exited with status 7]
 keys ^X^C
 KEYS
-"$helper" "$root/tmp/term-keys" 90 "$root/tmp/term-screen" "$root/app/chezweb.exe" &
+CHEZWEB_PTY_TRACE=1 "$helper" "$root/tmp/term-keys" 90 "$root/tmp/term-screen" "$root/app/chezweb.exe" &
 term_pid=$!
 (
+  set +x
   for ((second=0; second<100; ++second)); do
     kill -0 "$term_pid" 2>/dev/null || exit 0
     sleep 1
