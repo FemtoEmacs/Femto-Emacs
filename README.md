@@ -31,16 +31,21 @@ has the checksums. On other distributions, build from the sources, as
 explained in [Building from sources](#building-from-sources).
 
 ## Installation on Windows
-Download **Chezweb-Windows-x86_64-Setup.exe** from the
-[Chezweb 0.1 for Windows](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/chezweb-windows-0.1-2026-11-07)
-release and run it. It installs for you alone, so it does not ask for an
-administrator's password. If Windows warns that the publisher is
-unknown, click *More info*, then *Run anyway*. The Start menu then has a
-Chezweb folder with **Chezweb** (the editor in a text window), **Chezweb
-GUI** (the graphical window) and **Uninstall**. For the browser editor,
-install Google Chrome. You need no compiler. The installer is a preview,
-made on 7 November 2026: the features added since then, such as Org mode
-and Korean input, are not in it yet.
+
+[Download the Chezweb Windows x86-64 test installer (Setup.exe, 22.1 MB)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/chezweb-windows-org-terminal-test-2026-11-11/Chezweb-Windows-x86_64-Setup.exe)
+
+The 11 November 2026 test build includes Org mode, Korean input, and the
+embedded terminal (`M-x term`). The Windows build and Org tests passed.
+The terminal smoke test opened the Windows command prompt and stalled
+while sending its first command. Terminal input and Wine behavior remain
+unverified. [Release notes, checksums, and matching sources](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/chezweb-windows-org-terminal-test-2026-11-11)
+
+Run the installer to add **Chezweb**, **Chezweb GUI**, and **Uninstall**
+to your Start menu. It installs for your account and bundles Cygwin and
+the tools it needs. The browser editor uses Google Chrome.
+
+The [7 November Windows preview](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/chezweb-windows-0.1-2026-11-07)
+is also available.
 
 ## Building from sources
 First, the tools that every Mac and Linux machine can have:
