@@ -26,7 +26,7 @@
 #define FALSE 0
 #endif
 
-#define VERSION	 "Chezweb 0.1, compiled Scheme (femtoscheme compatibility core), Public Domain"
+#define VERSION	 "Chezweb 1.03, compiled Scheme (femtoscheme compatibility core), Public Domain"
 #define EXIT_OK         0               /* Success */
 #define EXIT_ERROR      1               /* Unknown error. */
 #define EXIT_USAGE      2               /* Usage */
