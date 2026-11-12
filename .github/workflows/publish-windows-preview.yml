@@ -1,13 +1,13 @@
 name: Publish Windows preview
 
 on:
-  workflow_run:
-    workflows: [Windows installer]
-    branches: [windows]
-    types: [completed]
+  workflow_call:
+    inputs:
+      source_sha:
+        required: true
+        type: string
 
 permissions:
-  actions: read
   contents: write
 
 concurrency:
@@ -16,26 +16,28 @@ concurrency:
 
 jobs:
   publish:
-    if: >-
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'push' &&
-      github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      RUN_ID: ${{ github.event.workflow_run.id }}
-      SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+      RUN_ID: ${{ github.run_id }}
+      SOURCE_SHA: ${{ inputs.source_sha }}
       INSTALLER: Chezweb-Windows-x86_64-Setup.exe
       SOURCES: Chezweb-Windows-corresponding-source.zip
     steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Chezweb-Windows-x86_64-test
+          path: installer
+      - uses: actions/download-artifact@v4
+        with:
+          name: Chezweb-Windows-corresponding-source
+          path: source
       - name: Publish installer and matching source as a prerelease
         run: |
           set -euo pipefail
           test "$SOURCE_SHA" = "$(gh api "repos/$GH_REPO/git/ref/heads/windows" --jq .object.sha)" || exit 0
-          gh run download "$RUN_ID" -n Chezweb-Windows-x86_64-test -D installer
-          gh run download "$RUN_ID" -n Chezweb-Windows-corresponding-source -D source
           (cd installer/build/windows && sha256sum -c SHA256SUMS)
           mv "installer/build/windows/$INSTALLER" installer/
           cp installer/build/windows/installed-packages.txt installer/
