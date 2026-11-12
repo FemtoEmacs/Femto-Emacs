@@ -1,0 +1,115 @@
+name: Publish Windows preview
+
+on:
+  workflow_run:
+    workflows: [Windows installer]
+    branches: [windows]
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: chezweb-windows-preview-publication
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RUN_ID: ${{ github.event.workflow_run.id }}
+      SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+      INSTALLER: Chezweb-Windows-x86_64-Setup.exe
+      SOURCES: Chezweb-Windows-corresponding-source.zip
+    steps:
+      - name: Publish installer and matching source as a prerelease
+        run: |
+          set -euo pipefail
+          test "$SOURCE_SHA" = "$(gh api "repos/$GH_REPO/git/ref/heads/windows" --jq .object.sha)" || exit 0
+          gh run download "$RUN_ID" -n Chezweb-Windows-x86_64-test -D installer
+          gh run download "$RUN_ID" -n Chezweb-Windows-corresponding-source -D source
+          (cd installer/build/windows && sha256sum -c SHA256SUMS)
+          mv "installer/build/windows/$INSTALLER" installer/
+          cp installer/build/windows/installed-packages.txt installer/
+          test "$(git get-tar-commit-id < <(gzip -dc source/Chezweb-source.tar.gz))" = "$SOURCE_SHA"
+          test -d source/cygwin-sources
+          (cd source && zip -q -0 -r "../installer/$SOURCES" .)
+          (cd installer && sha256sum "$INSTALLER" "$SOURCES" installed-packages.txt > RELEASE-SHA256SUMS)
+          tag="chezweb-windows-preview-$SOURCE_SHA"
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            gh release create "$tag" --draft --prerelease --latest=false \
+              --target "$SOURCE_SHA" --title "Chezweb Windows preview (${SOURCE_SHA:0:12})" \
+              --notes "Windows x86-64 preview built from $SOURCE_SHA. Build and editor checks passed. Installed terminal behavior can be checked manually in Wine. [Build run](https://github.com/$GH_REPO/actions/runs/$RUN_ID)."
+          fi
+          if [ "$(gh release view "$tag" --json isDraft --jq .isDraft)" = true ]; then
+            gh release upload "$tag" "installer/$INSTALLER" "installer/$SOURCES" installer/installed-packages.txt installer/RELEASE-SHA256SUMS --clobber
+            gh release edit "$tag" --draft=false --prerelease --latest=false
+          fi
+          gh release view "$tag" --json isDraft,assets |
+            jq -e --arg installer "$INSTALLER" --arg sources "$SOURCES" '
+              (.isDraft | not) and
+              (([.assets[].name] | sort) == ([$installer, $sources, "installed-packages.txt", "RELEASE-SHA256SUMS"] | sort))
+            '
+          url="https://github.com/$GH_REPO/releases/download/$tag/$INSTALLER"
+          expected=$(sha256sum "installer/$INSTALLER" | cut -d' ' -f1)
+          actual=$(curl -q -fsSL --retry 3 --max-time 60 "$url" | sha256sum | cut -d' ' -f1)
+          test "$expected" = "$actual"
+          echo "PREVIEW_TAG=$tag" >> "$GITHUB_ENV"
+
+      - name: Point the master README to the published preview
+        if: env.PREVIEW_TAG != ''
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            test "$SOURCE_SHA" = "$(gh api "repos/$GH_REPO/git/ref/heads/windows" --jq .object.sha)" || exit 0
+            gh api "repos/$GH_REPO/contents/README.md?ref=master" > readme.json
+            python3 - <<'PY' > update.json
+          import base64
+          import json
+          import os
+          import re
+
+          with open("readme.json") as file:
+              readme = json.load(file)
+          old = base64.b64decode(readme["content"]).decode()
+          repo = os.environ["GH_REPO"]
+          tag = os.environ["PREVIEW_TAG"]
+          revision = os.environ["SOURCE_SHA"][:12]
+          base = f"https://github.com/{repo}/releases"
+          installer = os.environ["INSTALLER"]
+          block = (
+              f"[Download the Chezweb Windows x86-64 preview (Setup.exe)]"
+              f"({base}/download/{tag}/{installer})\n\n"
+              f"Preview built from `{revision}`. "
+              f"[Release notes, checksums, and matching sources]({base}/tag/{tag})\n\n"
+          )
+          new, count = re.subn(
+              r"(?m)^\[Download the Chezweb Windows x86-64 [^\n]+\n\n"
+              r"(?:The 11 November 2026 test build|This preview |Preview built from )[^\n]*(?:\n[^\n]+)*\n\n",
+              lambda match: block,
+              old,
+          )
+          if count != 1:
+              raise SystemExit("Expected one Windows preview block in the README")
+          if new != old:
+              print(json.dumps({
+                  "branch": "master",
+                  "sha": readme["sha"],
+                  "message": f"Update Windows preview download to {revision}",
+                  "content": base64.b64encode(new.encode()).decode(),
+              }))
+          PY
+            if [ ! -s update.json ]; then exit 0; fi
+            if gh api --method PUT "repos/$GH_REPO/contents/README.md" --input update.json --jq .commit.html_url; then
+              exit 0
+            fi
+          done
+          exit 1

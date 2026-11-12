@@ -2,13 +2,14 @@ name: Linux packages
 # The Debian/Ubuntu packages (tools/make-deb.sh), for Intel/AMD and ARM:
 # built on Ubuntu 22.04, so that they install on 22.04 and later and on
 # Debian 12; each is installed and tried on clean ubuntu:22.04,
-# ubuntu:24.04 and debian:12 containers (tests/deb-install.sh).  Run by
-# hand (Actions, Linux packages, Run workflow); with "publish", the
-# packages replace those of the release chezweb-linux, under names that
-# do not change, so that README.md can link to them:
+# ubuntu:24.04 and debian:12 containers (tests/deb-install.sh).
+# A successful master build refreshes the release behind the README links.
+# Manual runs can build packages without publishing them:
 #   .../releases/download/chezweb-linux/chezweb_amd64.deb
 #   .../releases/download/chezweb-linux/chezweb_arm64.deb
 on:
+  push:
+    branches: [master]
   workflow_dispatch:
     inputs:
       publish:
@@ -53,8 +54,11 @@ jobs:
           name: chezweb-${{ matrix.arch }}-deb
           path: build/deb/*.deb
   publish:
-    if: inputs.publish
+    if: github.ref == 'refs/heads/master' && (github.event_name == 'push' || inputs.publish)
     needs: deb
+    concurrency:
+      group: chezweb-linux-publication
+      cancel-in-progress: false
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -68,6 +72,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
+          set -euo pipefail
+          current=$(gh api "repos/$GH_REPO/git/ref/heads/master" --jq .object.sha)
+          if [ "$GITHUB_SHA" != "$current" ] &&
+             ! gh api "repos/$GH_REPO/compare/$GITHUB_SHA...$current" |
+                 jq -e '.status == "ahead" and ([.files[].filename] == ["README.md"])' >/dev/null; then
+            echo "Skipping publication for superseded commit $GITHUB_SHA"
+            exit 0
+          fi
           cd debs
           version=$(ls chezweb_*_amd64.deb | sed 's/^chezweb_\(.*\)_amd64\.deb$/\1/')
           cp chezweb_*_amd64.deb chezweb_amd64.deb
@@ -83,8 +95,9 @@ jobs:
           apt installs the libraries Chezweb needs; the installation then makes the machine code for your processor (about half a minute). \`chezweb\` opens the editor in the terminal, \`chezweb-gui\` (or Chezweb in the applications menu) in a window; C-c d opens Chrome. \`sudo apt remove chezweb\` removes it. \`SHA256SUMS\` verifies the packages.
           NOTES
           if gh release view chezweb-linux > /dev/null 2>&1; then
+            gh release upload chezweb-linux chezweb_amd64.deb chezweb_arm64.deb SHA256SUMS --clobber
             gh release edit chezweb-linux --title "Chezweb for Ubuntu and Debian" --notes-file notes.md
           else
-            gh release create chezweb-linux --target "$GITHUB_SHA" --title "Chezweb for Ubuntu and Debian" --notes-file notes.md
+            gh release create chezweb-linux chezweb_amd64.deb chezweb_arm64.deb SHA256SUMS \
+              --target "$GITHUB_SHA" --title "Chezweb for Ubuntu and Debian" --notes-file notes.md
           fi
-          gh release upload chezweb-linux chezweb_amd64.deb chezweb_arm64.deb SHA256SUMS --clobber
