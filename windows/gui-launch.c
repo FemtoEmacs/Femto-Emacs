@@ -30,7 +30,7 @@ int main(int argc, char **argv)
         return launch_error(L"Cannot locate the Chezweb installation folder.");
     *filename = L'\0';
     wchar_t *bin = wcsrchr(module, L'\\');
-    if (!bin || _wcsicmp(bin, L"\\bin"))
+    if (!bin || lstrcmpiW(bin, L"\\bin"))
         return launch_error(L"The Chezweb launcher must be in the bin folder.");
     bin[1] = L'\0';
 
