@@ -23,17 +23,23 @@ int main(int argc, char **argv)
     if (!length || length >= sizeof(module) / sizeof(*module))
         return launch_error(L"Cannot locate the Chezweb launcher.");
 
+    /* Cygwin may map the physical bin directory to /usr/bin.
+       Find its parent in Windows coordinates before converting the root. */
+    wchar_t *filename = wcsrchr(module, L'\\');
+    if (!filename)
+        return launch_error(L"Cannot locate the Chezweb installation folder.");
+    *filename = L'\0';
+    wchar_t *bin = wcsrchr(module, L'\\');
+    if (!bin || _wcsicmp(bin, L"\\bin"))
+        return launch_error(L"The Chezweb launcher must be in the bin folder.");
+    bin[1] = L'\0';
+
     char *root = cygwin_create_path(CCP_WIN_W_TO_POSIX, module);
     if (!root)
         return launch_error(L"Cannot resolve the Chezweb installation folder.");
-    char *filename = strrchr(root, '/');
-    if (!filename)
-        return launch_error(L"Cannot locate the Chezweb installation folder.");
-    *filename = '\0';
-    char *bin = strrchr(root, '/');
-    if (!bin || strcmp(bin, "/bin"))
-        return launch_error(L"The Chezweb launcher must be in the bin folder.");
-    *bin = '\0';
+    size_t root_length = strlen(root);
+    if (root_length && root[root_length - 1] == '/')
+        root[root_length - 1] = '\0';
 
     const char *profile = getenv("USERPROFILE");
     char *home = profile ? cygwin_create_path(CCP_WIN_A_TO_POSIX, profile) : NULL;
@@ -55,5 +61,8 @@ int main(int argc, char **argv)
 
     argv[0] = editor;
     execv(editor, argv);
-    return launch_error(L"Cannot start the graphical Chezweb editor.");
+    char error[512];
+    snprintf(error, sizeof(error), "Cannot start the graphical Chezweb editor.\n%s", strerror(errno));
+    MessageBoxA(NULL, error, "Chezweb GUI", MB_OK | MB_ICONERROR);
+    return 1;
 }
