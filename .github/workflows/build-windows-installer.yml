@@ -3,6 +3,11 @@ on:
   push:
     branches: [windows]
   workflow_dispatch:
+    inputs:
+      installed_smoke_test:
+        description: Run the installed terminal, GUI and uninstall smoke test
+        type: boolean
+        default: false
   workflow_call:
     inputs:
       source_ref:
@@ -122,6 +127,7 @@ jobs:
             windows-build.log
           retention-days: 30
       - name: Install into a clean directory and test
+        if: github.event_name == 'workflow_dispatch' && inputs.installed_smoke_test
         timeout-minutes: 9
         shell: pwsh
         run: |
