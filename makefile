@@ -30,6 +30,7 @@ endif
 # The Windows installer bundles Cygwin for the editor's POSIX services.
 ifneq ($(filter CYGWIN%,$(UNAME_S)),)
 WASMTIME_LIBS = -L$(WASMTIME_ROOT)/lib -lwasmtime
+GUI_LDFLAGS = -mwindows
 endif
 OBJECTS += schemer/native-host.o
 # libvterm (libvterm/, bundled source): the terminal emulator of M-x term
@@ -98,7 +99,7 @@ runtime:
 chezemax: $(OBJECTS) src/term.o src/app.o runtime schemer-compile
 	$(CC) $(LDFLAGS) $(OBJECTS) src/term.o src/app.o $(RUNTIME) $(CURSES_LIBS) $(PDF_LIBS) $(WASMTIME_LIBS) $(PTY_LIBS) -lm -o $@
 chezemax-gui: $(OBJECTS) src/gui.o src/app-gui.o runtime schemer-compile
-	$(CC) $(LDFLAGS) $(OBJECTS) src/gui.o src/app-gui.o $(RUNTIME) $(SDL_LIBS) $(PDF_LIBS) $(WASMTIME_LIBS) $(PTY_LIBS) -lm -o $@
+	$(CC) $(LDFLAGS) $(GUI_LDFLAGS) $(OBJECTS) src/gui.o src/app-gui.o $(RUNTIME) $(SDL_LIBS) $(PDF_LIBS) $(WASMTIME_LIBS) $(PTY_LIBS) -lm -o $@
 irene-dixe: src/irene-dixe.c
 	$(CC) $(CFLAGS) $(SDL_CFLAGS) $< $(LDFLAGS) $(SDL_LIBS) -lm -o $@
 src/gui.o: src/gui.c src/screen.h

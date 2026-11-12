@@ -1,8 +1,14 @@
-/* Start the bundled Bash without allocating a console for GUI startup. */
+/* Launch the graphical editor directly from the Windows shortcut. */
+#define _GNU_SOURCE
 #include <windows.h>
+#include <sys/cygwin.h>
+#include <sys/stat.h>
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 #include <wchar.h>
-
-enum { max_command_chars = 32767 };
 
 static int launch_error(const wchar_t *message)
 {
@@ -10,53 +16,44 @@ static int launch_error(const wchar_t *message)
     return 1;
 }
 
-/* Skip argv[0] and keep the user's Windows argument quoting intact. */
-static const wchar_t *argument_tail(const wchar_t *command)
+int main(int argc, char **argv)
 {
-    int quoted = 0;
-
-    while (*command == L' ' || *command == L'\t')
-        ++command;
-    while (*command) {
-        if (*command == L'"')
-            quoted = !quoted;
-        else if (!quoted && (*command == L' ' || *command == L'\t'))
-            break;
-        ++command;
-    }
-    return command;
-}
-
-int main(void)
-{
-    static wchar_t bash[max_command_chars];
-    static wchar_t command[max_command_chars];
-    static const wchar_t prefix[] =
-        L"bash.exe --noprofile --norc /app/start.sh --gui";
-    static const wchar_t filename[] = L"bash.exe";
-    const wchar_t *tail = argument_tail(GetCommandLineW());
-    STARTUPINFOW startup = {0};
-    PROCESS_INFORMATION process = {0};
-    DWORD length = GetModuleFileNameW(NULL, bash, max_command_chars);
-
-    if (!length || length >= max_command_chars)
+    wchar_t module[32768];
+    DWORD length = GetModuleFileNameW(NULL, module, sizeof(module) / sizeof(*module));
+    if (!length || length >= sizeof(module) / sizeof(*module))
         return launch_error(L"Cannot locate the Chezweb launcher.");
-    wchar_t *separator = wcsrchr(bash, L'\\');
-    if (!separator || (size_t)(separator + 1 - bash) + wcslen(filename) >= max_command_chars)
-        return launch_error(L"Cannot locate the bundled Bash.");
-    wcscpy(separator + 1, filename);
 
-    if (wcslen(prefix) + wcslen(tail) >= max_command_chars)
-        return launch_error(L"The Chezweb command line is too long.");
-    wcscpy(command, prefix);
-    wcscat(command, tail);
+    char *root = cygwin_create_path(CCP_WIN_W_TO_POSIX, module);
+    if (!root)
+        return launch_error(L"Cannot resolve the Chezweb installation folder.");
+    char *filename = strrchr(root, '/');
+    if (!filename)
+        return launch_error(L"Cannot locate the Chezweb installation folder.");
+    *filename = '\0';
+    char *bin = strrchr(root, '/');
+    if (!bin || strcmp(bin, "/bin"))
+        return launch_error(L"The Chezweb launcher must be in the bin folder.");
+    *bin = '\0';
 
-    startup.cb = sizeof(startup);
-    if (!CreateProcessW(bash, command, NULL, NULL, FALSE, CREATE_NO_WINDOW,
-                        NULL, NULL, &startup, &process))
-        return launch_error(L"Cannot start the bundled Bash.");
+    const char *profile = getenv("USERPROFILE");
+    char *home = profile ? cygwin_create_path(CCP_WIN_A_TO_POSIX, profile) : NULL;
+    const char *old_path = getenv("PATH");
+    char *editor, *tmp, *path;
+    if (!home ||
+        asprintf(&editor, "%s/app/chezweb-gui.exe", root) < 0 ||
+        asprintf(&tmp, "%s/tmp", root) < 0 ||
+        asprintf(&path, "%s/bin:%s/app%s%s", root, root,
+                 old_path && *old_path ? ":" : "", old_path ? old_path : "") < 0)
+        return launch_error(L"Cannot prepare the Chezweb startup paths.");
 
-    CloseHandle(process.hThread);
-    CloseHandle(process.hProcess);
-    return 0;
+    if (mkdir(tmp, 0700) < 0 && errno != EEXIST)
+        return launch_error(L"Cannot create the Chezweb temporary folder.");
+    if (setenv("PATH", path, 1) || setenv("HOME", home, 1) ||
+        setenv("TMPDIR", tmp, 1) || setenv("TERM", "xterm-256color", 1) ||
+        setenv("LANG", "C.UTF-8", 1) || (argc == 1 && chdir(home) < 0))
+        return launch_error(L"Cannot prepare the Chezweb startup environment.");
+
+    argv[0] = editor;
+    execv(editor, argv);
+    return launch_error(L"Cannot start the graphical Chezweb editor.");
 }
