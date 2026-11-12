@@ -22,7 +22,9 @@ keys exit 7\r
 await-screen [Process exited with status 7]
 keys ^X^C
 KEYS
-CHEZWEB_PTY_TRACE=1 "$helper" "$root/tmp/term-keys" 90 "$root/tmp/term-screen" "$root/app/chezweb.exe" &
+# The test driver only needs a byte-stream PTY. Leave native console
+# handling to the separate ConPTY that M-x term explicitly creates.
+CYGWIN="${CYGWIN:+$CYGWIN }disable_pcon" CHEZWEB_PTY_TRACE=1 "$helper" "$root/tmp/term-keys" 90 "$root/tmp/term-screen" "$root/app/chezweb.exe" &
 term_pid=$!
 (
   set +x
