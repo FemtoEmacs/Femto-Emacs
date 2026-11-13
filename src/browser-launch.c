@@ -16,6 +16,7 @@ extern char **environ;
 #ifdef __EMSCRIPTEN__
 const char *chezweb_launch(void){return "The browser editor is already open. Ask AI in the terminal or SDL window.";}
 int chezweb_poll(void){return 0;}
+void chezweb_saved(buffer_t *bp){(void)bp;}
 #else
 extern const char *bridge_install_dir(void);
 extern long fe_copy_text(long,long,char *);
@@ -93,6 +94,16 @@ const char *chezweb_launch(void){
  snprintf(path,sizeof path,"%s/ready",session);for(int i=0;i<100;i++){FILE *r=fopen(path,"r");if(r){if(fgets(url,sizeof url,r))url[strcspn(url,"\r\n")]=0;fclose(r);break;}struct timespec delay={0,20000000};nanosleep(&delay,NULL);}
  if(!*url)return "The browser server did not become ready.";
  return browser_result(open_chrome());
+}
+void chezweb_saved(buffer_t *bp)
+{
+ if(!*session||bp!=source||!live_source()||strcmp(bp->b_fname,source_name))return;
+ size_t len;
+ char *text=snapshot(bp,&len);
+ if(!text)return;
+ remember_disk(text,len);
+ remember_browser_text(text,len);
+ free(text);
 }
 int chezweb_poll(void){
  if(!*session)return 0;

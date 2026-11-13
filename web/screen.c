@@ -16,7 +16,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "screen.h"
+#include "header.h"
 
 extern int char_width(unsigned long);
 
@@ -376,6 +376,77 @@ void screen_pause(int ms)
 int screen_key_waiting(int ms) { (void) ms; return 0; }
 void screen_cursor_shown(int on) { (void) on; }
 
+/* Called between editor commands, with no filename or search prompt open. */
+EM_JS(char *, web_sync_path, (void), {
+ return stringToNewUTF8(Module.chezwebSessionPath);
+});
+EM_JS(char *, web_take_sync, (int *length, char **revision), {
+ var sync=Module.browsered.takeSync();
+ if(!sync)return 0;
+ var p=_malloc(sync.bytes.length+1);
+ if(!p)return 0;
+ HEAPU8.set(sync.bytes,p);
+ HEAP32[length>>2]=sync.bytes.length;
+ HEAPU32[revision>>2]=stringToNewUTF8(sync.next);
+ return p;
+});
+EM_ASYNC_JS(int, web_backup_draft, (const char *bytes, int length), {
+ return (await Module.browsered.backupDraft(HEAPU8.slice(bytes,bytes+length)))?1:0;
+});
+EM_JS(void, web_synced, (const char *revision,int recovered), {
+ Module.browsered.synced(UTF8ToString(revision),!!recovered);
+});
+EM_JS(void, web_sync_failed, (void), {
+ Module.browsered.notice('Could not update the browser buffer. Its draft is still open.',true);
+});
+
+static void apply_saved_snapshot(void)
+{
+ int len;
+ char *revision=NULL,*text=web_take_sync(&len,&revision);
+ if(!text)return;
+ char *path=web_sync_path();
+ buffer_t *bp=bheadp;
+ while(bp&&strcmp(bp->b_fname,path))bp=bp->b_next;
+ free(path);
+ if(!bp){free(revision);free(text);return;}
+
+ buffer_t *old=curbp;
+ point_t size=document_size(bp),point=bp->b_point;
+ char *draft=malloc((size_t)size+1);
+ extern long fe_copy_text(long,long,char *);
+ extern void fe_delete_region(long,long);
+ extern void fe_insert_bytes(long,char *,long);
+ curbp=bp;
+ if(!draft||!growgap(bp,(point_t)len+1)){
+  web_sync_failed();
+ }else{
+  fe_copy_text(0,(long)size,draft);
+  int changed=size!=len||memcmp(draft,text,(size_t)len);
+  int recover=changed&&(bp->b_flags&B_MODIFIED);
+  if(!recover||web_backup_draft(draft,(int)size)){
+   if(changed){
+    int readonly=bp->b_flags&B_READONLY;
+    call_lisp_event("browser-save","");
+    bp->b_flags&=~B_READONLY;
+    fe_delete_region(0,(long)size);
+    fe_insert_bytes(0,text,len);
+    bp->b_flags|=readonly;
+    bp->b_point=point<len?point:len;
+    while(bp->b_point>0&&bp->b_point<len&&((unsigned char)text[bp->b_point]&0xc0)==0x80)
+     bp->b_point--;
+    b2w_all_windows(bp);
+    if(old==bp)mark_active=0;
+   }
+   bp->b_flags&=~B_MODIFIED;
+   record_change(bp,'s',0,NULL,0);
+   web_synced(revision,recover);
+  }
+ }
+ curbp=old;
+ free(draft);free(revision);free(text);
+}
+
 extern void web_relayout(int rows);
 extern void web_redisplay(void);
 int screen_getch(void)
@@ -385,6 +456,18 @@ int screen_getch(void)
 	for (;;) {
 		if (dirty) render();
 		b = web_next_byte();
+		if (b == -3) {
+			if (editor_is_idle()) {
+				apply_saved_snapshot();
+				web_redisplay();
+			} else {
+				char *revision=NULL;
+				int length;
+				free(web_take_sync(&length,&revision));
+				free(revision);
+			}
+			continue;
+		}
 		if (b == -2) {
 			/* the page has Scheme to run: here, on the editor's own
 			 * stack, between keys */

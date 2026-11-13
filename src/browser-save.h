@@ -54,18 +54,6 @@ static int source_problem(const char *text,size_t len)
  return ok?SOURCE_OK:SOURCE_EDITED;
 }
 static int source_unchanged(const char *text,size_t len){return source_problem(text,len)==SOURCE_OK;}
-/* What a refused browser save tells you, in both windows */
-static void problem_message(int problem,char *message,size_t size)
-{
- const char *keep="Your text is kept in both windows (here and in a *web-* buffer of the native window).";
- if(problem==SOURCE_READONLY)
-  snprintf(message,size,"Not saved: the native buffer is read-only. %s C-x C-q in the native window makes it writable; then C-x C-s here saves.",keep);
- else if(problem==SOURCE_EDITED)
-  snprintf(message,size,"Not saved: the native buffer was edited after C-c d. %s M-x native-window-update puts your text in the native buffer (its edits go to a *native-* buffer); then C-x C-s saves.",keep);
- else
-  snprintf(message,size,"Not saved: the native buffer was %s. %s M-x native-window-update opens the file again in the native window with your text; then C-x C-s saves.",
-	   problem==SOURCE_CLOSED?"closed":"saved under another name",keep);
-}
 static int replace_source(const char *text,size_t len)
 {
  buffer_t *old=curbp;point_t point=source->b_point;int active=mark_active;
@@ -133,6 +121,26 @@ static int disk_matches(void)
  if(!read_disk(save_path,&now,&len,&exists))return 0;
  int same=exists==disk_exists&&(!exists||same_text(now,len,disk_baseline,disk_len));free(now);return same;
 }
+/* Replace the recovery file atomically, including when it already exists. */
+static int save_recovery(const char *text,size_t len)
+{
+ char path[4096],temp[4096];
+ const char *name=strrchr(source_path,'/');
+ if(!name)return 0;
+ int parent=(int)(name-source_path);
+ if(snprintf(path,sizeof path,"%.*s/#%s#",parent,source_path,name+1)>=(int)sizeof path ||
+    snprintf(temp,sizeof temp,"%.*s/.chezweb-recovery-XXXXXX",parent,source_path)>=(int)sizeof temp)return 0;
+ int fd=mkstemp(temp);
+ if(fd<0)return 0;
+ FILE *f=fdopen(fd,"wb");
+ if(!f){close(fd);unlink(temp);return 0;}
+ int ok=fwrite(text,1,len,f)==len;
+ if(fclose(f))ok=0;
+ if(ok)ok=rename(temp,path)==0;
+ if(!ok)unlink(temp);
+ return ok;
+}
+
 /* Atomic replacement keeps the previous file intact on write/close failure.
  * Recheck the captured disk contents immediately before the final rename. */
 static int commit_disk(const char *text,size_t len)
@@ -217,36 +225,52 @@ static int process_save_request(void)
  FILE *f=fopen(incoming,"rb");if(!f){unlink(incoming);return 0;}
  char line[64];unsigned long long id,revision=0;char tail;
  if(!fgets(line,sizeof line,f)||sscanf(line,"%llu %c",&id,&tail)!=1||
-    !fgets(line,sizeof line,f)||(sscanf(line,"%llu %c",&revision,&tail)!=1&&strcmp(line,"update\n"))){fclose(f);unlink(incoming);return 0;}
- int update=!strcmp(line,"update\n");
+    !fgets(line,sizeof line,f)||(sscanf(line,"%llu %c",&revision,&tail)!=1&&strcmp(line,"update\n")&&strcmp(line,"backup\n"))){fclose(f);unlink(incoming);return 0;}
+ int update=!strcmp(line,"update\n"),backup=!strcmp(line,"backup\n");
  long offset=ftell(f);fseek(f,0,SEEK_END);long length=ftell(f)-offset;
  if(length<0||length>BROWSER_FILE_LIMIT){fclose(f);unlink(incoming);save_reply(id,413,"File exceeds the browser save limit.");return 1;}
  fseek(f,offset,SEEK_SET);char *text=malloc((size_t)length+1);
  int ok=text&&fread(text,1,(size_t)length,f)==(size_t)length;if(fclose(f))ok=0;
  unlink(incoming);if(!ok){free(text);save_reply(id,500,"Cannot read the browser save request.");return 1;}
  text[length]=0;int code=500;char message[4608],resolved[4096];
- if(update){code=update_native(text,(size_t)length,message,sizeof message);fe_message(message);}
- else if(!*source_path){code=422;snprintf(message,sizeof message,"Choose a filename with Save As in a granted browser folder, or save the native buffer first.");}
- else if(!source_unchanged(text,(size_t)length)){
-  code=409;problem_message(source_problem(text,(size_t)length),message,sizeof message);
-  keep_conflict(text,(size_t)length,message);
- }else if(revision!=save_revision && !(same_text(text,(size_t)length,baseline,baseline_len)&&disk_known&&disk_matches())){
-  code=409;snprintf(message,sizeof message,"Not saved: a newer document version exists. Your browser text is preserved; reopen the file before merging.");
-  keep_conflict(text,(size_t)length,message);
- }else if(!disk_known||!resolve_target(source_path,resolved)||strcmp(resolved,save_path)||!disk_matches()){
-  code=409;snprintf(message,sizeof message,"Not saved: the original file changed on disk. Both versions are preserved; resolve the conflict before saving.");
-  keep_conflict(text,(size_t)length,message);
- }else if(!prepare_source_import((size_t)length)||!source_unchanged(text,(size_t)length)){
-  snprintf(message,sizeof message,"Cannot prepare the native buffer. Browser changes remain unsaved.");
- }else{
-  code=commit_disk(text,(size_t)length);
-  if(code==200){
-   int imported=replace_source(text,(size_t)length);
-   remember_disk(text,(size_t)length);
-   if(imported){remember_browser_text(text,(size_t)length);mark_source_saved();snprintf(message,sizeof message,"Saved %s",source_path);}
-   else snprintf(message,sizeof message,"Saved %s; reopen the native file to refresh its buffer.",source_path);
-  }else if(code==409)snprintf(message,sizeof message,"Not saved: the file changed during saving. Browser changes remain unsaved.");
-  else snprintf(message,sizeof message,"Save failed for %s. Browser changes remain unsaved; check write permissions and retry.",source_path);
+ if(backup){
+  code=save_recovery(text,(size_t)length)?200:500;
+  snprintf(message,sizeof message,"%s",code==200?"Previous browser edits saved in the recovery file.":"Could not write the recovery file.");
+ }else if(update){code=update_native(text,(size_t)length,message,sizeof message);fe_message(message);}
+ else if(!*source_path){code=422;snprintf(message,sizeof message,"Save As to give this document a filename first.");}
+ else {
+  char *disk=NULL,*draft=NULL;
+  size_t disk_size=0,draft_size=0;
+  int exists=0;
+  int attached=live_source()&&!strcmp(source->b_fname,source_name);
+  if(attached)draft=snapshot(source,&draft_size);
+  int recover=attached&&(source->b_flags&B_MODIFIED)&&
+   !same_text(draft,draft_size,text,(size_t)length);
+  if(!resolve_target(source_path,resolved)||strcmp(resolved,save_path)||
+     !read_disk(save_path,&disk,&disk_size,&exists)||(attached&&!draft)){
+   snprintf(message,sizeof message,"Cannot read the document. Browser changes remain unsaved.");
+  }else if(recover&&!save_recovery(draft,draft_size)){
+   snprintf(message,sizeof message,"Cannot write the native recovery file. Both drafts remain open.");
+  }else if(attached&&!prepare_source_import((size_t)length)){
+   snprintf(message,sizeof message,"Cannot prepare the native buffer. Browser changes remain unsaved.");
+  }else{
+   free(disk_baseline);disk_baseline=disk;disk=NULL;
+   disk_len=disk_size;disk_exists=exists;disk_known=1;
+   code=commit_disk(text,(size_t)length);
+   if(code==200){
+    remember_disk(text,(size_t)length);
+    if(attached){
+     int readonly=source->b_flags&B_READONLY;
+     source->b_flags&=~B_READONLY;
+     int imported=replace_source(text,(size_t)length);
+     source->b_flags|=readonly;
+     if(imported)mark_source_saved();
+    }
+    remember_browser_text(text,(size_t)length);
+    snprintf(message,sizeof message,"Saved %s%s",source_path,recover?"; previous native edits saved in the recovery file.":"");
+   }else snprintf(message,sizeof message,"Save failed for %s. Browser changes remain unsaved.",source_path);
+  }
+  free(disk);free(draft);
   fe_message(message);
  }
  save_reply(id,code,message);free(text);return 1;

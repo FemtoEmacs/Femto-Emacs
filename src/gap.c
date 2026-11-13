@@ -180,6 +180,10 @@ int save_buffer(buffer_t *bp, char *fn)
  }
 	delete_mode(bp, B_MODIFIED);
 	record_change(bp, 's', 0, NULL, 0);
+	if (!strcmp(fn, bp->b_fname)) {
+		extern void chezweb_saved(buffer_t *);
+		chezweb_saved(bp);
+	}
 	if (!strcmp(screen_backend(),"browser")) msg("File saved. See the destination above.");
 	else msg(m_saved, fn, pos(bp, bp->b_ebuf));
 	return (TRUE);
