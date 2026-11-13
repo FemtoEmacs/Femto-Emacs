@@ -68,7 +68,7 @@ jobs:
           python3 tools/bundle-macos-libraries.py Chezweb.app
           codesign --force --deep --sign - Chezweb.app
           codesign --verify --deep --strict Chezweb.app
-          Chezweb.app/Contents/MacOS/chezweb-gui --version
+          ./chezweb --version | grep -F "Chezweb 1."
           ditto -c -k --keepParent Chezweb.app "Chezweb-macOS-$(uname -m).zip"
       - uses: actions/upload-artifact@v4
         if: runner.os == 'macOS' && github.event_name == 'push'

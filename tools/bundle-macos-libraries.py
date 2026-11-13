@@ -10,16 +10,19 @@ def bundle(app):
     executables = app / "Contents" / "MacOS"
     libraries = app / "Contents" / "Frameworks"
     libraries.mkdir()
-    pending = deque(executables / name for name in ("chezweb-gui", "irene-dixe"))
+    pending = deque((executables / name, executables / name) for name in ("chezweb-gui", "irene-dixe"))
     copied = {}
     while pending:
-        binary = pending.popleft()
+        binary, original = pending.popleft()
         output = subprocess.check_output(["otool", "-L", binary], text=True)
-        for line in output.splitlines()[1:]:
+        for line in output.splitlines()[2 if binary.parent == libraries else 1:]:
             dependency = line.strip().split(" (compatibility version", 1)[0]
-            if not dependency.startswith(("/opt/homebrew/", "/usr/local/")):
+            if dependency.startswith(("/opt/homebrew/", "/usr/local/")):
+                source = Path(dependency).resolve(strict=True)
+            elif dependency.startswith(("@rpath/", "@loader_path/")) and binary.parent == libraries:
+                source = (original.parent / Path(dependency).name).resolve(strict=True)
+            else:
                 continue
-            source = Path(dependency).resolve(strict=True)
             target = libraries / Path(dependency).name
             if target in copied and copied[target] != source:
                 raise ValueError(f"Conflicting libraries named {target.name}")
@@ -31,7 +34,7 @@ def bundle(app):
                     check=True,
                 )
                 copied[target] = source
-                pending.append(target)
+                pending.append((target, source))
             prefix = "@loader_path" if binary.parent == libraries else "@loader_path/../Frameworks"
             subprocess.run(
                 ["install_name_tool", "-change", dependency, f"{prefix}/{target.name}", binary],
