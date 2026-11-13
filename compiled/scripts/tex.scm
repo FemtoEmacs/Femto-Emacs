@@ -58,11 +58,19 @@ or \\ and one other character."
 
 (define (tex-math-end text i len closer)
   "The index after CLOSER ($, $$, \\], \\)) that ends math opened before I."
-  (let loop ((j i))
-    (cond ((>= j len) len)
-          ((match-at text len j closer) (+ j (string-length closer)))
-          ((= (b@ text j) 92) (loop (+ j 2)))
-          (else (loop (+ j 1))))))
+  (let* ((width (string-length closer))
+         (first (char->integer (string-ref closer 0)))
+         (second (if (= width 2) (char->integer (string-ref closer 1)) 0)))
+    (let loop ((j i))
+      (if (>= j len)
+          len
+          (let ((byte (b@ text j)))
+            (cond ((and (= byte first)
+                        (or (= width 1)
+                            (and (< (+ j 1) len) (= (b@ text (+ j 1)) second))))
+                   (+ j width))
+                  ((= byte 92) (loop (+ j 2)))
+                  (else (loop (+ j 1)))))))))
 
 ;;; ------------------------------------------------------------------
 ;;; Colours
@@ -120,11 +128,15 @@ after it."
          ((= b 37)
           (let ((e (tex-comment-end text i len))) (paint colors i e +comment+) (loop e)))
          ;; math: $$ $ \[ \(
-         ((match-at text len i "$$")
-          (let ((e (tex-math-end text (+ i 2) len "$$"))) (paint colors i e +string+) (loop e)))
          ((= b 36)
-          (let ((e (tex-math-end text (+ i 1) len "$"))) (paint colors i e +string+) (loop e)))
-         ((or (match-at text len i "\\[") (match-at text len i "\\("))
+          (let* ((next (+ i 1))
+                 (double? (and (< next len) (= (b@ text next) 36)))
+                 (e (tex-math-end text (if double? (+ next 1) next)
+                                  len (if double? "$$" "$"))))
+            (paint colors i e +string+)
+            (loop e)))
+         ((and (= b 92) (< (+ i 1) len)
+               (let ((next (b@ text (+ i 1)))) (or (= next 91) (= next 40))))
           (let ((e (tex-math-end text (+ i 2) len (if (= (b@ text (+ i 1)) 91) "\\]" "\\)"))))
             (paint colors i e +string+)
             (loop e)))

@@ -246,6 +246,20 @@ text in that language starts (0 for the whole buffer).  #f: none."
 ;; bytevector): the view without tags (tag-view.scm) keeps the file's colours
 (defvar *buffer-faces* (make-hashtable string-hash string=?))
 
+;; Keep one TeX slice. Compare its bytes so edits and reloads cannot reuse
+;; old colours. A different slice must be scanned for its own context.
+(defvar *tex-highlight-text* #f)
+(defvar *tex-highlight-colors* #f)
+
+(define (highlight-tex-slice lang text colors)
+  (let ((len (bytevector-length text)))
+    (if (and *tex-highlight-text* (bytevector=? text *tex-highlight-text*))
+        (bytevector-copy! colors 0 *tex-highlight-colors* 0 len)
+        (begin
+          (highlight-octets lang text len colors)
+          (set! *tex-highlight-text* (bytevector-copy text))
+          (set! *tex-highlight-colors* (bytevector-copy colors))))))
+
 ;;; For the C core's highlight hook: TEXT is a bytevector that starts at
 ;;; offset START of the buffer BUFFER, COLORS a bytevector to fill.
 (define highlight-buffer-text
@@ -259,5 +273,8 @@ text in that language starts (0 for the whole buffer).  #f: none."
              (do ((i 0 (+ i 1))) ((= i (bytevector-length text)))
                (bytevector-u8-set! colors i (if (< (+ start i) n) (bytevector-u8-ref faces (+ start i)) +alpha+))))
            (let ((lang (language-for-file filename)))
-             (when lang (highlight-octets lang text (bytevector-length text) colors))))
+             (when lang
+               (if (eq? (language-highlighter lang) latex-highlight)
+                   (highlight-tex-slice lang text colors)
+                   (highlight-octets lang text (bytevector-length text) colors)))))
        #t))))

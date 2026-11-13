@@ -5,6 +5,6 @@
 <key>CFBundleIdentifier</key><string>local.chezweb.editor</string>
 <key>CFBundleName</key><string>Chezweb</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>1.03</string>
+<key>CFBundleShortVersionString</key><string>1.04</string>
 <key>NSHighResolutionCapable</key><true/>
 </dict></plist>
