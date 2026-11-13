@@ -61,6 +61,22 @@ jobs:
       - name: Test editor, runtime, prompts and mocked assistants
         run: make check check-ui check-selfhost
 
+      - name: Package the macOS app
+        if: runner.os == 'macOS' && github.event_name == 'push'
+        run: |
+          make app
+          python3 tools/bundle-macos-libraries.py Chezweb.app
+          codesign --force --deep --sign - Chezweb.app
+          codesign --verify --deep --strict Chezweb.app
+          Chezweb.app/Contents/MacOS/chezweb-gui --version
+          ditto -c -k --keepParent Chezweb.app "Chezweb-macOS-$(uname -m).zip"
+      - uses: actions/upload-artifact@v4
+        if: runner.os == 'macOS' && github.event_name == 'push'
+        with:
+          name: Chezweb-macOS-\${{ runner.arch }}
+          path: Chezweb-macOS-*.zip
+          if-no-files-found: error
+
   # The native Windows port is maintained on its own branch.
   windows:
     name: Windows x86_64 installer
