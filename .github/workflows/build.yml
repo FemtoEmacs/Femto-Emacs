@@ -73,7 +73,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: runner.os == 'macOS' && github.event_name == 'push'
         with:
-          name: Chezweb-macOS-\${{ runner.arch }}
+          name: Chezweb-macOS-${{ runner.arch }}
           path: Chezweb-macOS-*.zip
           if-no-files-found: error
 
