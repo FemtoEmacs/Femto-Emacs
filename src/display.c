@@ -981,6 +981,15 @@ void update_display()
 	window_t *wp;
 	buffer_t *bp;
 
+	/* A prompt may consume a resize key after the backend has resized.
+	 * Check the pane layout before drawing, including during prompts. */
+	for (wp = wheadp; wp->w_next != NULL; wp = wp->w_next)
+		;
+	if (wp->w_top + wp->w_rows + 2 != screen_rows()) {
+		relayout_windows();
+		screen_clear();
+	}
+
 	bp = curwp->w_bufp;
 	bp->b_cpoint = bp->b_point; /* cpoint only ever set here */
 	screen_cursor_shown(!term_owns_cursor(bp));   /* terminal.c draws a shell's cursor */
