@@ -26,7 +26,7 @@
 #define FALSE 0
 #endif
 
-#define VERSION	 "Chezweb 1.06, compiled Scheme (femtoscheme compatibility core), Public Domain"
+#define VERSION	 "Chezweb 1.07, compiled Scheme (femtoscheme compatibility core), Public Domain"
 #define EXIT_OK         0               /* Success */
 #define EXIT_ERROR      1               /* Unknown error. */
 #define EXIT_USAGE      2               /* Usage */
@@ -426,6 +426,10 @@ extern void b2w(window_t *);
 extern void b2w_all_windows(buffer_t *);
 extern void mark_all_windows(void);
 extern void relayout_windows(void);
+extern void split_window_right(void);
+extern int side_by_side(void);
+extern int window_left(const window_t *);
+extern int window_width(const window_t *);
 extern int read_only_refuses(void);
 extern void associate_b2w(buffer_t *, window_t *);
 extern void disassociate_b(window_t *);
@@ -437,7 +441,7 @@ extern int getcommand(char *, int);
 extern void unread_key_bytes(const char *, int);
 extern int tester_inject_key_bytes(const char *, int);
 extern void scroll_window(int);
-extern int select_screen_window(int);
+extern int select_screen_window(int, int);
 #define WHEEL_ROWS 3            /* rows the text moves for a notch of the wheel */
 extern int line_edit(char *, char *, int, int, int (*)(char *, int, int, int));
 extern void display_prompt_and_response(char *, char *);

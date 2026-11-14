@@ -174,7 +174,7 @@ void editor_mouse_event()
  clear_button_hover();
 
 	if (b & 64) {                   /* wheel: 64 up, 65 down (66, 67 sideways) */
-		if ((b & 3) < 2 && select_screen_window(mouse_row))
+		if ((b & 3) < 2 && select_screen_window(mouse_row, mouse_col))
 			scroll_window((b & 1) ? WHEEL_ROWS : -WHEEL_ROWS);
 		return;
 	}
@@ -366,7 +366,10 @@ void forward_word()
 int read_only_refuses(void)
 {
 	if (curbp == NULL || !(curbp->b_flags & B_READONLY)) return 0;
-	msg("Buffer is read-only (M-x read-only or C-x C-q to edit)");
+	if (term_state(curbp) == 2)
+		msg("Terminal copy mode: C-c C-k returns to the shell");
+	else
+		msg("Buffer is read-only (M-x read-only or C-x C-q to edit)");
 	return 1;
 }
 

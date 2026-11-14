@@ -66,6 +66,7 @@ command_t commands[] = {
 	
 	{"show-version", version},
 	{"split-window", split_window},
+	{"split-window-right", split_window_right},
 	{"toggle-overwrite-mode", toggle_overwrite_mode},
 	{"undo", undo_command},
 	{"write-file", writefile},
@@ -100,6 +101,7 @@ keymap_t keymap[] = {
 
 	{"C-x 0",     "delete-window"         , "\x18\x30", delete_window },
 	{"C-x 1",     "delete-other-windows"  , "\x18\x31", delete_other_windows },
+	{"C-x 3",     "split-window-right"    , "\x18\x33", split_window_right },
 	{"C-x 2",     "split-window"          , "\x18\x32", split_window },
 
 	{"C-x C-a",   "user-defined-function" , "\x18\x01", keyboardDefinition },

@@ -459,7 +459,11 @@ static void window_size(term_t *t, int *rows, int *cols)
 	*rows = 24;
 	*cols = screen_cols() - 1;
 	for (wp = wheadp; wp != NULL; wp = wp->w_next)
-		if (wp->w_bufp == t->bp) { *rows = wp->w_rows; break; }
+		if (wp->w_bufp == t->bp) {
+			*rows = wp->w_rows;
+			*cols = window_width(wp) - 1;
+			break;
+		}
 	if (*rows < 2) *rows = 2;
 	if (*cols < 10) *cols = 10;
 }
