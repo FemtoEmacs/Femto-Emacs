@@ -2,6 +2,7 @@
 #include "header.h"
 static int columns = 80;
 buffer_t *curbp;
+window_t *curwp;
 int screen_cols(void) { return columns; }
 const char *screen_unctrl(int c) { (void)c; return "^?"; }
 point_t document_size(buffer_t *b) {

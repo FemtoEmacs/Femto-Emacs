@@ -10,3 +10,7 @@ int term_running(void) { return 0; }
 int term_state(buffer_t *bp) { (void) bp; return 0; }
 int term_owns_cursor(buffer_t *bp) { (void) bp; return 0; }
 int term_poll_ms(void) { return 100; }
+
+/* Standalone navigation tests use a single pane across the screen. */
+int window_width(const window_t *wp) { (void)wp; return screen_cols(); }
+int window_left(const window_t *wp) { (void)wp; return 0; }
