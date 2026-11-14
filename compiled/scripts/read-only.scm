@@ -62,7 +62,9 @@
 
 (define (toggle-mode kind)
   "Enter mode KIND; in it already: back to Emacs; in the other one: switch."
-  (cond ((help-page-p)
+  (cond ((memv (fe-term-state) '(1 2))
+         (message "Terminal copy mode: C-c C-k returns to the shell"))
+        ((help-page-p)
          (message "The help page stays read-only: i or [CLOSE] closes it"))
         ((and (tag-view-p) (eq? kind 'vim))
          (message "This view is read-only: i returns to the file, to edit it"))

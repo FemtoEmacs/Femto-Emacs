@@ -447,7 +447,7 @@ static void apply_saved_snapshot(void)
  free(draft);free(revision);free(text);
 }
 
-extern void web_relayout(int rows);
+extern void web_relayout(void);
 extern void web_redisplay(void);
 int screen_getch(void)
 {
@@ -486,7 +486,7 @@ int screen_getch(void)
 			int r = web_rows(), c = web_cols();
 			if (r != rows || c != cols) {
 				resize_grid(r, c);
-				web_relayout(r);
+				web_relayout();
 			}
 			web_redisplay();
 			continue;

@@ -15,12 +15,26 @@ void fe_set_wrap_hook(fe_wrap_hook_t hook)
 	wrap_hook = hook;
 }
 
+/* Navigation uses the selected pane. Painting can temporarily use the other pane. */
+static window_t *paint_window;
+
+static int pane_cols(void)
+{
+	return window_width(paint_window ? paint_window : curwp);
+}
+
+static void clear_pane_line(int col)
+{
+	if (!side_by_side()) screen_clrtoeol();
+	else for (; col < pane_cols(); col++) screen_addch(' ');
+}
+
 static point_t wrap_row_end(buffer_t *bp, point_t start)
 {
 	static char_t *text = NULL;
 	static int capacity = 0;
 	point_t size = document_size(bp), i;
-	int cols = screen_cols(), len, count;
+	int cols = pane_cols(), len, count;
 
 	/* a buffer without a file is known by its name (*scratch* ...) */
 	const char *key = bp->b_fname[0] ? bp->b_fname : bp->b_bname;
@@ -73,7 +87,7 @@ static int cell_width(buffer_t *bp, point_t off, int col)
  * would cross the right edge (terminals move it to the next row) */
 static int crosses_edge(buffer_t *bp, point_t off, int col, int width)
 {
-	return col > 0 && width > 1 && col + width > screen_cols() && *ptr(bp, off) >= 0xC0;
+	return col > 0 && width > 1 && col + width > pane_cols() && *ptr(bp, off) >= 0xC0;
 }
 
 /* After a cursor column was reached: the combining accents of the
@@ -124,7 +138,7 @@ point_t segstart(buffer_t *bp, point_t start, point_t finish)
 		if (*p == '\n') {
 			c = 0;
 			start = scan+1;
-		} else if (screen_cols() <= c || crosses_edge(bp, scan, c, w)) {
+		} else if (pane_cols() <= c || crosses_edge(bp, scan, c, w)) {
 			c = 0;
 			start = scan;
 			if (*p == '\t') w = 8;
@@ -134,7 +148,7 @@ point_t segstart(buffer_t *bp, point_t start, point_t finish)
 	}
 	/* upup may ask about the last byte of a multi-byte character.
 	 * Keep that byte on its row; never return it as a cursor position. */
-	return (c < screen_cols() || scan > finish ? start : scan);
+	return (c < pane_cols() || scan > finish ? start : scan);
 }
 
 /* Forward scan for start of logical line segment following 'finish' */
@@ -149,7 +163,7 @@ point_t segnext(buffer_t *bp, point_t start, point_t finish)
 	for (;;) {
 		int w;
 		p = ptr(bp, scan);
-		if (bp->b_ebuf <= p || screen_cols() <= c)
+		if (bp->b_ebuf <= p || pane_cols() <= c)
 			break;
 		w = cell_width(bp, scan, c);
 		if (crosses_edge(bp, scan, c, w))
@@ -253,8 +267,8 @@ static void highlight_window(buffer_t *bp, int rows)
 		start = 0;
 	else
 		start = lnstart(bp, start);
-	/* a screen row shows at most screen_cols() characters of up to 4 bytes each */
-	end = bp->b_page + (point_t) (rows + 1) * (screen_cols() + 1) * 4;
+	/* a screen row shows at most pane_cols() characters of up to 4 bytes each */
+	end = bp->b_page + (point_t) (rows + 1) * (pane_cols() + 1) * 4;
 	if (end > size) end = size;
 	len = (int) (end - start);
 	if (len <= 0) return;
@@ -465,7 +479,7 @@ again:
 	highlight_window(bp, wp->w_rows);
 	set_region(wp);
 
-	screen_move(wp->w_top, 0); /* start from top of window */
+	screen_move(wp->w_top, window_left(wp)); /* start from top of window */
 	i = wp->w_top;
 	j = 0;
 	bp->b_epage = bp->b_page;
@@ -478,7 +492,7 @@ again:
 		if (bp->b_point == bp->b_epage) {
 			found = 1;
 			bp->b_row = i;
-			bp->b_col = wrap_end != NOMARK && j >= screen_cols() ? screen_cols() - 1 : j;
+			bp->b_col = wrap_end != NOMARK && j >= pane_cols() ? pane_cols() - 1 : j;
 		}
 		p = ptr(bp, bp->b_epage);
 		/*
@@ -495,7 +509,7 @@ again:
 			bp->b_point = bp->b_epage;
 			found = 1;
 			bp->b_row = i;
-			bp->b_col = wrap_end != NOMARK && j >= screen_cols() ? screen_cols() - 1 : j;
+			bp->b_col = wrap_end != NOMARK && j >= pane_cols() ? pane_cols() - 1 : j;
 		}
 		nch = 1;
 		if (wp->w_top + wp->w_rows <= i || bp->b_ebuf <= p ||
@@ -505,19 +519,18 @@ again:
 		 * hidden text is skipped */
 		if (bp->b_nfolds && (fold_b = fold_end_at(bp, bp->b_epage)) != NOMARK) {
 			face_on(ID_COLOR_SYMBOL);
-			if (j + 3 <= screen_cols()) { screen_addstr("..."); j += 3; }
-			if (j < screen_cols()) screen_clrtoeol();
+			if (j + 3 <= pane_cols()) { screen_addstr("..."); j += 3; }
+			if (j < pane_cols()) clear_pane_line(j);
 			j = 0;
 			++i;
-			screen_move(i, 0);
+			screen_move(i, window_left(wp));
 			bp->b_epage = fold_b + 1;
 			if (wrap_end != NOMARK) wrap_end = wrap_row_end(bp, bp->b_epage);
 			continue;
 		}
 		if (wrap_end != NOMARK && *p == '\n') {
-			/* A visual break never inserts a newline into the buffer. */
-			if (j < screen_cols()) screen_clrtoeol();
-		} else if (wrap_end != NOMARK && j >= screen_cols()) {
+			/* The row-end handling below clears this row once. */
+		} else if (wrap_end != NOMARK && j >= pane_cols()) {
 			/* A word-wrapped row may end with spaces hanging past the
 			 * right edge, as in Emacs; they take no cell. */
 			nch = *p == '\r' ? 1 : utf8_size(*p);
@@ -528,9 +541,9 @@ again:
 				/* a wide character that would cross the edge starts the
 				 * next row, as the terminal draws it */
 				if (wrap_end == NOMARK && crosses_edge(bp, bp->b_epage, j, w)) {
-					screen_clrtoeol();
+					clear_pane_line(j);
 					j = 0;
-					screen_move(++i, 0);
+					screen_move(++i, window_left(wp));
 					if (bp->b_point == bp->b_epage) {
 						bp->b_row = i;
 						bp->b_col = 0;
@@ -542,19 +555,21 @@ again:
 				face_on(face_for(bp, p));
 				display_utf8(bp, *p, nch);
 				face_on(ID_COLOR_SYMBOL);
-			} else if (wrap_end != NOMARK && *p == '\t') {
+			} else if ((wrap_end != NOMARK || side_by_side()) && *p == '\t') {
 				int spaces = 8 - (j & 7);
-				if (spaces > screen_cols() - j) spaces = screen_cols() - j;
+				if (spaces > pane_cols() - j) spaces = pane_cols() - j;
 				face_on(face_for(bp, p));
 				while (spaces-- > 0) { screen_addch(' '); ++j; }
 				face_on(ID_COLOR_SYMBOL);
+			} else if (side_by_side() && *p == '\n') {
+				clear_pane_line(j);
 			} else if (isprint(*p) || *p == '\t' || *p == '\n') {
 				j += *p == '\t' ? 8-(j&7) : 1;
 				display_char(bp, p);
 			} else {
 				const char *ctrl = screen_unctrl(*p);
-				if (wrap_end != NOMARK) {
-					while (*ctrl && j < screen_cols()) { screen_addch(*ctrl++); ++j; }
+				if (wrap_end != NOMARK || side_by_side()) {
+					while (*ctrl && j < pane_cols()) { screen_addch(*ctrl++); ++j; }
 				} else {
 					j += (int) strlen(ctrl);
 					screen_addstr(ctrl);
@@ -567,19 +582,20 @@ again:
 			 * the cursor after its last character, not on a new row. */
 			if (bp->b_epage >= wrap_end &&
 			    (bp->b_epage < vend || *p == '\n')) {
-				if (j < screen_cols()) screen_clrtoeol();
+				if (j < pane_cols()) clear_pane_line(j);
 				j = 0;
 				++i;
-				screen_move(i, 0);
+				screen_move(i, window_left(wp));
 				wrap_end = wrap_row_end(bp, bp->b_epage);
 			}
 			continue;
 		}
-		if (*p == '\n' || screen_cols() <= j) {
-			j -= screen_cols();
+		if (*p == '\n' || pane_cols() <= j) {
+			j -= pane_cols();
 			if (j < 0)
 				j = 0;
 			++i;
+			if (side_by_side()) screen_move(i, window_left(wp));
 		}
 		bp->b_epage = bp->b_epage + nch;
 	}
@@ -597,8 +613,8 @@ again:
 
 	/* replacement for clrtobot() to bottom of window */
 	for (k=i; k < wp->w_top + wp->w_rows; k++) {
-		screen_move(k, j); /* clear from very last char not start of line */
-		screen_clrtoeol();
+		screen_move(k, window_left(wp) + j); /* clear from very last char not start of line */
+		clear_pane_line(j);
 		j = 0; /* thereafter start of line */
 	}
 
@@ -607,7 +623,7 @@ again:
 	modeline(wp);
 	if (wp == curwp && flag) {
 		dispmsg();
-		screen_move(bp->b_row, bp->b_col); /* set cursor */
+		screen_move(bp->b_row, window_left(wp) + bp->b_col); /* set cursor */
 		screen_refresh();
 	}
 	wp->w_update = FALSE;
@@ -736,13 +752,13 @@ void fe_set_modeline_hook(fe_modeline_hook_t hook)
 static int pressed_row = -1, pressed_id = -1;
 
 static struct {
-	int row, n;                     /* row -1: a free entry */
+	int row, left, n;                     /* row -1: a free entry */
 	short start[MAX_MENU], end[MAX_MENU];   /* columns, end excluded */
 	int id[MAX_MENU];
 } menu_rows[MAX_MENU_ROWS];
 
 /* the entry of ROW, emptied, or -1 when the table is full */
-static int menu_row_entry(int row)
+static int menu_row_entry(int row, int left)
 {
 	static int cleared = 0;
 	int i, free_slot = -1;
@@ -752,12 +768,13 @@ static int menu_row_entry(int row)
 		cleared = 1;
 	}
 	for (i = 0; i < MAX_MENU_ROWS; i++) {
-		if (menu_rows[i].row == row) break;
+		if (menu_rows[i].row == row && menu_rows[i].left == left) break;
 		if (menu_rows[i].row < 0 && free_slot < 0) free_slot = i;
 	}
 	if (i == MAX_MENU_ROWS) i = free_slot;
 	if (i >= 0) {
 		menu_rows[i].row = row;
+		menu_rows[i].left = left;
 		menu_rows[i].n = 0;
 	}
 	return i;
@@ -771,10 +788,10 @@ int menu_hit(int row, int col)
 
 	/* the row must still be a mode line */
 	for (wp = wheadp; wp != NULL; wp = wp->w_next)
-		if (wp->w_top + wp->w_rows == row) break;
+		if (wp->w_top + wp->w_rows == row && col >= window_left(wp) && col < window_left(wp) + window_width(wp)) break;
 	if (wp == NULL) return -1;
 	for (i = 0; i < MAX_MENU_ROWS; i++)
-		if (menu_rows[i].row == row)
+		if (menu_rows[i].row == row && menu_rows[i].left == window_left(wp))
 			for (k = 0; k < menu_rows[i].n; k++)
 				if (col >= menu_rows[i].start[k] && col < menu_rows[i].end[k])
 					return menu_rows[i].id[k];
@@ -793,18 +810,28 @@ void menu_press(int row, int id)
  * the columns used so far */
 static void add_cells(const char *s, int *n, int cols)
 {
-	char buf[1024];
-	int i, k = *n;
-
-	for (i = 0; s[i] != '\0' && i < (int) sizeof(buf) - 1; i++) {
-		if (((unsigned char) s[i] & 0xC0) != 0x80) {
-			if (k == cols) break;
-			k++;
+	size_t length = strlen(s);
+	size_t i = 0;
+	int k = *n;
+	while (i < length) {
+		int bytes = utf8_size((unsigned char)s[i]);
+		if (bytes < 1 || (size_t)bytes > length - i) bytes = 1;
+		unsigned long cp = (unsigned char)s[i];
+		if (bytes > 1) {
+			cp &= (1u << (7 - bytes)) - 1;
+			for (int j = 1; j < bytes; j++)
+				cp = (cp << 6) | ((unsigned char)s[i + j] & 63);
 		}
-		buf[i] = s[i];
+		int width = char_width(cp);
+		if (width < 0) width = 1;
+		if (k + width > cols || (width == 0 && k == 0)) break;
+		char cell[5];
+		memcpy(cell, s + i, bytes);
+		cell[bytes] = 0;
+		screen_addstr(cell);
+		i += bytes;
+		k += width;
 	}
-	buf[i] = '\0';
-	screen_addstr(buf);
 	*n = k;
 }
 
@@ -833,10 +860,10 @@ static void paint_pieces(char *out, int row, int e, int cols, char lch)
 			face_on(face);
 			if (id > 0 && e >= 0 && menu_rows[e].n < MAX_MENU) {
 				int k = menu_rows[e].n++;
-				menu_rows[e].start[k] = (short) n;
+				menu_rows[e].start[k] = (short) (menu_rows[e].left + n);
 				menu_rows[e].id[k] = id;
 				add_cells(f3 + 1, &n, cols);
-				menu_rows[e].end[k] = (short) n;
+				menu_rows[e].end[k] = (short) (menu_rows[e].left + n);
 			} else {
 				add_cells(f3 + 1, &n, cols);
 			}
@@ -870,7 +897,7 @@ int line_number(buffer_t *bp, point_t off)
 
 void modeline(window_t *wp)
 {
-	int i, n, cols = screen_cols();
+	int n, cols = window_width(wp);
 	char lch, mch, och;
 	char *hint;
 	static char modeline_buf[1024];
@@ -880,7 +907,7 @@ void modeline(window_t *wp)
 	if (wp == curwp)
 		screen_set_title(wp->w_bufp->b_fname[0] ? wp->w_bufp->b_fname : wp->w_bufp->b_bname);
 	face_on(ID_COLOR_MODELINE);
-	screen_move(wp->w_top + wp->w_rows, 0);
+	screen_move(wp->w_top + wp->w_rows, window_left(wp));
 	lch = (wp == curwp ? '=' : '-');
 	mch = (wp->w_bufp->b_flags & B_READONLY) ? '%' :
 	      ((wp->w_bufp->b_flags & B_MODIFIED) && !(wp->w_bufp->b_flags & B_SPECIAL) ? '*' : lch);
@@ -894,7 +921,7 @@ void modeline(window_t *wp)
 	 */
 	{
 		int row = wp->w_top + wp->w_rows;
-		int e = menu_row_entry(row);
+		int e = menu_row_entry(row, window_left(wp));
 		static char pieces[4096];
 		int flags = (wp == curwp ? 1 : 0)
 			| ((wp->w_bufp->b_flags & B_MODIFIED) ? 2 : 0)
@@ -934,15 +961,8 @@ void modeline(window_t *wp)
 			p[1] = '-';
 		}
 	}
-	/* the cells, not the bytes, must fit: cut on a character boundary */
-	for (i = 0, n = 0; modeline_buf[i] != '\0'; i++) {
-		if (((unsigned char) modeline_buf[i] & 0xC0) != 0x80) {
-			if (n == cols) break;
-			n++;
-		}
-	}
-	modeline_buf[i] = '\0';
-	screen_addstr(modeline_buf);
+	n = 0;
+	add_cells(modeline_buf, &n, cols);
 
 	for (; n < cols; n++)
 		screen_addch(lch);
@@ -978,6 +998,7 @@ void display_prompt_and_response(char *prompt, char *response)
 
 void update_display()
 {
+	static int last_cols;
 	window_t *wp;
 	buffer_t *bp;
 
@@ -985,11 +1006,13 @@ void update_display()
 	 * Check the pane layout before drawing, including during prompts. */
 	for (wp = wheadp; wp->w_next != NULL; wp = wp->w_next)
 		;
-	if (wp->w_top + wp->w_rows + 2 != screen_rows()) {
+	if (wp->w_top + wp->w_rows + 2 != screen_rows() ||
+	    (side_by_side() && last_cols != screen_cols())) {
 		relayout_windows();
 		screen_clear();
 	}
 
+	last_cols = screen_cols();
 	bp = curwp->w_bufp;
 	bp->b_cpoint = bp->b_point; /* cpoint only ever set here */
 	screen_cursor_shown(!term_owns_cursor(bp));   /* terminal.c draws a shell's cursor */
@@ -1002,20 +1025,30 @@ void update_display()
 		return;
 	}
 
+	paint_window = curwp;
 	display(curwp, FALSE); /* this is key, we must call our win first to get accurate page and epage etc */
 
 	/* never curwp,  but same buffer in different window or update flag set*/
 	for (wp=wheadp; wp != NULL; wp = wp->w_next) {
 		if (wp != curwp && (wp->w_bufp == bp || wp->w_update)) {
 			w2b(wp);
+			paint_window = wp;
 			display(wp, FALSE);
+		}
+	}
+
+	paint_window = NULL;
+	if (side_by_side()) {
+		for (int row = 0; row < screen_rows() - 1; row++) {
+			screen_move(row, window_left(wheadp->w_next) - 1);
+			screen_addch('|');
 		}
 	}
 
 	/* now display our window and buffer */
 	w2b(curwp);
 	dispmsg();
-	screen_move(curwp->w_row, curwp->w_col); /* set cursor for curwp */
+	screen_move(curwp->w_row, window_left(curwp) + (curwp->w_col < window_width(curwp) ? curwp->w_col : window_width(curwp) - 1)); /* set cursor for curwp */
 	screen_refresh();
 	bp->b_psize = bp->b_size;  /* now safe to save previous size for next time */
 }
@@ -1069,12 +1102,13 @@ void b2w_all_windows(buffer_t *bp)
  */
 /* select the window shown at screen ROW (its text or its mode line),
  * without moving any cursor; FALSE when no window is there */
-int select_screen_window(int row)
+int select_screen_window(int row, int col)
 {
 	window_t *wp;
 
 	for (wp = wheadp; wp != NULL; wp = wp->w_next)
-		if (row >= wp->w_top && row <= wp->w_top + wp->w_rows)
+		if (row >= wp->w_top && row <= wp->w_top + wp->w_rows &&
+		    col >= window_left(wp) && col < window_left(wp) + window_width(wp))
 			break;
 	if (wp == NULL)
 		return FALSE;
@@ -1094,7 +1128,8 @@ int goto_screen_position(int row, int col)
 
 	/* a window's text and its mode line below it */
 	for (wp = wheadp; wp != NULL; wp = wp->w_next)
-		if (row >= wp->w_top && row <= wp->w_top + wp->w_rows)
+		if (row >= wp->w_top && row <= wp->w_top + wp->w_rows &&
+		    col >= window_left(wp) && col < window_left(wp) + window_width(wp))
 			break;
 	if (wp == NULL)
 		return FALSE;
@@ -1124,6 +1159,8 @@ int window_position(window_t *wp, int row, int col)
 
 	if (row < wp->w_top) row = wp->w_top;
 	if (row >= wp->w_top + wp->w_rows) row = wp->w_top + wp->w_rows - 1;
+	col -= window_left(wp);
+	if (col >= window_width(wp)) col = window_width(wp) - 1;
 	if (col < 0) col = 0;
 	bp = curbp;
 	end = document_size(bp);
@@ -1161,8 +1198,8 @@ int window_position(window_t *wp, int row, int col)
 
 		p += (*c >= 0x80) ? utf8_size(*c) : 1;
 		j += w;
-		if (*c == '\n' || screen_cols() <= j) {
-			j -= screen_cols();
+		if (*c == '\n' || pane_cols() <= j) {
+			j -= pane_cols();
 			if (j < 0 || *c == '\n')
 				j = 0;
 			++i;

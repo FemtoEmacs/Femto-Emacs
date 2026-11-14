@@ -3,6 +3,40 @@
 #include "header.h"
 
 int win_cnt = 0;
+static int side_split;
+
+int side_by_side(void) { return side_split; }
+
+int window_width(const window_t *wp)
+{
+ int cols = screen_cols();
+ return !side_split ? cols : wp == wheadp ? (cols - 1) / 2 : cols / 2;
+}
+
+int window_left(const window_t *wp)
+{
+ return side_split && wp != wheadp ? screen_cols() - window_width(wp) : 0;
+}
+
+void split_window_right(void)
+{
+ if (wheadp->w_next) {
+  msg(side_split ? "Vertically split panes do not accept further splits" :
+      "C-x 3 requires one pane. Use C-x 1 first.");
+  return;
+ }
+ if (screen_cols() < 21 || screen_rows() < 3) {
+  msg("Screen too small for a side-by-side split");
+  return;
+ }
+ window_t *right = new_window();
+ associate_b2w(curbp, right);
+ b2w(right);
+ curwp->w_next = right;
+ side_split = TRUE;
+ relayout_windows();
+ screen_clear();
+}
 
 window_t* new_window()
 {
@@ -23,6 +57,7 @@ window_t* new_window()
 
 void one_window(window_t *wp)
 {
+	side_split = FALSE;
 	wp->w_top = 0;
 	wp->w_rows = screen_rows() - 2;
 	wp->w_next = NULL;
@@ -39,6 +74,10 @@ window_t *split_current_window()
 	window_t *wp, *wp2;
 	int ntru, ntrl;
 
+	if (side_split) {
+		msg("Vertically split panes do not accept further splits");
+		return NULL;
+	}
 	if (curwp->w_rows < 3) {
 		msg("Cannot split a %d line window", curwp->w_rows);
 		return NULL;
@@ -78,6 +117,7 @@ void delete_other_windows()
 	if (wheadp->w_next == NULL)
 		return;
 	free_other_windows(curwp);
+	screen_clear();
 }
 
 void free_other_windows(window_t *winp)
@@ -227,6 +267,14 @@ void delete_window()
 		msg("Cannot delete the only window");
 		return;
 	}
+	if (side_split) {
+		wp = curwp == wheadp ? curwp->w_next : wheadp;
+		if (wp->w_bufp == curbp) w2b(wp);
+		free_other_windows(wp);
+		curbp = wp->w_bufp;
+		screen_clear();
+		return;
+	}
 	for (wp = wheadp; wp != NULL && wp != curwp; wp = wp->w_next)
 		prev = wp;
 	if (prev != NULL) {
@@ -256,6 +304,10 @@ void enlarge_window()
 {
 	window_t *wp, *prev = NULL;
 
+	if (side_split) {
+		msg("Use C-x 1 to expand the selected side-by-side pane");
+		return;
+	}
 	for (wp = wheadp; wp != NULL && wp != curwp; wp = wp->w_next)
 		prev = wp;
 	if (curwp->w_next != NULL && curwp->w_next->w_rows > 1) {
@@ -287,6 +339,19 @@ void relayout_windows(void)
 	int old = 0, avail = screen_rows() - 1, n = 0, top = 0, left, k = 0;
 
 	if (wheadp == NULL || curwp == NULL) return;
+	if (side_split) {
+		if (screen_cols() < 21 || screen_rows() < 3)
+			free_other_windows(curwp);
+		else
+			for (wp = wheadp; wp != NULL; wp = wp->w_next) {
+				wp->w_top = 0;
+				wp->w_rows = screen_rows() - 2;
+				wp->w_epage = wp->w_page;
+			}
+		curbp->b_epage = curbp->b_page;
+		mark_all_windows();
+		return;
+	}
 	for (wp = wheadp; wp != NULL; wp = wp->w_next) { old += wp->w_rows + 1; n++; }
 	/* each window needs a row of text and its mode line */
 	while (n > 1 && avail < 2 * n) {
