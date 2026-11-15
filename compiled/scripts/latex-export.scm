@@ -434,6 +434,23 @@ first row is the header when a rule follows it."
   (let loop ((ls lines) (acc '()))
     (if (and (pair? ls) (ok? (car ls))) (loop (cdr ls) (cons (car ls) acc)) (cons (reverse acc) ls))))
 
+(define (lx-item-number line)
+  "The number of an ordered item's marker (1935 for \"1935. Book\"), or #f."
+  (let ((it (lx-item line 'md)))
+    (and it (eq? (caddr it) 'ol)
+         (let loop ((i (car it)) (v 0))
+           (let ((c (string-ref line i)))
+             (if (char-numeric? c)
+                 (loop (+ i 1) (+ (* v 10) (- (char->integer c) 48)))
+                 v))))))
+
+(define (lx-interrupts? line dialect)
+  "Can the item LINE end a paragraph?  In Org, any item can.  In Markdown,
+as CommonMark says, a numbered one only when it is 1: \"1935.\" inside a
+paragraph, put first on a line by a wrap, is text (15 November 2026)."
+  (or (eq? dialect 'org)
+      (let ((k (lx-item-number line))) (or (not k) (= k 1)))))
+
 (define (lx-starts-block? line dialect)
   "Does LINE begin something other than a paragraph's next line?"
   (let ((l (trim line)))
@@ -444,7 +461,7 @@ first row is the header when a rule follows it."
                 (lx-org-drawer? l) (lx-table-line? line) (lx-rule? line dialect))
             (or (lx-hashes line) (string-prefix? "```" l) (string-prefix? "~~~" l) (string-prefix? ">" l)
                 (lx-rule? line dialect) (string-prefix? "<!--" l)))
-        (lx-item line dialect)
+        (and (lx-item line dialect) (lx-interrupts? line dialect))
         (string-prefix? "\\begin{" l) (string=? l "$$") (string=? l "\\["))))
 
 (define (lx-org-drawer? l)
@@ -716,6 +733,37 @@ first row is the header when a rule follows it."
                    (get-output-string p)
                    "\\end{document}\n")))
 
+(define (lx-stray-numbers text)
+  "Org: (line . number) for each line (counted from 1) where a numbered item other than 1
+follows a paragraph line, as \"1935.\" does when a pasted reference
+breaks before the year.  Org makes it a list item, as Emacs does, and the
+export would print 1. for it; latex-export says where it is."
+  (let loop ((ls (string-split text #\newline)) (i 1) (run 0) (in-block #f) (acc '()))
+    (if (null? ls) (reverse acc)
+        (let* ((line (car ls)) (u (trim line)))
+          (cond
+           ((lx-upcase-prefix? "#+BEGIN" u) (loop (cdr ls) (+ i 1) 0 #t acc))
+           ((lx-upcase-prefix? "#+END" u) (loop (cdr ls) (+ i 1) 0 #f acc))
+           (in-block (loop (cdr ls) (+ i 1) 0 #t acc))
+           ((lx-item line 'org)
+            (let ((k (lx-item-number line)))
+              ;; RUN > 0: the lines above, back to a blank line or a
+              ;; heading, are a paragraph's, none of them an item
+              (loop (cdr ls) (+ i 1) -1 #f
+                    (if (and k (not (= k 1)) (> run 0)) (cons (cons i k) acc) acc))))
+           ((lx-starts-block? line 'org) (loop (cdr ls) (+ i 1) 0 #f acc))
+           ;; a line of text: a paragraph's, unless it follows an item (-1)
+           (else (loop (cdr ls) (+ i 1) (if (< run 0) -1 (+ run 1)) #f acc)))))))
+
+(define (lx-stray-message stray)
+  "\"; line 4: 1935. starts a list inside a paragraph\" -- short enough
+for the message line; STRAY: (line . number) pairs."
+  (if (null? (cdr stray))
+      (string-append "; line " (number->string (caar stray)) ": "
+                     (number->string (cdar stray)) ". starts a list inside a paragraph")
+      (string-append "; lines " (string-join (map (lambda (x) (number->string (car x))) stray) ", ")
+                     ": numbers start lists inside paragraphs")))
+
 (define (latex-export-dialect)
   "'org, 'md, or #f: what the current buffer is, by its language."
   (let* ((lang (language-for-file (or (buffer-filename) (get-buffer-name))))
@@ -738,13 +786,15 @@ first row is the header when a rule follows it."
       (let* ((tex (latex-export-name file))
              (shown (let ((s (string-index-right tex #\/))) (if s (substring tex (+ s 1) (string-length tex)) tex))))
         (when (or (not (file-exists-p tex)) (yes-p (concat shown " exists; replace it?")))
-          (let ((latex (latex-from-text (buffer-string) dialect)))
+          (let ((latex (latex-from-text (buffer-string) dialect))
+                (stray (if (eq? dialect 'org) (lx-stray-numbers (buffer-string)) '())))
             (find-file tex)
             (delete-region 0 (buffer-size))
             (insert latex)
             (goto-char 0)
             (if (save-buffer (get-buffer-name))
-                (message "Wrote " shown "; compile it with xelatex")
+                (message "Wrote " shown
+                         (if (null? stray) "; compile it with xelatex" (lx-stray-message stray)))
                 (message "latex-export: " shown " could not be written; C-x C-w saves it elsewhere")))))))))
 
 ;; Org's key, as in Emacs: C-c C-e, then l l (org.scm binds C-c C-e in

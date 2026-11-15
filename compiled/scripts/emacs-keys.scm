@@ -658,6 +658,34 @@ is a comment."
   (filter (lambda (w) (> (string-length w) 0))
           (string-split (substitute-byte (substitute-byte s 9 32) 10 32) " ")))
 
+;; M-q never starts a line with a word that would turn the line into
+;; something else: a list item (1935.  2)  -  +), a heading (*  ##), a
+;; quotation (>), a table row (|...) or Org's fixed-width text (:).  A
+;; reference pasted from the Internet put "1935." first on a line, and the
+;; LaTeX export made it an enumerate item and lost the year (15 November
+;; 2026); Org in Emacs has the same rule (fill-nobreak-predicate).  Such a
+;; word is glued to the word before it, so the line breaks before both.
+(define (fill-break-word-p w)
+  (let ((n (string-length w)))
+    (and (> n 0)
+         (let ((c (c@ w 0)))
+           (or (and (= n 1) (memv c '(45 43 62 58)) #t)
+               (= c 124)
+               (let same ((i 0)) (cond ((= i n) #t) ((= (c@ w i) 42) (same (+ i 1))) (else #f)))
+               (and (<= n 6) (let same ((i 0)) (cond ((= i n) #t) ((= (c@ w i) 35) (same (+ i 1))) (else #f))))
+               (and (>= n 2) (memv (c@ w (- n 1)) '(46 41))
+                    (let digits ((i 0))
+                      (cond ((= i (- n 1)) #t)
+                            ((and (<= 48 (c@ w i)) (<= (c@ w i) 57)) (digits (+ i 1)))
+                            (else #f)))))))))
+
+(define (glue-break-words words)
+  (let loop ((ws words) (acc '()))
+    (cond ((null? ws) (reverse acc))
+          ((and (pair? acc) (fill-break-word-p (car ws)))
+           (loop (cdr ws) (cons (string-append (car acc) " " (car ws)) (cdr acc))))
+          (else (loop (cdr ws) (cons (car ws) acc))))))
+
 (define (fill-text lines comment width)
   "Refill LINES of one paragraph; the first line gives the prefix.  A list
 item keeps its marker, and the lines after it go under its text."
@@ -670,7 +698,7 @@ item keeps its marker, and the lines after it go under its text."
                              (p (if (and first item) item (fill-prefix-of line comment))))
                         (loop (cdr ls) #f
                               (append acc (split-words (%sub line (min (string-length p) (string-length line)))))))))))
-    (join-lines (fill-words words prefix width rest-prefix))))
+    (join-lines (fill-words (glue-break-words words) prefix width rest-prefix))))
 
 (defcommand (fill-paragraph)
   "M-q: refill the paragraph (or comment block) at the cursor to
@@ -679,12 +707,35 @@ item keeps its marker, and the lines after it go under its text."
          (ls (line-start))
          (here (buffer-substring ls (line-end ls)))
          (text-mode (text-buffer-p))
-         (org (let ((lang (language-for-file (or (buffer-filename) (get-buffer-name)))))
-                (and lang (string=? (language-name lang) "Org"))))
+         (lang (language-for-file (or (buffer-filename) (get-buffer-name))))
+         (org (and lang (string=? (language-name lang) "Org")))
+         (md (and lang (string=? (language-name lang) "Markdown")))
          (comment (if (and text-mode (starts-with-p ">" (string-trim here))) ">" (line-comment-start)))
          (prefix (fill-prefix-of here comment))
          (in-comment (and comment (string-search comment prefix) #t))
          (line-at (lambda (start) (buffer-substring start (line-end start))))
+         ;; Inside a paragraph only "1." or "1)" starts a list (CommonMark);
+         ;; "1935." there is text, so M-q takes it into the paragraph -- a
+         ;; reference pasted with the break already in it.  In Org too,
+         ;; though Org (and Emacs) would read it as an item: Eduardo pressed
+         ;; M-q on such a reference and expected the year back in its line.
+         (md-text-number?
+          (lambda (start)
+            (and (or md org) (not in-comment) (> start 0)
+                 (let* ((p (list-item-prefix (line-at start)))
+                        (m (and p (left-trim-blanks p))))
+                   (and m (> (string-length m) 0) (<= 48 (c@ m 0)) (<= (c@ m 0) 57)
+                        (not (starts-with-p "1. " m)) (not (starts-with-p "1) " m))))
+                 ;; the lines above, back to a blank line or a heading,
+                 ;; are text: none is an item (then it would be a list)
+                 (let up ((s (line-start (- start 1))) (seen #f))
+                   (let ((text (line-at s)))
+                     (cond ((blank-line-p buffer-get size s) seen)
+                           ((and org (org-heading-text-p text)) seen)
+                           ((list-item-prefix text) #f)
+                           ((block-start-line-p text) seen)
+                           ((= s 0) #t)
+                           (else (up (line-start (- s 1)) #t))))))))
          (member-line-p
           (lambda (start)
             (let ((text (buffer-substring start (line-end start))))
@@ -702,14 +753,16 @@ item keeps its marker, and the lines after it go under its text."
           (else
            (let* ((a (let loop ((a ls))
                        (if (and (> a 0)
-                                (not (and text-mode (not in-comment) (block-start-line-p (line-at a))))
+                                (not (and text-mode (not in-comment) (block-start-line-p (line-at a))
+                                          (not (md-text-number? a))))
                                 (member-line-p (line-start (- a 1))))
                            (loop (line-start (- a 1)))
                            a)))
                   (b (let loop ((b ls))
                        (let ((next (min size (+ 1 (line-end b)))))
                          (if (and (< next size) (> next b) (member-line-p next)
-                                  (not (and text-mode (not in-comment) (block-start-line-p (line-at next)))))
+                                  (not (and text-mode (not in-comment) (block-start-line-p (line-at next))
+                                            (not (md-text-number? next)))))
                              (loop next)
                              b))))
                   (end (line-end b))

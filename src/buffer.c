@@ -34,6 +34,7 @@ void buffer_init(buffer_t *bp)
 	bp->b_folds = NULL;
 	bp->b_nfolds = bp->b_capfolds = 0;
 	bp->b_changes = bp->b_drawn = 0;
+	bp->b_used = 0;            /* never yet the buffer of a key */
 }
 
 void zero_buffer(buffer_t *bp)
@@ -180,6 +181,60 @@ int delete_buffer(buffer_t *bp)
 	return TRUE;
 }
 
+/*
+ * Which buffer C-x k shows, as in Emacs: the one used most recently, not
+ * the next in the list (which showed *backdoor*, 15 November 2026).  A
+ * buffer is used when a key starts or ends in it (main.c), so the buffers
+ * a script visits for a moment inside a command do not count.  A buffer
+ * that another window shows comes after the others; when no other buffer
+ * was used, *scratch*.
+ */
+static unsigned long used_clock;
+
+void buffer_used(buffer_t *bp)
+{
+	if (bp != NULL)
+		bp->b_used = ++used_clock;
+}
+
+static int shown_elsewhere(buffer_t *bp)
+{
+	window_t *wp;
+
+	for (wp = wheadp; wp != NULL; wp = wp->w_next)
+		if (wp != curwp && wp->w_bufp == bp)
+			return 1;
+	return 0;
+}
+
+static buffer_t *other_buffer(buffer_t *not)
+{
+	buffer_t *bp, *best = NULL;
+	int pass;
+
+	for (pass = 0; pass < 2 && best == NULL; pass++)
+		for (bp = bheadp; bp != NULL; bp = bp->b_next)
+			if (bp != not && bp->b_used > 0 && (pass == 1 || !shown_elsewhere(bp)) &&
+			    (best == NULL || bp->b_used > best->b_used))
+				best = bp;
+	/* none used: *scratch*, as in Emacs (made again if need be) */
+	if (best == NULL && strcmp(not->b_bname, str_scratch) != 0)
+		best = find_buffer(str_scratch, TRUE);
+	if (best == NULL)
+		best = not->b_next != NULL ? not->b_next : bheadp;
+	return best;
+}
+
+/* the window shows another buffer than BP, which is about to go */
+void show_other_buffer(buffer_t *bp)
+{
+	buffer_t *other = other_buffer(bp);
+
+	disassociate_b(curwp);
+	curbp = other;
+	associate_b2w(curbp, curwp);
+}
+
 void next_buffer()
 {
 	assert(curbp != NULL);
@@ -262,7 +317,7 @@ int delete_buffer_byname(char *bname)
 
 	/* switch out of buffer if we are the current buffer */
 	if (bp == curbp)
-		next_buffer();
+		show_other_buffer(bp);
 	assert(bp != curbp);
 	delete_buffer(bp);
 	return TRUE;

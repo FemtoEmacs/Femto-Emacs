@@ -554,7 +554,7 @@ void killbuffer()
 		assert(bp != NULL); /* stops the compiler complaining */
 	}
 
-	next_buffer();
+	show_other_buffer(kill_bp);
 	assert(kill_bp != curbp);
 	delete_buffer(kill_bp);
 }

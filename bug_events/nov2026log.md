@@ -1421,3 +1421,89 @@ terminal drew it. The display now draws that cell only in the selected
 window (display.c, color_at); returning to the terminal shows it again.
 Checked in the pty: the cell at row 2, column 42 with the terminal
 selected, none after C-c o, back after C-x o.
+
+## November 15, 2026. One rule for saving: C-x C-s in either window (Claude)
+
+Eduardo found the old way, which kept the browser and the native window
+apart when both had edits (a refused save, M-x native-window-update,
+*native-N* and *web-N* buffers), clumsy and confusing. Chezweb 1.05
+(266c9c6) replaced it with one rule: C-x C-s in either window saves the
+file and puts its text in the other window. Asked to check the code
+against that rule, Claude found the two directions right
+(chezweb-save-roundtrip.cjs passes) and five things left over.
+
+1. Three tests still expected the old refusal (409), so make
+   browser-test failed: chezweb-save-native.cjs now states the rule;
+   chezweb-native-update.cjs and chezweb-native-update-page.cjs are gone.
+2. M-x native-window-update and its *native-N* buffers had nothing left
+   to do. Removed: the command (compiled/chezweb.scm), the page's request
+   (web/page.js, web/shell.js), the server's "update" route
+   (tools/web-server.c) and update_native (src/browser-save.h).
+3. A save into a granted folder (C-x C-f, TAB) over native edits still
+   made a *web-N* conflict buffer. Now the native edits go to #name#,
+   as in the two save directions.
+4. A read-only native buffer (C-x C-q) was overwritten by a browser
+   save. Eduardo agreed: the browser save is refused, and the message
+   says how to make the buffer writable.
+5. After C-x k and C-x C-f of the same file, or a Save As, the link was
+   silently broken: the session followed the buffer C-c d had opened.
+   Now it follows the file: the native buffer that visits it, found by
+   its real path (attach_source, chezweb_saved).
+
+The README says the rule. Evidence: chezweb-save-native.cjs (17 checks,
+among them the recovery file, the refused read-only save, the
+reconnection after C-x k and C-x C-f in both directions), and
+chezweb-save-roundtrip.cjs and chezweb-native.cjs, which pass unchanged.
+The browser bundle must be rebuilt (make browser-rebuild): Emscripten
+could not be installed in Claude's cloud.
+
+## November 15, 2026. C-x k showed *backdoor* (Claude)
+
+Testing the save rule (natbrowser-interaction.org) with the backdoor
+open, Eduardo opened the recovery file with C-x C-f and closed it with
+C-x k; the window then showed *backdoor*, not the file he came from.
+C-x k showed the next buffer in the list, which is sorted by name. Now
+it shows the buffer used most recently, as Emacs does: a buffer is used
+when a key starts or ends in it (main.c, buffer_used), so buffers a
+script visits for a moment inside a command do not count. With C-x 3,
+a buffer the other pane shows comes after the rest; when no other
+buffer was used, *scratch*. Kill-buffer from a script (fe-kill-buffer)
+does the same. Evidence: tests/kill-buffer.sh (make check), which shows
+*backdoor* with the old code.
+
+## November 15, 2026. A number first on a line becomes a list (Claude)
+
+Eduardo pasted a reference from the Internet into an Org file
+(~/mysand/paper/minor-nuisance.org); after M-q, or as pasted, "1935."
+began a line, and C-c C-e l l made it an enumerate item: the year was
+gone from the PDF, replaced by "1." Org mode in Emacs 29.3 behaves
+alike, though its M-q never makes such a break (tried at widths 50 to
+75): Org reads a pasted "1935. Book VII" line as a list item, and M-q
+leaves items alone. The complaint is old (Org mailing list, 2011, 2012,
+2021); CommonMark settled it for Markdown: inside a paragraph only 1.
+starts a list. Three rules:
+
+1. M-q never starts a line with a word that would make the line
+   something else (1935. 2) - + * ## > | :): the word goes down with the
+   word before it (fill-break-word-p, glue-break-words, both copies of
+   emacs-keys.scm). Our M-q broke anywhere.
+2. Markdown follows CommonMark: a numbered line other than 1 inside a
+   paragraph is text, for the export (lx-interrupts?) and for M-q, which
+   now joins a pasted "1935." line to its paragraph.
+3. Org keeps Org's syntax, as Emacs does, and M-x latex-export (C-c C-e l
+   l) names the line: "Wrote x.tex; line 8: 1935. starts a list inside a
+   paragraph". A list that starts at 1 after a line of text is not named.
+
+Evidence: tests/stray-number.sh (make check), which fails with the old
+scripts; a check of fill-text in tests/run-tests.scm; minor-nuisance.org,
+copied: the export names its line 8; as Markdown, 1935. stays text.
+
+Later the same day: Eduardo pressed M-q on reference [19] in
+minor-nuisance.org and nothing changed. M-q followed Org's syntax, as in
+Emacs, and left the "1935." line alone as a list item; only Markdown
+joined it. He expected the year back in its line, so M-q now uses the
+same rule in Org: inside a paragraph (back to a blank line or a
+heading, with no item in it), a numbered line other than 1 is text.
+A heading right above the reference had also stopped the Markdown join.
+Checked on a copy of his file, with the cursor where his was: the year
+joins its line, and a second M-q changes nothing.

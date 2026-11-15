@@ -631,6 +631,34 @@ is a comment."
   (filter (lambda (w) (> (length w) 0))
           (string-split (substitute-byte (substitute-byte s 9 32) 10 32) " ")))
 
+;; M-q never starts a line with a word that would turn the line into
+;; something else: a list item (1935.  2)  -  +), a heading (*  ##), a
+;; quotation (>), a table row (|...) or Org's fixed-width text (:).  A
+;; reference pasted from the Internet put "1935." first on a line, and the
+;; LaTeX export made it an enumerate item and lost the year (15 November
+;; 2026); Org in Emacs has the same rule (fill-nobreak-predicate).  Such a
+;; word is glued to the word before it, so the line breaks before both.
+(define (fill-break-word-p w)
+  (let ((n (length w)))
+    (and (> n 0)
+         (let ((c (aref w 0)))
+           (or (and (= n 1) (memv c '(45 43 62 58)) #t)
+               (= c 124)
+               (let same ((i 0)) (cond ((= i n) #t) ((= (aref w i) 42) (same (+ i 1))) (else #f)))
+               (and (<= n 6) (let same ((i 0)) (cond ((= i n) #t) ((= (aref w i) 35) (same (+ i 1))) (else #f))))
+               (and (>= n 2) (memv (aref w (- n 1)) '(46 41))
+                    (let digits ((i 0))
+                      (cond ((= i (- n 1)) #t)
+                            ((and (<= 48 (aref w i)) (<= (aref w i) 57)) (digits (+ i 1)))
+                            (else #f)))))))))
+
+(define (glue-break-words words)
+  (let loop ((ws words) (acc '()))
+    (cond ((null? ws) (reverse acc))
+          ((and (pair? acc) (fill-break-word-p (car ws)))
+           (loop (cdr ws) (cons (string-append (car acc) " " (car ws)) (cdr acc))))
+          (else (loop (cdr ws) (cons (car ws) acc))))))
+
 (define (fill-text lines comment width)
   "Refill LINES of one paragraph; the first line gives the prefix.  A list
 item keeps its marker, and the lines after it go under its text."
@@ -643,7 +671,7 @@ item keeps its marker, and the lines after it go under its text."
                              (p (if (and first item) item (fill-prefix-of line comment))))
                         (loop (cdr ls) #f
                               (append acc (split-words (byte-substring line (min (length p) (length line)))))))))))
-    (join-lines (fill-words words prefix width rest-prefix))))
+    (join-lines (fill-words (glue-break-words words) prefix width rest-prefix))))
 
 (defcommand (fill-paragraph)
   "M-q: refill the paragraph (or comment block) at the cursor to

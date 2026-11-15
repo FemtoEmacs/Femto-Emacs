@@ -30,6 +30,7 @@ void editor_dispatch_key(void)
 	point_t before_size;
 	before_bp = curbp;
 	before_size = document_size(curbp);
+	buffer_used(curbp);         /* buffer.c: what C-x k shows */
 
 	if (key_return != NULL) {
 		/*
@@ -67,6 +68,7 @@ void editor_dispatch_key(void)
 	if (curbp != before_bp || document_size(curbp) != before_size)
 		mark_active = 0;
 
+	buffer_used(curbp);
 	/* debug_stats("main loop:"); */
 	match_parens();
 }

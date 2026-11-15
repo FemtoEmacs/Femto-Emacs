@@ -534,6 +534,9 @@
        '(("- " #f) ("  3. " #f) ("- " end) ("> " #f) ("- [ ] " #f) (#f #f)))
 (check "M-q keeps a list item's marker and hangs the rest" (fill-text '("- aaa bbb ccc" "ddd") #f 12)
        (lines "- aaa bbb" "  ccc ddd"))
+(check "M-q never starts a line with 1935. or -: they go down with the word before"
+       (fill-text '("Harvard University Press, 1935. Book VII, pages 12 - 15") #f 30)
+       (lines "Harvard University" "Press, 1935. Book VII, pages" "12 - 15"))
 
 ;;; script loading
 (check "every script loads" (reverse *script-errors*) '())

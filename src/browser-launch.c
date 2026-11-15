@@ -1,6 +1,6 @@
 /* C-c d keeps this native editor alive. The browser receives a snapshot;
- * explicit browser saves return through a private temporary file. Changes
- * made concurrently in the native buffer are preserved as a conflict. */
+ * C-x C-s in either window saves the file and puts its text in the other
+ * (browser-save.h); unsaved edits there go to the recovery file #name#. */
 #include "header.h"
 #include "system.h"
 #include <sys/stat.h>
@@ -71,14 +71,23 @@ const char *chezweb_launch(void){
  if(!*url)return "The browser server did not become ready.";
  return browser_result(open_chrome());
 }
+/* C-x C-s in the native window: the browser gets the saved text.  The
+ * buffer that saved is the source if it visits the file C-c d opened, even
+ * when it is not the buffer C-c d started with (C-x k, then C-x C-f). */
 void chezweb_saved(buffer_t *bp)
 {
- if(!*session||bp!=source||!live_source()||strcmp(bp->b_fname,source_name))return;
+ if(!*session||!*save_path)return;
+ if(bp!=source||!live_source()||strcmp(bp->b_fname,source_name)){
+  char resolved[4096];
+  if(!bp->b_fname[0]||!resolve_target(bp->b_fname,resolved)||strcmp(resolved,save_path))return;
+  source=bp;source_id=bp->b_id;safe_strncpy(source_name,bp->b_fname,sizeof source_name);
+ }
  size_t len;
  char *text=snapshot(bp,&len);
  if(!text)return;
  remember_disk(text,len);
  remember_browser_text(text,len);
+ if(backdoor_on)backdoor_note("  chezweb: native C-x C-s of %s, %ld bytes, sent to the browser (version %llu)",bp->b_bname,(long)len,save_revision);
  free(text);
 }
 int chezweb_poll(void){
