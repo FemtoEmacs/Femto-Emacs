@@ -26,7 +26,7 @@
 #define FALSE 0
 #endif
 
-#define VERSION	 "Chezweb 1.07, compiled Scheme (femtoscheme compatibility core), Public Domain"
+#define VERSION	 "Chezweb 1.09, compiled Scheme (femtoscheme compatibility core), Public Domain"
 #define EXIT_OK         0               /* Success */
 #define EXIT_ERROR      1               /* Unknown error. */
 #define EXIT_USAGE      2               /* Usage */
@@ -164,6 +164,7 @@ typedef struct buffer_t
 	int b_nfolds, b_capfolds;
 	unsigned long b_changes;  /* text, folds or narrowing changed (counted) */
 	unsigned long b_drawn;    /*   b_changes when b_epage was last drawn */
+	unsigned long b_used;     /* when it was last the buffer of a key (buffer.c) */
 } buffer_t;
 
 typedef struct window_t
@@ -406,6 +407,8 @@ extern void delete_mode(buffer_t *, buffer_flags_t);
 extern void buffer_init(buffer_t *);
 extern int delete_buffer(buffer_t *);
 extern void next_buffer(void);
+extern void buffer_used(buffer_t *);
+extern void show_other_buffer(buffer_t *);
 extern void previous_buffer(void);
 extern int count_buffers(void);
 extern int count_windows(void);

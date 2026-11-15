@@ -323,6 +323,21 @@ check-ghost-window: chezemax chezemax.wasm chezemax.cwasm
 	sh tests/ghost-window.sh
 check: check-ghost-window
 
+.PHONY: check-vsplit
+check-vsplit: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/vsplit.sh
+check: check-vsplit
+
+.PHONY: check-kill-buffer
+check-kill-buffer: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/kill-buffer.sh
+check: check-kill-buffer
+
+.PHONY: check-stray-number
+check-stray-number: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/stray-number.sh
+check: check-stray-number
+
 .PHONY: check-polytonic
 check-polytonic: chezemax chezemax.wasm chezemax.cwasm
 	sh tests/polytonic.sh

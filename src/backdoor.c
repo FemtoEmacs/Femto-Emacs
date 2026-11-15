@@ -443,10 +443,16 @@ void backdoor_shown(void)
 		pending = 0;
 		if (!pending_skip || ndetails > 0) {
 			line_t *prev = ring_count ? &ring[(ring_next - 1 + ring_size) % ring_size] : NULL;
-			snprintf(line, sizeof line, "%s pt=%ld page=%ld cur=%d,%d size=%ld %s",
+			/* side by side (C-x 3): which pane; cur's column counts from
+			 * the pane's left edge, at screen column LEFT */
+			char pane[48] = "";
+			if (side_by_side() && curwp != NULL)
+				snprintf(pane, sizeof pane, " (%s pane, from column %d)",
+					 curwp == wheadp ? "left" : "right", window_left(curwp));
+			snprintf(line, sizeof line, "%s pt=%ld page=%ld cur=%d,%d size=%ld %s%s",
 				 pending_skip ? "mouse move" : pending_key, (long) curbp->b_point,
 				 (long) curbp->b_page, curbp->b_row, curbp->b_col,
-				 (long) document_size(curbp), curbp->b_bname);
+				 (long) document_size(curbp), curbp->b_bname, pane);
 			copy_line(text_of_line, line);
 			if (opt_collapse && ndetails == 0 && prev && prev->first != 0 &&
 			    !strcmp(prev->text, text_of_line)) {

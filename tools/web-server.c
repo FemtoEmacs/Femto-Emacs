@@ -87,12 +87,12 @@ static void snapshot_response(int fd,const char *dir){
  if(!ok){free(text);reply(fd,500,"text/plain","Snapshot read failed",20);return;}
  char h[512];int n=snprintf(h,sizeof h,"HTTP/1.1 200 OK\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Length: %ld\r\nX-Chezweb-Revision: %llu\r\nX-Chezweb-Modified: %d\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n",len,revision,modified);sendall(fd,h,(size_t)n);sendall(fd,text,(size_t)len);free(text);
 }
-/* A save, or with UPDATE the browser's M-x native-window-update (the text
- * goes into the native buffer only; the native side writes no file). */
-static void commit_request(int fd,const char *dir,const char *body,size_t len,unsigned long long revision,int update){
+/* A save, or with BACKUP the browser's unsaved text for the recovery file
+ * (#name#), written before a native save replaces it. */
+static void commit_request(int fd,const char *dir,const char *body,size_t len,unsigned long long revision,int backup){
  static unsigned long long sequence;unsigned long long id=++sequence;
  char temp[8192],path[8192];snprintf(temp,sizeof temp,"%s/save.pending.new",dir);snprintf(path,sizeof path,"%s/save.pending",dir);
- FILE *f=fopen(temp,"wb");int ok=f&&(update?fprintf(f,"%llu\n%s\n",id,update==2?"backup":"update"):fprintf(f,"%llu\n%llu\n",id,revision))>0&&fwrite(body,1,len,f)==len;
+ FILE *f=fopen(temp,"wb");int ok=f&&(backup?fprintf(f,"%llu\nbackup\n",id):fprintf(f,"%llu\n%llu\n",id,revision))>0&&fwrite(body,1,len,f)==len;
  if(f&&fclose(f))ok=0;if(ok)ok=!rename(temp,path);
  if(!ok){unlink(temp);reply(fd,500,"text/plain","Save request failed",19);return;}
  snprintf(temp,sizeof temp,"%s/save.result",dir);
@@ -105,7 +105,7 @@ static void commit_request(int fd,const char *dir,const char *body,size_t len,un
   }
   struct timespec pause={0,20000000};nanosleep(&pause,NULL);
  }
- const char *message=update?"Native window not updated. Close any native prompt there and retry.":"Save not confirmed. Close any native prompt and retry; your browser changes remain unsaved.";
+ const char *message=backup?"The recovery file was not written. Close any native prompt there and retry.":"Save not confirmed. Close any native prompt and retry; your browser changes remain unsaved.";
  unlink(path);reply(fd,503,"text/plain",message,strlen(message));
 }
 
@@ -132,14 +132,14 @@ int main(int argc,char **argv){
   else reply(c,404,"text/plain","Not found",9);
  }else if(!strcmp(method,"POST")&&!strcmp(name,"refresh")&&o&&equalheader(header(h,"Content-Type"),"application/x-chezweb-refresh")){
   snprintf(path,sizeof path,"%s/refresh",dir);FILE *f=fopen(path,"wb");int ok=f!=NULL;if(f&&fclose(f))ok=0;reply(c,ok?200:500,"text/plain",ok?"Refresh requested":"Refresh failed",ok?17:14);
- }else if(!strcmp(method,"PUT")&&(!strcmp(name,"session")||!strcmp(name,"save")||!strcmp(name,"update")||!strcmp(name,"backup"))&&equalheader(header(h,"Content-Type"),"application/x-chezweb-text")&&o){
+ }else if(!strcmp(method,"PUT")&&(!strcmp(name,"session")||!strcmp(name,"save")||!strcmp(name,"backup"))&&equalheader(header(h,"Content-Type"),"application/x-chezweb-text")&&o){
   char *length=header(h,"Content-Length"),*stop=NULL;long n=length?strtol(length,&stop,10):-1;
   if(n<0||n>LIMIT||!stop||*stop!='\r'||header(h,"Transfer-Encoding")){reply(c,400,"text/plain","Invalid length",14);close(c);continue;}
   char *body=malloc((size_t)n+1);if(!body){reply(c,500,"text/plain","Out of memory",13);close(c);continue;}size_t got=used-(size_t)(end+4-h);if(got>(size_t)n)got=(size_t)n;memcpy(body,end+4,got);
   while(got<(size_t)n){ssize_t k=recv(c,body+got,(size_t)n-got,0);if(k<=0)break;got+=(size_t)k;}
-  if(!strcmp(name,"update")||!strcmp(name,"backup")){
+  if(!strcmp(name,"backup")){
    if(got!=(size_t)n)reply(c,400,"text/plain","Incomplete text",15);
-   else commit_request(c,dir,body,got,0,!strcmp(name,"backup")?2:1);
+   else commit_request(c,dir,body,got,0,1);
    free(body);close(c);continue;
   }
   if(!strcmp(name,"save")){

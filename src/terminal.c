@@ -743,7 +743,8 @@ void term_take_key(void)
 		if (c == 0x03) { to_shell(t, "\x03", 1); return; }
 		if (c == 0x0a) {                           /* C-c C-j: copy mode */
 			t->copy = 1;
-			msg("Copy mode: the editor's keys; M-w copies; C-c C-k: back to the terminal");
+			draw(t);
+			msg("Copy mode: M-w copies; C-c C-k then C-y pastes at the shell");
 			return;
 		}
 		if (c == 0x1b || c == 0x18) {             /* C-c M-x: M-x; C-c C-x: C-x (C-c C-x C-c quits) */
@@ -755,6 +756,16 @@ void term_take_key(void)
 		seq[1] = (char) c;
 		to_editor(seq, 2);
 		return;
+	}
+	/* M-w in copy mode puts the selection in the editor's scrap. */
+	if (c == 0x19) {
+		const unsigned char *scrap = get_scrap();
+		if (scrap && *scrap) {
+			vterm_keyboard_start_paste(t->vt);
+			to_shell(t, (const char *)scrap, strlen((const char *)scrap));
+			vterm_keyboard_end_paste(t->vt);
+			return;
+		}
 	}
 	if (c == SCR_KEY_RESIZE) { seq[0] = (char) c; to_editor(seq, 1); return; }
 	if (c == 0x1b) {
@@ -874,7 +885,7 @@ int fe_term_copy_mode(int on)
 	term_t *t = terms ? find(curbp) : NULL;
 	if (t == NULL || t->exited) return 0;
 	t->copy = on != 0;
-	t->damaged = 1;                          /* point back to the cursor; its cell drawn or not */
+	draw(t);  /* Remove or restore the shell cursor before the next repaint. */
 	return 1;
 }
 #endif

@@ -44,6 +44,10 @@ int yesno(int flag)
 	int ch;
 
 	screen_addstr(flag ? str_yes : str_no);
+	/* The question is asked on the message line, so the screen's
+	 * own cursor must show there, even when point is in M-x term,
+	 * whose display hides it (14 November 2026). */
+	screen_cursor_shown(1);
 	screen_refresh();
 	ch = read_nonmouse_key_byte();
 	if (ch == '\r' || ch == '\n')
@@ -567,7 +571,7 @@ void killbuffer()
 		assert(bp != NULL); /* stops the compiler complaining */
 	}
 
-	next_buffer();
+	show_other_buffer(kill_bp);
 	assert(kill_bp != curbp);
 	delete_buffer(kill_bp);
 }

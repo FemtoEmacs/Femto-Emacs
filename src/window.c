@@ -346,9 +346,19 @@ void relayout_windows(void)
 			for (wp = wheadp; wp != NULL; wp = wp->w_next) {
 				wp->w_top = 0;
 				wp->w_rows = screen_rows() - 2;
-				wp->w_epage = wp->w_page;
+				/* The page's end as last drawn no longer holds (the
+				 * panes are narrower or wider), but the page itself
+				 * stays. An end at the page's start made the display
+				 * take point for past the end and move the page, so
+				 * that C-x 3 put the cursor's line on the bottom row of
+				 * both panes (14 November 2026). Taken as the end of
+				 * the text, it lets the display keep the page; if point
+				 * is no longer on it, the display finds that while
+				 * drawing and shows point (display.c, "reframe"). */
+				wp->w_epage = document_size(wp->w_bufp);
+				wp->w_bufp->b_changes++;
 			}
-		curbp->b_epage = curbp->b_page;
+		curbp->b_epage = document_size(curbp);
 		mark_all_windows();
 		return;
 	}

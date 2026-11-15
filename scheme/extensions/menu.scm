@@ -160,16 +160,22 @@ the width.  The encoded pieces, or #f for the C core's own mode line."
                                        (if (= 32 (logand flags 32)) " B/D" "")
                                        " "))
                 (reserve (if quit 9 0)))
-           ;; keep the controls ahead of the file name when space is scarce
+           ;; when space is scarce (a narrow window, a pane of C-x 3), the
+           ;; buttons a narrow window can do without go first, from the
+           ;; right; then the file name is shortened at its left; the kept
+           ;; buttons ([?] [MORE] [TTFY]) go last.  Before, the name went
+           ;; first, and a pane showed no name at all (14 November 2026).
            (let loop ()
              (when (> (+ (string-length prefix) reserve (apply + (map button-width body))) cols)
-               (cond ((> (string-length prefix) 1)
-                      (set! prefix (substring prefix 1 (string-length prefix)))
-                      (loop))
-                     ((> (length body) 1)
-                      (let ((victim (or (find (lambda (b) (not (member (car b) *mode-line-kept-buttons*))) (reverse body))
-                                        (car (last-pair body)))))
-                        (set! body (let rm ((l body)) (cond ((null? l) '()) ((eq? (car l) victim) (cdr l)) (else (cons (car l) (rm (cdr l)))))))
+               (let ((optional (find (lambda (b) (not (member (car b) *mode-line-kept-buttons*))) (reverse body))))
+                 (cond (optional
+                        (set! body (let rm ((l body)) (cond ((null? l) '()) ((eq? (car l) optional) (cdr l)) (else (cons (car l) (rm (cdr l)))))))
+                        (loop))
+                       ((> (string-length prefix) 1)
+                        (set! prefix (substring prefix 1 (string-length prefix)))
+                        (loop))
+                       ((> (length body) 1)
+                        (set! body (let rm ((l body)) (cond ((null? (cdr l)) '()) (else (cons (car l) (rm (cdr l)))))))
                         (loop))))))
            (let* ((pieces (append (list (list (string-trim-right prefix) 'menu 'file-info)
                                         (list " " 'modeline #f))

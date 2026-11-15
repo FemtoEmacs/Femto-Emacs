@@ -103,6 +103,8 @@ static void show(const char *prompt, const char *buf, int len, int pos)
 		free(piece);
 	}
 	screen_clrtoeol();
+	/* The terminal buffer may have hidden the screen cursor. */
+	screen_cursor_shown(1);
 	screen_move(MSGLINE, pcols + columns(buf + first, pos - first));
 	screen_refresh();
 }

@@ -107,7 +107,7 @@ rows=$(grep '^[0-9]* 79$' "$s" | cut -d' ' -f1)
 has '^still-here$' 'M-x term did not go back to the same shell'
 has '^\[Process exited with status 0\]$' 'the end of the shell was not shown'
 grep -a -q 'L\. [0-9]* Term' "$work/screen" || fail 'the mode line did not show Term'
-grep -a -q 'opy mode: the editor' "$work/screen" || fail 'C-c C-j did not enter copy mode'
+grep -a -q 'opy mode: M-w copies' "$work/screen" || fail 'C-c C-j did not enter copy mode'
 grep -a -q 'A terminal is still running; quit anyway' "$work/screen" || fail 'C-x C-c did not ask while the shell ran'
 grep -a -q '\*scratch\*' "$work/screen" || fail 'C-c b did not go to *scratch*'
 # the cursor: the screen's own is hidden while the shell has the keys, and

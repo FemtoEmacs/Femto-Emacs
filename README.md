@@ -208,11 +208,11 @@ helps you to communicate with online applications.
 You need Google Chrome (or Chromium on Linux). Open a file in the text
 window or in the graphical window, and press **C-c d**. Chrome opens with
 the same text, unsaved changes included, and the window you left stays
-open. In Chrome, **C-x C-s** saves the file: the native window writes it
-to disk and gets your text too. If you edited the file in both windows,
-Chezweb does not let one overwrite the other: it says so, and keeps your
-text in both. Then **M-x native-window-update** puts the browser's text
-in the native window, and C-x C-s saves it.
+open. **C-x C-s** in either window saves the file and puts its text in
+the other window. If the other window had unsaved edits, they are not
+lost: they go to the recovery file `#name#`, beside the file, as in
+Emacs. A read-only native buffer (C-x C-q) is not overwritten: Chrome
+says so and keeps your text unsaved.
 
 To open other files in Chrome, press **C-x C-f**, then **TAB**. Chrome
 asks you to choose a folder, and asks only once per folder. TAB then
