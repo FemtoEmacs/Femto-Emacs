@@ -79,13 +79,13 @@ jobs:
               | (.content | gsub("\n"; "") | @base64d) as $old
               | ($old | split("\n\n")) as $paragraphs
               | [$paragraphs | to_entries[]
-                 | select(.value | startswith("[Download the Chezweb Windows x86-64 "))
+                 | select(.value | test("^\\[Download (the Chezweb Windows x86-64 |Chezweb [0-9]+[.][0-9]+ for Windows x86-64 )"))
                  | .key] as $matches
               | (if ($matches | length) != 1
                 then error("Expected one Windows preview link in the README")
                 else $matches[0]
                 end) as $i
-              | if ($paragraphs[$i + 1] | test("^(Preview built from |This preview |The 11 November 2026 test build)"))
+              | if ($paragraphs[$i + 1] | test("^(Built from |Preview built from |This preview |The 11 November 2026 test build)"))
                 then .
                 else error("Expected the Windows preview description after the link")
                 end
