@@ -65,6 +65,24 @@ more, add `if (backdoor_on) backdoor_note(...)` in C, or
 ones no longer needed. tests/backdoor-guard.sh and tests/backdoor-config.sh
 show how to drive and read it in a PTY.
 
+## Manual tests: when someone runs a script of tests/manual
+
+Testers other than Eduardo (with another AI, on another machine) run
+the scripts of tests/manual (README.md there). If one asks for help:
+
+- Before the test, make sure ~/.chezemax/backdoor-claude.conf is
+  tests/manual/backdoor.conf (or backdoor-codex.conf, for Codex), and
+  that the tester works on a copy of tests/manual/pt or tests/manual/en,
+  never on the repository's files.
+- After it, read the copy of the record (backdoor-natbrowser.txt,
+  backdoor-vsplit.txt) and the test files, and compare them with
+  tests/manual/EXPECTED.md, step by step. Report each step as passed,
+  failed, or not shown in the record, quoting the deciding lines, in the
+  tester's language. Do not change the code from the tester's machine:
+  the report, with the record, goes to Eduardo.
+- The two persistent reminders above are Eduardo's; with other people,
+  leave them out.
+
 Chezemax is an Emacs-inspired editor: a C core and Scheme scripts. It was
 copied from Schememax (~/csand/c2s-cover/sbcl-rasp/schememax) on 1 November
 2026 to replace femtoscheme with Schemer, the user's Chez-inspired compiler to

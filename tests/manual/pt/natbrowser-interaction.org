@@ -1,0 +1,162 @@
+#+TITLE: Teste do navegador e da janela nativa: uma só regra para salvar
+#+DATE: 15 de novembro de 2026 (Chezweb 1.09)
+
+A regra: *C-x C-s em qualquer uma das janelas salva o arquivo e coloca o
+texto dele na outra janela.* As edições não salvas na outra janela não se
+perdem: vão para o arquivo de recuperação =#natbrowser-test.md#=, ao lado
+do arquivo.
+
+Deixe este roteiro aberto numa janela de terminal. Rode o editor em outra
+janela de terminal, com o Chrome ao lado. O arquivo de teste,
+=natbrowser-test.md=, é descartável; também o são =natbrowser-copy.md= e
+=#natbrowser-test.md#=, que os passos criam. Ao terminar, não apague
+nenhum dos três: eles serão conferidos com o registro do backdoor.
+
+O editor mostra as mensagens em inglês. Este roteiro as cita exatamente
+como aparecem na tela, seguidas da tradução entre parênteses.
+
+O backdoor registra as teclas que você digita na janela nativa e cada
+gravação entre as janelas (linhas que começam com =chezweb:=). As teclas
+digitadas no Chrome não são registradas; por isso, no fim de cada passo,
+escreva uma nota na janela nativa: M-: e depois
+
+: (fe-backdoor-note "PASSO 3 ok")
+
+ou, quando algo der errado, o que você viu:
+
+: (fe-backdoor-note "PASSO 3 a janela nativa manteve N3")
+
+Em cada passo, "digite B1 e um espaço" quer dizer: vá para o fim da
+segunda linha do arquivo (M-< C-n C-e) e digite os dois caracteres B1,
+depois um espaço. A linha de
+modo (mode line) de um buffer nativo modificado mostra =*= depois do nome.
+
+* 0. Preparar e começar
+- [ ] Instale o Chezweb como diz o README.md do repositório (o instalador
+  .deb no Ubuntu, ou git clone e make), de modo que o comando =chezweb=
+  funcione em qualquer pasta. Mesmo com o .deb, baixe o repositório para
+  ter os testes:
+  #+begin_src sh
+  git clone https://github.com/FemtoEmacs/Femto-Emacs.git
+  #+end_src
+- [ ] Na pasta do repositório (Femto-Emacs), copie os testes para uma pasta
+  sua e a configuração do backdoor para ~/.chezemax:
+  #+begin_src sh
+  cp -r tests/manual/pt ~/chezweb-testes
+  mkdir -p ~/.chezemax
+  cp tests/manual/backdoor.conf ~/.chezemax/backdoor-claude.conf
+  #+end_src
+- [ ] Na outra janela de terminal:
+  #+begin_src sh
+  cd ~/chezweb-testes
+  chezweb natbrowser-test.md
+  #+end_src
+- [ ] M-x backdoor-claude (B/D aparece na linha de modo).
+- [ ] C-c d. O Chrome abre com o mesmo texto.
+
+* 1. O navegador salva; a janela nativa acompanha
+- [ ] No Chrome: digite B1 e um espaço, depois C-x C-s.
+- [ ] O Chrome diz "Saved .../natbrowser-test.md" (salvo).
+- [ ] A janela nativa mostra B1 na hora (no máximo, na próxima tecla
+  digitada nela), sem =*= na linha de modo.
+- [ ] Nota: =PASSO 1 ok=.
+
+* 2. A janela nativa salva; o navegador acompanha
+- [ ] Na janela nativa: digite N2 e um espaço, depois C-x C-s.
+- [ ] Em menos de um segundo o Chrome mostra N2 e diz "Synced from the
+  native window." (sincronizado a partir da janela nativa).
+- [ ] Nota: =PASSO 2 ok=.
+
+* 3. As duas editadas; o navegador salva
+- [ ] Na janela nativa: digite N3 e um espaço. Não salve.
+- [ ] No Chrome: digite B3 e um espaço, depois C-x C-s.
+- [ ] O Chrome diz "Saved ...; previous native edits saved in
+  #natbrowser-test.md#." (salvo; as edições nativas anteriores foram
+  guardadas em #natbrowser-test.md#).
+- [ ] A janela nativa mostra B3 e não mais N3; sem =*=.
+- [ ] O arquivo de recuperação tem N3: na janela nativa, C-x C-f
+  #natbrowser-test.md# RET, confira, depois C-x k RET.
+- [ ] C-x k faz a janela voltar para natbrowser-test.md (nunca para
+  *backdoor*).
+- [ ] Nota: =PASSO 3 ok=.
+
+* 4. As duas editadas; a janela nativa salva
+- [ ] No Chrome: digite B4 e um espaço. Não salve.
+- [ ] Na janela nativa: digite N4 e um espaço, depois C-x C-s.
+- [ ] Em menos de um segundo o Chrome mostra N4 e não mais B4, e diz
+  "Synced. Previous browser edits saved in #natbrowser-test.md#."
+  (sincronizado; as edições anteriores do navegador foram guardadas em
+  #natbrowser-test.md#).
+- [ ] O arquivo de recuperação agora tem B4 (C-x C-f, como no passo 3).
+  C-x k RET volta para natbrowser-test.md.
+- [ ] Nota: =PASSO 4 ok=.
+
+* 5. Um buffer nativo somente leitura
+- [ ] Na janela nativa: C-x C-q (o buffer fica somente leitura).
+- [ ] No Chrome: digite B5 e um espaço, depois C-x C-s.
+- [ ] O Chrome recusa, em vermelho: "Not saved: the native buffer of
+  .../natbrowser-test.md is read-only (C-x C-q there makes it
+  writable). Browser changes remain unsaved." (não salvo: o buffer
+  nativo é somente leitura; C-x C-q lá permite escrever de novo; as
+  mudanças do navegador continuam sem salvar). A janela nativa continua
+  sem B5.
+- [ ] Na janela nativa: C-x C-q (de novo com escrita permitida).
+- [ ] No Chrome: C-x C-s. Agora salva, e a janela nativa mostra B5.
+- [ ] Nota: =PASSO 5 ok=.
+
+* 6. O buffer nativo fechado e aberto de novo
+- [ ] Na janela nativa: C-x k RET. A janela mostra *scratch*, o único
+  outro buffer que você poderia ter usado; nunca *backdoor*.
+- [ ] C-x C-f natbrowser-test.md RET.
+- [ ] No Chrome: digite B6 e um espaço, depois C-x C-s. A janela nativa
+  mostra B6.
+- [ ] Na janela nativa: digite N6 e um espaço, depois C-x C-s. O Chrome
+  mostra N6.
+- [ ] Nota: =PASSO 6 ok=.
+
+* 7. Salvar como (Save As) na janela nativa
+- [ ] Na janela nativa: C-x C-w, apague o nome que ela oferece (C-a C-k),
+  digite natbrowser-copy.md, RET. A janela nativa agora mostra a cópia.
+- [ ] No Chrome: digite B7 e um espaço, depois C-x C-s. O Chrome salva
+  natbrowser-test.md; a janela nativa (a cópia) não muda.
+- [ ] Na janela nativa: C-x C-f natbrowser-test.md RET. Ela mostra B7.
+- [ ] Digite N7 e um espaço, depois C-x C-s. O Chrome mostra N7.
+- [ ] Nota: =PASSO 7 ok=.
+
+* 8. Um prompt aberto na janela nativa
+- [ ] Na janela nativa: C-x C-f, e deixe o prompt aberto.
+- [ ] No Chrome: digite B8 e um espaço, depois C-x C-s. Depois de uns dez
+  segundos o Chrome diz "Save not confirmed. Close any native prompt and
+  retry; your browser changes remain unsaved." (gravação não confirmada;
+  feche o prompt nativo e tente de novo; as mudanças do navegador
+  continuam sem salvar). O arquivo não tem B8.
+- [ ] Na janela nativa: C-g.
+- [ ] No Chrome: C-x C-s de novo. Agora salva, e a janela nativa mostra B8.
+- [ ] Nota: =PASSO 8 ok=.
+
+* 9. Salvar numa pasta autorizada
+- [ ] Na janela nativa: digite N9 e um espaço. Não salve.
+- [ ] No Chrome: aperte o botão *Choose folder* (escolher pasta) e
+  escolha ~/chezweb-testes. Depois C-x C-f, TAB, escolha natbrowser-test.md.
+  O Chrome o abre a partir da pasta.
+- [ ] Digite B9 e um espaço, depois C-x C-s. O Chrome diz "Saved ..."
+  (salvo).
+- [ ] A janela nativa diz "Saved from the browser; this buffer has the
+  text, and the native edits are in #natbrowser-test.md#." (salvo pelo
+  navegador; este buffer tem o texto, e as edições nativas estão em
+  #natbrowser-test.md#). Ela mostra B9, não N9, e nenhum buffer
+  =*web-1*= aparece (C-x C-b).
+- [ ] Nota: =PASSO 9 ok=.
+
+* 10. Encerrar
+- [ ] No Chrome: C-x C-c. A aba fecha; a janela nativa continua aberta.
+- [ ] Na janela nativa: M-x backdoor-claude (B/D desaparece).
+- [ ] C-x C-c.
+- [ ] Guarde o registro do backdoor junto dos arquivos de teste (o próximo
+  teste o substitui):
+  #+begin_src sh
+  cp ~/.chezemax/backdoor.txt ~/chezweb-testes/backdoor-natbrowser.txt
+  #+end_src
+- [ ] Envie a pasta ~/chezweb-testes para quem pediu o teste, ou peça ao
+  Claude da sua máquina, aberto na pasta do repositório, que confira o
+  resultado com tests/manual/EXPECTED.md.
