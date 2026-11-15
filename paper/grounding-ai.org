@@ -1,0 +1,610 @@
+* The qualification problem in times of generative AI
+- C-x n s: Narrows the buffer to the current Org subtree (the
+  headline and all its children).
+- C-x n w: Widens the buffer back out to show the full document.
+
+** List of authors
+
+- Pedro Fernandes - primeiro autor
+- Lucas Guerra    - primeiro autor
+- Philippos Costa, se houver interesse 
+- Marcus Santos
+- Luciano Lima - autor sênior e encarregado da submissão
+
+** Introduction
+
+The Physical Symbol System Hypothesis (PSSH) isn't new.
+PSSH adherents include Herbert Simon and Allen Newell. In 1976,
+when they won the Turing Award, they said in their acceptance lecture:
+
+- A physical symbol system has the necessary and sufficient means for
+  general intelligent action.
+
+Readers of the present paper may be asking the kind of circular
+question Warren McCulloch [2] made famous: What is a symbol that
+intelligence may use, and intelligence that it may use a symbol? The
+authors leave it to them to analyze Newell and Simon's Turing Lecture
+and determine what the Turing Award laureates mean by physical
+symbols.
+
+Newell and Simon argue that there is no “intelligence principle.” But
+the lack of a simple *deus ex machina* does not imply that there are
+no structural requirements for intelligence. One such requirement is
+the ability to store and manipulate symbols.
+
+** The qualification problem
+Computer scientists and neuroscientists who adopted the PSSH soon run
+into a difficulty. However clever the scientists designing and
+implementing a physical symbol system, they would never add enough
+details to their model to achieve a working representation of the real
+world, society and language. And they were indeed clever: Herbert
+Simon won the Nobel Memorial Prize, and Joshua Lederberg won the Nobel
+Prize in Medicine. Marvin Minsky won the Turing Award.
+  
+In other words, some designs are so complex that people can't
+implement them in a lifetime. Language has so many rules, and they
+change so fast, that AI researchers struggle to build a grammar
+checker or translator [3]. Common sense has so many rules that CyC
+researchers couldn't implement it in 30 years [4][5].
+
+John McCarthy discovered the enormous complexity of PSSH very early in
+the history of AI research [6]:
+
+#+begin_quote
+ "In 1959, McCarthy proposed a program with “common sense” that would
+ represent what it knows by sentences in a suitable logical language.
+ It would decide what to do by deducing a conclusion that it should
+ perform a certain act. Performing the act would create a new
+ situation, and it would again decide what to do. This requires
+ representing both knowledge about the particular situation and
+ general common sense knowledge as sentences of logic. The
+ 'qualification problem', immediately arose in representing general
+ common sense knowledge. It seemed that in order to fully represent
+ the conditions for the successful performance of an action, an
+ impractical and implausible number of qualifications would have to be
+ included in the sentences expressing them. For example, the
+ successful use of a boat to cross a river requires, if the boat is a
+ rowboat, that the oars and rowlocks be present and unbroken, and that
+ they fit each other. Many other qualifications can be added, making
+ the rules for using a rowboat almost impossible to apply, and yet
+ anyone will still be able to think of additional requirements not yet
+ stated."
+#+end_quote
+
+In the heroic times of Artificial Intelligence, researchers worked
+with both symbolic systems and neural networks to find approximations
+to solutions of the qualification problem. Marvin Minsky, whom many
+consider the paragon of PSSH, wrote a thesis on neural networks [7].
+In 1951, he co-built SNARC (Stochastic Neural Analog Reinforcement
+Calculator), which is widely considered the world's first artificial
+self-learning neural network machine. [8,9].
+
+** The birth of Generative AI
+With the rise of Generative AI after 2017, and the publication of a
+paper on the Transformer architecture [10], people began to notice
+that neural networks had problems complementary to PSSH.
+
+Neurosymbolic AI, which found a strong champion in Gary Marcus [11],
+proposes a hybrid system: generative models provide imense detail,
+while PSSH provides trustworthiness.
+
+En passant, we need to cite the Physical Grounding Hypothesis,
+proposed in 1990 by Rodney Brooks[12], as an additional mechanism of
+providing details to world representations.
+
+#+begin_quote
+"Nouvelle AI is based on the physical grounding hypothesis. This
+hypothesis states that to build an intelligent system, it is necessary
+to ground its representations in the physical world."
+#+end_quote
+
+** Physical grounding
+We will start this section by making it clear that there isn't such a
+thing as an information processing system that is absolutely
+trustworthy. We can reduce hallucination in a neurosymbolic AI, but a
+residual margin for spluttering, juddering and failure will always
+remain.
+
+We were inspired by the PERCEPT platform for grounding a Generative AI
+in the physical world [13,14, 15].
+
+To train a generative AI for single-cell RNA-seq, members of Jeffrey
+Ishizuka’s laboratory use the Cell2Sentence algorithm to convert
+sequencing data into text.
+
+Growing cancer cells in vitro allows researchers to test drugs.
+However, Perry and colleagues explain that many immunotherapies with
+promising preclinical results fail in clinical trials[13], partly
+because experimental models do not adequately represent human
+tumor–immune interactions. In PERCEPT, they therefore prepare cultures
+containing tumor and immune cells from patient samples. They expose
+portions of these cultures to treatments and leave others unstimulated
+as controls.
+
+Single-cell RNA sequencing measures gene expression in thousands of
+cells from the treated and control cultures.
+
+The expression “single-cell” means that each cell’s RNA is measured
+separately, allowing researchers to distinguish individual cells and
+different cell types within the culture.
+
+However, single-cell RNA sequencing has an important limitation.
+Suppose a treated cell expresses more of a gene than a control cell.
+That difference might come from the drug, or the two cells might
+already differ in cell type or state.
+
+To determine what changed, researchers would ideally measure the same
+cell before and after treatment. However, sequencing destroys the cell
+being measured, making this comparison impossible.
+
+Jeffrey Ishizuka’s collaborators use CINEMA-OT to separate gene
+expression patterns correlated with treatment from patterns reflecting
+differences between the cells themselves. They use the latter to match
+treated and untreated cells with similar characteristics, such as cell
+type and cell-cycle stage.
+
+Each match estimates how a treated cell might have behaved without the
+drug. These counterfactual matches allow researchers to compare
+gene-expression profiles and estimate treatment effects. This
+resembles comparing treatment and control groups in a clinical trial,
+although the cell matches are computed rather than established by
+random assignment [13,15].
+
+** Objective reasoning
+
+Plato is one of the first thinkers to propose logic and mathematics to
+verify one's statements. For instance, he claims that calculation (τὸ
+λογίζεσθαί τε καὶ ἀριθμεῖν) is one of those methods that lead toward
+the truth (τῶν πρὸς τὴν ἀλήθειαν ἀγόντων ἂν εἶναι τοῦτο τὸ
+μάθημα)[19]. On another occasion, the philosopher says that
+geometrical knowledge could draw the soul toward truth (τοῦ γὰρ ἀεὶ
+ὄντος ἡ γεωμετρικὴ γνῶσίς ἐστιν. — ἑλκτικόν, ὦ γενναῖε, ψυχῆς πρὸς
+ἀλήθειαν)[20].
+
+The belief that opinion and thought must be checked against logic and
+mathematics forms the conceptual backbone of Plato's philosophy, and
+has had a profound impact on modern science and technology. After all,
+it is less expensive and faster for an aerospace engineer to run
+finite element calculations than to build a prototype airplane.
+
+Urbain Le Verrier's discovery of Neptune is legendary. The French
+astronomer calculated the unknown planet's predicted position by
+analyzing gravitational irregularities (perturbations) in Uranus's
+orbit. He sent his calculations to the Berlin Observatory. On
+September 23, 1846, Johann Gottfried Galle & Heinrich Louis d'Arrest
+received Le Verrier's letter, and they visually identified Neptune
+that very evening within one degree of the predicted spot using a
+telescope and star charts.
+
+Contemporary civilization added computers to Le Verrier and Plato's
+logic, calculations and mathematics. Computers brought the concept of
+a formal system into the spotlight. Mathematics, grammar production
+rules, predicate calculus (as in the computer language Prolog) and
+algorithms are examples of formal systems. Computers can execute
+algorithms, predicate calculus and many other formal systems. Formal
+systems must have the following metatheoretical requirements:
+
+1. Precision & Unambiguity that eliminate human bias and
+   natural-language misinterpretation.
+2. Consistency. The system cannot derive both a statement and its
+   absolute contradiction.
+3. Determinism. Given identical initial states (inputs), the system
+   must yield identical results (outputs).
+4. Conceptual Minimalism. No axiom in the system can be derived or
+   proven using the other axioms.
+5. Decidability. There must be a finite process to check whether a
+   given string is a valid formula or axiom.
+
+Computers traditionally offer services that meet many, if not all,
+requirements of a formal system (usually, unambiguity, consistency and
+determinism):
+
+- Operating Systems (Linux, Windows). While the underlying hardware is
+  chaotic, the service an OS provides is completely unambiguous.
+- Compilers & Statistical Packages (GCC, R). They are entirely
+  rule-governed. Input the same code or dataset, and they predictably
+  emit the same binary or mathematical model.
+- Extensible Text Editors (Emacs, Neovim): Their configuration
+  languages (Emacs Lisp, Lua) process text via precise, deterministic
+  commands and regular expressions.
+- Electronic Medical Records (Epic). They use a strict relational
+  database schema and standardized data fields.
+- CT Scans. The inverse Radon transform reconstructs images of
+  internal body structures from X-ray attenuation measurements
+  collected at multiple angles.
+- GPS. The trilateration equations use strict geometric formulas to
+  reproduce a coordinate.
+- Blockchain Services (e.g., Bitcoin) execute transactions based on
+  entirely transparent, deterministic rules.
+
+People were used to the paradise of Cantor and Hilbert's formal
+systems. Then generative AIs appeared that don't obey unambiguity,
+consistency and determinism. They share this unruly trait with humans,
+and it is exactly this anthropomorphism that makes them interesting.
+In any case, physicians and lawyers keep treating Generative AI as if
+it automatically provides the checks and balances of formal systems.
+They don't. Therefore, the present paper aims to tighten the running
+clearance and minimize the radial play of Generative AI within the
+bearings of deterministic system services.
+
+We already have a successful example of reduction bushing and
+deterministic guardrailing for AI. Codex and Claude check the programs
+they generate by running them in virtual machines. In the next
+section, Claude will describe exactly how it helps us with Chezweb
+and RASP (Robust Accurate Statistical Parsing).
+
+*** Human appraisal of Chezweb
+Chezweb is a text editor connected with Generative AI assistants. It
+is compatible with GNU Emacs, a Lisp dialect (Elisp) optimized for
+text manipulation. While users interact with Emacs as an extensible
+editor, the interface is just an application running on top of a
+C-based Elisp interpreter.
+
+Beyond the editor, Elisp offers many services, including a massive
+built-in system called GNU Emacs Calc. Calc is an incredibly advanced
+RPN and algebraic calculator capable of symbolic computation, matrix
+operations, and calculus. Emacs also offers a platform-agnostic
+command-line shell called eshell. Because common utilities (like ls,
+cp, and mkdir) are rewritten directly in Elisp, Eshell behaves
+identically across any operating system Emacs runs on, including
+Windows, Linux and macOS.
+
+The difference between Emacs and Chezweb is that Emacs provides
+primarily quasi-formal systems, while Chezweb provides Generative AI
+services. One of the authors of the present paper developed the core
+of Chezweb with help from Hugh Barney. Besides the basic coder editor
+resources written in C, this core includes an integrated clone of Chez
+Scheme that Generative AI can manipulate safely (we hope) through a
+special backdoor to Claude and ChatGPT. This lets Anthropic's Claude
+fix bugs and add new commands to Chezweb. Then, while Emacs is
+extended by more than 10,000 people who collaborated with 10+ million
+lines of heavily peer-reviewed code, Chezweb is entirely debugged and
+extended by Generative AI, such as Claude Code, as we will see in the
+next section.
+
+
+*** Human appraisal of RASP
+The Physical Symbol System Hypothesis (PSSH) promises predictable,
+unambiguous, consistent and hallucination-free services. People like
+unerring computing tools, like calculators and Python scripts. The
+problem with PSSH is that human developers who build these AI tools
+are often overwhelmed by the real-world details and give up on their
+projects. This was the case for many Natural Language Processing
+tools, such as grammar checkers. The authors of the present paper
+believe that Generative AI can safely add value to the endeavors of
+the brilliant scientists who created imaginative tools under the aegis
+of PSSH. They test this conjecture by adding rules to RASP so it can
+parse a significant subset of English.
+
+* Claude's grounding in quasi-formal systems
+
+- Date of this answer: Tuesday, October 20, 2026.*
+
+** RASP
+
+RASP stands for Robust Accurate Statistical Parsing. That was the name
+of the UK EPSRC project (grants GR/N36462 and GR/N36493) under which
+Ted Briscoe, John Carroll and colleagues built the parser at Cambridge
+and Sussex. Reference [3], Briscoe and Carroll’s LREC 2002 paper, has
+a longer title: “Robust Accurate Statistical Annotation of General
+Text.” sbcl-rasp is RASP 3.3a ported to SBCL and repaired.
+
+*** The method: the model proposes, the machine decides
+
+A language model cannot be trusted to judge its own fix: it produces
+plausible code and plausible claims with equal fluency. So no fix
+counts until a deterministic program has run on the changed code and
+given the expected result. The cycle has five steps.
+
+The first step is to reproduce the error before fixing it: the old
+program must show the fault on a concrete input. The user wanted to
+find the name "Ishizuka" in a document. In Emacs and Chezweb, a search
+starts with C-s (Control and s pressed together); the editor then
+opens the minibuffer, a one-line field at the bottom of the window,
+where the user types the string to look for, and the cursor jumps to
+each match as it is typed. Once the name was found, the user pressed
+the up arrow to leave the minibuffer and return to the text, which
+sits just above it on the screen. We sent exactly these keys to the
+old build, and it turned the line "Jeffrey Ishizuka for help." into
+"Jeffrey Ishizuka[A for help." Seeing the fault happen on demand shows
+that we are looking at the actual cause of the error.
+
+The second step is to change the code. The change embodies a
+conjecture about the cause: the up arrow sends three bytes, ESC [ A;
+the search command took ESC for the Escape key, ended the search, and
+let "[A" reach the text as typed characters. The fix makes the search
+read every byte of a key that is not part of the search string, end,
+and hand the whole key back to the editor.
+
+The third step is to build the fixed program and run it on the same
+input. Given C-s, "Ishizuka" and the up arrow, the new build ended the
+search, moved the cursor up one line, and left the text as it was:
+"Jeffrey Ishizuka for help."
+
+The fourth step compares the fixed program with an oracle: a program
+whose behaviour is taken as correct. When we implemented TAB folding
+for Org mode in Chezweb, the oracle was Emacs itself. In Org mode,
+pressing TAB on a heading cycles its visibility: first only the
+heading shows, its text folded away; the next TAB shows the
+subheadings; the next shows everything. We opened the same Org file in
+Emacs and in Chezweb, pressed the same keys in both, and after each
+TAB compared which lines were visible on the screen. Wherever the two
+disagreed, Chezweb was wrong. The comparison covered 33 states, and
+Chezweb matched Emacs in all of them.
+
+In RASP, the oracle is the original parser itself. Running under
+Clozure Common Lisp, it analyses the 560 sentences of DepBank, a
+standard test set of English sentences, and every repair must leave
+all 560 analyses exactly as they were: comparing the two outputs line
+by line, 0 lines may differ. Two corpora then show what the repairs
+gained. The first has 81 grammatical sentences written by Codex: RASP
+3.3a found an analysis for 68 of them before the repairs, and for all
+81 after. The second has 27 sentences with known grammatical errors,
+which the parser should refuse to analyze: it refused 17 before the
+repairs, and 25 after.
+
+The fifth step runs the whole regression suite: the tests written for
+earlier bugs and features, run again on the fixed program. A fix that
+breaks something elsewhere fails here. In Chezweb, the suite (make
+check, make check-ui and make check-selfhost) runs without anyone at
+the keyboard, and checks several kinds of behaviour:
+
+- Editing sessions. A test program opens the editor in a pseudo-
+  terminal, a terminal simulated by software, types keys into it as a
+  user would, saves the file, and compares the saved text, byte by
+  byte, with the text expected. The keys include searches, Korean,
+  Chinese and polytonic Greek input, Org mode, the export to LaTeX and
+  the built-in terminal.
+- Cursor movement. Small C programs move the cursor with the arrows
+  and the mouse over text with accented letters, Chinese characters
+  and emoji, and check after every move that the cursor rests at the
+  start of a character, never inside one: 240 checks.
+- Search. A separate test runs incremental search forward and
+  backward, repeated, ended with Enter, cancelled, and stopped by
+  other keys, as in the "Ishizuka" bug.
+- The scripting language. The editor's commands are written in Scheme
+  and run by two different engines; the suite runs the same scripts on
+  both and requires the same results, and runs the compiler's own test
+  programs (257 tests of the older engine, plus the newer compiler's
+  test programs). Finally, the compiler compiles itself, and the
+  result must be identical, byte for byte, to the compiler that did
+  it.
+
+- Human in the loop -- Schemer is a Chez Scheme inspired
+  implementation of the Lisp dialect that drives Chezweb.
+
+* The backdoor
+
+An AI assistant that repairs an application cannot see the equipment
+the user interacts with: the screen, the keyboard, the mouse, a camera,
+a microphone, a sensor. It knows only what the user reports, and a
+report such as "the window jumped" or "the reading froze" says what the
+user perceived, not what the program did.
+
+A backdoor is a recorder built into the application to close this gap.
+The user switches it on, repeats the actions that show the fault, and
+switches it off. While it is on, the application writes down each
+input it receives, the state that matters for the fault, and what
+changed after each input, with the part of the program that made the
+change. The record goes to a file that the assistant reads, so the
+assistant works from what happened rather than from the user's memory
+of it. The assistant can also say in advance what to record for a
+particular diagnosis, so that the record stays short and relevant.
+Switched off, the backdoor should cost almost nothing, so that it can
+stay in the program the users run, where the faults occur.
+
+In Chezweb, the user opens the backdoor with a command (M-x
+backdoor-claude or M-x backdoor-codex; the bottom line of the window
+shows B/D while it is open) and closes it with the same command. The
+editor writes one line for each key: the key, the position of the
+cursor in the text and on the screen, the first line of text shown in
+the window, and the size of the text. Under each key it writes,
+indented, what that key changed and who changed it: the command
+itself, a function the command called, or the display while redrawing
+the screen. Before the user opens it, the assistant can write a small
+configuration that chooses what to record (the mouse, the mark, the
+inserted text, the time each key took). 
+
+** Four cases from this project show what it does.
+
+The yank that moved the window. The user placed the cursor on an empty
+heading near the bottom of the window and pressed C-y to paste a title
+there. The title appeared, but the window jumped, and the heading moved
+from the middle of the window to its last row. The record of that key
+read: point moved from 2039 to 2080 in the paste function; 41 bytes
+were inserted, the title and nothing else; then the first line of the
+window changed from 1475 to 1337 "by the display", because "point 2080
+[was] at or past the page's end 2042 (as last drawn)". So the paste was
+innocent. The display had compared the cursor with where the window's
+text ended before the paste; the paste had pushed that end further, so
+the cursor looked as if it had left the window, and the display moved
+the window to bring it back. The repair counts the window's rows again
+after a change. The trace named the cause without any guessing.
+
+The ghost window. The user scrolled with the mouse wheel past the end of
+the text, so the window was blank, and clicked in it. The window scrolled
+on its own, and the wheel then stopped scrolling up. With the backdoor
+open, the same wheel notches and the click showed the window's first
+line jumping from 383 to 223 after the click, and jumping again at every
+redraw. The click had put the cursor at the end of the text, which is
+where the last drawing of the screen had stopped, and the display took
+"at the end of what I drew" for "below the window". The repair keeps
+the window still when the cursor is at the end of the text and that end
+is visible, as in Emacs.
+
+A fault found before anyone reported it. On its first run, the backdoor
+recorded a note from a safety check in the display while the user
+searched for "aç": the cursor had landed between the two bytes of the
+letter ç, which takes two bytes in UTF-8. The search prompt read the
+keyboard one byte at a time, so for an instant the text held half a
+letter.
+
+The fault that was not in the editor. The user ran the text editor
+Neovim inside Chezweb's built-in terminal and saw no cursor. The record
+showed that, after each key, the editor put the cursor exactly where
+Neovim wanted it, on the cell after ":e". This moved the search out of
+the editor's code: a recording of the bytes the terminal application
+received confirmed that the cursor was visible and in the right place.
+The cause was its colour. Neovim had painted that cell black, and the
+terminal drew its cursor in the colour of the text, which was black
+too. The backdoor itself had a blind spot here: keys typed into the
+built-in terminal went straight to the program running in it and were
+not recorded. The first recording was empty, and the recorder had to be
+extended before it could answer.
+
+** Diagnosing sluggish LaTeX navigation with the backdoor
+
+On 13 November 2026, holding Enter in a read-only LaTeX buffer made
+Chezweb continue scrolling after the key was released. The first
+backdoor trace showed a separate Enter event for each cursor movement.
+Once the cursor reached the bottom row, each event also moved the
+viewport. This suggested that key repeats were accumulating while the
+editor redrew the screen.
+
+I, Codex, enabled timing in `backdoor-codex.conf` and asked the user
+to repeat the test. The backdoor measured command execution and
+display time separately. Across 120 Enter events in
+`grounding-ai.tex`, the median command took **0.4 ms** and the median
+redraw took **143.2 ms**. That located the delay in redraw. To test
+whether LaTeX highlighting accounted for it, I sent the same 55 Enter
+events to byte-identical `.tex` and `.txt` copies in a terminal.
+Median redraw took **99.4 ms** for `.tex` and **12.1 ms** for `.txt`.
+
+The backdoor also showed why the first fix was insufficient. Caching
+the colors for an unchanged text slice reduced median redraw within
+the same viewport from **95.0 ms to 10.2 ms**. When scrolling changed
+the slice, redraw still took **108.2 ms**. I then changed the active
+LaTeX highlighter to check delimiter bytes directly, avoiding repeated
+calls to the generic string matcher. In the same test, median redraw
+while scrolling fell to **11.5 ms**. The user repeated the original
+held-key test and confirmed that the change solved the problem.
+
+* Conclusion
+
+People expect and fully appreciate the unambiguous, consistent and
+predictable behavior of formal systems. Then, why are they replacing
+them with unruly Generative AIs? Because formal systems are tough to
+learn and master. Computer scientists spend years of training before
+they become fully conversant with the traditional tools of their
+trade. We hope this paper shows a path to using Generative AI to
+expand trustworthy traditional computer tools and make them easier to
+operate.
+
+
+**  References
+
+[1] Newell, Allen, and Herbert A. Simon. “Computer Science as
+Empirical Inquiry: Symbols and Search.” Communications of the ACM 19,
+no. 3 (March 1976): 113–126.
+- https://doi.org/10.1145/360018.360022.
+- Accessed October 19, 2026.
+
+[2] McCulloch, W.S. [1961]. What is a number, that a man may know it,
+and a man, that he may know a number. General Semantics Bulletin Nos.
+26 and 27 (1961), 7–18.
+
+[3] Briscoe, Ted, and John Carroll. “Robust Accurate Statistical
+Annotation of General Text.” In Proceedings of the 3rd International
+Conference on Language Resources and Evaluation (LREC 2002),
+1499–1504, 2002.
+
+[4] Lenat, Douglas B. “CYC: A Large-Scale Investment in Knowledge
+Infrastructure.” Communications of the ACM 38, no. 11 (1995): 33–38.
+
+[5] Lenat, Douglas, Mayank Prakash, and Mary Shepherd. “CYC: Using
+Common Sense Knowledge to Overcome Brittleness and Knowledge
+Acquisition Bottlenecks.” AI Magazine 6, no. 4 (1985): 65–85.
+
+[6] McCarthy, J. (1977). Circumscription — A Form of Nonmonotonic
+Reasoning.
+- https://www-formal.stanford.edu/jmc/circumscription.pdf
+- Accessed 13, Nov., 2016
+
+- https://www-formal.stanford.edu/jmc/epistemological.pdf
+- Accessed 13, Nov., 2016 
+
+[7] Minsky, Marvin Lee. Theory of Neural-Analog Reinforcement Systems
+and Its Application to the Brain-Model Problem. Ph.D. dissertation,
+Princeton University, 1954. Princeton University Library. Accessed
+October 19, 2026.
+
+[8] Minsky, M. (1952). *A Neural-Analogue Calculator Based upon a
+Probability Model of Reinforcement* (Technical Report). Harvard
+University Psychological Laboratories.
+
+
+[9] Minsky, M. L. (1954). *Theory of Neural-Analog Reinforcement
+Systems and Its Application to the Brain-Model Problem* (Doctoral
+dissertation). Princeton University.
+
+
+[10] Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L.,
+Gomez, A. N., Kaiser, Ł., & Polosukhin, I. (2017). Attention is all
+you need. *Advances in Neural Information Processing Systems*, 30,
+5998–6008.
+
+
+[11] Lenat, D. B., & Marcus, G. (2023). *Getting from Generative AI to
+Trustworthy AI: What LLMs might learn from Cyc* (arXiv:2308.04445).
+arXiv. https://doi.org
+
+
+[12] Brooks, Rodney A. “Elephants Don’t Play Chess.” Robotics and
+Autonomous Systems 6, nos. 1–2 (1990): 3–15.
+
+[13] Perry, C., et al. “Perturbational Single-Cell Profiling of
+Patient Tumors Defines Lineage- and Context-Specific Programs of
+Innate Immune Resistance.” bioRxiv, preprint,  December 12, 2025. 
+- https://doi.org/10.64898/2025.12.09.693245
+- Accessed 19, October, 2026.
+
+[14] Rizvi, Syed Asad, et al. “Scaling Large Language Models for
+Next-Generation Single-Cell Analysis.” bioRxiv, preprint, version 4,
+January 1, 2026.
+- https://doi.org/10.1101/2025.04.14.648850
+- Accessed 19, October, 2026.
+
+[15] Dong, Mingze, et al. “Causal Identification of Single-Cell
+Experimental Perturbation Effects with CINEMA-OT.” Nature Methods 20
+(2023): 1769–1779.
+- https://doi.org/10.1038/s41592-023-02040-5.
+- Accessed October 19, 2026.
+
+[16] Coumou, Herma C. H., and Frans J. Meijman. “How Do Primary Care
+Physicians Seek Answers to Clinical Questions? A Literature Review.”
+Journal of the Medical Library Association 94, no. 1 (January 2006):
+55–60. Full text. Accessed October 20, 2026.
+
+[17] Brassil, Ellen, Bridget Gunn, Anant M. Shenoy, and Rebecca
+Blanchard. “Unanswered Clinical Questions: A Survey of Specialists and
+Primary Care Providers.” Journal of the Medical Library Association
+105, no. 1 (January 2017): 4–11.
+- https://doi.org/10.5195/jmla.2017.101
+- Accessed October 20, 2026.
+
+[18] Ely, John W., Jerome A. Osheroff, M. Lee Chambliss, Mark H.
+Ebell, and Marcy E. Rosenbaum. “Answering Physicians’ Clinical
+Questions: Obstacles and Potential Solutions.” Journal of the American
+Medical Informatics Association 12, no. 2 (March–April 2005): 217–224.
+- https://doi.org/10.1197/jamia.M1608
+- Accessed October 20, 2026.
+
+[19] Plato. Republic. Vol. 2, Books VI–X. Loeb Classical Library 276.
+Cambridge, MA: Harvard University Press, 1935. Book VII, 525b.
+
+[20] Plato. Republic. Vol. 2, Books VI–X.  Loeb Classical Library 276. Cambridge, MA: Harvard University Press, 1935. Book VII, 527b.
+
+[21] Dijkstra, Edsger W. *Notes on Structured Programming*. 2nd ed.
+Technical Report 70-WSK-03, EWD 249. Eindhoven: Technische Hogeschool
+Eindhoven, April 1970. [E. W. Dijkstra Archive]
+
+- https://www.cs.utexas.edu/~EWD/transcriptions/EWD02xx/EWD249/EWD249.html
+- Accessed October 20, 2026.
+
+[22] American Board of Internal Medicine. “How Does ABIM Create Assessment Questions?” ABIM Blog, February 1, 2024.
+- https://blog.abim.org/how-does-abim-create-assessment-questions/
+- Accessed October 21, 2026.
+
+[23] McCarthy, J. C. OVERCOMING UNEXPECTED OBSTACLES
+- https://www-formal.stanford.edu/jmc/glasgow.pdf
+- Accessed 13, Nov., 2026.
