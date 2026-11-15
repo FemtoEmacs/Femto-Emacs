@@ -1376,3 +1376,48 @@ and ran out of the 75 minutes in its tests. Both macOS jobs, which build
 and test the same code, passed. The install step now gives up a try
 after six minutes (apt's own timeouts 30 s, three retries), tries three
 times (finishing an install cut short first), and has 20 minutes in all.
+
+## November 14, 2026. C-x 3: the window jumped, the panes lost the name, a cursor went missing (Claude)
+
+Eduardo added the side-by-side split (C-x 3) and, testing it, lost the
+cursor once without being able to repeat it. A review of the split in a
+pty, at 80 columns, found three faults.
+
+1. C-x 3 moved the window: the cursor's line went to the bottom row of
+   both panes. relayout_windows set each window's page end to its page
+   start; the display took point for past the end of the page and
+   reframed. The page end is now the end of the text, so the display
+   keeps the page, and, when point is no longer on it (narrower panes
+   wrap more), finds that while drawing and shows point (window.c).
+   The backdoor showed it: "page 168 -> 24 ... point 192 at or past the
+   page's end 168 (as last drawn): point on the last row".
+2. A pane's mode line (39 columns) showed no file name: the name was cut
+   before any button. Now the buttons a narrow window can do without go
+   first, then the name is cut at its left, then the kept buttons
+   (menu.scm, both copies), as the README says.
+3. A y/n question asked from M-x term (C-c C-x C-c: "A terminal is still
+   running; quit anyway (y/n) ?") left the screen's cursor hidden, since
+   the display hides it while a shell has the keys and only the line
+   editor showed it again. yesno now shows it (command.c). This may be
+   the cursor Eduardo lost; ~/mysand/paper/vsplit.md is a script to find
+   out with the backdoor open.
+
+The backdoor's key lines now say the pane while side by side: "rows.txt
+(right pane, from column 40)" (backdoor.c).
+
+Evidence: tests/vsplit.sh (make check): fails on 1 and 3 with the old
+window.c and command.c, passes with the new. Checked by hand in the pty:
+typing in each pane and in one buffer shown in both, Korean at the bar,
+Markdown wrapping at the pane's width, a click in the right pane, M-x term
+in a pane, C-x 2 refused, C-x 0 and C-x 1.
+
+Later that evening Eduardo ran
+~/mysand/paper/vsplit.md with the backdoor open. C-x 3 kept the page
+(985) and the cursor on row 3, as fixed. His screenshot showed two
+cursors: the screen's own in the left pane, where he was, and the
+orange cell of M-x term in the right pane. terminal.c colours the
+cursor's cell in the buffer's faces, so every window showing the
+terminal drew it. The display now draws that cell only in the selected
+window (display.c, color_at); returning to the terminal shows it again.
+Checked in the pty: the cell at row 2, column 42 with the terminal
+selected, none after C-c o, back after C-x o.

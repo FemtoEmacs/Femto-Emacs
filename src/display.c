@@ -302,6 +302,11 @@ static int color_at(buffer_t *bp, char_t *p)
 	 * terminal's colours (terminal.c) */
 	if (c < 1 || (c > ID_COLOR_LINK && c < ID_COLOR_TERM0) || c > ID_COLOR_LAST || c == ID_COLOR_REGION)
 		c = ID_COLOR_ALPHA;
+	/* A terminal's cursor cell (terminal.c) belongs to the selected
+	 * window: a terminal shown in another pane drew a second cursor
+	 * beside the real one (C-x 3, 15 November 2026). */
+	if (c == ID_COLOR_TERM_CURSOR && paint_window != NULL && paint_window != curwp)
+		c = ID_COLOR_ALPHA;
 	return c;
 }
 
