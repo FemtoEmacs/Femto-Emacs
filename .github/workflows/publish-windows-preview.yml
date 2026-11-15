@@ -73,43 +73,36 @@ jobs:
           for attempt in 1 2 3; do
             test "$SOURCE_SHA" = "$(gh api "repos/$GH_REPO/git/ref/heads/windows" --jq .object.sha)" || exit 0
             gh api "repos/$GH_REPO/contents/README.md?ref=master" > readme.json
-            python3 - <<'PY' > update.json
-          import base64
-          import json
-          import os
-          import re
-
-          with open("readme.json") as file:
-              readme = json.load(file)
-          old = base64.b64decode(readme["content"]).decode()
-          repo = os.environ["GH_REPO"]
-          tag = os.environ["PREVIEW_TAG"]
-          revision = os.environ["SOURCE_SHA"][:12]
-          base = f"https://github.com/{repo}/releases"
-          installer = os.environ["INSTALLER"]
-          block = (
-              f"[Download the Chezweb Windows x86-64 preview (Setup.exe)]"
-              f"({base}/download/{tag}/{installer})\n\n"
-              f"Preview built from `{revision}`. "
-              f"[Release notes, checksums, and matching sources]({base}/tag/{tag})\n\n"
-          )
-          new, count = re.subn(
-              r"(?m)^\[Download the Chezweb Windows x86-64 [^\n]+\n\n"
-              r"(?:The 11 November 2026 test build|This preview |Preview built from )[^\n]*(?:\n[^\n]+)*\n\n",
-              lambda match: block,
-              old,
-          )
-          if count != 1:
-              raise SystemExit("Expected one Windows preview block in the README")
-          if new != old:
-              print(json.dumps({
-                  "branch": "master",
-                  "sha": readme["sha"],
-                  "message": f"Update Windows preview download to {revision}",
-                  "content": base64.b64encode(new.encode()).decode(),
-              }))
-          PY
-            if [ ! -s update.json ]; then exit 0; fi
+            jq -e --arg repo "$GH_REPO" --arg tag "$PREVIEW_TAG" \
+              --arg revision "${SOURCE_SHA:0:12}" --arg installer "$INSTALLER" '
+              . as $readme
+              | (.content | gsub("\n"; "") | @base64d) as $old
+              | ($old | split("\n\n")) as $paragraphs
+              | [$paragraphs | to_entries[]
+                 | select(.value | startswith("[Download the Chezweb Windows x86-64 "))
+                 | .key] as $matches
+              | (if ($matches | length) != 1
+                then error("Expected one Windows preview link in the README")
+                else $matches[0]
+                end) as $i
+              | if ($paragraphs[$i + 1] | test("^(Preview built from |This preview |The 11 November 2026 test build)"))
+                then .
+                else error("Expected the Windows preview description after the link")
+                end
+              | ("https://github.com/" + $repo + "/releases") as $base
+              | ($paragraphs
+                 | .[$i] = "[Download the Chezweb Windows x86-64 preview (Setup.exe)](\($base)/download/\($tag)/\($installer))"
+                 | .[$i + 1] = "Preview built from `\($revision)`. [Release notes, checksums, and matching sources](\($base)/tag/\($tag))"
+                 | join("\n\n")) as $new
+              | if $new == $old then {changed: false}
+                else {changed: true, request: {
+                  branch: "master", sha: $readme.sha,
+                  message: "Update Windows preview download to \($revision)",
+                  content: ($new | @base64)}}
+                end
+            ' readme.json > result.json
+            if ! jq -e .changed result.json >/dev/null; then exit 0; fi
+            jq .request result.json > update.json
             if gh api --method PUT "repos/$GH_REPO/contents/README.md" --input update.json --jq .commit.html_url; then
               exit 0
             fi
