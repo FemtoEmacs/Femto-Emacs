@@ -6,8 +6,11 @@ is retained as a merge parent and locally as archive/windows-before-chezweb.
 Download Chezweb-Windows-x86_64-Setup.exe from a successful **Windows installer**
 Actions run. Run it as your ordinary user; it installs under
 %LOCALAPPDATA%\Programs\Chezweb and adds Start-menu shortcuts and an uninstaller.
-Install current Google Chrome, launch Chezweb, then press C-c d for its browser
-editor. The terminal window remains open for shell commands and AI assistance.
+On Windows, install Google Chrome and press C-c d in Chezweb to open the
+browser editor. Under Wine, C-c d uses the host's default browser when it
+cannot find Chrome inside Wine. Set Chrome or Chromium as the host default
+for the browser editor. The terminal stays open for shell commands and AI
+assistance.
 
 This package bundles the Cygwin POSIX runtime, mintty, ncurses, the Scheme
 compiler, the native Windows Wasmtime DLL, SDL and portable browser WebAssembly.

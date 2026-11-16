@@ -11,6 +11,10 @@
 #include <errno.h>
 #include <time.h>
 #include <fcntl.h>
+#ifdef __CYGWIN__
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif
 extern void fe_message(char *);
 extern char **environ;
 #ifdef __EMSCRIPTEN__
@@ -41,6 +45,27 @@ static char *snapshot(buffer_t *bp,size_t *n){buffer_t *save=curbp;curbp=bp;*n=(
 static void cleanup(void){stop_server();if(*session){const char *names[]={"initial","name","pending","pending.new","incoming","ready","target","save.pending","save.pending.new","save.incoming","save.result","save.result.new","refresh","initial.new","snapshot","snapshot.new",NULL};char p[8192];for(int i=0;names[i];i++){snprintf(p,sizeof p,"%s/%s",session,names[i]);unlink(p);}rmdir(session);}free(baseline);baseline=NULL;free(disk_baseline);disk_baseline=NULL;disk_known=0;*save_path=0;*source_path=0;*session=0;*url=0;}
 #include "browser-save.h"
 
+#ifdef __CYGWIN__
+static int running_under_wine(void)
+{
+    HMODULE ntdll = GetModuleHandleW(L"ntdll.dll");
+    return ntdll && GetProcAddress(ntdll, "wine_get_version") != NULL;
+}
+
+static const char *open_wine_browser(void)
+{
+    char program[8192];
+    const char name[] = "\\winebrowser.exe";
+    UINT length = GetSystemDirectoryA(program, sizeof program);
+    if (!length || length > sizeof program - sizeof name)
+        return "Cannot locate Wine's browser launcher";
+    memcpy(program + length, name, sizeof name);
+
+    char *args[] = {url};
+    return sys_spawn_program(program, args, 1);
+}
+#endif
+
 static const char *open_chrome(void){
  const char *browser=getenv("CHEZWEB_BROWSER");if(browser&&*browser){char *args[]={url};return sys_spawn_program(browser,args,1);}
 #ifdef __APPLE__
@@ -53,6 +78,7 @@ static const char *open_chrome(void){
   snprintf(exe,sizeof exe,"%s/Google/Chrome/Application/chrome.exe",bases[i]);
   if(!access(exe,X_OK))return sys_spawn_program(exe,args,1);
  }
+ if(running_under_wine())return open_wine_browser();
  return "Google Chrome was not found; install Chrome or set CHEZWEB_BROWSER";
 #else
  /* Chrome's command name varies by distribution and packaging. */
@@ -66,7 +92,7 @@ static const char *open_chrome(void){
 #endif
 }
 static const char *browser_result(const char *why){
- if(why)snprintf(launch_message,sizeof launch_message,"Cannot launch browser (%s). Open in Chrome: %s",why,url);
+ if(why)snprintf(launch_message,sizeof launch_message,"Open %s in Chrome (%s)",url,why);
  else snprintf(launch_message,sizeof launch_message,"Browser: %s",url);
  return launch_message;
 }
