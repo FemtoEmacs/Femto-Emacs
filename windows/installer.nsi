@@ -22,9 +22,9 @@ Section "Chezweb"
  CreateShortcut "$SMPROGRAMS\Chezweb\Uninstall.lnk" "$INSTDIR\Uninstall.exe"
  CreateShortcut "$SMPROGRAMS\Chezweb\Chezweb GUI.lnk" "$INSTDIR\bin\chezweb-gui-launch.exe"
  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Chezweb" "DisplayName" "Chezweb"
- WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Chezweb" "UninstallString" '$"$INSTDIR\Uninstall.exe$"'
+ WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Chezweb" "UninstallString" '"$INSTDIR\Uninstall.exe"'
  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Chezweb" "InstallLocation" "$INSTDIR"
- nsExec::ExecToLog '$"$INSTDIR\bin\chezweb-user-path.exe$" add $"$INSTDIR\command$"'
+ nsExec::ExecToLog '"$INSTDIR\bin\chezweb-user-path.exe" add "$INSTDIR\command"'
  Pop $0
  StrCmp $0 0 path_install_done
  DetailPrint "Could not add Chezweb to PATH (status $0). Open Chezweb from the Start menu."
@@ -33,7 +33,7 @@ Section "Chezweb"
  path_install_done:
 SectionEnd
 Section "Uninstall"
- nsExec::ExecToLog '$"$INSTDIR\bin\chezweb-user-path.exe$" remove $"$INSTDIR\command$"'
+ nsExec::ExecToLog '"$INSTDIR\bin\chezweb-user-path.exe" remove "$INSTDIR\command"'
  Pop $0
  StrCmp $0 0 path_remove_done
  DetailPrint "Could not remove $INSTDIR\command from PATH (status $0)."
