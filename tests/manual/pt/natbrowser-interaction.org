@@ -54,6 +54,30 @@ modo (mode line) de um buffer nativo modificado mostra =*= depois do nome.
 - [ ] M-x backdoor-claude (B/D aparece na linha de modo).
 - [ ] C-c d. O Chrome abre com o mesmo texto.
 
+** No Windows
+Baixe o instalador do Windows (Chezweb-Windows-x86_64-Setup.exe) pelo
+README.md. Abra o Chezweb pelo menu Iniciar ou digite =chezweb= em um
+novo Prompt de Comando depois de instalar a versão atual. Siga os passos:
+- [ ] Baixe o repositório no GitHub (https://github.com/FemtoEmacs/Femto-Emacs):
+  Code > Download ZIP, e descompacte.
+- [ ] No Prompt de Comando (cmd), dentro da pasta descompactada:
+  #+begin_src bat
+  mkdir "%USERPROFILE%\.chezemax"
+  copy tests\manual\backdoor.conf "%USERPROFILE%\.chezemax\backdoor-claude.conf"
+  xcopy /E /I tests\manual\pt "%USERPROFILE%\chezweb-testes"
+  #+end_src
+- [ ] Abra o Chezweb (ou o Chezweb GUI) pelo menu Iniciar. Ele começa na
+  sua pasta de usuário: C-x C-f chezweb-testes/natbrowser-test.md RET.
+- [ ] A versão atual para Windows aceita caminhos dos dois formatos.
+  No prompt de arquivo, =~/= indica a pasta da sua conta do Windows.
+- [ ] No passo 9, em Choose folder, escolha a pasta chezweb-testes, e não
+  a pasta do usuário inteira: o Chrome recusa as pastas do sistema.
+- [ ] No passo 10, o registro está em %USERPROFILE%\.chezemax\backdoor.txt;
+  copie-o com:
+  #+begin_src bat
+  copy "%USERPROFILE%\.chezemax\backdoor.txt" "%USERPROFILE%\chezweb-testes\backdoor-natbrowser.txt"
+  #+end_src
+
 * 1. O navegador salva; a janela nativa acompanha
 - [ ] No Chrome: digite B1 e um espaço, depois C-x C-s.
 - [ ] O Chrome diz "Saved .../natbrowser-test.md" (salvo).

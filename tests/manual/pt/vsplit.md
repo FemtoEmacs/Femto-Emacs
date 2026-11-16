@@ -37,6 +37,27 @@ Depois:
     cd ~/chezweb-testes
     chezweb vsplit.md
 
+### No Windows
+
+O Chezweb abre pelo menu Iniciar. Se ainda não copiou os testes, baixe
+o repositório (Code >
+Download ZIP no GitHub), descompacte, e no Prompt de Comando (cmd), dentro
+da pasta descompactada:
+
+    mkdir "%USERPROFILE%\.chezemax"
+    copy tests\manual\backdoor.conf "%USERPROFILE%\.chezemax\backdoor-claude.conf"
+    xcopy /E /I tests\manual\pt "%USERPROFILE%\chezweb-testes"
+
+Abra o Chezweb pelo menu Iniciar e dê C-x C-f chezweb-testes/vsplit.md
+RET. A versão atual aceita caminhos do Windows e do Unix. No fim, o
+registro está em
+%USERPROFILE%\.chezemax\backdoor.txt:
+
+    copy "%USERPROFILE%\.chezemax\backdoor.txt" "%USERPROFILE%\chezweb-testes\backdoor-vsplit.txt"
+
+No passo 23, o M-x term do Windows abre o cmd: digite `dir` no lugar de
+`ls`, e pule o `seq 1 100`. No passo 31, `echo hi` funciona igual.
+
 1. M-x backdoor-claude (B/D aparece na linha de modo).
 
 ## 1. Dividir, mantendo a janela

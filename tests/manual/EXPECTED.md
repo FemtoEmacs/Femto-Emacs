@@ -14,6 +14,12 @@ passed or failed, quoting the lines that decide it. A step with no
 evidence either way (keys typed in Chrome are not recorded) is reported
 as "not shown in the record", never as passed.
 
+On Windows the files are in `%USERPROFILE%\chezweb-tests` (or
+`chezweb-testes`), and the record's header names the files in Cygwin's
+form (`/c/Users/name/...`). The header's `front end` is `terminal` or
+`gui`. In vsplit.md, M-x term opens cmd there, so the terminal's lines
+show `dir` where Linux and the Mac show `ls`.
+
 ## Reading the record
 
 AGENTS.md ("The backdoor") explains the format; in short:
