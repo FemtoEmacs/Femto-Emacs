@@ -91,6 +91,15 @@ static int complete_name(char *buf, int nbuf, int len, int again)
 	const char *name;
 
 	if (!again) cycle = -1;
+#ifdef __CYGWIN__
+	if (!again && !strcmp(completion_event, "complete-file")) {
+		if (!windows_path_to_posix(buf, nbuf)) {
+			msg("Cannot convert Windows path or filename is too long");
+			return len;
+		}
+		len = (int) strlen(buf);
+	}
+#endif
 	if (cycle < 0) {
 		size_t shared, first_len;
 		const char *first;
@@ -130,6 +139,12 @@ static int complete_filename(char *prompt, char *buf, int nbuf, int flag)
 		if (!line_edit(prompt, buf, nbuf, flag, complete_name))
 			return FALSE;
 		flag = F_NONE;              /* again: keep what was typed */
+#ifdef __CYGWIN__
+		if (!windows_path_to_posix(buf, nbuf)) {
+			msg("Cannot convert Windows path or filename is too long");
+			continue;
+		}
+#endif
 		if (buf[0] == '~' && buf[1] == '/' && getenv("HOME")) {
 			size_t home_len = strlen(getenv("HOME"));
 			if (home_len + strlen(buf + 1) >= (size_t) nbuf) {
@@ -157,6 +172,12 @@ int getfilename_default(char *prompt, char *buf, int nbuf)
     const char *home=getenv("HOME"), *path;
     int n;
     if (!buf[0]) return getfilename(prompt,buf,nbuf);
+#ifdef __CYGWIN__
+    if (!windows_path_to_posix(buf, nbuf)) {
+        msg("Cannot convert Windows path or filename is too long");
+        return FALSE;
+    }
+#endif
     if (buf[0]=='/' || (buf[0]=='~' && buf[1]=='/'))
         n=snprintf(full,sizeof full,"%s",buf);
     else {

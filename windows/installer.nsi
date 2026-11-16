@@ -24,8 +24,22 @@ Section "Chezweb"
  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Chezweb" "DisplayName" "Chezweb"
  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Chezweb" "UninstallString" '$"$INSTDIR\Uninstall.exe$"'
  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Chezweb" "InstallLocation" "$INSTDIR"
+ ClearErrors
+ ExecWait '$"$INSTDIR\bin\chezweb-user-path.exe$" add $"$INSTDIR\command$"' $0
+ IfErrors path_install_failed
+ StrCmp $0 0 path_install_done
+ path_install_failed:
+   Abort "Cannot add the Chezweb command to your PATH."
+ path_install_done:
 SectionEnd
 Section "Uninstall"
+ ClearErrors
+ ExecWait '$"$INSTDIR\bin\chezweb-user-path.exe$" remove $"$INSTDIR\command$"' $0
+ IfErrors path_remove_failed
+ StrCmp $0 0 path_remove_done
+ path_remove_failed:
+   Abort "Cannot remove the Chezweb command from your PATH."
+ path_remove_done:
  Delete "$SMPROGRAMS\Chezweb\Chezweb.lnk"
  Delete "$SMPROGRAMS\Chezweb\Chezweb GUI.lnk"
  Delete "$SMPROGRAMS\Chezweb\Uninstall.lnk"
@@ -34,6 +48,8 @@ Section "Uninstall"
  # Remove installed files only; never the user's .chezemax scripts or documents.
  RMDir /r "$INSTDIR\app"
  RMDir /r "$INSTDIR\bin"
+ Delete "$INSTDIR\command\chezweb.cmd"
+ RMDir "$INSTDIR\command"
  RMDir /r "$INSTDIR\usr"
  RMDir /r "$INSTDIR\etc"
  RMDir /r "$INSTDIR\licenses"

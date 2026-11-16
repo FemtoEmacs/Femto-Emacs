@@ -4,6 +4,9 @@
 #include <string.h>
 #include <limits.h>
 #include <unistd.h>
+#ifdef __CYGWIN__
+#include <sys/cygwin.h>
+#endif
 #ifndef PATH_MAX
 #define PATH_MAX 4096
 #endif
@@ -48,3 +51,31 @@ void file_prompt_accept(const char *path)
     snprintf(remembered,sizeof remembered,"%s",absolute);
     snprintf(last_cwd,sizeof last_cwd,"%s",cwd);
 }
+
+#ifdef __CYGWIN__
+/* Keep relative paths and ~/ editable. Let Cygwin map drives and UNC roots. */
+int windows_path_to_posix(char *path, size_t size)
+{
+    if (!*path) return 1;
+    int drive = ((path[0] >= 'A' && path[0] <= 'Z') ||
+                 (path[0] >= 'a' && path[0] <= 'z')) && path[1] == ':';
+    if (drive || path[0] == '\\') {
+        char converted[PATH_MAX];
+        size_t input_len = strlen(path);
+        if (cygwin_conv_path(CCP_WIN_A_TO_POSIX, path, converted, sizeof converted) < 0)
+            return 0;
+
+        size_t len = strlen(converted);
+        int directory = (path[input_len - 1] == '\\' || path[input_len - 1] == '/') &&
+                        len > 0 && converted[len - 1] != '/';
+        if (len + directory >= size) return 0;
+        if (directory) converted[len++] = '/';
+        converted[len] = '\0';
+        memcpy(path, converted, len + 1);
+    } else {
+        for (char *p = path; *p; p++)
+            if (*p == '\\') *p = '/';
+    }
+    return 1;
+}
+#endif

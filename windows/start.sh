@@ -9,8 +9,10 @@ export PATH="$root/bin:$root/app:$PATH"
 export HOME=$(cygpath -u "$USERPROFILE")
 export TMPDIR="$root/tmp" TERM=xterm-256color LANG=C.UTF-8
 mkdir -p "$TMPDIR"
+keep_directory=0
+if [ "${1:-}" = --keep-directory ]; then keep_directory=1; shift; fi
 editor=chezweb.exe
 if [ "${1:-}" = --gui ]; then editor=chezweb-gui.exe; shift; fi
 # Preserve the caller's directory and quote every filename argument.
-if [ "$#" -eq 0 ]; then cd "$HOME"; fi
+if [ "$#" -eq 0 ] && [ "$keep_directory" -eq 0 ]; then cd "$HOME"; fi
 exec "$root/app/$editor" "$@"

@@ -81,7 +81,7 @@ jobs:
           cd "$(cygpath -u "$GITHUB_WORKSPACE")"
           bash windows/build-installer.sh 2>&1 | tee windows-build.log
           export PATH="$PWD:$PATH"
-          make check-navigation check-utf8-input check-paste-decoder
+          make check-navigation check-utf8-input check-paste-decoder check-filename-completion
           make check-utf8-typing check-markdown-blank-newline check-bracketed-paste check-backdoor-guard check-char-width check-ghost-window check-chinese-input check-polytonic check-org-mode
       - name: Cache compiled Windows product
         if: steps.product.outputs.cache-hit != 'true'
@@ -133,6 +133,11 @@ jobs:
           $installer = "$env:GITHUB_WORKSPACE\build\windows\Chezweb-Windows-x86_64-Setup.exe"
           $p = Start-Process $installer -ArgumentList @('/S', "/D=$dest") -Wait -PassThru
           if ($p.ExitCode -ne 0) { throw 'Installer failed' }
+          $pathBeforeSmoke = [Environment]::GetEnvironmentVariable("Path", "User")
+          if (($pathBeforeSmoke -split ";") -notcontains "$dest\command") { throw "Chezweb command is absent from the user PATH" }
+          $env:PATH = "$env:SystemRoot\system32;$env:SystemRoot;$pathBeforeSmoke"
+          $version = & cmd.exe /d /c chezweb --version
+          if ($LASTEXITCODE -ne 0 -or $version -notmatch "^Chezweb ") { throw "chezweb command failed: $version" }
           $env:PATH = "$dest\bin;$dest\app;$env:SystemRoot\system32;$env:SystemRoot"
           & "$dest\bin\bash.exe" --noprofile --norc "$env:GITHUB_WORKSPACE\windows\smoke-test.sh" $dest "$env:GITHUB_WORKSPACE\build\windows\pty-test.exe"
           if ($LASTEXITCODE -ne 0) { throw 'Installed editor failed' }
@@ -153,6 +158,8 @@ jobs:
           if ($gui.ExitCode -ne 0) { throw 'GUI exit failed' }
           $u = Start-Process "$dest\Uninstall.exe" -WorkingDirectory $env:RUNNER_TEMP -ArgumentList '/S' -Wait -PassThru
           if ($u.ExitCode -ne 0) { throw 'Uninstaller failed' }
+          $pathAfter = [Environment]::GetEnvironmentVariable("Path", "User")
+          if (($pathAfter -split ";") -contains "$dest\command") { throw "Chezweb command remains on the user PATH" }
       - name: Upload failed build diagnostics
         if: failure()
         uses: actions/upload-artifact@v4

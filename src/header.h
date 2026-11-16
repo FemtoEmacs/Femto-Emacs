@@ -438,6 +438,9 @@ extern void associate_b2w(buffer_t *, window_t *);
 extern void disassociate_b(window_t *);
 extern void hijack_window(window_t *, buffer_t *);
 extern void restore_hijacked_window(window_t *);
+#ifdef __CYGWIN__
+extern int windows_path_to_posix(char *, size_t);
+#endif
 extern int getfilename(char *, char *, int);
 extern int getfilename_default(char *, char *, int);
 extern int getcommand(char *, int);

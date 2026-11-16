@@ -16,7 +16,7 @@ make -j2 SDL_CFLAGS="-I$sdl/include/SDL2 -I$ttf/include/SDL2" SDL_LIBS="-L$sdl/l
 work="$PWD/build/windows"
 stage="$work/stage"
 rm -rf "$stage"
-mkdir -p "$stage"/{app,bin,tmp,etc,licenses,usr/share/terminfo}
+mkdir -p "$stage"/{app,bin,command,tmp,etc,licenses,usr/share/terminfo}
 # Keep source and compiled WebAssembly for personal scripts. Native caches
 # are fingerprinted and validated by Wasmtime; incompatible CPUs fall back
 # to compiling the portable WebAssembly, as on macOS/Linux.
@@ -28,6 +28,8 @@ find "$stage/app" -type f \( -name '*.o' -o -name '*.a' -o -name '*.exe' \) ! -p
 mkdir -p "$stage/app/build"
 cp build/chezweb.js build/chezweb.wasm "$stage/app/build/"
 cp windows/start.sh "$stage/app/"
+awk '{printf "%s\r\n", $0}' windows/chezweb.cmd > "$stage/command/chezweb.cmd"
+gcc -O2 -Wall -Wextra windows/user-path.c -o "$stage/bin/chezweb-user-path.exe" -lshell32 -ladvapi32 -luser32
 # Bundle the basic shell tools used by the editor and by compile-scripts.
 gcc -O2 -mwindows windows/gui-launch.c -o "$stage/bin/chezweb-gui-launch.exe"
 cp "$sdl/bin/"*.dll "$ttf/bin/"*.dll "$stage/bin/"

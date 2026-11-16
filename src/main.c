@@ -120,6 +120,9 @@ int fe_main(int argc, char **argv)
 		char fname[NAME_MAX + 1];
 		/* Save filename irregardless of load() success. */
 		safe_strncpy(fname, argv[1], NAME_MAX);
+#ifdef __CYGWIN__
+		(void)windows_path_to_posix(fname, sizeof fname);
+#endif
 		make_buffer_name(bname, fname);
 		curbp = find_buffer(bname, TRUE);
 		(void)insert_file(fname, FALSE);

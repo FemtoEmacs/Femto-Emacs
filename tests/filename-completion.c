@@ -1,8 +1,12 @@
 /* Verify Save As defaults and its real completion callback without disk writes. */
 #include "header.h"
+#ifdef __CYGWIN__
+#include <sys/cygwin.h>
+#endif
 extern int getfilename_default(char *,char *,int);
 static char initial[PATH_MAX];
 static int tab_mode, completions_called, command_mode;
+static const char *file_input = "~/new-f";
 void msg(char *format,...){(void)format;}
 int call_lisp_event(char *kind,char *prefix){
  if(command_mode){assert(!strcmp(kind,"complete-command"));assert(!strcmp(prefix,"cat foo"));fe_set_completions("cat foo\\ bar");return 1;}
@@ -13,7 +17,7 @@ int line_edit(char *prompt,char *buf,int size,int flag,int (*complete)(char *,in
  (void)prompt;if(flag==F_CLEAR)buf[0]=0;snprintf(initial,sizeof initial,"%s",buf);
  assert(complete!=NULL);
  if(!tab_mode)return FALSE;
- snprintf(buf,size,"%s",command_mode?"cat foo":"~/new-f");complete(buf,size,(int)strlen(buf),0);return TRUE;
+ snprintf(buf,size,"%s",command_mode?"cat foo":file_input);if(tab_mode==1)complete(buf,size,(int)strlen(buf),0);return TRUE;
 }
 int main(void){
  char old[PATH_MAX],temp[]="/tmp/chezemax-saveas-XXXXXX",home[PATH_MAX],buf[PATH_MAX],expected[PATH_MAX];
@@ -26,6 +30,22 @@ int main(void){
  command_mode=1;tab_mode=0;assert(!getcommand(buf,sizeof buf));assert(!strcmp(initial,""));
  tab_mode=1;assert(getcommand(buf,sizeof buf));assert(!strcmp(buf,"cat foo\\ bar"));
  command_mode=0;assert(getfilename_default("Save: ",buf,sizeof buf));
+#ifdef __CYGWIN__
+ file_input="~\\new-f";
+ assert(getfilename("Find: ",buf,sizeof buf));
+ assert(!strcmp(buf,expected));
+ char windows[PATH_MAX];
+ assert(!cygwin_conv_path(CCP_POSIX_TO_WIN_A,expected,windows,sizeof windows));
+ file_input=windows;
+ tab_mode=2;
+ assert(getfilename("Find: ",buf,sizeof buf));
+ assert(!strcmp(buf,expected));
+ assert(windows_path_to_posix(windows,sizeof windows));
+ assert(!strcmp(windows,expected));
+ strcpy(windows,"folder\\child.txt");
+ assert(windows_path_to_posix(windows,sizeof windows));
+ assert(!strcmp(windows,"folder/child.txt"));
+#endif
  assert(!chdir(old));assert(!rmdir(temp));
  puts("PASS Save As: editable folder/current filename, tilde, Tab completion, cancellation; no file writes; completing command prompt accepts/cancels and preserves shell escaping");
 }

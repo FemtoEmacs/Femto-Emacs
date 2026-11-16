@@ -5,7 +5,7 @@ is retained as a merge parent and locally as archive/windows-before-chezweb.
 
 Download Chezweb-Windows-x86_64-Setup.exe from a successful **Windows installer**
 Actions run. Run it as your ordinary user; it installs under
-%LOCALAPPDATA%\Programs\Chezweb and adds a Start-menu entry and uninstaller.
+%LOCALAPPDATA%\Programs\Chezweb and adds Start-menu shortcuts and an uninstaller.
 Install current Google Chrome, launch Chezweb, then press C-c d for its browser
 editor. The terminal window remains open for shell commands and AI assistance.
 
@@ -40,3 +40,15 @@ interpreter configured in `ComSpec` (normally `cmd.exe`). This requires Windows
 10 version 1809 or later. ConPTY connects the shell to the same libvterm
 renderer used on macOS and Linux. Use `C-c C-c` to interrupt the shell,
 `C-c C-j` for copy mode, and `C-c C-k` to resume sending keys to the shell.
+
+## Paths and the command prompt
+
+In a new Command Prompt or PowerShell window, run `chezweb` to start the
+terminal editor, or `chezweb --gui` for the graphical editor. Both start in
+the shell's current folder. For example, `chezweb "C:\Users\nia\My Notes.org"`
+opens that file. The installer adds the command to your user PATH and the
+uninstaller removes its entry.
+
+File prompts accept paths such as `C:\Users\nia\My Notes.org` and
+`notes\draft.org`. Press C-u to clear the suggested path before entering
+a new one. Tab completes the path and shows it with Unix separators.

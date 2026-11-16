@@ -197,14 +197,18 @@ check-ui: chezemax chezweb browser
 	sh tests/run-command-help.sh
 	sh tests/run-compile-notification.sh
 	sh tests/run-script-installer.sh
-	$(CC) $(CPPFLAGS) $(CFLAGS) tests/filename-completion.c src/complete.c src/fileprompt.c -o tests/filename-completion-test
-	./tests/filename-completion-test
 	$(CC) $(CFLAGS) tests/fileprompt.c src/fileprompt.c -o tests/fileprompt-test
 	./tests/fileprompt-test
 	$(CC) $(CFLAGS) tests/search.c src/search.c -o tests/search-test
 	./tests/search-test
 	sh tests/provider-protocol.sh
 	sh tests/ttfy-protocol.sh
+
+.PHONY: check-filename-completion
+check-ui: check-filename-completion
+check-filename-completion:
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/filename-completion.c src/complete.c src/fileprompt.c -o tests/filename-completion-test
+	./tests/filename-completion-test
 
 # The compiler is compiled Scheme hosted by Wasmtime, independent of femtoscheme.
 schemer-compile: schemer/compiler-driver.c schemer/native-host.o schemer/native-host.h
