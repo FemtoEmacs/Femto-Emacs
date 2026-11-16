@@ -394,3 +394,9 @@ check-paste-decoder:
 	  $(CC) $(CFLAGS) $(NAV_TEST_CFLAGS) -DTERMINAL_PASTE_LIMIT=32 -Isrc tests/bracketed-paste.c tests/no-terminal.c src/command.c $(NAV_TEST_LDFLAGS) -o "$$work/check"; \
 	  "$$work/check"
 check: check-paste-decoder
+
+.PHONY: check-windows-paths
+check-windows-paths:
+	$(CC) $(CFLAGS) -DCHEZWEB_WINDOWS_PATHS tests/windows-paths.c src/fileprompt.c -o tests/windows-paths-test
+	./tests/windows-paths-test
+	rm -f tests/windows-paths-test

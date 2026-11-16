@@ -52,30 +52,39 @@ void file_prompt_accept(const char *path)
     snprintf(last_cwd,sizeof last_cwd,"%s",cwd);
 }
 
-#ifdef __CYGWIN__
-/* Keep relative paths and ~/ editable. Let Cygwin map drives and UNC roots. */
+#if defined(__CYGWIN__) || defined(CHEZWEB_WINDOWS_PATHS)
+/* Use the installer's /c drive convention if Cygwin cannot convert a path. */
 int windows_path_to_posix(char *path, size_t size)
 {
-    if (!*path) return 1;
+    size_t input_len = strlen(path);
+    if (input_len >= size) return 0;
+    if (!input_len) return 1;
     int drive = ((path[0] >= 'A' && path[0] <= 'Z') ||
                  (path[0] >= 'a' && path[0] <= 'z')) && path[1] == ':';
     if (drive || path[0] == '\\') {
+#if defined(__CYGWIN__) && !defined(CHEZWEB_WINDOWS_PATHS)
         char converted[PATH_MAX];
-        size_t input_len = strlen(path);
-        if (cygwin_conv_path(CCP_WIN_A_TO_POSIX, path, converted, sizeof converted) < 0)
+        if (cygwin_conv_path(CCP_WIN_A_TO_POSIX, path, converted, sizeof converted) == 0) {
+            size_t len = strlen(converted);
+            int directory = (path[input_len - 1] == '\\' || path[input_len - 1] == '/') &&
+                            len > 0 && converted[len - 1] != '/';
+            if (len + directory >= size || len + directory >= sizeof converted) return 0;
+            if (directory) converted[len++] = '/';
+            converted[len] = '\0';
+            memcpy(path, converted, len + 1);
+            return 1;
+        }
+#endif
+        if (drive && (input_len == 2 || path[2] == '\\' || path[2] == '/')) {
+            path[1] = path[0] >= 'A' && path[0] <= 'Z' ? path[0] + ('a' - 'A') : path[0];
+            path[0] = '/';
+        } else if (drive || path[1] != '\\') {
+            /* These forms depend on the current Windows drive or directory. */
             return 0;
-
-        size_t len = strlen(converted);
-        int directory = (path[input_len - 1] == '\\' || path[input_len - 1] == '/') &&
-                        len > 0 && converted[len - 1] != '/';
-        if (len + directory >= size) return 0;
-        if (directory) converted[len++] = '/';
-        converted[len] = '\0';
-        memcpy(path, converted, len + 1);
-    } else {
-        for (char *p = path; *p; p++)
-            if (*p == '\\') *p = '/';
+        }
     }
+    for (char *p = path; *p; p++)
+        if (*p == '\\') *p = '/';
     return 1;
 }
 #endif
