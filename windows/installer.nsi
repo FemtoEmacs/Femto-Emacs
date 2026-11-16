@@ -24,21 +24,21 @@ Section "Chezweb"
  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Chezweb" "DisplayName" "Chezweb"
  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Chezweb" "UninstallString" '$"$INSTDIR\Uninstall.exe$"'
  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Chezweb" "InstallLocation" "$INSTDIR"
- ClearErrors
- ExecWait '$"$INSTDIR\bin\chezweb-user-path.exe$" add $"$INSTDIR\command$"' $0
- IfErrors path_install_failed
+ nsExec::ExecToLog '$"$INSTDIR\bin\chezweb-user-path.exe$" add $"$INSTDIR\command$"'
+ Pop $0
  StrCmp $0 0 path_install_done
- path_install_failed:
-   Abort "Cannot add the Chezweb command to your PATH."
+ DetailPrint "Could not add Chezweb to PATH (status $0). Open Chezweb from the Start menu."
+ IfSilent path_install_done
+ MessageBox MB_OK|MB_ICONEXCLAMATION "Chezweb was installed. Setup could not add the command to your PATH (status $0). Open Chezweb from the Start menu."
  path_install_done:
 SectionEnd
 Section "Uninstall"
- ClearErrors
- ExecWait '$"$INSTDIR\bin\chezweb-user-path.exe$" remove $"$INSTDIR\command$"' $0
- IfErrors path_remove_failed
+ nsExec::ExecToLog '$"$INSTDIR\bin\chezweb-user-path.exe$" remove $"$INSTDIR\command$"'
+ Pop $0
  StrCmp $0 0 path_remove_done
- path_remove_failed:
-   Abort "Cannot remove the Chezweb command from your PATH."
+ DetailPrint "Could not remove $INSTDIR\command from PATH (status $0)."
+ IfSilent path_remove_done
+ MessageBox MB_OK|MB_ICONEXCLAMATION "The Chezweb PATH entry could not be removed (status $0). You can remove $INSTDIR\command from your user PATH."
  path_remove_done:
  Delete "$SMPROGRAMS\Chezweb\Chezweb.lnk"
  Delete "$SMPROGRAMS\Chezweb\Chezweb GUI.lnk"

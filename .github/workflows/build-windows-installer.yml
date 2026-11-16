@@ -73,6 +73,15 @@ jobs:
         if: steps.product.outputs.cache-hit != 'true'
         shell: pwsh
         run: choco install nsis --no-progress -y
+      - name: Build native installer PATH helper
+        if: steps.product.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          $target = & gcc -dumpmachine
+          if ($LASTEXITCODE -ne 0 -or $target -notmatch '^x86_64-.*mingw32$') { throw "Expected a native Windows compiler, got $target" }
+          New-Item -Force -ItemType Directory build/windows | Out-Null
+          gcc -O2 -Wall -Wextra windows/user-path.c -o build/windows/chezweb-user-path.exe -lshell32 -ladvapi32 -luser32
+          if ($LASTEXITCODE -ne 0) { throw 'Native PATH helper compilation failed' }
       - name: Build Chezweb and installer
         if: steps.product.outputs.cache-hit != 'true'
         shell: C:\cygwin64\bin\bash.exe --noprofile --norc -o igncr -eo pipefail {0}
@@ -94,6 +103,27 @@ jobs:
             build/windows/installed-packages.txt
             build/windows/SHA256SUMS
             windows-build.log
+      - name: Verify installer registers and removes the user command
+        timeout-minutes: 4
+        shell: pwsh
+        run: |
+          $dest = "$env:RUNNER_TEMP\Chezweb PATH test"
+          $installer = "$env:GITHUB_WORKSPACE\build\windows\Chezweb-Windows-x86_64-Setup.exe"
+          $before = [Environment]::GetEnvironmentVariable("Path", "User")
+          $install = Start-Process $installer -ArgumentList @('/S', "/D=$dest") -Wait -PassThru
+          if ($install.ExitCode -ne 0) { throw "Setup exited with $($install.ExitCode)" }
+          try {
+            $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+            if (($userPath -split ';') -notcontains "$dest\command") { throw "Setup did not add Chezweb to the user PATH" }
+            $env:PATH = "$env:SystemRoot\system32;$env:SystemRoot;$userPath"
+            $version = & cmd.exe /d /c chezweb --version
+            if ($LASTEXITCODE -ne 0 -or $version -notmatch '^Chezweb ') { throw "chezweb command failed: $version" }
+          } finally {
+            $uninstall = Start-Process "$dest\Uninstall.exe" -ArgumentList '/S' -Wait -PassThru
+            if ($uninstall.ExitCode -ne 0) { throw "Uninstaller exited with $($uninstall.ExitCode)" }
+          }
+          $after = [Environment]::GetEnvironmentVariable("Path", "User")
+          if ("$after" -cne "$before") { throw 'Uninstall did not restore the previous user PATH' }
       - name: Archive the matching current source
         shell: pwsh
         run: git archive --format=tar.gz -o build/windows/Chezweb-source.tar.gz HEAD

@@ -29,7 +29,13 @@ mkdir -p "$stage/app/build"
 cp build/chezweb.js build/chezweb.wasm "$stage/app/build/"
 cp windows/start.sh "$stage/app/"
 awk '{printf "%s\r\n", $0}' windows/chezweb.cmd > "$stage/command/chezweb.cmd"
-gcc -O2 -Wall -Wextra windows/user-path.c -o "$stage/bin/chezweb-user-path.exe" -lshell32 -ladvapi32 -luser32
+# Compile this registry-only helper with a native compiler so Setup can run it
+# before starting any Cygwin process.
+helper="$work/chezweb-user-path.exe"
+if [ ! -f "$helper" ]; then
+ x86_64-w64-mingw32-gcc -O2 -Wall -Wextra windows/user-path.c -o "$helper" -lshell32 -ladvapi32 -luser32
+fi
+cp "$helper" "$stage/bin/"
 # Bundle the basic shell tools used by the editor and by compile-scripts.
 gcc -O2 -mwindows windows/gui-launch.c -o "$stage/bin/chezweb-gui-launch.exe"
 cp "$sdl/bin/"*.dll "$ttf/bin/"*.dll "$stage/bin/"
