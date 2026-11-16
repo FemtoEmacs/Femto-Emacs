@@ -18,7 +18,8 @@ currently requires macOS. Windows ARM64 is not a native build target here.
 
 Settings and personal scripts stay in %USERPROFILE%\.chezemax. Uninstallation
 preserves that folder and documents. Close Chezweb before updating/uninstalling.
-Cygwin shell tools use paths such as `/c/Users/nia/Documents`. The Windows command interpreter uses paths such as `C:\Users\nia\Documents`.
+In the bundled Cygwin shell, `$HOME` points to your Windows account folder.
+In Command Prompt, `%USERPROFILE%` points to the same folder.
 The included shell tools support ordinary ls, cd and pwd commands.
 
 Maintainers: the GitHub workflow installs build dependencies, runs
@@ -45,10 +46,12 @@ renderer used on macOS and Linux. Use `C-c C-c` to interrupt the shell,
 
 In a new Command Prompt or PowerShell window, run `chezweb` to start the
 terminal editor, or `chezweb --gui` for the graphical editor. Both start in
-the shell's current folder. For example, `chezweb "C:\Users\nia\My Notes.org"`
-opens that file. The installer adds the command to your user PATH and the
-uninstaller removes its entry.
+the shell's current folder. To open a file in your Windows account folder,
+run `chezweb "%USERPROFILE%\My Notes.org"` in Command Prompt or
+`chezweb "$env:USERPROFILE\My Notes.org"` in PowerShell. Use the name of
+a file you have in that folder.
 
-File prompts accept paths such as `C:\Users\nia\My Notes.org` and
+In a Chezweb file prompt, `~/My Notes.org` refers to the same file.
+You can also enter an absolute Windows path or a relative path such as
 `notes\draft.org`. Press C-u to clear the suggested path before entering
 a new one. Tab completes the path and shows it with Unix separators.
