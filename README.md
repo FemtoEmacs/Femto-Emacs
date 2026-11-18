@@ -2,6 +2,8 @@
 Chezweb is a simpler implementation of Emacs, where simpler means fewer
 features, but also means it's easier to learn and install.
 
+The current version is [Chezweb 1.10](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/v1.10).
+
 ## Installation on Silicon macOS
 There is no macOS installer yet. On the Mac, you build Chezweb from
 its sources with one command, `make`, which takes care of everything
@@ -31,16 +33,12 @@ has the checksums. On other distributions, build from the sources, as
 explained in [Building from sources](#building-from-sources).
 
 ## Installation on Windows
-Download **Chezweb-Windows-x86_64-Setup.exe** from the
-[Chezweb 0.1 for Windows](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/chezweb-windows-0.1-2026-11-07)
-release and run it. It installs for you alone, so it does not ask for an
-administrator's password. If Windows warns that the publisher is
-unknown, click *More info*, then *Run anyway*. The Start menu then has a
-Chezweb folder with **Chezweb** (the editor in a text window), **Chezweb
-GUI** (the graphical window) and **Uninstall**. For the browser editor,
-install Google Chrome. You need no compiler. The installer is a preview,
-made on 7 November 2026: the features added since then, such as Org mode
-and Korean input, are not in it yet.
+
+[Download Chezweb 1.10 for Windows x86-64 (Setup.exe)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.10/Chezweb-Windows-x86_64-Setup.exe).
+
+Setup installs for the current Windows account and adds Chezweb, Chezweb
+GUI, and Uninstall to the Start menu. See the [Windows guide](windows/README.md)
+for browser setup and the command line.
 
 ## Building from sources
 First, the tools that every Mac and Linux machine can have:

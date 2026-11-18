@@ -51,6 +51,26 @@ async function start(name,{exists=true,filename='nia.md',commands='',initialEdit
  c=await start('closed',{commands:'keys ^Xk\nkeys \\e:(quote CLOSED-READY)\\r'});fs.writeFileSync(c.trigger,'close');await until(()=>fs.readFileSync(c.screen,'utf8').includes('CLOSED-READY'),'closed native source');assert.equal((await c.put('CLOSED SOURCE\n')).status,200);assert.equal(fs.readFileSync(c.file,'utf8'),'CLOSED SOURCE\n');await c.close();console.log('PASS with the native buffer closed, a browser save writes the file');
  c=await start('reopened',{commands:'keys ^Xk\nkeys ^X^F\nwait 100\nkeys ^A^K$FILE\\r\nkeys \\e:(quote REOPEN-READY)\\r\nawait-file $RELEASE\nkeys \\e:(list (quote SHOWN) (buffer-substring 0 (buffer-size)))\\r\nkeys ^E NATIVE^X^S\nkeys \\e:(quote NATIVE-SAVED)\\r'});fs.writeFileSync(c.trigger,'reopen');await until(()=>fs.readFileSync(c.screen,'utf8').includes('REOPEN-READY'),'native C-x k, C-x C-f');assert.equal((await c.put('REOPENED\n')).status,200);assert.equal(fs.readFileSync(c.file,'utf8'),'REOPENED\n');fs.writeFileSync(c.release,'show');await until(()=>/SHOWN "REOPENED/.test(fs.readFileSync(c.screen,'utf8')),'the reopened buffer takes the browser save');await until(()=>fs.readFileSync(c.screen,'utf8').includes('NATIVE-SAVED'),'native save of the reopened buffer');await until(async()=>(await (await fetch(c.url+'snapshot')).text()).startsWith('REOPENED NATIVE'),'the browser gets the native save of the reopened buffer');await c.close();console.log('PASS after C-x k and C-x C-f the reopened buffer is linked again, both ways');
  c=await start('versions');assert.equal((await c.put('v1\n')).status,200);assert.equal((await c.put('second browser\n','0')).status,200);assert.equal(fs.readFileSync(c.file,'utf8'),'second browser\n');await c.close();console.log('PASS the last browser C-x C-s wins, whatever version it started from');
+ // Rule 2 (17 November 2026): a native C-x C-s over a file changed on disk asks first.  A save
+ // from the browser, or into a granted folder, is Chezweb's own: the next native save must not ask.
+ c=await start('after-browser',{commands:'keys NATIVE ^X^S\nwait 300\nkeys \\e:(string-append "QX" "B1")\\r'});
+ assert.equal((await c.put('BROWSER\n')).status,200);fs.writeFileSync(c.trigger,'native');
+ await until(()=>fs.readFileSync(c.screen,'utf8').includes('QXB1'),'native save after a browser save');
+ assert(!fs.readFileSync(c.screen,'utf8').includes('changed on disk'),'a browser save was taken for another program');
+ assert.equal(fs.readFileSync(c.file,'utf8'),'NATIVE BROWSER\n');await c.close();
+ c=await start('after-refresh',{commands:'keys NATIVE ^X^S\nwait 300\nkeys \\e:(string-append "QX" "B2")\\r'});
+ fs.writeFileSync(c.file,'LOCAL HANDLE SAVE\n');assert.equal((await c.refresh()).status,200);
+ await until(async()=>await (await fetch(c.url+'snapshot')).text()==='LOCAL HANDLE SAVE\n','native refresh');
+ fs.writeFileSync(c.trigger,'native');
+ await until(()=>fs.readFileSync(c.screen,'utf8').includes('QXB2'),'native save after a granted-folder save');
+ assert(!fs.readFileSync(c.screen,'utf8').includes('changed on disk'),'a granted-folder save was taken for another program');
+ assert.equal(fs.readFileSync(c.file,'utf8'),'NATIVE LOCAL HANDLE SAVE\n');await c.close();
+ console.log('PASS after a browser save, or one into a granted folder, a native C-x C-s does not ask about the disk');
+ c=await start('other-program',{commands:'keys NATIVE ^X^S\nawait-screen save over it (y/n)\nkeys n\nwait 300\nkeys \\e:(string-append "QX" "B3")\\r',clean:false});
+ fs.writeFileSync(c.file,'OTHER PROGRAM\n');fs.writeFileSync(c.trigger,'native');
+ await until(()=>fs.readFileSync(c.screen,'utf8').includes('QXB3'),'the question about the disk');
+ assert.equal(fs.readFileSync(c.file,'utf8'),'OTHER PROGRAM\n');await c.close();
+ console.log('PASS with C-c d open, a native C-x C-s over another program\'s change asks, and n keeps it');
  console.log('PASS fixed-source native save suite');
 }finally{
  for(const r of running)if(r.proc.exitCode===null){try{fs.writeFileSync(r.release,'done');fs.writeFileSync(r.finish,'done');}catch(_){}await Promise.race([r.exited,sleep(1500)]);if(r.proc.exitCode===null)r.proc.kill('SIGTERM');}

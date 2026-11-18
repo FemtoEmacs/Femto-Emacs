@@ -475,6 +475,32 @@ char_t *get_key(keymap_t *keys, keymap_t **key_return)
             *record = '\0';
             return record;
         }
+		/*
+		 * A mouse report in the middle of a key (the mouse moved after
+		 * C-c, C-x or Esc) is dropped whole, and the key goes on, as in
+		 * Emacs.  Its bytes went in as text, "[<35;46;13M", and the
+		 * key after C-c was lost (Pedro's backdoor, 15 November 2026).
+		 */
+		if (byte == 0x1b && record > buffer) {
+			int c2 = read_key_byte();
+			if (c2 == '[') {
+				int c3 = read_key_byte();
+				if (c3 == '<') {        /* SGR: ESC [ < b ; x ; y M or m */
+					int t;
+					do t = read_key_byte(); while (t >= 0 && t != 'M' && t != 'm');
+					continue;
+				}
+				if (c3 == 'M') {        /* X10: ESC [ M b x y */
+					read_key_byte(); read_key_byte(); read_key_byte();
+					continue;
+				}
+				if (c3 >= 0) { char back[2]; back[0] = '['; back[1] = (char)c3; unread_key_bytes(back, 2); }
+				else { char back = '['; unread_key_bytes(&back, 1); }
+			} else if (c2 >= 0) {
+				char back = (char)c2;
+				unread_key_bytes(&back, 1);
+			}
+		}
 		*record++ = (unsigned)byte;
 		*record = '\0';
 

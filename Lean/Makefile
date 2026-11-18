@@ -7,6 +7,7 @@ proof:
 	$(LEAN) rdonly-tester.lean
 	$(LEAN) mv-cp-mv-paste-undo.lean
 	$(LEAN) search-return.lean
+	$(LEAN) utf8-cursor.lean
 .build/chez-tester.c: rdonly-tester.lean
 	mkdir -p .build
 	$(LEAN) -c $@ $<
@@ -42,3 +43,11 @@ search-audit:
 	$(LEAN) .build/search-audit.lean
 search-check: proof search-audit
 	sh tests/search.sh
+
+.PHONY: utf8-audit
+utf8-audit:
+	mkdir -p .build
+	cat utf8-cursor.lean > .build/utf8-audit.lean
+	printf '\n#print axioms Utf8Cursor.cursor_on_boundary\n#print axioms Utf8Cursor.readKey_valid\n#print axioms Utf8Cursor.prevSize_eq\n#print axioms Utf8Cursor.insert_wf\n#print axioms Utf8Cursor.delete_wf\n' >> .build/utf8-audit.lean
+	$(LEAN) .build/utf8-audit.lean
+audit: utf8-audit

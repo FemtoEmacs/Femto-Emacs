@@ -22,7 +22,8 @@
 ;;;;                     [ ] [X] check boxes and "term :: text" lists
 ;;;;   code              fenced ``` blocks, #+BEGIN_SRC, #+BEGIN_EXAMPLE and
 ;;;;                     ": " lines: verbatim
-;;;;   quotes            > lines, #+BEGIN_QUOTE; #+BEGIN_CENTER
+;;;;   quotes            > lines, #+BEGIN_QUOTE (quote; quotation when it has
+;;;;                     several paragraphs); #+BEGIN_CENTER
 ;;;;   tables            | tables of both (a rule under the first row makes it
 ;;;;                     the header), and Org's sexp tables, their formulas
 ;;;;                     computed, the Title: as the caption
@@ -572,6 +573,15 @@ paragraph, put first on a line by a wrap, is text (15 November 2026)."
            ((eq? dialect 'org) (lx-org-block st ls first loop))
            (else (lx-md-block st ls first loop))))))))
 
+(define (lx-quote-env lines)
+  "LaTeX's environment for a quotation of LINES: quote for one paragraph,
+quotation for several, whose paragraphs it indents as the body's
+(17 November 2026)."
+  (let loop ((ls lines) (in #f) (n 0))
+    (cond ((null? ls) (if (> n 1) "quotation" "quote"))
+          ((lx-blank? (car ls)) (loop (cdr ls) #f n))
+          (else (loop (cdr ls) #t (if in n (+ n 1)))))))
+
 (define (lx-org-block st ls first loop)
   (let* ((line (car ls)) (l (trim line)))
     (cond
@@ -588,8 +598,10 @@ paragraph, put first on a line by a wrap, is text (15 November 2026)."
               ((string=? word "EXPORT")
                (when (string-prefix? "latex" args) (for-each (lambda (x) (lx-say st x "\n")) inside) (lx-say st "\n")))
               ((string=? word "SEXP_TABLE") (lx-sexp-table st inside))
-              ((member word '("QUOTE" "CENTER" "VERSE"))
-               (let ((env (string-downcase word)))
+              ;; #+begin_quotation is LaTeX's quotation, as Org makes
+              ;; \begin{NAME} of any #+begin_NAME block
+              ((member word '("QUOTE" "QUOTATION" "CENTER" "VERSE"))
+               (let ((env (if (string=? word "QUOTE") (lx-quote-env inside) (string-downcase word))))
                  (lx-say st "\\begin{" env "}\n")
                  (lx-blocks st inside #f)
                  (lx-say st "\\end{" env "}\n\n")))
@@ -628,13 +640,14 @@ paragraph, put first on a line by a wrap, is text (15 November 2026)."
       (let ((r (lx-take-while (lambda (x) (not (lx-find x "-->" 0))) ls)))
         (loop (if (pair? (cdr r)) (cddr r) '()) #f)))
      ((string-prefix? ">" l)
-      (let ((r (lx-take-while (lambda (x) (string-prefix? ">" (trim x))) ls)))
-        (lx-say st "\\begin{quote}\n")
-        (lx-blocks st (map (lambda (x) (let* ((t (trim x)) (t (substring t 1 (string-length t))))
-                                         (if (string-prefix? " " t) (substring t 1 (string-length t)) t)))
-                           (car r))
-                   #f)
-        (lx-say st "\\end{quote}\n\n")
+      (let* ((r (lx-take-while (lambda (x) (string-prefix? ">" (trim x))) ls))
+             (inside (map (lambda (x) (let* ((t (trim x)) (t (substring t 1 (string-length t))))
+                                        (if (string-prefix? " " t) (substring t 1 (string-length t)) t)))
+                          (car r)))
+             (env (lx-quote-env inside)))
+        (lx-say st "\\begin{" env "}\n")
+        (lx-blocks st inside #f)
+        (lx-say st "\\end{" env "}\n\n")
         (loop (cdr r) #f)))
      ;; four blanks after a blank: code
      ((and (>= (lx-indent line) 4) (not first))

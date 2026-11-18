@@ -35,6 +35,7 @@ void buffer_init(buffer_t *bp)
 	bp->b_nfolds = bp->b_capfolds = 0;
 	bp->b_changes = bp->b_drawn = 0;
 	bp->b_used = 0;            /* never yet the buffer of a key */
+	bp->b_disk = 0;            /* its file: not read yet (gap.c) */
 }
 
 void zero_buffer(buffer_t *bp)

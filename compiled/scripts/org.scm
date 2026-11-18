@@ -242,6 +242,23 @@ names ending in : (Title:)."
          (j (let word ((j i)) (if (and (< j le) (not (memv (b@ text j) '(32 9)))) (word (+ j 1)) j))))
     (and (< i j) (md-code-language (bytes->string text i j)))))
 
+(define (org-code-place text ls)
+  "Inside a #+BEGIN_SRC block whose line names a language (scheme, c ...):
+(language . the index of the block's first line), else #f; TEXT runs from
+the start of the buffer to the end of the line at LS.  RET, TAB and M-;
+then follow that language there, as in a file of it (indent.scm)."
+  (let loop ((p 0) (open #f))
+    (if (>= p ls)
+        (and open (<= (cdr open) ls) open)
+        (let* ((le (org-line-end text p))
+               (first (org-skip-blanks text p le))
+               (next (+ le 1)))
+          (cond ((org-at-ci? text first le "#+BEGIN_SRC")
+                 (let ((lang (org-src-language text (+ first 11) le)))
+                   (loop next (and lang (cons lang next)))))
+                ((org-at-ci? text first le "#+END_SRC") (loop next #f))
+                (else (loop next open)))))))
+
 (define (org-paint-src! text from to colors)
   "The code of a block, [FROM, TO), in the colours of its language."
   (when (and from (< from to))
@@ -257,7 +274,10 @@ names ending in : (Title:)."
 
 (define (org-fill-refused? ls)
   "Is the line at LS an Org heading, or inside a #+BEGIN_ ... #+END_
-block (a table, code)?  Then M-q leaves it alone."
+block (a table, code, a verse)?  Then M-q leaves it alone.  A quotation,
+#+BEGIN_QUOTE or #+BEGIN_QUOTATION, is prose: M-q fills its paragraph at the cursor, between
+blank lines, and never the #+BEGIN_ and #+END_ lines (17 November
+2026)."
   (and (org-buffer-p)
        (let ((text (org-buffer-bytes)))
          (or (and (org-heading-level text ls (org-line-end text ls)) #t)
@@ -265,6 +285,8 @@ block (a table, code)?  Then M-q leaves it alone."
                (and (> p 0)
                     (let* ((s (org-line-start text (- p 1))) (e (org-line-end text s)))
                       (cond ((org-keyword-line? text s e "#+END_") #f)
+                            ((org-keyword-line? text s e "#+BEGIN_QUOTE") #f)
+                            ((org-keyword-line? text s e "#+BEGIN_QUOTATION") #f)
                             ((org-keyword-line? text s e "#+BEGIN_") #t)
                             (else (up s))))))))))
 
@@ -407,6 +429,7 @@ key did without Org."
   ;; TAB on a heading folds (org-fold.scm)
   (set! *self-insert-hook* (cons 'org-tab-key (filter (lambda (h) (not (eq? h 'org-tab-key))) *self-insert-hook*)))
   (set! *org-language* (define-language "Org" 'extensions '(".org") 'highlighter org-highlight))
+  (define-inner-language "Org" org-code-place)
   (for-each (lambda (k)
               (let ((command (org-key-command (car k) (cdr k))))
                 (hashtable-set! *org-saved-keys* (car k) (key-binding (car k)))
@@ -420,6 +443,7 @@ key did without Org."
   (fe-unfold-everywhere)                ; no text stays hidden
   (set! *languages* (filter (lambda (l) (not (eq? l *org-language*))) *languages*))
   (set! *org-language* #f)
+  (hashtable-delete! *inner-languages* "org")
   (for-each (lambda (k)
               (let ((key (car k)))
                 ;; a key bound to something else since stays as it is

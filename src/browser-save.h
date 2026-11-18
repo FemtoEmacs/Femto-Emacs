@@ -216,7 +216,9 @@ static int process_save_request(void)
    code=commit_disk(text,(size_t)length);
    if(code==200){
     remember_disk(text,(size_t)length);
-    if(attached&&replace_source(text,(size_t)length))mark_source_saved();
+    /* the native buffer has the file as written: its next C-x C-s must
+       not take this save for another program's change (gap.c) */
+    if(attached&&replace_source(text,(size_t)length)){mark_source_saved();buffer_remember_disk(source,source->b_fname);}
     remember_browser_text(text,(size_t)length);
     snprintf(message,sizeof message,"Saved %s%s%s%s",source_path,recover?"; previous native edits saved in ":"",recover?recovery_name():"",recover?".":"");
    }else snprintf(message,sizeof message,"Save failed for %s. Browser changes remain unsaved.",source_path);
@@ -245,7 +247,7 @@ static int refresh_native_file(void)
  else if(!draft||(recover&&!save_recovery(draft,n)))
   snprintf(message,sizeof message,"%s changed on disk, but the native edits could not be kept in %s: this buffer keeps them.",source_path,recovery_name());
  else if(prepare_source_import(len)&&replace_source(text,len)){
-  remember_disk(text,len);remember_browser_text(text,len);mark_source_saved();
+  remember_disk(text,len);remember_browser_text(text,len);mark_source_saved();buffer_remember_disk(source,source->b_fname);
   snprintf(message,sizeof message,"Saved from the browser; this buffer has the text%s%s%s",recover?", and the native edits are in ":"",recover?recovery_name():"",".");
  }else snprintf(message,sizeof message,"%s changed on disk, but this buffer could not take the text.",source_path);
  fe_message(message);
