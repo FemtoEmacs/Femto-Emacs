@@ -582,6 +582,13 @@ static void b_fe_fold(bridge_in *in, bridge_out *out)
 	bridge_put_int(out, (long) fe_fold(a1, a2));
 }
 
+extern long fe_utf8_fix(long on);
+static void b_fe_utf8_fix(bridge_in *in, bridge_out *out)
+{
+	long a1 = (long) bridge_int(in);
+	bridge_put_int(out, (long) fe_utf8_fix(a1));
+}
+
 extern void fe_unfold(long from, long to);
 static void b_fe_unfold(bridge_in *in, bridge_out *out)
 {
@@ -921,6 +928,7 @@ void bridge_register_editor(void)
 	bridge_register("fe-command-name", b_fe_command_name);
 	bridge_register("fe-unfold-everywhere", b_fe_unfold_everywhere);
 	bridge_register("fe-fold", b_fe_fold);
+	bridge_register("fe-utf8-fix", b_fe_utf8_fix);
 	bridge_register("fe-unfold", b_fe_unfold);
 	bridge_register("fe-folded-at", b_fe_folded_at);
 	bridge_register("fe-hidden-p", b_fe_hidden_p);

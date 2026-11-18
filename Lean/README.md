@@ -21,6 +21,32 @@ Use **M-!**, enter `lean --run 01-rdonly.lean` (or `02-gap.lean`), then press
 **C-c s**. Lean checks the proofs and interprets the simulations. Read their
 S-expression frames in `*output*`. Each file explains its model and proofs.
 
+## UTF-8 cursor boundaries
+
+`utf8-cursor.lean` specifies where the cursor may be: on a character
+boundary, never between the bytes of one character. It proves that C-f, C-b,
+C-n, C-p, typing, overwriting, C-d and backspace keep point there in
+well-formed UTF-8, over folded (hidden) text too, and that the display, which
+runs between keys, never sees half of a typed character
+(`cursor_on_boundary`). The model follows command.c, display.c, fold.c and
+key.c function by function; row wraps, widths and the goal column are left
+open, so the theorems hold for every screen. Writing it found two gaps in
+the C code, fixed on 18 November 2026: bytes that are not a complete
+character are now typed as U+FFFD, and a fold must hide whole characters.
+M-x toggle-utf8-fix turns both fixes off and on, to compare (and the
+accent motion described below); the file's last
+examples prove what went wrong without them, and `make check-stray-bytes`
+tests the editor both ways. `lean utf8-cursor.lean` checks the proofs in
+about three seconds; `make utf8-audit` lists the axioms (Lean's standard
+ones).
+
+`utf8-comb.txt` is text to move over by hand: accented letters, accents
+typed as separate characters (line 2), CJK, Korean and emoji. Open a copy of
+it. C-f, C-b, C-n, C-p, backspace and C-d must never leave the cursor inside
+a character nor leave a stray byte. C-f and C-b take a letter and the
+accent typed after it (line 2's "é") in one press, as Emacs does;
+backspace after it deletes the accent alone (`make check-accent-motion`).
+
 ## Settings in the Lean buffer
 
 ```lean

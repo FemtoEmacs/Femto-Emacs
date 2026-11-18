@@ -117,6 +117,7 @@ int fe_main(int argc, char **argv)
 		char fname[NAME_MAX + 1];
 		/* Save filename irregardless of load() success. */
 		safe_strncpy(fname, argv[1], NAME_MAX);
+		{ extern int file_path_posix(char *, int); (void) file_path_posix(fname, NAME_MAX + 1); }
 		make_buffer_name(bname, fname);
 		curbp = find_buffer(bname, TRUE);
 		(void)insert_file(fname, FALSE);

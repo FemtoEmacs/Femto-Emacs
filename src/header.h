@@ -26,7 +26,7 @@
 #define FALSE 0
 #endif
 
-#define VERSION	 "Chezweb 1.09, compiled Scheme (femtoscheme compatibility core), Public Domain"
+#define VERSION	 "Chezweb 1.10, compiled Scheme (femtoscheme compatibility core), Public Domain"
 #define EXIT_OK         0               /* Success */
 #define EXIT_ERROR      1               /* Unknown error. */
 #define EXIT_USAGE      2               /* Usage */
@@ -165,6 +165,9 @@ typedef struct buffer_t
 	unsigned long b_changes;  /* text, folds or narrowing changed (counted) */
 	unsigned long b_drawn;    /*   b_changes when b_epage was last drawn */
 	unsigned long b_used;     /* when it was last the buffer of a key (buffer.c) */
+	int b_disk;               /* its file as last read or written (gap.c): 0 unknown, */
+	long long b_disk_time;    /*   1 there (mtime in ns, size), 2 absent */
+	long long b_disk_size;
 } buffer_t;
 
 typedef struct window_t
@@ -302,8 +305,11 @@ extern int growgap(buffer_t *, point_t);
 extern point_t movegap(buffer_t *, point_t);
 extern point_t pos(buffer_t *, char_t *);
 extern char_t *ptr(buffer_t *, point_t);
+extern int accent_at(buffer_t *, point_t);  /* display.c */
+extern int utf8_fix;             /* command.c: M-x toggle-utf8-fix */
 extern int posix_file(char *);
 extern int save_buffer(buffer_t *,char *);
+extern void buffer_remember_disk(buffer_t *, const char *);
 extern int load_file(char *);
 extern int insert_file(char *, int);
 extern void append_string(buffer_t *, char *);

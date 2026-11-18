@@ -67,21 +67,32 @@ void redraw()
 	update_display();
 }
 
+/*
+ * C-f and C-b move over a letter and the combining accents after it as
+ * one character, as Emacs does (e + U+0301 is one press); backspace and C-d
+ * still delete one code point, so an accent can be removed alone.  With
+ * M-x toggle-utf8-fix off, they stop between the letter and the accent,
+ * as before 18 November 2026.
+ */
 void left()
 {
-	int n = prev_utf8_char_size();
+	do {
+		int n = prev_utf8_char_size();
 
-	while (0 < curbp->b_point && n-- > 0)
-		--curbp->b_point;
+		while (0 < curbp->b_point && n-- > 0)
+			--curbp->b_point;
+	} while (utf8_fix && 0 < curbp->b_point && accent_at(curbp, curbp->b_point));
 	if (curbp->b_nfolds) curbp->b_point = fold_skip_backward(curbp, curbp->b_point);
 }
 
 void right()
 {
-	int n = utf8_size(*ptr(curbp,curbp->b_point));
+	do {
+		int n = utf8_size(*ptr(curbp,curbp->b_point));
 
-	while ((curbp->b_point < pos(curbp, curbp->b_ebuf)) && n-- > 0)
-		++curbp->b_point;
+		while ((curbp->b_point < pos(curbp, curbp->b_ebuf)) && n-- > 0)
+			++curbp->b_point;
+	} while (utf8_fix && accent_at(curbp, curbp->b_point));
 	if (curbp->b_nfolds) curbp->b_point = fold_skip_forward(curbp, curbp->b_point);
 }
 
@@ -361,16 +372,61 @@ int read_only_refuses(void)
 }
 
 /* standard insert at the keyboard */
+/*
+ * The length of the complete UTF-8 character at S, or 0 if S does not start
+ * with one: a continuation byte alone, a lead byte without all its
+ * continuation bytes (the '\0' ends them), or a byte from 80 up that starts
+ * no character (C0, C1, F5 to FF).  Lean/utf8-cursor.lean, readKey.
+ */
+static int complete_char(const char_t *s)
+{
+	int n, k;
+
+	if (s[0] < 0x80) return 1;
+	if (s[0] < 0xC2 || s[0] > 0xF4) return 0;
+	n = utf8_size(s[0]);
+	for (k = 1; k < n; k++)
+		if ((s[k] & 0xC0) != 0x80) return 0;
+	return n;
+}
+
+/*
+ * M-x toggle-utf8-fix (emacs-keys.scm), to show what the fixes of 18
+ * November 2026 changed: 0 types stray bytes as they are, lets fe_fold take
+ * ends inside a character, and stops C-f and C-b between a letter and its
+ * combining accent, as before.
+ */
+int utf8_fix = 1;
+
+/* (fe-utf8-fix ON): 1 on, 0 off, -1 leaves it; the setting */
+long fe_utf8_fix(long on)
+{
+	if (on >= 0) utf8_fix = on != 0;
+	return utf8_fix;
+}
+
 void insert()
 {
+	static const char_t replacement[] = { 0xEF, 0xBF, 0xBD };  /* U+FFFD */
 	char_t the_char[5], old[4];
+	const char_t *in = input;
 	point_t start;
 	int bytes, replaced = 0;
 
 	if (read_only_refuses()) return;
-	bytes = utf8_size(*input);
-	if ((int)strlen((char *)input) < bytes) bytes = 1;
-	memcpy(the_char, input, (size_t)bytes);
+	/*
+	 * Only complete characters go into the text; anything else is typed
+	 * as U+FFFD.  A stray byte inserted as it is would leave the text
+	 * malformed, and C-b or C-f could then stop inside a character.
+	 */
+	if (!utf8_fix) {
+		bytes = utf8_size(*in);
+		if ((int)strlen((const char *)in) < bytes) bytes = 1;
+	} else if ((bytes = complete_char(in)) == 0) {
+		in = replacement;
+		bytes = 3;
+	}
+	memcpy(the_char, in, (size_t)bytes);
 	if (the_char[0] == '\r') the_char[0] = '\n';
 	the_char[bytes] = '\0';
 	assert(curbp->b_gap <= curbp->b_egap);
@@ -522,7 +578,12 @@ void writefile()
 {
 	safe_strncpy(response_buf, curbp->b_fname, NAME_MAX);
 	if (getfilename_default(str_write, (char*)response_buf, NAME_MAX)) {
-		if (save_buffer(curbp, response_buf) == TRUE) {
+		extern int save_overwrites;     /* gap.c: the file named is written */
+		int saved;
+		save_overwrites = 1;
+		saved = save_buffer(curbp, response_buf);
+		save_overwrites = 0;
+		if (saved == TRUE) {
 			safe_strncpy(curbp->b_fname, response_buf, NAME_MAX);
 			// FIXME - what if name already exists, in editor
 			// FIXME? - do we want to change the name of the buffer when we save_as ?

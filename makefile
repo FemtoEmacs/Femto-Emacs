@@ -328,6 +328,45 @@ check-stray-number: chezemax chezemax.wasm chezemax.cwasm
 	sh tests/stray-number.sh
 check: check-stray-number
 
+.PHONY: check-accent-motion
+check-accent-motion: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/accent-motion.sh
+check: check-accent-motion
+
+.PHONY: check-stray-bytes
+check-stray-bytes: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/stray-bytes.sh
+check: check-stray-bytes
+
+.PHONY: check-mouse-prefix
+check-mouse-prefix: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/mouse-prefix.sh
+check: check-mouse-prefix
+
+.PHONY: check-windows-paths
+check-windows-paths:
+	$(CC) $(CFLAGS) -DCHEZWEB_WINDOWS_PATHS tests/windows-paths.c src/fileprompt.c -o tests/windows-paths-test
+	./tests/windows-paths-test
+	$(CC) $(CFLAGS) tests/windows-paths.c src/fileprompt.c -o tests/windows-paths-test
+	./tests/windows-paths-test
+	rm -f tests/windows-paths-test
+check: check-windows-paths
+
+.PHONY: check-org-src-indent
+check-org-src-indent: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/org-src-indent.sh
+check: check-org-src-indent
+
+.PHONY: check-org-quote
+check-org-quote: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/org-quote.sh
+check: check-org-quote
+
+.PHONY: check-disk-changed
+check-disk-changed: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/disk-changed.sh
+check: check-disk-changed
+
 .PHONY: check-polytonic
 check-polytonic: chezemax chezemax.wasm chezemax.cwasm
 	sh tests/polytonic.sh

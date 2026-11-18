@@ -1507,3 +1507,188 @@ heading, with no item in it), a numbered line other than 1 is text.
 A heading right above the reference had also stopped the Markdown join.
 Checked on a copy of his file, with the cursor where his was: the year
 joins its line, and a second M-q changes nothing.
+
+## November 15-16, 2026. Pedro on Windows: the mouse inside a key, and paths (Claude)
+
+Pedro, who tests Chezweb 1.09 on Windows (the installer of the windows
+branch), could not get through tests/manual: the scripts' step 0 was for
+Linux and the Mac (cp -r, ~, chezweb on the PATH), and inside the editor
+only Cygwin's form of a path works (/c/Users/name, not C:\Users\name);
+other drives and network folders (/d/, //server/share) were out of reach
+for someone who does not know it. His backdoor (front end gui) showed
+that the configuration was not read (he could not put it in
+~/.chezemax), that the native window had no browser session after
+C-c d (no "chezweb:" lines after a native C-x C-s), and a bug that is not
+Windows':
+
+- #64 "C-c esc", then "[<35;46;13M" typed into the text; again at #375
+  after "esc". The window reports a mouse motion as a sequence starting
+  with Esc; when the mouse moved after C-c, C-x or Esc, the prefix took
+  the Esc, the rest of the report went in as text, and the key after the
+  prefix (C-c d) was lost. Reproduced on Linux in a terminal. Now
+  get_key drops a mouse report (SGR or X10) found inside a key, and the
+  key goes on, as in Emacs (key.c). tests/mouse-prefix.sh: C-x, motion,
+  h is C-x h; Esc, motion, f is M-f, in both encodings; C-x <left> still
+  arrives; the text is untouched. It fails with the old key.c.
+- Paths: a filename typed in Windows' form (C:\Users\name\doc.md, D:\,
+  \\server\share\x, notes\a.md) becomes Cygwin's in the file prompts, in
+  TAB completion and on the command line (file_path_posix,
+  fileprompt.c), with cygwin_conv_path on Windows and the same rule by
+  hand as its fallback; elsewhere a backslash stays a character of a
+  filename. tests/windows-paths.c, built both ways. The Windows build
+  gets it when the windows branch takes master.
+- tests/manual: step 0 for Windows in both scripts and languages (the ZIP
+  from GitHub, cmd's mkdir, copy and xcopy, the Start menu, the Unix form
+  of paths, a subfolder for Choose folder, dir for ls in M-x term).
+
+Not done here, for the windows branch: the installer puts no chezweb
+command on the PATH.
+
+## November 17, 2026. RET in an Org #+begin_src block (Claude)
+
+Eduardo: in a .scm file, RET after "(define (fib n)" indents the next
+line for Scheme; inside "#+begin_src Scheme ... #+end_src" in an Org
+file it did not. Org has no indentation rules of its own, so RET there
+was a bare newline, block or no block. Markdown already lends its ```
+blocks to their language (an inner language, md-code-place); Org now
+does the same for #+BEGIN_SRC (org-code-place, any case), and the
+indentation (indent-place, indent.scm) follows the language of the
+block, reading the block's lines alone, from its first line, as if they
+were a file of that language. So RET, TAB and the electric keys inside
+a block indent as in a .scm (or .c, .py) file; M-; comments in the
+block's language. Outside blocks, and in a block that names no language
+or one without rules, Org behaves as before. Evidence:
+tests/org-src-indent.sh (make check): the same keys in fib.scm and in an
+Org block give the same code; TAB re-indents a block line; the prose
+around is untouched. It fails with the old scripts.
+
+## November 17, 2026. Quotations: M-q and the LaTeX environment (Claude)
+
+Eduardo asked how to format an Org code block and a #+begin_quote
+block. Indentation (RET and TAB, now by the block's language) never
+decides where lines break; laying out code would need a pretty printer
+for each language, and Eduardo chose none rather than Scheme and Lisp
+alone ("exceptions are always problematic"). Quotations are prose: M-q
+refused every #+BEGIN_ block; now it fills the paragraph at the cursor
+in a #+BEGIN_QUOTE block, between blank lines, never the #+BEGIN_ and
+#+END_ lines, so a quotation can have several paragraphs (org.scm,
+org-fill-refused?). Verse, example and code blocks are still refused.
+The export wrote quote for every quotation; LaTeX's quotation is the
+environment for several paragraphs (it indents them as the body's), so
+the export writes quote for one paragraph and quotation for more, from
+Org's #+begin_quote and Markdown's > (latex-export.scm, lx-quote-env).
+Evidence: tests/org-quote.sh (make check), which fails with the old
+scripts.
+
+Later the same day: Eduardo's block was #+begin_quotation, LaTeX's name
+for a quotation of several paragraphs, and M-q still refused it ("Headings,
+tables and code are not refilled"): only #+BEGIN_QUOTE was prose. Now
+#+BEGIN_QUOTATION is too, and the export makes it \begin{quotation}, as
+Org makes \begin{NAME} of any #+begin_NAME block. tests/org-quote.sh
+checks it with his own lines.
+
+## November 17, 2026. Another program changes the file being edited (Claude)
+
+Eduardo asked what happens when another application changes the file
+being edited. Nothing was noticed: a buffer with no unsaved edits kept
+showing the old text, and C-x C-s wrote the buffer over the other
+program's change without a word. Of Emacs's two rules (ask when an
+unmodified buffer whose file changed is first edited; ask when saving
+over a file changed since it was read or saved), the first was found
+costly -- a buffer becomes modified on many paths, scripts among them,
+and the question would come in the middle of a command -- and Eduardo
+chose the second only.
+
+Each buffer keeps its file as last read or written (b_disk: the
+modification time in ns and the size, or "absent"; gap.c, insert_file
+and save_buffer). C-x C-s to the buffer's own file compares the disk
+with it and, if they differ, asks "NAME changed on disk since it was
+read or saved; save over it (y/n) ?": y writes as before, n writes
+nothing and says the file keeps the other program's version. A new
+file that another program created meanwhile is asked about too. Not in
+the browser's editor (web/, __EMSCRIPTEN__): its saves go through the
+native window, whose rule does not change ("the last C-x C-s wins").
+The only contact with the browser interaction: when the native window
+writes the file for a browser save (process_save_request) or reloads it
+after a save into a granted folder (refresh_native_file), it refreshes
+the record (buffer_remember_disk), so that its own next C-x C-s does not
+take Chezweb's save for another program's. Without those two lines the
+existing test of a reopened buffer stops at the question.
+
+Evidence: tests/disk-changed.sh (make check): a second process changes
+the file under an open buffer; n keeps it, y saves over it; unchanged
+files and new ones save without a question. chezweb-save-native.cjs:
+after a browser save, and after a granted-folder save, a native C-x C-s
+does not ask; with C-c d open, a change by another program is asked
+about. chezweb-save-roundtrip.cjs and chezweb-native.cjs pass unchanged.
+
+## November 18, 2026. A buffer older than its file said "No changes" (Claude)
+
+Eduardo edited and saved one file in Emacs and in Chezweb by turns and
+found the two showing different texts; the disk had Emacs's. Repeated
+with a disposable file: open it in Chezweb, change and save it in
+Emacs; Chezweb, with nothing to save, kept the old lines and answered
+C-x C-s with "(No changes need to be saved)". Rule 2 compared the disk
+only before a write, and an unmodified buffer writes nothing. Reloading
+unmodified buffers by themselves (Emacs's auto-revert) was judged too
+costly and too close to the browser interaction; Eduardo chose a
+message only. Now C-x C-s on a buffer with nothing to save, whose file
+changed on disk, says "NAME changed on disk; C-x C-v RET reads it
+again" and writes nothing (gap.c, save_buffer). A file whose time
+changed but not its text (touch, git, a backup tool) is compared with
+the buffer and still gives "No changes" (file_is_buffer): the browser
+suite's case of an unchanged native save caught this. No contact with
+the browser logic. Evidence: tests/disk-changed.sh, cases 4 and 5;
+chezweb-save-native.cjs, 21 checks.
+
+The message became Eduardo's: "File changed on disk; C-x C-w overwrites
+it. C-x C-v reads it again." For C-x C-w to keep that promise it skips
+the disk check (save_overwrites, set by writefile in command.c): the
+file it writes is the one named at its prompt. Eduardo found that C-x
+C-w already wrote; that held for a file opened by its short name
+(chezweb stale.txt), because C-x C-w offers the full path, and the check
+compares the two names as strings. Opened by its full path (C-x C-f
+gives one too), the names were the same, and C-x C-w repeated the
+message and wrote nothing. tests/disk-changed.sh checks both openings.
+
+## 18 Nov 2026: the Lean specification of UTF-8 cursor boundaries
+
+Lean/utf8-cursor.lean (checked by lean 4.30.0, standard axioms only)
+proves that C-f, C-b, C-n, C-p, typing, overwrite, C-d and backspace
+keep point on a character boundary in well-formed UTF-8, folds
+included, and that the display never sees half a character. Writing it
+showed two gaps in the C code: key.c and insert() insert a lone
+continuation byte, or a lead byte whose continuation bytes did not
+follow, as they are; after that C-b or C-f can stop inside a character
+(the file's last examples prove two cases). And fe_fold accepts ends
+that are not boundaries (Org's folds, newline to newline, are). The
+Lean reminder was removed from AGENTS.md.
+
+## 18 Nov 2026: stray bytes typed as U+FFFD; folds over whole characters
+
+The two gaps the Lean specification found are fixed. insert()
+(command.c, complete_char) types U+FFFD for a byte that is not a
+complete character: a continuation byte alone, a lead byte whose
+continuation bytes never came, any other byte from 80 up. fe_fold
+(fold.c) refuses a fold that starts inside a character or hides part
+of one. M-x toggle-utf8-fix (emacs-keys.scm, fe-utf8-fix) turns both
+off, to show the old behaviour. tests/stray-bytes.sh types the bytes in
+a PTY with the fix on and off and checks C-b and C-f over U+FFFD; the
+Lean model's key reader and folds were changed to match and the proofs
+checked again. 0x9A alone is the resize key, not text, and stays so.
+Lean/utf8-comb.txt is text for testing by hand. The paper
+grounding-ai.org explains the episode under "Proof with Lean".
+
+## 18 Nov 2026: C-f and C-b over combining accents, as Emacs
+
+Eduardo: in Lean/utf8-comb.txt, C-f took two presses over "é" typed as
+e + U+0301; Emacs takes one. Emacs 29 (emacs -nw -Q, in a PTY) gave
+the positions: C-f from before e goes past the accent; C-b comes back
+in one press; DEL after it deletes the accent alone; C-d on e deletes
+the e alone. right() and left() (command.c) now repeat while the
+character at point is an accent (accent_at, display.c, the test
+past_accents uses); deletion is unchanged. tests/accent-motion.sh.
+
+M-x toggle-utf8-fix now also turns off the accent motion (Eduardo could
+not show the old two presses over e + U+0301); tests/accent-motion.sh
+checks it off: 51 53 51 over n + U+0303.

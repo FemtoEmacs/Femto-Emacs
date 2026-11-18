@@ -2,6 +2,8 @@
 Chezweb is a simpler implementation of Emacs, where simpler means fewer
 features, but also means it's easier to learn and install.
 
+The current version is [Chezweb 1.10](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/v1.10).
+
 ## Installation on Silicon macOS
 There is no macOS installer yet. On the Mac, you build Chezweb from
 its sources with one command, `make`, which takes care of everything

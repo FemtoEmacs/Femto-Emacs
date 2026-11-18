@@ -78,6 +78,7 @@
 (define fe-command-name (foreign-procedure "fe-command-name" (int) string))
 (define fe-unfold-everywhere (foreign-procedure "fe-unfold-everywhere" () void))
 (define fe-fold (foreign-procedure "fe-fold" (long long) int))
+(define fe-utf8-fix (foreign-procedure "fe-utf8-fix" (long) long))
 (define fe-unfold (foreign-procedure "fe-unfold" (long long) void))
 (define fe-folded-at (foreign-procedure "fe-folded-at" (long) long))
 (define fe-hidden-p (foreign-procedure "fe-hidden-p" (long) int))

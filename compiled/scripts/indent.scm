@@ -180,11 +180,17 @@ to find a safe place to start scanning."
   (case-lambda
     ((spec) (buffer-indent-context spec (point)))
     ((spec pos)
-     (let ((size (buffer-size)))
+     (let* ((size (buffer-size))
+            (place (indent-place pos))
+            (floor (if place (cdr place) 0)))
+       (if (> floor 0)
+           ;; a block of an inner language: its text alone, from its first
+           ;; line, as if it were a buffer of that language
+           (make-context spec (buffer-bytes floor (min size (+ pos 4096))) 0 (- pos floor))
        (let loop ((look 16384))
          (let* ((from (max 0 (- pos look)))
                 (ctx (make-context spec (buffer-bytes from (min size (+ pos 4096))) from pos)))
-           (or ctx (loop (* look 4)))))))))
+           (or ctx (loop (* look 4))))))))))
 
 (define (compute-indentation ctx)
   (let ((style (hashtable-ref *indent-styles* (indent-spec-style (ictx-spec ctx)) #f)))
@@ -203,9 +209,26 @@ to find a safe place to start scanning."
 ;;; Changing the buffer
 ;;; ------------------------------------------------------------------
 
+(define (indent-place pos)
+  "(spec . start): the indentation rules at POS and where their text
+starts.  A language with rules of its own (Markdown, Scheme ...) keeps
+them for the whole buffer, from 0.  One without (Org) lends the line to
+the language of the block around it (an inner language: #+BEGIN_SRC
+scheme), whose text starts at the block's first line; outside such a
+block, #f.  RET after (define (fib n) in an Org block indented nothing
+(17 November 2026)."
+  (let* ((lang (language-for-file (or (buffer-filename) (get-buffer-name))))
+         (own (and lang (hashtable-ref *indentation* (string-downcase (language-name lang)) #f))))
+    (if own
+        (cons own 0)
+        (let* ((place (language-place pos))
+               (spec (and place (> (cdr place) 0)
+                          (hashtable-ref *indentation* (string-downcase (language-name (car place))) #f))))
+          (and spec (cons spec (cdr place)))))))
+
 (define (current-indent-spec)
-  (let ((lang (language-for-file (or (buffer-filename) (get-buffer-name)))))
-    (and lang (hashtable-ref *indentation* (string-downcase (language-name lang)) #f))))
+  (let ((place (indent-place (point))))
+    (and place (car place))))
 
 (define (use-tabs-p spec text)
   (let ((tabs (indent-spec-tabs spec)))

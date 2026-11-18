@@ -17,6 +17,7 @@
  */
 
 static const char *completion_event = "complete-file";
+extern int file_path_posix(char *, int);   /* fileprompt.c: C:\Users on Windows */
 static char *completions = NULL;     /* names separated by '\n', or NULL */
 
 void fe_set_completions(char *names)
@@ -96,6 +97,9 @@ static int complete_name(char *buf, int nbuf, int len, int again)
 		const char *first;
 
 		buf[len] = '\0';
+		/* TAB after C:\Us on Windows: complete /c/Us */
+		if (!strcmp(completion_event, "complete-file") && file_path_posix(buf, nbuf))
+			len = (int) strlen(buf);
 		free(completions);
 		completions = NULL;
 		(void) call_lisp_event((char *)completion_event, buf);
@@ -130,6 +134,7 @@ static int complete_filename(char *prompt, char *buf, int nbuf, int flag)
 		if (!line_edit(prompt, buf, nbuf, flag, complete_name))
 			return FALSE;
 		flag = F_NONE;              /* again: keep what was typed */
+		(void) file_path_posix(buf, nbuf);   /* C:\Users\... on Windows */
 		if (buf[0] == '~' && buf[1] == '/' && getenv("HOME")) {
 			size_t home_len = strlen(getenv("HOME"));
 			if (home_len + strlen(buf + 1) >= (size_t) nbuf) {

@@ -388,6 +388,11 @@ static value_t wrap_fe_fold(value_t *a, uint32_t n) {
  argcount("fe_fold", n, 2);
  return fixnum(fe_fold(tofixnum(a[0], "fe_fold"), tofixnum(a[1], "fe_fold")));
 }
+extern long fe_utf8_fix(long on);
+static value_t wrap_fe_utf8_fix(value_t *a, uint32_t n) {
+ argcount("fe_utf8_fix", n, 1);
+ return fixnum(fe_utf8_fix(tofixnum(a[0], "fe_utf8_fix")));
+}
 extern void fe_unfold(long from, long to);
 static value_t wrap_fe_unfold(value_t *a, uint32_t n) {
  argcount("fe_unfold", n, 2);
@@ -633,6 +638,7 @@ static builtinspec_t editor_builtins[] = {
  {"fe-backdoor-note", wrap_fe_backdoor_note},
  {"fe-mouse-kind", wrap_fe_mouse_kind},
  {"fe-fold", wrap_fe_fold},
+ {"fe-utf8-fix", wrap_fe_utf8_fix},
  {"fe-unfold-everywhere", wrap_fe_unfold_everywhere},
  {"fe-unfold", wrap_fe_unfold},
  {"fe-folded-at", wrap_fe_folded_at},

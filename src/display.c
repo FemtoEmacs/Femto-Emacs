@@ -102,6 +102,15 @@ static point_t past_accents(buffer_t *bp, point_t off, point_t end)
 	return off;
 }
 
+/* Is the character at OFF a combining accent (drawn on the one before)? */
+int accent_at(buffer_t *bp, point_t off)
+{
+	char_t *p;
+
+	return off < document_size(bp) && (p = ptr(bp, off)) < bp->b_ebuf &&
+	       *p >= 0xC0 && char_width(code_point_at(bp, off)) == 0;
+}
+
 /*
  * Forward scan for start of logical line segment containing 'finish'.
  * A segment of a logical line corresponds to a physical screen line.

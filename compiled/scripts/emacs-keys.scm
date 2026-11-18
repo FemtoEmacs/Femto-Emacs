@@ -1068,6 +1068,17 @@ deactivates the region."
                          (else (get-key-binding)))))
         (message (value->string k) " inserts itself"))))
 
+(defcommand (toggle-utf8-fix)
+  "Turn the UTF-8 fixes of 18 November 2026 off or on, to compare.  Off, as
+before: C-f and C-b stop between a letter and the accent typed after it, a
+byte that is not a complete character is typed as it is, and a fold may end
+inside a character.  On: one press over letter and accent, the byte typed as
+U+FFFD, such a fold refused (Lean/utf8-cursor.lean)."
+  (let ((on (= (fe-utf8-fix (if (= (fe-utf8-fix -1) 1) 0 1)) 1)))
+    (message (if on
+                 "UTF-8 fixes on: C-f passes letter and accent at once; stray bytes become U+FFFD"
+                 "UTF-8 fixes off: C-f stops before an accent; stray bytes go in as they are"))))
+
 (defcommand (eval-expression)
   "M-:: evaluate a Scheme expression typed on the message line."
   (let ((e (prompt "Eval: " "")))

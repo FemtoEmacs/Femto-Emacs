@@ -141,6 +141,73 @@ static int make_parent_folders(char *fn)
 	return (TRUE);
 }
 
+/*
+ * Another program may change the file while it is open here.  Emacs's
+ * rule, the second of its two (17 November 2026): C-x C-s over a file
+ * changed on disk since it was read or saved asks first, instead of
+ * writing over the other program's change without a word.  The buffer
+ * keeps the file as last read or written: its modification time and
+ * size.  Not in the browser's editor (web/), whose saves go through the
+ * native window, as before; the native window refreshes this record when
+ * it writes or reloads the file for the browser (browser-save.h).
+ */
+static long long file_time_ns(const struct stat *sb)
+{
+#if defined(__APPLE__)
+	return (long long) sb->st_mtimespec.tv_sec * 1000000000LL + sb->st_mtimespec.tv_nsec;
+#else
+	return (long long) sb->st_mtim.tv_sec * 1000000000LL + sb->st_mtim.tv_nsec;
+#endif
+}
+
+void buffer_remember_disk(buffer_t *bp, const char *fn)
+{
+	struct stat sb;
+	if (bp == NULL || fn == NULL || !*fn) return;
+	if (stat(fn, &sb) == 0 && S_ISREG(sb.st_mode)) {
+		bp->b_disk = 1;
+		bp->b_disk_time = file_time_ns(&sb);
+		bp->b_disk_size = (long long) sb.st_size;
+	} else
+		bp->b_disk = 2;
+}
+
+#ifndef __EMSCRIPTEN__
+/* Has FN changed on disk since BP last read or wrote it? */
+static int disk_changed(buffer_t *bp, const char *fn)
+{
+	struct stat sb;
+	int there = stat(fn, &sb) == 0 && S_ISREG(sb.st_mode);
+	if (bp->b_disk == 2) return there;
+	if (bp->b_disk != 1) return 0;
+	return !there || file_time_ns(&sb) != bp->b_disk_time || (long long) sb.st_size != bp->b_disk_size;
+}
+#endif
+
+/* C-x C-w writes the file it names, whatever the disk holds: the
+ * message about a file changed on disk points to it (command.c). */
+int save_overwrites = 0;
+
+/* Does FN hold exactly the text of BP?  A file whose time changed but
+ * not its text (touch, a backup tool, git) is not another version. */
+static int file_is_buffer(buffer_t *bp, const char *fn)
+{
+	FILE *fp;
+	point_t size = document_size(bp), at = 0;
+	char chunk[8192];
+	size_t got;
+	int same = 1;
+	struct stat sb;
+	if (stat(fn, &sb) != 0 || (long long) sb.st_size != (long long) size) return 0;
+	if ((fp = fopen(fn, "rb")) == NULL) return 0;
+	while (same && (got = fread(chunk, 1, sizeof chunk, fp)) > 0) {
+		for (size_t i = 0; i < got; i++, at++)
+			if (at >= size || (char) *ptr(bp, at) != chunk[i]) { same = 0; break; }
+	}
+	fclose(fp);
+	return same && at == size;
+}
+
 int save_buffer(buffer_t *bp, char *fn)
 {
 	FILE *fp;
@@ -148,8 +215,19 @@ int save_buffer(buffer_t *bp, char *fn)
 	struct stat saved_file;
 
 	/* Save As and a never-created file still need an actual write. */
-	if (!(bp->b_flags & B_MODIFIED) && !strcmp(fn, bp->b_fname) &&
+	if (!save_overwrites && !(bp->b_flags & B_MODIFIED) && !strcmp(fn, bp->b_fname) &&
 	    stat(fn, &saved_file) == 0 && S_ISREG(saved_file.st_mode)) {
+#ifndef __EMSCRIPTEN__
+		/* Nothing to write, but another program changed the file: this
+		 * buffer shows an older text, and "No changes" hid it (Emacs
+		 * saved, Chezweb kept the old lines; 18 November 2026).  Only
+		 * said; the buffer is reloaded by hand, with C-x C-v. */
+		if (disk_changed(bp, fn) && !file_is_buffer(bp, fn)) {
+			msg("File changed on disk; C-x C-w overwrites it. C-x C-v reads it again.");
+			return TRUE;
+		}
+		buffer_remember_disk(bp, fn);   /* only touched (touch, git): the same text */
+#endif
 		msg("(No changes need to be saved)");
 		return TRUE;
 	}
@@ -157,6 +235,20 @@ int save_buffer(buffer_t *bp, char *fn)
 		msg(m_badname);
 		return (FALSE);
 	}
+#ifndef __EMSCRIPTEN__
+	if (!save_overwrites && !strcmp(fn, bp->b_fname) && disk_changed(bp, fn)) {
+		char question[NAME_MAX + 80];
+		const char *name = strrchr(fn, '/');
+		snprintf(question, sizeof question, "%s changed on disk since it was read or saved; save over it (y/n) ?",
+			 name ? name + 1 : fn);
+		screen_mvaddstr(MSGLINE, 0, question);
+		screen_clrtoeol();
+		if (!yesno(FALSE)) {
+			msg("Not saved: %s keeps the other program's version", name ? name + 1 : fn);
+			return (FALSE);
+		}
+	}
+#endif
 	fp = fopen(fn, "wb");
 	if (fp == NULL && errno == ENOENT && make_parent_folders(fn))
 		fp = fopen(fn, "wb");
@@ -180,6 +272,7 @@ int save_buffer(buffer_t *bp, char *fn)
  }
 	delete_mode(bp, B_MODIFIED);
 	record_change(bp, 's', 0, NULL, 0);
+	buffer_remember_disk(bp, fn);     /* the file is now this text */
 	if (!strcmp(fn, bp->b_fname)) {
 		extern void chezweb_saved(buffer_t *);
 		chezweb_saved(bp);
@@ -212,6 +305,7 @@ int insert_file(char *fn, int modflag)
 	struct stat sb;
 
 	if (stat(fn, &sb) < 0) {
+		if (!modflag) curbp->b_disk = 2;      /* a new file: not on disk yet */
 		msg(m_stat, fn);
 		return (FALSE);
 	}
@@ -235,6 +329,11 @@ int insert_file(char *fn, int modflag)
 		return (FALSE);
 	}
 	curbp->b_flags &= (modflag ? B_MODIFIED : ~B_MODIFIED);
+	if (!modflag && S_ISREG(sb.st_mode)) {   /* visiting FN: the file as read */
+		curbp->b_disk = 1;
+		curbp->b_disk_time = file_time_ns(&sb);
+		curbp->b_disk_size = (long long) sb.st_size;
+	}
 	msg(m_loaded, fn, len);
 	return (TRUE);
 }

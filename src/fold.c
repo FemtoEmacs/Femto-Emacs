@@ -121,6 +121,12 @@ void fold_change(buffer_t *bp, int kind, point_t pos, long len)
 	}
 }
 
+/* Is the byte at P a UTF-8 continuation byte (80 to BF)? */
+static int is_continuation(buffer_t *bp, point_t p)
+{
+	return (*ptr(bp, p) & 0xC0) == 0x80;
+}
+
 /* (fe-fold A B): hide [A, B] of the current buffer; 1 done, 0 if the
  * range is not in the text */
 int fe_fold(long a, long b)
@@ -128,6 +134,14 @@ int fe_fold(long a, long b)
 	point_t size = document_size(curbp);
 
 	if (a < 0 || b <= a || b >= size) return 0;
+	/*
+	 * The hidden bytes a + 1 .. b must be whole characters, and a itself
+	 * a character's start: C-b lands on a (Lean/utf8-cursor.lean,
+	 * FoldOK).  Org's folds, from newline to newline, always are.
+	 */
+	if (utf8_fix && (is_continuation(curbp, a) || is_continuation(curbp, a + 1) ||
+	    (b + 1 < size && is_continuation(curbp, b + 1))))
+		return 0;
 	if (curbp->b_nfolds == curbp->b_capfolds) {
 		int cap = curbp->b_capfolds ? 2 * curbp->b_capfolds : 16;
 		fold_t *f = realloc(curbp->b_folds, (size_t) cap * sizeof *f);
