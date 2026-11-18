@@ -28,6 +28,62 @@ Two requirements of the specification, which the C code did not meet:
 Both are now in the C code (`insert` in command.c, `fe_fold` in fold.c);
 M-x toggle-utf8-fix turns them off, to see the old behaviour.
 
+How the model found the two bugs
+--------------------------------
+
+Nobody reported them, and no test had shown them. They came out of the
+proofs, in this way.
+
+A Lean theorem has hypotheses: what must be true before it can be proved.
+When a programmer writes a theorem about a model of a C function and the
+proof will not go through, there are two possibilities: either the proof
+was not found, or the statement is false without an additional hypothesis.
+Lean shows the goals it cannot close, which are the facts still missing,
+and it accepts no fact that is neither proved nor stated as a hypothesis.
+So each proof ends with a precise list of what the C function needs from
+its caller.
+
+1. Typing. The theorem `insert_wf` says: inserting bytes at a boundary of
+   well-formed text gives well-formed text. It is false for arbitrary bytes:
+   inserting the single byte 80 after "a" gives "a" followed by a
+   continuation byte that belongs to no character. The proof needs the
+   hypothesis `ValidChar c`: the inserted bytes are one complete character.
+   Then the question becomes: does the C code guarantee `ValidChar` for
+   every key it inserts? To answer, the programmer modelled the key reader
+   of key.c, as it was, in `readKeyC`, and looked at what it can return.
+   It returns `[0x80]` for a lone continuation byte and `[0xE2]` for E2
+   not followed by its two continuation bytes: neither is a `ValidChar`.
+   So the final theorem, `cursor_on_boundary`, could not be proved for the
+   editor as it was. The examples at the end of this file make the consequence
+   concrete: Lean computes the text after the insertion and finds that C-b,
+   or C-f, lands on a byte that is not a boundary. Those two examples are
+   checked by `decide`, that is, by running the model, so they are facts about
+   the model, and they correspond line by line to command.c (`left`, `right`)
+   and key.c.
+
+   The repair has to establish the missing hypothesis. `readKey` is the
+   reader the specification asks for (stray bytes become U+FFFD), and
+   `readKey_valid` proves that every key it delivers is a `ValidChar`. With
+   it, every step of `cursor_on_boundary` goes through. The C code was then
+   changed to do what `readKey` does (`complete_char` in command.c).
+
+2. Folds. `skipFwd_boundary` says: skipping over folded text from a
+   boundary lands on a boundary. Its proof needs every fold to end just
+   before a boundary (`FoldOK`): C-f jumps to the byte after the fold. The
+   C function that creates folds, `fe_fold`, checked only that the range was
+   inside the text, so nothing established `FoldOK`. Org's folds always
+   satisfy it (`newline_fold`), which is why no user saw the gap; a script
+   could have folded from the middle of a character. While writing the C
+   check, a test of it (`fe-fold 2 3` over "é") showed one more case: a fold
+   whose ends are boundaries but which hides only the second byte of "é".
+   So `FoldOK` also requires the first hidden byte to be a boundary (`ba1`),
+   and the proofs were redone with it.
+
+In both cases the bug is a hypothesis that a proof needs and that the C
+code did not provide. This is the use of the model: the proof forces every
+assumption about the inputs to be written down, and each written assumption
+can be checked against the C code.
+
 Check: lean utf8-cursor.lean (core Lean 4.30.0, no Mathlib); make utf8-audit
 lists the axioms.
 -/
@@ -53,9 +109,21 @@ structure Text where
   len : Nat
   byte : Nat → Nat
 
+/-- A character boundary: the cursor may be at byte offset `i`. In UTF-8 the
+continuation bytes (80 to BF) are exactly the bytes that do not start a
+character, so `i` is a boundary when it is the end of the text or the byte
+at `i` is not a continuation byte. Example: "aé" is 61 C3 A9; the
+boundaries are 0, 1 and 3; offset 2 is between the two bytes of é. -/
 def Boundary (t : Text) (i : Nat) : Prop :=
   i = t.len ∨ (i < t.len ∧ isCont (t.byte i) = false)
 
+/-- Well-formed UTF-8, as the movement commands need it: the text does not
+start with a continuation byte, and every lead byte is followed by as many
+continuation bytes as it announces (`size`), then by a boundary. C-f trusts
+the lead byte (it steps `utf8_size` bytes) and C-b trusts the bytes before
+point (`prev_utf8_char_size`); both are correct only in a well-formed text.
+That is why every editing command must keep `WF`, and why a single stray
+byte breaks the movement commands afterwards. -/
 structure WF (t : Text) : Prop where
   first : 0 < t.len → isCont (t.byte 0) = false
   fits  : ∀ i, i < t.len → isCont (t.byte i) = false → i + size (t.byte i) ≤ t.len
@@ -148,7 +216,12 @@ theorem cont_at {t : Text} (w : WF t) {j p : Nat} (hj : j < t.len)
   have : j + (p - j) = p := by omega
   rwa [this] at hc
 
-/-- `prev_utf8_char_size` finds the character before a boundary. -/
+/-- `prev_utf8_char_size` finds the character before a boundary. The C
+function looks back 2, 3 and 4 bytes for a lead byte announcing that many
+bytes, and otherwise steps back one byte. This is right only in well-formed
+text (hypothesis `w`): in "a" followed by a stray 80, at the end, it finds no
+lead byte and steps back one byte, onto the 80, which is not a boundary
+(the first example at the end of this file). -/
 theorem prevSize_eq {t : Text} (w : WF t) {p j : Nat} (hj : j < p) (hjl : j < t.len)
     (hl : isCont (t.byte j) = false) (he : j + size (t.byte j) = p) :
     prevSize t p = size (t.byte j) := by
@@ -217,7 +290,9 @@ theorem stepLeft_boundary {t : Text} (w : WF t) {p : Nat} (hb : Boundary t p) :
 /-! ## Inserting a complete character, deleting a whole one -/
 
 /-- The bytes of one complete character: a lead byte saying how many follow,
-then that many continuation bytes (key.c reads them as one input event). -/
+then that many continuation bytes (key.c reads them as one input event).
+This is the hypothesis `insert_wf` needs and the C code did not guarantee:
+see "How the model found the two bugs" at the top of this file. -/
 structure ValidChar (c : List Nat) : Prop where
   lead  : isCont (c.getD 0 0) = false
   len   : c.length = size (c.getD 0 0)
@@ -267,7 +342,14 @@ theorem ins_shift {j : Nat} (hb : Boundary t j) (h : i ≤ j) :
   · refine Or.inr ⟨by simp only [insertAt]; omega, ?_⟩
     rw [ins_ge (by omega), Nat.add_sub_cancel]; exact hl
 
-/-- Inserting a complete character at a boundary keeps the text well formed. -/
+/-- Inserting a complete character at a boundary keeps the text well formed.
+
+The three hypotheses are what `insert` needs. `w`: the text was well
+formed. `hb`: point is on a boundary, so the insertion does not split a
+character. `vc`: the inserted bytes are one complete character. Without
+`vc` the statement is false: inserting [0x80] after "a" leaves a
+continuation byte that belongs to no character. Looking for who provides
+`vc` led to the key reader (`readKeyC`), which did not. -/
 theorem insert_wf (w : WF t) (hb : Boundary t i) (vc : ValidChar c) : WF (insertAt t i c) := by
   have hi := boundary_le hb
   have hk := size_pos (c.getD 0 0)
@@ -428,7 +510,14 @@ structure Fold where
 
 /-- What a fold must satisfy: it starts on a boundary and hides whole
 characters. Org's folds run from newline to newline, which gives this
-(`newline_fold`); `fe_fold` checks it. -/
+(`newline_fold`); `fe_fold` checks it since 18 November 2026.
+
+Why each field: C-b out of a fold goes to `a` (`ba`); C-f out of it goes to
+`b + 1` (`bb`); and the hidden bytes must begin with a whole character
+(`ba1`), otherwise a fold over "é" could hide its second byte alone, and the
+screen would draw half of a character. `ba` and `bb` were the hypotheses of
+`skipBack_boundary` and `skipFwd_boundary` that `fe_fold` did not check;
+`ba1` came from testing that check in the C code. -/
 structure FoldOK (t : Text) (f : Fold) : Prop where
   ab : f.a < f.b
   bl : f.b < t.len
@@ -480,6 +569,10 @@ theorem outermost_mem : ∀ {fs : List Fold} {p : Nat} {f : Fold},
       · cases h; exact List.mem_cons_self
       · cases h; exact List.mem_cons_of_mem _ (ih (by assumption))
 
+/-- C-f over hidden text lands on a boundary, provided every fold is
+`FoldOK` (hypothesis `hf`). The proof uses only `bb`: the jump goes to the
+byte after the fold. Nothing in fold.c established `bb` for a fold made by a
+script; that missing hypothesis is the second bug. -/
 theorem skipFwd_boundary {t : Text} {fs : List Fold} (hf : ∀ f ∈ fs, FoldOK t f) :
     ∀ n p, Boundary t p → Boundary t (skipFwd fs n p) := by
   intro n
@@ -492,6 +585,8 @@ theorem skipFwd_boundary {t : Text} {fs : List Fold} (hf : ∀ f ∈ fs, FoldOK 
     · exact h
     · exact ih _ (hf _ (outermost_mem (by assumption))).bb
 
+/-- C-b over hidden text lands on a boundary: it goes to the fold's start
+`a`, which `FoldOK` requires to be a boundary (`ba`). -/
 theorem skipBack_boundary {t : Text} {fs : List Fold} (hf : ∀ f ∈ fs, FoldOK t f) :
     ∀ n p, Boundary t p → Boundary t (skipBack fs n p) := by
   intro n
@@ -871,7 +966,9 @@ theorem takeConts_cont : ∀ n bs, ∀ x ∈ (takeConts n bs).1, isCont x = true
 def replacement : List Nat := [0xEF, 0xBF, 0xBD]
 
 /-- The key reader as key.c has it, with `insert` before the fix (and with
-toggle-utf8-fix off): a lead byte from C2 to F4 takes its continuation
+toggle-utf8-fix off). This is where the first bug became visible: its
+results are not all `ValidChar`, so `insertChar_inv`, which needs one, cannot
+be applied to every key it returns. a lead byte from C2 to F4 takes its continuation
 bytes; if one is missing, only the lead byte is inserted; any other byte is
 a key by itself, inserted as it is. -/
 def readKeyC : List Nat → Option (List Nat × List Nat)
@@ -909,7 +1006,10 @@ theorem validChar_cons {b : Nat} {cs : List Nat} (hl : isCont b = false)
 theorem replacement_valid : ValidChar replacement :=
   validChar_cons (by decide) (by decide) (by decide)
 
-/-- Every key the specified reader delivers is one complete character. -/
+/-- The repair, stated as a theorem: with the specified reader, the
+hypothesis `vc` of `insert_wf` holds for every key. `cursor_on_boundary`
+uses this theorem for `Cmd.type` and `Cmd.overwrite`; with `readKeyC` in its
+place, the proof could not be completed. -/
 theorem readKey_valid {bs c rest : List Nat} (h : readKey bs = some (c, rest)) : ValidChar c := by
   cases bs with
   | nil => simp [readKey] at h
@@ -1042,7 +1142,13 @@ theorem run_inv (c : Cmd) {s : State} (h : Inv s) : Inv (c.run s) := by
 /-- **The specification.** From a well-formed state, whatever commands run,
 every state the display can observe has point on a character boundary, the
 text well formed and every fold over whole characters, hidden text included.
-In particular the display never sees half of a typed character. -/
+In particular the display never sees half of a typed character.
+
+The proof goes command by command (`states_inv`), and each command's theorem
+asks for its hypotheses: `ValidChar` for each typed key (given by
+`readKey_valid`), `FoldOK` for each fold (given by the check in `Cmd.fold`,
+as in `fe_fold`). These are the only places where the editor's inputs come
+in, and they are where the two bugs were. -/
 theorem cursor_on_boundary : ∀ (cs : List Cmd) (s : State), Inv s →
     ∀ s' ∈ observed cs s, Boundary s'.text s'.point ∧ WF s'.text := by
   intro cs
@@ -1061,7 +1167,16 @@ theorem cursor_on_boundary : ∀ (cs : List Cmd) (s : State), Inv s →
 
 key.c passes a continuation byte alone, and a lead byte whose continuation
 bytes do not follow, to `insert`, which inserted them. The text was then no
-longer UTF-8, and C-b and C-f could stop inside a character. -/
+longer UTF-8, and C-b and C-f could stop inside a character.
+
+These examples turn the missing hypothesis into two concrete failures.
+Each one is a computation: `decide` evaluates the model on these bytes and
+checks the result. The first two steps are those of key.c (`readKeyC`); the
+movement is that of command.c (`stepLeft` is `left`, `stepRight` is
+`right`). The same bytes are typed into the real editor by
+tests/stray-bytes.sh, which checks that they now become U+FFFD; with M-x
+toggle-utf8-fix off, the editor shows the old behaviour these examples
+describe. -/
 
 /-- "a", point after it. -/
 def textA : Text := ⟨1, fun j => if j = 0 then 97 else 0⟩
@@ -1069,7 +1184,10 @@ def textA : Text := ⟨1, fun j => if j = 0 then 97 else 0⟩
 /-- A lone continuation byte (0x80), typed after "a", is inserted ... -/
 example : readKeyC [0x80] = some ([0x80], []) := by decide
 
-/-- ... and C-b from the end stops at the 0x80, which is not a boundary. -/
+/-- ... and C-b from the end stops at the 0x80, which is not a boundary.
+The text is now 61 80: `prev_utf8_char_size` at offset 2 finds no lead byte
+of size 2 at offset 0 ("a" has size 1), so it steps back one byte, to
+offset 1, where the stray continuation byte is. -/
 example : ¬ Boundary (insertAt textA 1 [0x80]) (stepLeft (insertAt textA 1 [0x80]) 2) := by decide
 
 /-- "aé" (61 C3 A9). -/
@@ -1078,7 +1196,10 @@ def textAE : Text := ⟨3, fun j => if j = 0 then 97 else if j = 1 then 0xC3 els
 /-- E2 followed by "a": key.c keeps only E2 ... -/
 example : readKeyC [0xE2, 97] = some ([0xE2], [97]) := by decide
 
-/-- ... inserted before "aé", C-f from it jumps three bytes, into é. -/
+/-- ... inserted before "aé", C-f from it jumps three bytes, into é.
+The text is now E2 61 C3 A9. E2 announces a three-byte character, so C-f
+steps three bytes, over "a" and the first byte of é, to offset 3: the
+middle of é. -/
 example : ¬ Boundary (insertAt textAE 0 [0xE2]) (stepRight (insertAt textAE 0 [0xE2]) 0) := by decide
 
 /-- The specified reader turns both into U+FFFD. -/
