@@ -6,7 +6,8 @@ work=$(mktemp -d "${TMPDIR:-/tmp}/chezweb-edit-test.XXXXXX")
 trap 'rm -rf "$work"' EXIT HUP INT TERM
 cc -O2 tests/pty-keys.c -o "$work/pty"
 mkdir "$work/docs"
-printf 'αβ🙂 first\r\nsecond line\nlast without newline' > "$work/docs/a.md"
+# line 2 has accents typed after their letters (e + U+0301, n + U+0303)
+printf 'αβ🙂 first\r\nsecond e\314\201 n\314\203 line\nlast without newline' > "$work/docs/a.md"
 printf 'a\nb\nc\n' > "$work/docs/b.markdown"
 cp -R "$work/docs" "$work/original"
 sed -e 's/def repetitions : Nat := 1000/def repetitions : Nat := 100/' \

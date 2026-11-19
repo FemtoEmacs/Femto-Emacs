@@ -949,7 +949,7 @@ void modeline(window_t *wp)
 
 		if (modeline_hook != NULL &&
 		    modeline_hook(name, wp->w_bufp->b_fname, wp->w_bufp->b_bname,
-				  line_number(wp->w_bufp, point), flags, cols,
+				  (int) (line_number(wp->w_bufp, point) + wp->w_bufp->b_line_base), flags, cols,
 				  pieces, (int) sizeof(pieces)) > 0) {
 			paint_pieces(pieces, row, e, cols, lch);
 			return;
@@ -959,12 +959,12 @@ void modeline(window_t *wp)
 	if (hint != NULL)
 		snprintf(modeline_buf, sizeof(modeline_buf), "Chezemax: %s%s%s, L. %d%s %c%c %s ",
 			 name, mch == '*' ? "*" : "", och == 'O' ? " [overwrite]" : "",
-			 line_number(wp->w_bufp, point), backdoor_on ? " B/D" : "", lch, lch, hint);
+			 (int) (line_number(wp->w_bufp, point) + wp->w_bufp->b_line_base), backdoor_on ? " B/D" : "", lch, lch, hint);
 	else
 		snprintf(modeline_buf, sizeof(modeline_buf), "Chezemax: %s %c%c %s%s%s, L. %d%s %c%c %s ",
 			 modeline_help, lch, lch, name, mch == '*' ? "*" : "",
 			 och == 'O' ? " [overwrite]" : "",
-			 line_number(wp->w_bufp, point), backdoor_on ? " B/D" : "", lch, lch, modeline_tail);
+			 (int) (line_number(wp->w_bufp, point) + wp->w_bufp->b_line_base), backdoor_on ? " B/D" : "", lch, lch, modeline_tail);
 	/* too wide: "Ctrl-h" becomes "C-h", "Ctrl c r" "C-c r", then the end is cut */
 	if ((int) strlen(modeline_buf) > cols) {
 		char *p;

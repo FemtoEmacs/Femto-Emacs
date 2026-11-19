@@ -123,6 +123,12 @@ typing or deleting; true if joined."
         (vector-set! h 2 (history-actual-bytes h))
         (loop)))))
 
+;;; C-x i asks before it inserts a file of N bytes (src/command.c,
+;;; insertfile): a change larger than the history keeps could not be undone,
+;;; and dropping it would take the older history with it.
+(define (undo-fits? n)
+  (or (not *undo-mode*) (not n) (<= n (max 0 *undo-limit*))))
+
 (define (record-change id kind pos text)
   "The C core's report (src/undo.c): KIND is 105 #\\i (TEXT inserted at
 POS), 100 #\\d (deleted), 114 #\\r (replaced wholesale: forget) or 115

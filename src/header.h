@@ -26,7 +26,7 @@
 #define FALSE 0
 #endif
 
-#define VERSION	 "Chezweb 1.10, compiled Scheme (femtoscheme compatibility core), Public Domain"
+#define VERSION	 "Chezweb 1.12, compiled Scheme (femtoscheme compatibility core), Public Domain"
 #define EXIT_OK         0               /* Success */
 #define EXIT_ERROR      1               /* Unknown error. */
 #define EXIT_USAGE      2               /* Usage */
@@ -168,6 +168,9 @@ typedef struct buffer_t
 	int b_disk;               /* its file as last read or written (gap.c): 0 unknown, */
 	long long b_disk_time;    /*   1 there (mtime in ns, size), 2 absent */
 	long long b_disk_size;
+	struct shard_t *b_shard;  /* shard.c: a file too large to hold, or NULL */
+	char b_shard_label[24];   /*   " [3/41]" in the mode line */
+	long b_line_base;         /*   lines of the file before this shard */
 } buffer_t;
 
 typedef struct window_t
@@ -384,12 +387,31 @@ extern void redraw(void);
 extern void i_readfile(void);
 extern void insertfile(void);
 extern void right(void);
+extern void forward_character(void);
+extern void backward_character(void);
 extern void version(void);
 extern char *get_version_string();
 extern void writefile(void);
 extern void savebuffer(void);
 extern void clear_buffer(void);
 extern void zero_buffer(buffer_t *);
+/* shard.c */
+extern long shard_threshold, shard_bytes;
+extern int shard_wanted(const char *);
+extern int shard_open(buffer_t *, const char *);
+extern void shard_free(buffer_t *);
+extern int shard_current(buffer_t *);
+extern int lisp_events_present(void);   /* interface.c */
+#define INSERT_UNRECORDED 2   /* insert_file: changed, undo off (not reported) */
+extern void record_change_unreported(buffer_t *, int, point_t, long);
+extern int undo_recording;              /* undo.c: *undo-mode*, as the scripts last said */
+extern int shard_others_edited(buffer_t *);
+extern int shard_switch(buffer_t *, int, int);
+extern int shard_save(buffer_t *, char *);
+extern int shard_goto_line(int);
+extern int shard_search_forward(const char *);
+extern void shard_next(void), shard_previous(void), shard_goto(void), find_file_shards(void);
+extern void shard_first(void), shard_last(void);
 extern point_t document_size(buffer_t *);
 extern int buffer_is_empty(buffer_t *);
 extern void debug(char *, ...);

@@ -32,6 +32,9 @@ void buffer_init(buffer_t *bp)
 	bp->b_narrowed = 0;
 	bp->b_narrow_start = bp->b_narrow_tail = 0;
 	bp->b_folds = NULL;
+	bp->b_shard = NULL;
+	bp->b_shard_label[0] = '\0';
+	bp->b_line_base = 0;
 	bp->b_nfolds = bp->b_capfolds = 0;
 	bp->b_changes = bp->b_drawn = 0;
 	bp->b_used = 0;            /* never yet the buffer of a key */
@@ -177,6 +180,7 @@ int delete_buffer(buffer_t *bp)
 	record_change(bp, 'r', 0, NULL, 0);
 	free(bp->b_buf);
 	fold_free(bp);
+	shard_free(bp);                 /* shard.c: its index and kept texts */
 	term_buffer_gone(bp);           /* terminal.c: its shell goes */
 	free(bp);
 	return TRUE;
@@ -277,9 +281,13 @@ char* get_buffer_filename(buffer_t *bp)
 
 char* get_buffer_modeline_name(buffer_t *bp)
 {
-	if (bp->b_fname[0] != '\0')
-		return bp->b_fname;
-	return bp->b_bname;
+	static char named[NAME_MAX + 32];
+	char *name = bp->b_fname[0] != '\0' ? bp->b_fname : bp->b_bname;
+
+	if (bp->b_shard_label[0] == '\0')      /* shard.c: " [3/41]" */
+		return name;
+	snprintf(named, sizeof named, "%s%s", name, bp->b_shard_label);
+	return named;
 }
 
 int count_buffers()

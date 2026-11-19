@@ -385,9 +385,9 @@ the heading above (one star when there is none)."
   (let* ((key (get-key))
          (entry (assoc key *org-babel-keys*)))
     (clear-message-line)
-    (if entry
-        ((cdr entry))
-        (message "C-c C-v " key " is not bound"))))
+    (cond (entry ((cdr entry)))
+          ((assoc key *shard-keys*) ((cdr (assoc key *shard-keys*))))   ; shards.scm
+          (else (message "C-c C-v " key " is not bound")))))
 
 ;;; ------------------------------------------------------------------
 ;;; Turning Org on and off

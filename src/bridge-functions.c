@@ -573,6 +573,33 @@ static void b_fe_fold(bridge_in *in, bridge_out *out)
 	bridge_put_int(out, (long) fe_fold(a1, a2));
 }
 
+extern long fe_shard_threshold(long n);
+static void b_fe_shard_threshold(bridge_in *in, bridge_out *out)
+{
+	long a1 = (long) bridge_int(in);
+	bridge_put_int(out, (long) fe_shard_threshold(a1));
+}
+
+extern long fe_shard_size(long n);
+static void b_fe_shard_size(bridge_in *in, bridge_out *out)
+{
+	long a1 = (long) bridge_int(in);
+	bridge_put_int(out, (long) fe_shard_size(a1));
+}
+
+extern long fe_shard_current(void);
+static void b_fe_shard_current(bridge_in *in, bridge_out *out)
+{
+	bridge_put_int(out, (long) fe_shard_current());
+}
+
+extern long fe_undo_recording(long on);
+static void b_fe_undo_recording(bridge_in *in, bridge_out *out)
+{
+	long a1 = (long) bridge_int(in);
+	bridge_put_int(out, (long) fe_undo_recording(a1));
+}
+
 extern long fe_utf8_fix(long on);
 static void b_fe_utf8_fix(bridge_in *in, bridge_out *out)
 {
@@ -954,6 +981,10 @@ void bridge_register_editor(void)
 	bridge_register("fe-command-name", b_fe_command_name);
 	bridge_register("fe-unfold-everywhere", b_fe_unfold_everywhere);
 	bridge_register("fe-fold", b_fe_fold);
+	bridge_register("fe-shard-threshold", b_fe_shard_threshold);
+	bridge_register("fe-shard-size", b_fe_shard_size);
+	bridge_register("fe-shard-current", b_fe_shard_current);
+	bridge_register("fe-undo-recording", b_fe_undo_recording);
 	bridge_register("fe-utf8-fix", b_fe_utf8_fix);
 	bridge_register("fe-unfold", b_fe_unfold);
 	bridge_register("fe-folded-at", b_fe_folded_at);

@@ -65,6 +65,9 @@ void call_lisp(char *expr, char *out, int outlen)
 	out[outlen - 1] = '\0';
 }
 
+/* Is there a Scheme runtime to send events to? */
+int lisp_events_present(void) { return event_hook != NULL; }
+
 int call_lisp_event(char *event, char *arg)
 {
 	if (event_hook != NULL)
@@ -345,6 +348,8 @@ void fe_undo(void)              { undo_command(); }
 long fe_buffer_id(void)         { return curbp->b_id; }
 void fe_set_modified(int on)
 {
+	/* shard.c: undo back to a shard as read; another shard may be edited */
+	if (!on && curbp->b_shard && shard_others_edited(curbp)) on = 1;
 	if (on) add_mode(curbp, B_MODIFIED);
 	else delete_mode(curbp, B_MODIFIED);
 }

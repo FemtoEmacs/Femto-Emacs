@@ -46,7 +46,10 @@ static int edit_move(struct run *r, buffer_t *bp, unsigned target)
   * line; unlike visual down it is independent of the viewport's wrapping. */
  char macro[16]; int n = snprintf(macro, sizeof macro, "\033g%u\r", line);
  if (n < 0 || n >= (int)sizeof macro || !edit_key(r,bp, macro, n) || !edit_key(r,bp, "\001", 1)) return 0;
- for (unsigned i = 0; i < column; i++) if (!edit_key(r,bp, "\006", 1)) return 0;
+ /* forward-char's primitive, one code point a step: the target may lie
+  * between a letter and its combining accent, where C-f (which takes them
+  * together, as Emacs does) never stops. */
+ fe_forward_char((int)column);
  return bp->b_point == target && fe_line_number((long)target) == (int)line && edit_show(r, bp);
 }
 static int edit_paste_matches(struct run *r, buffer_t *bp, unsigned from, unsigned to, unsigned destination)

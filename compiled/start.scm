@@ -23,6 +23,7 @@
 ;;; (compiled-key!, editor.scm), then the scripts' EDITOR-EVENT
 (start-hook! hook-event
   (lambda (kind arg)
+    (sync-undo-recording)
     ;; A key command might immediately replace the completion message.
     ;; Deliver it at an idle boundary instead, outside prompts.
     (when (and *compile-scripts-log* (string=? kind "idle")) (compile-scripts-check))

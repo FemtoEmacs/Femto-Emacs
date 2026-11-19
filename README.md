@@ -2,7 +2,7 @@
 Chezweb is a simpler implementation of Emacs, where simpler means fewer
 features, but also means it's easier to learn and install.
 
-The current version is [Chezweb 1.10](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/v1.10).
+The current version is [Chezweb 1.12](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/v1.12).
 
 ## Installation on Silicon macOS
 There is no macOS installer yet. On the Mac, you build Chezweb from
@@ -34,7 +34,7 @@ explained in [Building from sources](#building-from-sources).
 
 ## Installation on Windows
 
-[Download Chezweb 1.10 for Windows x86-64 (Setup.exe)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.10/Chezweb-Windows-x86_64-Setup.exe).
+[Download Chezweb 1.12 for Windows x86-64 (Setup.exe)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.12/Chezweb-Windows-x86_64-Setup.exe).
 
 Setup installs for the current Windows account and adds Chezweb, Chezweb
 GUI, and Uninstall to the Start menu. See the [Windows guide](windows/README.md)
