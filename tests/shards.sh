@@ -138,7 +138,19 @@ keys ^X^C
 wait 300
 keys y
 EOF
-( sleep 3; echo 'another program' >> "$work/f.txt"; echo go > "$work/changed" ) &
+# Change the file only after the editor has read its first shard.  A fixed
+# delay can expire during compilation on a busy runner, before the visit.
+rm -f "$work/screen" "$work/changed"
+(
+  tries=0
+  until grep -aq 'Shard 1/' "$work/screen" 2>/dev/null; do
+    tries=$((tries + 1))
+    [ "$tries" -lt 60 ] || exit 1
+    sleep 1
+  done
+  echo 'another program' >> "$work/f.txt"
+  echo go > "$work/changed"
+) &
 run "$work/k4"
 wait
 grep -aq 'File changed on disk' "$work/screen" || fail 'a shard was read from a file another program changed'
