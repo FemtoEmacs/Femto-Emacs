@@ -8,6 +8,8 @@ proof:
 	$(LEAN) mv-cp-mv-paste-undo.lean
 	$(LEAN) search-return.lean
 	$(LEAN) utf8-cursor.lean
+	$(LEAN) undo-visit.lean
+	$(LEAN) shards.lean
 .build/chez-tester.c: rdonly-tester.lean
 	mkdir -p .build
 	$(LEAN) -c $@ $<
@@ -51,3 +53,19 @@ utf8-audit:
 	printf '\n#print axioms Utf8Cursor.cursor_on_boundary\n#print axioms Utf8Cursor.readKey_valid\n#print axioms Utf8Cursor.prevSize_eq\n#print axioms Utf8Cursor.insert_wf\n#print axioms Utf8Cursor.delete_wf\n' >> .build/utf8-audit.lean
 	$(LEAN) .build/utf8-audit.lean
 audit: utf8-audit
+
+.PHONY: visit-audit
+visit-audit:
+	mkdir -p .build
+	cat undo-visit.lean > .build/visit-audit.lean
+	printf '\n#print axioms UndoVisit.visit_forgets\n#print axioms UndoVisit.visit_display\n#print axioms UndoVisit.peak_before\n#print axioms UndoVisit.held_after\n#print axioms UndoVisit.trim_oversized\n' >> .build/visit-audit.lean
+	$(LEAN) .build/visit-audit.lean
+audit: visit-audit
+
+.PHONY: shards-audit
+shards-audit:
+	mkdir -p .build
+	cat shards.lean > .build/shards-audit.lean
+	printf '\n#print axioms Shards.copy_shard\n#print axioms Shards.save_unedited\n#print axioms Shards.reread_after_save\n' >> .build/shards-audit.lean
+	$(LEAN) .build/shards-audit.lean
+audit: shards-audit

@@ -27,6 +27,21 @@ void fe_set_change_hook(fe_change_hook_t hook)
 	change_hook = hook;
 }
 
+/*
+ * Is undo recording?  The scripts set it from *undo-mode* (core.scm,
+ * sync-undo-recording, before each event): off, an insertion's or a
+ * deletion's bytes are not sent to undo.scm, which would discard them
+ * (19 November 2026).  'r' and 's' always go: they concern the history.
+ */
+int undo_recording = 1;
+
+/* (fe-undo-recording ON): 1 on, 0 off, -1 leaves it; the setting */
+long fe_undo_recording(long on)
+{
+	if (on >= 0) undo_recording = on != 0;
+	return undo_recording;
+}
+
 void record_change(buffer_t *bp, int kind, point_t pos, const char_t *text, long len)
 {
 	if (bp != NULL) bp->b_changes++;         /* display.c: b_epage is stale */
@@ -34,9 +49,18 @@ void record_change(buffer_t *bp, int kind, point_t pos, const char_t *text, long
 		fold_change(bp, kind, pos, len);
 	if (change_hook == NULL || bp == NULL)
 		return;
-	if ((kind == 'i' || kind == 'd') && len <= 0)
+	if ((kind == 'i' || kind == 'd') && (len <= 0 || !undo_recording))
 		return;
 	change_hook(bp->b_id, kind, (long) pos, text, len);
+}
+
+/* The change for the display and the folds only: its bytes are not sent
+ * to Scheme (C-x i with undo off, command.c) */
+void record_change_unreported(buffer_t *bp, int kind, point_t pos, long len)
+{
+	if (bp == NULL) return;
+	bp->b_changes++;
+	if (bp->b_nfolds > 0) fold_change(bp, kind, pos, len);
 }
 
 /* the undo command of the C table (C-u, Esc-x undo): Lisp does the work */

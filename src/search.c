@@ -7,6 +7,7 @@ void search(void)
     int direction=(whatKey && (!strcmp(whatKey,"C-r") ||
                    !strcmp(whatKey,"search-backward"))) ? REV_SEARCH : FWD_SEARCH;
     point_t origin=curbp->b_point;
+    int origin_shard=shard_current(curbp);  /* shard.c: C-g comes back to it */
     const char *prompt=direction==FWD_SEARCH ? "Search forward: " : "Search backward: ";
     searchtext[0]=0;
     display_prompt_and_response((char *)prompt,searchtext);
@@ -14,6 +15,7 @@ void search(void)
         c=read_key_byte();
         point_t previous=curbp->b_point;
         if(c==0x07){
+            if(shard_current(curbp)!=origin_shard)(void)shard_switch(curbp,origin_shard,0);
             curbp->b_point=origin;display(curwp,TRUE);msg("Search cancelled");return;
         }
         if(c==0x0a || c==0x0d){
@@ -55,6 +57,9 @@ void search(void)
         } else continue;
         prompt=direction==FWD_SEARCH ? "Search forward: " : "Search backward: ";
         point_t found=direction==FWD_SEARCH ? search_forward(searchtext) : search_backwards(searchtext);
+        /* shard.c: C-s again at a failing search looks in the next shards */
+        if(found==-1 && c==0x13 && curbp->b_shard && cpos && shard_search_forward(searchtext))
+            found=curbp->b_point;
         if(found==-1)curbp->b_point=previous;
         display_search_result(found,direction,(char *)prompt,searchtext);
     }

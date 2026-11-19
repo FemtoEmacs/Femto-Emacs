@@ -393,6 +393,16 @@ on the kill ring and make it what C-y inserts."
       text)))
 
 (define *undo-mode* #t)
+;; The C core sends the bytes of each change to undo only while undo
+;; records (src/undo.c, undo_recording): told before every event, when
+;; *undo-mode* changed since it was last told.  Unknown at first, and
+;; again after C-x C-r reloads this file: then it is told at once.
+(define *undo-recording-told* 'unknown)
+(define (sync-undo-recording)
+  (let ((on (if *undo-mode* #t #f)))
+    (unless (eq? on *undo-recording-told*)
+      (set! *undo-recording-told* on)
+      (fe-undo-recording (if on 1 0)))))
 (defvar *init-errors* '())
 
 ;;; ------------------------------------------------------------------
@@ -472,6 +482,7 @@ on the kill ring and make it what C-y inserts."
 
 (define (editor-event kind arg)
   "Every event from the C core.  True when Scheme handled it."
+  (sync-undo-recording)
   (let* ((key-like (member kind '("key" "command" "menu")))
          (handled #f)
          (result
@@ -498,6 +509,7 @@ on the kill ring and make it what C-y inserts."
                       (fe-set-completions (string-join (%call 'shell-command-completions arg) "\n")))
                      ((string=? kind "tester-history") (set! handled #t) (tester-history-event arg))
                      ((string=? kind "read-copy") (push-kill arg) (set-clipboard arg))
+                     ((string=? kind "undo-fits") (set! handled (undo-fits? (string->number arg))))
                      ((string=? kind "kill") (run-hook '*kill-hook* arg))
                      ((string=? kind "startup") (run-startup))
                      ((string=? kind "colors") (%call 'apply-color-theme (string->number arg))))

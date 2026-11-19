@@ -1692,3 +1692,56 @@ past_accents uses); deletion is unchanged. tests/accent-motion.sh.
 M-x toggle-utf8-fix now also turns off the accent motion (Eduardo could
 not show the old two presses over e + U+0301); tests/accent-motion.sh
 checks it off: 51 53 51 over n + U+0303.
+
+## 19 Nov 2026: a visited file took six times its size
+
+Measured: 100 MB opened in 4.5 s with 651 MB; 300 MB in 11 s with
+1.77 GB. An LD_PRELOAD tracer of allocations of 20 MB and more showed
+growgap (the gap buffer, needed) and bridge_put_bytes under
+compiled_change: the undo report of the whole file, made by insert_file
+and erased at once by the 'r' of load_file and main. Fixed in
+insert_file (report only with MODFLAG, C-x i). After: 100 MB in 0.35 s
+with 151 MB (50 MB is the empty editor), 1 GB in 2 s with 1 GB.
+Lean/undo-visit.lean, tests/visit-memory.sh. C-x i of a huge file
+still makes the copies, since undo needs that change.
+
+## 19 Nov 2026: the accent motion had changed forward-char
+
+The accent loop of 18 Nov was in right() and left(), which are also the
+scripts' forward-char and backward-char (fe_forward_char): those moved over
+letter and accent at once, unlike Emacs, and the Lean edit experiment,
+which counts code points, failed on accented text (found by Claude when
+asked how sure the fixes were). The loop is now in forward_character and
+backward_character (key.c: C-f, C-b, the arrows); chez-edit-tester.h moves
+to a column with fe_forward_char; Lean/tests/edit.sh has accents.
+
+## 19 Nov 2026: files in shards (VLF)
+
+src/shard.c and shards.scm: files above 1 GB (or M-x find-file-shards)
+open in shards of about 16 MB. Tested on a 1.35 GB file: opens, M-g, C-c
+C-v g, edits and C-x C-s in 9 s with 80 MB of memory. A first test of C-c
+C-v n in an Org file looked failed: its message is overwritten after
+Babel's prefix; the test now checks the saved text. Lean/shards.lean.
+
+The same day: C-c C-v [ and ] (first shard, end of the last), and a
+section "Files in shards" on the help page (C-h), keys and settings.
+
+## 19 Nov 2026: C-x i of a file larger than undo keeps
+
+Refused before any copy (insertfile asks undo.scm, undo-fits?). Testing it
+found that C-x i never marked the buffer modified: insert_file did
+b_flags &= B_MODIFIED (keeps the flag, clears the others). Fixed.
+visit-memory.sh measures only the editor's process and needs status 0.
+
+With *undo-mode* off, C-x i sent the whole file to undo.scm, which ignored
+it (Eduardo found the route): now record_change_unreported; 64 MB took
+480 MB, now 115 MB (tests/visit-memory.sh).
+
+The general case: with *undo-mode* off, no change sends its bytes to
+undo.scm (undo_recording in undo.c, told by the scripts before each event;
+again after C-x C-r, which the femtoscheme test caught).
+
+visit-memory.sh failed on the Mac (195 MB, limit 184): the undo-off case
+loads init.scm, which Schemer compiles in the editor on the first run
+(about 50 MB here, more on the Mac) and caches. Its base is now the same
+editor with the same init.scm, after a warming run.

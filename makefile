@@ -333,6 +333,16 @@ check-accent-motion: chezemax chezemax.wasm chezemax.cwasm
 	sh tests/accent-motion.sh
 check: check-accent-motion
 
+.PHONY: check-shards
+check-shards: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/shards.sh
+check: check-shards
+
+.PHONY: check-visit-memory
+check-visit-memory: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/visit-memory.sh
+check: check-visit-memory
+
 .PHONY: check-stray-bytes
 check-stray-bytes: chezemax chezemax.wasm chezemax.cwasm
 	sh tests/stray-bytes.sh

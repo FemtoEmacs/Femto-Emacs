@@ -53,6 +53,8 @@ static const char *browser_result(const char *why){
  return launch_message;
 }
 const char *chezweb_launch(void){
+ /* shard.c: the browser loads whole files; a file in shards stays native */
+ if(curbp&&curbp->b_shard)return "A file in shards opens in this window only: the browser loads whole files.";
  if(server_pid>0&&waitpid(server_pid,NULL,WNOHANG)==0){return browser_result(open_chrome());}
  cleanup();
  static int registered;if(!registered){atexit(cleanup);registered=1;}

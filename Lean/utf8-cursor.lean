@@ -9,8 +9,10 @@ boundary, folds included, and the display, which runs between keys, never
 sees half of a character (`cursor_on_boundary`).
 
 The model follows the C functions it names: `utf8_size` (`size`),
-`prev_utf8_char_size` (`prevSize`), `right` and `left` with the combining
-accents they step over (`accent_at`, left open as `acc`), `lnstart`,
+`prev_utf8_char_size` (`prevSize`), `right` and `left` (the primitives),
+`forward_character` and `backward_character` (C-f and C-b, which take a
+letter and its combining accents together; `accent_at`, left open as `acc`),
+`lnstart`,
 `lncolumn`, `upup`, `dndn`, `insert`, `delete`, `backsp` (command.c, display.c), the
 folds of fold.c and the key reader of key.c. What the screen decides (row
 wraps, widths, the goal column) is left open in `Geometry`: the theorems hold
@@ -755,36 +757,50 @@ structure Inv (s : State) : Prop where
   point : Boundary s.text s.point
   folds : ∀ f ∈ s.folds, FoldOK s.text f
 
-/-- C-b's loop over combining accents: step back while the character at
-point is an accent (`accent_at`, display.c), not before the text. -/
-def backAccents (t : Text) (acc : Nat → Bool) : Nat → Nat → Nat
+/-- Apply `f` again while `cond` holds, at most `fuel` times: the C loops
+`while (... accent_at(...)) right();` and `left();`. -/
+def repeatWhile (f : Nat → Nat) (cond : Nat → Bool) : Nat → Nat → Nat
   | 0, p => p
-  | n + 1, p => if 0 < p ∧ acc p = true then backAccents t acc n (stepLeft t p) else p
+  | n + 1, p => if cond p then repeatWhile f cond n (f p) else p
 
-theorem backAccents_boundary {t : Text} (w : WF t) (acc : Nat → Bool) :
-    ∀ n p, Boundary t p → Boundary t (backAccents t acc n p) := by
+theorem repeatWhile_keeps {P : Nat → Prop} {f : Nat → Nat} (hf : ∀ p, P p → P (f p))
+    (cond : Nat → Bool) : ∀ n p, P p → P (repeatWhile f cond n p) := by
   intro n
   induction n with
   | zero => intro p h; exact h
   | succ n ih =>
     intro p h
-    simp only [backAccents]
+    simp only [repeatWhile]
     split
-    · exact ih _ (stepLeft_boundary w h)
+    · exact ih _ (hf p h)
     · exact h
 
-/-- command.c, `right` (C-f): one character, then the combining accents
-after it (`acc` says which characters are accents: any table), then over
-the folds. -/
-def forwardChar (acc : Nat → Bool) (s : State) : State :=
-  let p := walk s.text (fun q => !acc q) s.text.len (stepRight s.text s.point)
-  { s with point := skipFwd s.folds (s.folds.length + 1) p }
+/-- command.c, `right`, the primitive (the scripts' forward-char): one code
+point, then over the folds. -/
+def rightPrim (s : State) (p : Nat) : Nat :=
+  skipFwd s.folds (s.folds.length + 1) (stepRight s.text p)
 
-/-- command.c, `left` (C-b): one character, back over accents, then over
-the folds. -/
+/-- command.c, `left`, the primitive (backward-char): one code point back,
+then over the folds. -/
+def leftPrim (s : State) (p : Nat) : Nat :=
+  skipBack s.folds (s.folds.length + 1) (stepLeft s.text p)
+
+/-- command.c, `forward_character` (C-f, the right arrow): `right`, then
+`right` again while the character at point is a combining accent (`acc`,
+`accent_at` in display.c, left open: any table). With `acc` false
+everywhere this is one `right`, the scripts' forward-char, so the theorem
+below covers the primitive too. -/
+def forwardChar (acc : Nat → Bool) (s : State) : State :=
+  let p := repeatWhile (rightPrim s) (fun q => decide (q < s.text.len) && acc q)
+             s.text.len (rightPrim s s.point)
+  { s with point := p }
+
+/-- command.c, `backward_character` (C-b, the left arrow): `left`, then
+`left` again while the character at point is an accent. -/
 def backwardChar (acc : Nat → Bool) (s : State) : State :=
-  let p := backAccents s.text acc s.text.len (stepLeft s.text s.point)
-  { s with point := skipBack s.folds (s.folds.length + 1) p }
+  let p := repeatWhile (leftPrim s) (fun q => decide (0 < q) && acc q)
+             s.text.len (leftPrim s s.point)
+  { s with point := p }
 
 /-- command.c, `down` (C-n) and `up` (C-p); the mouse ends in `lncolumn` too. -/
 def nextLine (g : Geometry) (s : State) : State :=
@@ -830,14 +846,20 @@ def addFold (f : Fold) (s : State) : State :=
 def openFolds (keep : Fold → Bool) (s : State) : State :=
   { s with folds := s.folds.filter keep }
 
+theorem rightPrim_boundary {s : State} (h : Inv s) :
+    ∀ p, Boundary s.text p → Boundary s.text (rightPrim s p) := fun _ hp =>
+  skipFwd_boundary h.folds _ _ (stepRight_boundary h.wf hp)
+
+theorem leftPrim_boundary {s : State} (h : Inv s) :
+    ∀ p, Boundary s.text p → Boundary s.text (leftPrim s p) := fun _ hp =>
+  skipBack_boundary h.folds _ _ (stepLeft_boundary h.wf hp)
+
 theorem forwardChar_inv (acc : Nat → Bool) {s : State} (h : Inv s) : Inv (forwardChar acc s) :=
-  ⟨h.wf, skipFwd_boundary h.folds _ _
-    (walk_boundary h.wf _ _ _ (stepRight_boundary h.wf h.point)), h.folds⟩
+  ⟨h.wf, repeatWhile_keeps (rightPrim_boundary h) _ _ _ (rightPrim_boundary h _ h.point), h.folds⟩
 
 theorem backwardChar_inv (acc : Nat → Bool) {s : State} (h : Inv s) :
     Inv (backwardChar acc s) :=
-  ⟨h.wf, skipBack_boundary h.folds _ _
-    (backAccents_boundary h.wf acc _ _ (stepLeft_boundary h.wf h.point)), h.folds⟩
+  ⟨h.wf, repeatWhile_keeps (leftPrim_boundary h) _ _ _ (leftPrim_boundary h _ h.point), h.folds⟩
 
 theorem lncolumn_boundary {t : Text} (w : WF t) (g : Geometry) {p : Nat} (h : Boundary t p) :
     Boundary t (lncolumn t g p) :=

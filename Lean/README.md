@@ -47,6 +47,32 @@ a character nor leave a stray byte. C-f and C-b take a letter and the
 accent typed after it (line 2's "é") in one press, as Emacs does;
 backspace after it deletes the accent alone (`make check-accent-motion`).
 
+## Files in shards: what saving must do
+
+`shards.lean` models a file in shards (src/shard.c, as Emacs's VLF): the
+file is the concatenation of its shards, and an edited shard keeps its
+text until C-x C-s. It proves that copying a shard's bytes from its offset
+gives the shard (`copy_shard`), that a save with no edits writes the file
+as it was (`save_unedited`), and that after a save every shard reads back
+what the editor held for it (`reread_after_save`): a save changes only the
+edited shards. The cuts of the index fall on character boundaries
+(`cut_after_newline`, `cut_before_lead`). `make check-shards` tests the
+editor.
+
+## Visiting a file: one copy of it
+
+`undo-visit.lean` explains why opening a 100 MB file took 650 MB of memory
+and 4.5 seconds, and proves the fix safe. Visiting a file reported its whole
+text to the undo history, and the caller erased that history at once, so
+the copies of the text made for the report (three of them, and the
+runtimes' heap growth) served nothing. `visit_forgets` proves that dropping
+the report leaves every undo history as it was; `visit_display`, that the
+display and the folds behave as before; `peak_before` and `held_after`
+count the copies. `trim_oversized` shows why C-x i of a file larger than
+undo keeps (8 MB) is now refused: recorded, it would empty the whole undo
+history, itself included. After the fix (gap.c, `insert_file`) a 100 MB file opens
+in 0.35 s with 100 MB, and 1 GB in 2 s; `make check-visit-memory` tests it.
+
 ## Settings in the Lean buffer
 
 ```lean
@@ -194,7 +220,8 @@ The experiment runs in ordinary editable Emacs mode, on private Markdown copies.
 Each cycle chooses a logical line and character column, then a forward region
 of 1..200 Unicode scalar values (at most 800 UTF-8 bytes), and a new destination.
 Line jumps use the editor's `M-g` key path and columns use its counted native
-forward-character primitive, equivalent to repeated C-f. C-SPC, M-w, C-y,
+forward-character primitive (forward-char, one code point a step; C-f takes a
+letter and its combining accents together, so it cannot reach every column). C-SPC, M-w, C-y,
 Control-slash/C-_, and M-< use the actual key decoder and dispatcher. Rendering
 runs at each visible stage. The copy and pasted image are compared byte for
 byte, followed by an exact original-image comparison after undo, the unmodified

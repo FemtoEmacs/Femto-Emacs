@@ -24,6 +24,7 @@
 (start-hook! hook-event
   (lambda (kind arg)
     (when *compile-scripts-log* (compile-scripts-check))
+    (sync-undo-recording)               ; core.scm: before the event's command
     (cond ((string=? kind "init") (start-up) #t)
           (else (or (compiled-editor-event kind arg)
                     (editor-event kind arg))))))

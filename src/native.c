@@ -388,6 +388,26 @@ static value_t wrap_fe_fold(value_t *a, uint32_t n) {
  argcount("fe_fold", n, 2);
  return fixnum(fe_fold(tofixnum(a[0], "fe_fold"), tofixnum(a[1], "fe_fold")));
 }
+extern long fe_shard_threshold(long n);
+static value_t wrap_fe_shard_threshold(value_t *a, uint32_t n) {
+ argcount("fe_shard_threshold", n, 1);
+ return fixnum(fe_shard_threshold(tofixnum(a[0], "fe_shard_threshold")));
+}
+extern long fe_shard_size(long n);
+static value_t wrap_fe_shard_size(value_t *a, uint32_t n) {
+ argcount("fe_shard_size", n, 1);
+ return fixnum(fe_shard_size(tofixnum(a[0], "fe_shard_size")));
+}
+extern long fe_shard_current(void);
+static value_t wrap_fe_shard_current(value_t *a, uint32_t n) {
+ argcount("fe_shard_current", n, 0);
+ return fixnum(fe_shard_current());
+}
+extern long fe_undo_recording(long on);
+static value_t wrap_fe_undo_recording(value_t *a, uint32_t n) {
+ argcount("fe_undo_recording", n, 1);
+ return fixnum(fe_undo_recording(tofixnum(a[0], "fe_undo_recording")));
+}
 extern long fe_utf8_fix(long on);
 static value_t wrap_fe_utf8_fix(value_t *a, uint32_t n) {
  argcount("fe_utf8_fix", n, 1);
@@ -639,6 +659,10 @@ static builtinspec_t editor_builtins[] = {
  {"fe-mouse-kind", wrap_fe_mouse_kind},
  {"fe-fold", wrap_fe_fold},
  {"fe-utf8-fix", wrap_fe_utf8_fix},
+ {"fe-undo-recording", wrap_fe_undo_recording},
+ {"fe-shard-threshold", wrap_fe_shard_threshold},
+ {"fe-shard-size", wrap_fe_shard_size},
+ {"fe-shard-current", wrap_fe_shard_current},
  {"fe-unfold-everywhere", wrap_fe_unfold_everywhere},
  {"fe-unfold", wrap_fe_unfold},
  {"fe-folded-at", wrap_fe_folded_at},

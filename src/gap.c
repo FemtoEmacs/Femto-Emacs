@@ -214,6 +214,9 @@ int save_buffer(buffer_t *bp, char *fn)
 	point_t length;
 	struct stat saved_file;
 
+	if (bp->b_shard)                        /* shard.c: the whole file */
+		return shard_save(bp, fn);
+
 	/* Save As and a never-created file still need an actual write. */
 	if (!save_overwrites && !(bp->b_flags & B_MODIFIED) && !strcmp(fn, bp->b_fname) &&
 	    stat(fn, &saved_file) == 0 && S_ISREG(saved_file.st_mode)) {
@@ -292,6 +295,8 @@ int load_file(char *fn)
 {
 	int ok;
 	clear_buffer();
+	if (shard_wanted(fn))                   /* shard.c: too large to hold */
+		return shard_open(curbp, fn);
 	ok = insert_file(fn, FALSE);
 	record_change(curbp, 'r', 0, NULL, 0);  /* a fresh file: no history */
 	return ok;
@@ -322,13 +327,31 @@ int insert_file(char *fn, int modflag)
 	curbp->b_point = movegap(curbp, curbp->b_point);
 	undoset();
 	curbp->b_gap += len = fread(curbp->b_gap, sizeof (char), (size_t) sb.st_size, fp);
-	record_change(curbp, 'i', curbp->b_point, curbp->b_gap - len, (long) len);
+	/*
+	 * Inserting a file (C-x i) is a change that undo must know.  Visiting
+	 * one (MODFLAG 0) is not: both callers, load_file and main, record 'r'
+	 * at once, which forgets the history.  Reporting the insertion first
+	 * copied the whole text into the undo machinery (the bridge's buffer,
+	 * the compiled program's memory, a bytevector) only to drop it: three
+	 * more copies of the file, and the runtimes' heap growth on top; the
+	 * memory of a 100 MB file grew to 650 MB.
+	 * Lean/undo-visit.lean proves that dropping the report changes nothing.
+	 */
+	if (modflag == INSERT_UNRECORDED)    /* C-x i with undo off: no bytes to it */
+		record_change_unreported(curbp, 'i', curbp->b_point, (long) len);
+	else if (modflag)
+		record_change(curbp, 'i', curbp->b_point, curbp->b_gap - len, (long) len);
 
 	if (fclose(fp) != 0) {
 		msg(m_close, fn);
 		return (FALSE);
 	}
-	curbp->b_flags &= (modflag ? B_MODIFIED : ~B_MODIFIED);
+	/* C-x i changed the text; visiting a file did not.  (This was
+	 * b_flags &= (modflag ? B_MODIFIED : ~B_MODIFIED), which for C-x i
+	 * left the flag as it was and cleared every other one: read-only,
+	 * overwrite.  An insertion into an unmodified buffer was not saved.) */
+	if (modflag) add_mode(curbp, B_MODIFIED);
+	else delete_mode(curbp, B_MODIFIED);
 	if (!modflag && S_ISREG(sb.st_mode)) {   /* visiting FN: the file as read */
 		curbp->b_disk = 1;
 		curbp->b_disk_time = file_time_ns(&sb);

@@ -4,6 +4,7 @@
  */
 
 #include "header.h"
+#include <sys/stat.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -68,32 +69,48 @@ void redraw()
 }
 
 /*
- * C-f and C-b move over a letter and the combining accents after it as
- * one character, as Emacs does (e + U+0301 is one press); backspace and C-d
- * still delete one code point, so an accent can be removed alone.  With
- * M-x toggle-utf8-fix off, they stop between the letter and the accent,
- * as before 18 November 2026.
+ * The primitives: one code point back or forward, then over the folds.
+ * Scripts call them (forward-char, backward-char) and count on one code
+ * point a step, as Emacs's forward-char does.
  */
 void left()
 {
-	do {
-		int n = prev_utf8_char_size();
+	int n = prev_utf8_char_size();
 
-		while (0 < curbp->b_point && n-- > 0)
-			--curbp->b_point;
-	} while (utf8_fix && 0 < curbp->b_point && accent_at(curbp, curbp->b_point));
+	while (0 < curbp->b_point && n-- > 0)
+		--curbp->b_point;
 	if (curbp->b_nfolds) curbp->b_point = fold_skip_backward(curbp, curbp->b_point);
 }
 
 void right()
 {
-	do {
-		int n = utf8_size(*ptr(curbp,curbp->b_point));
+	int n = utf8_size(*ptr(curbp,curbp->b_point));
 
-		while ((curbp->b_point < pos(curbp, curbp->b_ebuf)) && n-- > 0)
-			++curbp->b_point;
-	} while (utf8_fix && accent_at(curbp, curbp->b_point));
+	while ((curbp->b_point < pos(curbp, curbp->b_ebuf)) && n-- > 0)
+		++curbp->b_point;
 	if (curbp->b_nfolds) curbp->b_point = fold_skip_forward(curbp, curbp->b_point);
+}
+
+/*
+ * The commands C-b, C-f and the arrows (key.c): a letter and the combining
+ * accents after it are one press, as in Emacs, whose command loop takes
+ * point out of such a group after a command (e + U+0301); backspace and
+ * C-d still delete one code point, so an accent can be removed alone.
+ * With M-x toggle-utf8-fix off, they stop between the letter and the
+ * accent, as before 18 November 2026.
+ */
+void backward_character()
+{
+	left();
+	while (utf8_fix && 0 < curbp->b_point && accent_at(curbp, curbp->b_point))
+		left();
+}
+
+void forward_character()
+{
+	right();
+	while (utf8_fix && accent_at(curbp, curbp->b_point))
+		right();
 }
 
 /* look back 2,3,4 chars and determine utf8 size otherwise default to 1 byte */
@@ -510,6 +527,12 @@ void goto_line(int line)
 {
 	point_t p;
 
+	if (curbp->b_shard) {                   /* shard.c: a line of the whole file */
+		if (shard_goto_line(line)) msg(m_line, line);
+		else msg(m_lnot_found, line);
+		return;
+	}
+
 	p = line_to_point(line);
 	if (p != -1) {
 		curbp->b_point = p;
@@ -519,11 +542,40 @@ void goto_line(int line)
 	}
 }
 
+/*
+ * C-x i of a file larger than undo keeps (*undo-limit*, undo.scm: 8 MB) is
+ * refused.  Undo could not take the insertion back: undo.scm would drop the
+ * group, and the older history with it, after the text had been copied
+ * three times to reach it (the bridge's message, the program's memory, a
+ * bytevector).  Deciding here, before anything is sent, costs nothing.
+ * Without Scheme, nothing records undo, and the file is inserted.
+ */
 void insertfile()
 {
+	struct stat sb;
+
 	if (read_only_refuses()) return;
-	if (getfilename(str_insert_file, (char*) response_buf, NAME_MAX))
-		(void)insert_file(response_buf, TRUE);
+	if (!getfilename(str_insert_file, (char*) response_buf, NAME_MAX)) return;
+	/* undo off (*undo-mode* #f, undo.c): nothing to record, and no bytes
+	 * to send for undo.scm to discard */
+	if (lisp_events_present() && !undo_recording) {
+		(void)insert_file(response_buf, INSERT_UNRECORDED);
+		return;
+	}
+	if (stat(response_buf, &sb) == 0 && S_ISREG(sb.st_mode) && lisp_events_present()) {
+		char size[32];
+		snprintf(size, sizeof size, "%lld", (long long) sb.st_size);
+		if (!call_lisp_event("undo-fits", size)) {
+			long long n = (long long) sb.st_size;
+			char amount[32];
+			if (n < 1024) snprintf(amount, sizeof amount, "%lld bytes", n);
+			else if (n < (1LL << 20)) snprintf(amount, sizeof amount, "%lld KB", n >> 10);
+			else snprintf(amount, sizeof amount, "%lld MB", n >> 20);
+			msg("Not inserted: %s is over *undo-limit*; C-x C-f opens it", amount);
+			return;
+		}
+	}
+	(void)insert_file(response_buf, TRUE);
 }
 
 void i_readfile()

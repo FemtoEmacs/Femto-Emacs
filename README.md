@@ -2,7 +2,7 @@
 Chezweb is a simpler implementation of Emacs, where simpler means fewer
 features, but also means it's easier to learn and install.
 
-The current version is [Chezweb 1.10](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/v1.10).
+The current version is [Chezweb 1.12](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/v1.12).
 
 ## Installation on Silicon macOS
 There is no macOS installer yet. On the Mac, you build Chezweb from
@@ -430,6 +430,33 @@ command, and Chezweb gives information concerning the character under
 the cursor, the corresponding code, the line, and the character
 position in the text.
 
+### Very large files.
+
+A file larger than 1 GB opens in shards, as with Emacs's VLF (Very
+Large File) package: the editor holds one piece of about 16 MB at a
+time, so a file of any size opens in seconds and takes little memory.
+`M-x find-file-shards` opens any file this way. The status line shows
+the shard (`[3/41]`) and the line of the whole file.
+
+- `C-c C-v n` and `C-c C-v p` go to the next and the previous shard;
+  `C-c C-v g` asks for a shard's number; `C-c C-v [` and `C-c C-v ]`
+  go to the first shard and to the end of the last one.
+- `Esc` `g` goes to a line of the whole file.
+- `C-s`: when the search fails in this shard, `C-s` again looks in the
+  shards that follow; `C-g` brings you back.
+- Every command works inside the shard. The region, query replace and
+  undo stay in it.
+- Edits are kept when you go to another shard. `C-x C-s` writes the
+  whole file, through a temporary file that replaces the original only
+  when it is complete.
+
+To change the sizes, put in `~/.chezemax/init.scm`, for example:
+
+    (fe-shard-threshold 500000000)   ; shards above 500 MB
+    (fe-shard-size 4000000)          ; of 4 MB
+
+The browser window loads whole files, as before.
+
 ### Markdown.
 
 Chezweb colours Markdown files (`.md`): headings, `**strong**` and
@@ -622,6 +649,8 @@ starts, in the text window, the graphical window and the browser.
 (global-set-key "C-c i" 'insert-day)       ; Emacs key notation
 (set-color 'comment 244)                   ; a face, 0-255 or "#rrggbb"
 (set! *fill-column* 78)
+(set! *undo-limit* (* 64 1024 1024))       ; undo per buffer (8 MB); C-x i
+                                           ; refuses a file larger than this
 (set! *gui-theme* 'light)                  ; or M-x light-theme
 (set-gui-font "/Library/Fonts/JetBrainsMono-Regular.ttf" 14)
 ```

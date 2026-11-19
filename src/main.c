@@ -120,8 +120,12 @@ int fe_main(int argc, char **argv)
 		{ extern int file_path_posix(char *, int); (void) file_path_posix(fname, NAME_MAX + 1); }
 		make_buffer_name(bname, fname);
 		curbp = find_buffer(bname, TRUE);
-		(void)insert_file(fname, FALSE);
-		record_change(curbp, 'r', 0, NULL, 0);  /* the file as read: no history */
+		if (shard_wanted(fname))         /* shard.c: too large to hold */
+			(void)shard_open(curbp, fname);
+		else {
+			(void)insert_file(fname, FALSE);
+			record_change(curbp, 'r', 0, NULL, 0);  /* the file as read: no history */
+		}
 		strcpy(curbp->b_fname, fname);
 	} else {
 		curbp = find_buffer(str_scratch, TRUE);
