@@ -146,6 +146,31 @@ line (counting the fences above it), else #f."
                           (bytes->string text (+ (md-skip-spaces text fence fe) (cdr mark)) fe)))))
     (and lang (<= (+ fe 1) ls) (cons lang (+ fe 1)))))
 
+(define (md-buffer-open-fence ls)
+  "md-open-fence on the current buffer: the start of the fence line open at
+the line at LS, else #f.  Only the lines with ``` or ~~~ are read; C finds
+them (fe-buffer-search).  A and B are the next ``` and ~~~ at or after P
+(-1: none), searched again once passed."
+  (let loop ((p 0) (open #f) (a -2) (b -2))
+    (let* ((a (if (or (= a -2) (and (>= a 0) (< a p))) (fe-buffer-search "```" p ls) a))
+           (b (if (or (= b -2) (and (>= b 0) (< b p))) (fe-buffer-search "~~~" p ls) b))
+           (c (cond ((< a 0) b) ((< b 0) a) (else (min a b)))))
+      (if (< c 0)
+          open
+          (let* ((s (line-start c)) (e (line-end s)) (line (buffer-bytes s e)))
+            (loop (+ e 1) (if (md-fence line 0 (blen line)) (if open #f s) open) a b))))))
+
+(define (md-buffer-code-place ls)
+  "md-code-place on the current buffer, for language-place (highlight.scm)."
+  (let* ((fence (md-buffer-open-fence ls))
+         (fe (and fence (line-end fence)))
+         (line (and fence (buffer-bytes fence fe)))
+         (n (and line (blen line)))
+         (mark (and line (md-fence line 0 n)))
+         (lang (and mark (md-code-language
+                          (bytes->string line (+ (md-skip-spaces line 0 n) (cdr mark)) n)))))
+    (and lang (<= (+ fe 1) ls) (cons lang (+ fe 1)))))
+
 (define (md-code-indentation text ls)
   "Inside a ``` block whose language has indentation rules, the column
 those rules give the line at LS, reading the block from its first line."
@@ -259,7 +284,7 @@ after \"2. eggs\", \"> \" after a quotation.  Two values; the second is
   'highlighter markdown-highlight)
 
 ;; M-;, M-q and the rest follow the language of a ``` block
-(define-inner-language "Markdown" md-code-place)
+(define-inner-language "Markdown" md-buffer-code-place)
 
 (define-indentation "Markdown"
   'style 'markdown 'width 2 'tabs #f

@@ -82,6 +82,8 @@
 (define fe-shard-size (foreign-procedure "fe-shard-size" (long) long))
 (define fe-shard-current (foreign-procedure "fe-shard-current" () long))
 (define fe-undo-recording (foreign-procedure "fe-undo-recording" (long) long))
+(define fe-syntax-open (foreign-procedure "fe-syntax-open" (long long long) long))
+(define fe-buffer-search (foreign-procedure "fe-buffer-search" (string long long) long))
 (define fe-utf8-fix (foreign-procedure "fe-utf8-fix" (long) long))
 (define fe-unfold (foreign-procedure "fe-unfold" (long long) void))
 (define fe-folded-at (foreign-procedure "fe-folded-at" (long) long))

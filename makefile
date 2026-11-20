@@ -333,6 +333,22 @@ check-accent-motion: chezemax chezemax.wasm chezemax.cwasm
 	sh tests/accent-motion.sh
 check: check-accent-motion
 
+# The speed of the commands on a small and a large file: a few minutes,
+# so not part of make check (tests/speed.sh)
+.PHONY: check-speed
+check-speed: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/speed.sh
+
+.PHONY: check-esc-nul
+check-esc-nul: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/esc-nul.sh
+check: check-esc-nul
+
+.PHONY: check-sexp-speed
+check-sexp-speed: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/sexp-speed.sh
+check: check-sexp-speed
+
 .PHONY: check-shards
 check-shards: chezemax chezemax.wasm chezemax.cwasm
 	sh tests/shards.sh
@@ -429,3 +445,23 @@ check-paste-decoder:
 	  $(CC) $(CFLAGS) $(NAV_TEST_CFLAGS) -DTERMINAL_PASTE_LIMIT=32 -Isrc tests/bracketed-paste.c tests/no-terminal.c src/command.c $(NAV_TEST_LDFLAGS) -o "$$work/check"; \
 	  "$$work/check"
 check: check-paste-decoder
+
+.PHONY: check-speed-report check-comment-context
+check-speed-report:
+	sh tests/speed-report.sh
+check-comment-context: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/comment-context.sh
+check: check-speed-report check-comment-context
+
+# M-; and the ``` / #+BEGIN_SRC languages, read by C (fe-syntax-open,
+# fe-buffer-search), answer what reading the whole text before the line did
+.PHONY: check-syntax-open
+check-syntax-open: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/syntax-open.sh
+check: check-syntax-open
+
+# C-x C-e in an Org or Markdown block, after a lone " in the prose
+.PHONY: check-org-eval
+check-org-eval: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/org-eval.sh
+check: check-org-eval

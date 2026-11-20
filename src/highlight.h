@@ -21,6 +21,8 @@ typedef struct {
 } hl_language_spec;
 int highlight_define_language(const hl_language_spec *);   /* the id */
 int highlight_tokens_id(int id, const unsigned char *text, int len, unsigned char *colors);  /* 0: no such id */
+/* where a string or comment still open at the end of TEXT began; -1 none, -2 no such id */
+int highlight_open_id(int id, const unsigned char *text, int len);
 void highlight_python_text(const unsigned char *text, int len, unsigned char *colors);
 void highlight_nim_text(const unsigned char *text, int len, unsigned char *colors);
 

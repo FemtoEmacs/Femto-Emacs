@@ -2,7 +2,7 @@
 Chezweb is a simpler implementation of Emacs, where simpler means fewer
 features, but also means it's easier to learn and install.
 
-The current version is [Chezweb 1.12](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/v1.12).
+The current version is [Chezweb 1.14](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/v1.14).
 
 ## Installation on Silicon macOS
 There is no macOS installer yet. On the Mac, you build Chezweb from
@@ -13,9 +13,9 @@ The same steps work on Intel Macs.
 ## Installation on Linux
 On Ubuntu (22.04 or later) and Debian (12 or later), download the
 installer for your processor:
-[chezweb_amd64.deb](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.12/chezweb_amd64.deb)
+[chezweb_amd64.deb](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.14/chezweb_amd64.deb)
 for Intel and AMD, or
-[chezweb_arm64.deb](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.12/chezweb_arm64.deb)
+[chezweb_arm64.deb](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.14/chezweb_arm64.deb)
 for ARM (`dpkg --print-architecture` says which). Then, in the folder
 where it is:
 
@@ -28,13 +28,13 @@ makes the machine code for your processor, which takes about half a
 minute. Then `chezweb notes.md` opens the editor in the terminal, in any
 folder, and **Chezweb** in the applications menu opens it in a window.
 `sudo apt remove chezweb` removes it. The
-[release page](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/v1.12)
+[release page](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/v1.14)
 has the checksums. On other distributions, build from the sources, as
 explained in [Building from sources](#building-from-sources).
 
 ## Installation on Windows
 
-[Download Chezweb 1.12 for Windows x86-64 (Setup.exe)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.12/Chezweb-Windows-x86_64-Setup.exe)
+[Download Chezweb 1.14 for Windows x86-64 (Setup.exe)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.14/Chezweb-Windows-x86_64-Setup.exe)
 
 Built from Windows commit 59fb8664768f. [Release notes, checksums, and matching sources](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/chezweb-windows-preview-59fb8664768f1ce78b1c3525c82817b831c2d48e)
 
