@@ -1376,3 +1376,42 @@ and ran out of the 75 minutes in its tests. Both macOS jobs, which build
 and test the same code, passed. The install step now gives up a try
 after six minutes (apt's own timeouts 30 s, three retries), tries three
 times (finishing an install cut short first), and has 20 minutes in all.
+
+
+## 20 Nov 2026: C-M-f and C-M-b slow on a large .wat
+
+Eduardo: about 15 s on the wat files without shards. Measured here: 42 s
+and 53 s over the 9.7 MB module. Per byte, a bridge call (fe-char-at)
+and two string-index calls (variadic, a closure each). Block reader and
+plain comparisons in emacs-keys.scm: 1.2 s and 1.8 s. tests/sexp-speed.sh.
+
+## 20 Nov 2026: tests/speed.sh, first findings
+
+Esc NUL (C-M-SPC) froze the editor (get_key, fixed); M-; in an 8 MB
+Scheme file took 19 s (highlighting from the start of the text; now from
+the definition: 11 ms); M-; and M-q in an 8 MB Markdown file take 1.2-1.3
+s (language-place reads the text from the start for the fences): open.
+
+## 20 Nov 2026: M-; and M-q fast on large files, by C
+
+The definition-start shortcut for M-; was wrong (a column-0 "(" inside
+a string of several lines; Codex's tests/comment-context.sh) and Codex
+went back to lexing from the start: 462 ms here, about 185 on the Mac.
+Eduardo chose, as in Emacs, a C scanner: fe-syntax-open (highlight.c,
+the tokenizer's rules without colours, bytes no rule can start skipped)
+answers where a string or comment open at the line began; M-; lexes
+from there: 20 ms. Markdown M-; and M-q (1.8 and 1.6 s): language-place
+gave the inner language the whole text before the line; now the line's
+start, and md-buffer-code-place / org-buffer-code-place read only the
+lines C finds (fe-buffer-search): 25 and 20 ms. tests/syntax-open.sh
+compares both ways line by line. (In M-:, number->string fails, "not a
+number: ()": the test avoids it.)
+
+## 21 Nov 2026: C-x C-e in an Org block: "No expression before the cursor"
+
+Eduardo, in grounding-ai.org, after (define (fib n) ...) in a #+begin_src
+Scheme block. eval-last-sexp (defaults.scm) scanned from 64 KB above the
+cursor, pairing parentheses and skipping strings; a lone " in the prose
+above opened a string to the end. Reproduced with one line `He said
+"hello.` above the block (Markdown too). Now, inside an Org or Markdown
+block, the scan starts at the block (language-place). tests/org-eval.sh.

@@ -259,6 +259,23 @@ then follow that language there, as in a file of it (indent.scm)."
                 ((org-at-ci? text first le "#+END_SRC") (loop next #f))
                 (else (loop next open)))))))
 
+(define (org-buffer-code-place ls)
+  "org-code-place on the current buffer, for language-place (highlight.scm):
+only the lines with #+ are read, found by C (fe-buffer-search)."
+  (let loop ((p 0) (open #f))
+    (let ((c (if (< p ls) (fe-buffer-search "#+" p ls) -1)))
+      (if (< c 0)
+          (and open (<= (cdr open) ls) open)
+          (let* ((s (line-start c)) (e (line-end s))
+                 (line (buffer-bytes s e)) (n (blen line))
+                 (first (org-skip-blanks line 0 n))
+                 (next (+ e 1)))
+            (cond ((org-at-ci? line first n "#+BEGIN_SRC")
+                   (let ((lang (org-src-language line (+ first 11) n)))
+                     (loop next (and lang (cons lang next)))))
+                  ((org-at-ci? line first n "#+END_SRC") (loop next #f))
+                  (else (loop next open))))))))
+
 (define (org-paint-src! text from to colors)
   "The code of a block, [FROM, TO), in the colours of its language."
   (when (and from (< from to))
@@ -429,7 +446,7 @@ key did without Org."
   ;; TAB on a heading folds (org-fold.scm)
   (set! *self-insert-hook* (cons 'org-tab-key (filter (lambda (h) (not (eq? h 'org-tab-key))) *self-insert-hook*)))
   (set! *org-language* (define-language "Org" 'extensions '(".org") 'highlighter org-highlight))
-  (define-inner-language "Org" org-code-place)
+  (define-inner-language "Org" org-buffer-code-place)
   (for-each (lambda (k)
               (let ((command (org-key-command (car k) (cdr k))))
                 (hashtable-set! *org-saved-keys* (car k) (key-binding (car k)))

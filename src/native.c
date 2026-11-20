@@ -402,6 +402,16 @@ static value_t wrap_fe_undo_recording(value_t *a, uint32_t n) {
  argcount("fe_undo_recording", n, 1);
  return fixnum(fe_undo_recording(tofixnum(a[0], "fe_undo_recording")));
 }
+extern long fe_syntax_open(long id, long from, long to);
+static value_t wrap_fe_syntax_open(value_t *a, uint32_t n) {
+ argcount("fe_syntax_open", n, 3);
+ return fixnum(fe_syntax_open(tofixnum(a[0], "fe_syntax_open"), tofixnum(a[1], "fe_syntax_open"), tofixnum(a[2], "fe_syntax_open")));
+}
+extern long fe_buffer_search(char *s, long from, long to);
+static value_t wrap_fe_buffer_search(value_t *a, uint32_t n) {
+ argcount("fe_buffer_search", n, 3);
+ return fixnum(fe_buffer_search(tostring(a[0], "fe_buffer_search"), tofixnum(a[1], "fe_buffer_search"), tofixnum(a[2], "fe_buffer_search")));
+}
 extern long fe_utf8_fix(long on);
 static value_t wrap_fe_utf8_fix(value_t *a, uint32_t n) {
  argcount("fe_utf8_fix", n, 1);
@@ -674,6 +684,8 @@ static builtinspec_t editor_builtins[] = {
  {"fe-mouse-kind", wrap_fe_mouse_kind},
  {"fe-fold", wrap_fe_fold},
  {"fe-utf8-fix", wrap_fe_utf8_fix},
+ {"fe-syntax-open", wrap_fe_syntax_open},
+ {"fe-buffer-search", wrap_fe_buffer_search},
  {"fe-undo-recording", wrap_fe_undo_recording},
  {"fe-shard-threshold", wrap_fe_shard_threshold},
  {"fe-shard-size", wrap_fe_shard_size},

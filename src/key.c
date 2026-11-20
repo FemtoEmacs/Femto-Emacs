@@ -509,6 +509,16 @@ char_t *get_key(keymap_t *keys, keymap_t **key_return)
 		}
 		*record++ = (unsigned)byte;
 		*record = '\0';
+		/*
+		 * A NUL after the first byte (Esc C-SPC, which terminals send for
+		 * C-M-SPC; C-x C-SPC) ends the key: no sequence of the table has
+		 * one, and the comparisons below stop at it, so each later byte
+		 * was read into the key unseen and every key after was lost: the
+		 * editor seemed frozen (tests/speed.sh, 20 November 2026).  The
+		 * key is named below ("esc C-space"), and scripts may bind it.
+		 */
+		if (byte == 0 && record - buffer > 1)
+			break;
 
 		/* if recorded bytes match any multi-byte sequence... */
 		for (k = keys, submatch = 0; k->key_bytes != NULL; ++k) {

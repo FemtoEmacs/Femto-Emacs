@@ -600,6 +600,25 @@ static void b_fe_undo_recording(bridge_in *in, bridge_out *out)
 	bridge_put_int(out, (long) fe_undo_recording(a1));
 }
 
+extern long fe_syntax_open(long id, long from, long to);
+static void b_fe_syntax_open(bridge_in *in, bridge_out *out)
+{
+	long a1 = (long) bridge_int(in);
+	long a2 = (long) bridge_int(in);
+	long a3 = (long) bridge_int(in);
+	bridge_put_int(out, (long) fe_syntax_open(a1, a2, a3));
+}
+
+extern long fe_buffer_search(char *s, long from, long to);
+static void b_fe_buffer_search(bridge_in *in, bridge_out *out)
+{
+	char *a1 = bridge_string(in);
+	long a2 = (long) bridge_int(in);
+	long a3 = (long) bridge_int(in);
+	bridge_put_int(out, (long) fe_buffer_search(a1, a2, a3));
+	free(a1);
+}
+
 extern long fe_utf8_fix(long on);
 static void b_fe_utf8_fix(bridge_in *in, bridge_out *out)
 {
@@ -985,6 +1004,8 @@ void bridge_register_editor(void)
 	bridge_register("fe-shard-size", b_fe_shard_size);
 	bridge_register("fe-shard-current", b_fe_shard_current);
 	bridge_register("fe-undo-recording", b_fe_undo_recording);
+	bridge_register("fe-syntax-open", b_fe_syntax_open);
+	bridge_register("fe-buffer-search", b_fe_buffer_search);
 	bridge_register("fe-utf8-fix", b_fe_utf8_fix);
 	bridge_register("fe-unfold", b_fe_unfold);
 	bridge_register("fe-folded-at", b_fe_folded_at);

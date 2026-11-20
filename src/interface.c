@@ -17,6 +17,7 @@
  */
 
 #include "header.h"
+#include "highlight.h"
 
 /* ------------------------------------------------------------------ */
 /* Hooks installed by Lisp                                             */
@@ -323,6 +324,61 @@ long fe_copy_text(long start, long len, char *out)
 	for (i = 0; i < len; i++)
 		out[i] = (char) *ptr(curbp, start + i);
 	return len < 0 ? 0 : len;
+}
+
+/*
+ * (fe-syntax-open ID FROM TO): where a string or comment that is still
+ * open at TO began, scanning the current buffer from FROM (a place where
+ * none is open) with the tokenizer of language ID (highlight.c); -1 if
+ * none is open, -2 if the language has no tokenizer.  Scanning 8 MB takes
+ * milliseconds here; in Scheme it took half a second (tests/speed.sh).
+ */
+long fe_syntax_open(long id, long from, long to)
+{
+	long size = document_size(curbp), gap, r;
+	const unsigned char *text;
+
+	if (from < 0) from = 0;
+	if (to > size) to = size;
+	if (to <= from) return -1;
+	/* the text read in place: if the gap is inside [FROM, TO), it moves
+	   to TO, which is the line of point, where the next edit puts it */
+	gap = curbp->b_gap - curbp->b_buf;
+	if (from < gap && to > gap) {
+		(void) movegap(curbp, (point_t) to);
+		gap = curbp->b_gap - curbp->b_buf;
+	}
+	text = to <= gap ? curbp->b_buf + from : curbp->b_egap + (from - gap);
+	r = highlight_open_id((int) id, text, (int) (to - from));
+	return r < 0 ? r : r + from;
+}
+
+/*
+ * (fe-buffer-search STRING FROM TO): the offset of the first STRING in the
+ * current buffer in [FROM, TO), or -1; point does not move.  A primitive
+ * like Emacs's search-forward: markdown.scm and org.scm look for the lines
+ * of ``` and #+BEGIN_SRC with it instead of reading the text before the
+ * line in Scheme.
+ */
+long fe_buffer_search(char *s, long from, long to)
+{
+	long size = document_size(curbp), n = (long) strlen(s);
+	long gap = curbp->b_gap - curbp->b_buf;
+	char_t *pre = curbp->b_buf, *post = curbp->b_egap;
+	long p, k;
+
+	if (from < 0) from = 0;
+	if (to > size) to = size;
+	if (n == 0) return from <= to ? from : -1;
+	for (p = from; p + n <= to; p++) {
+		if ((p < gap ? pre[p] : post[p - gap]) != (char_t) s[0]) continue;
+		for (k = 1; k < n; k++) {
+			long q = p + k;
+			if ((q < gap ? pre[q] : post[q - gap]) != (char_t) s[k]) break;
+		}
+		if (k == n) return p;
+	}
+	return -1;
 }
 
 /* offset of the start of the logical line containing P */

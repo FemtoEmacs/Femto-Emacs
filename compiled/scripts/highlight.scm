@@ -136,10 +136,12 @@ in C (src/highlight.c), which runs at every redisplay."
         *default-language*)))
 
 ;; A language may hold pieces of other languages: Markdown's ``` blocks
-;; (```scheme).  Its procedure, given the buffer's text up to the end of a
-;; line (a bytevector) and that line's start, answers (language . start of
-;; the piece) or #f.  Indentation, M-; and M-q then follow the piece's
-;; language.
+;; (```scheme).  Its procedure, given the start of a line of the current
+;; buffer, answers (language . start of the piece) or #f.  Indentation, M-;
+;; and M-q then follow the piece's language.  It reads only the lines it
+;; needs (fe-buffer-search finds the fences): handing it the whole text
+;; before the line made M-; and M-q take half a second at the end of an
+;; 8 MB file (tests/speed.sh).
 (defvar *inner-languages* (make-hashtable string-hash string=?))      ; lower-case language name -> procedure
 
 (define (define-inner-language language procedure)
@@ -154,7 +156,7 @@ text in that language starts (0 for the whole buffer).  #f: none."
      (let* ((lang (language-for-file (or (buffer-filename) (get-buffer-name))))
             (inner (and lang (hashtable-ref *inner-languages* (string-downcase (language-name lang)) #f)))
             (ls (line-start pos)))
-       (or (and inner (inner (buffer-bytes 0 (line-end ls)) ls))
+       (or (and inner (inner ls))
            (and lang (cons lang 0)))))))
 
 (define language-at-point

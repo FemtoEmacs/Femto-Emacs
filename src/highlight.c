@@ -322,6 +322,97 @@ static void highlight_tokens(const language_t *L, const uchar *t, int len, uchar
 	}
 }
 
+/*
+ * The tokenizer's state at the end of T: the offset where a string or a
+ * comment that is still open there began, or -1 when none is.  The same
+ * scan as highlight_tokens, in the same order, without the colours, so
+ * both agree on what a string or a comment is.  M-; asks it where the
+ * line's text stands (emacs-keys.scm), as Emacs's parse-partial-sexp: the
+ * languages are still defined in Scheme, by these tables.
+ */
+static int open_construct(const language_t *L, const uchar *t, int len)
+{
+	/* STOP: the bytes where some rule below may apply; elsewhere a word
+	   is a word and a symbol a symbol, read without trying the rules
+	   (five times faster: 8 MB in a few ms) */
+	uchar stop[256] = {0};
+	int i = 0, k;
+	for (k = 0; k < L->n_block; k++) if (L->block_open[k].n) stop[(uchar) L->block_open[k].s[0]] = 1;
+	for (k = 0; k < L->n_line; k++) if (L->line_comments[k].n) stop[(uchar) L->line_comments[k].s[0]] = 1;
+	for (k = 0; k < L->n_strings; k++) if (L->strings[k].n) stop[(uchar) L->strings[k].s[0]] = 1;
+	if (L->char_prefix.n) stop[(uchar) L->char_prefix.s[0]] = 1;
+	if (L->backslash_commands) stop['\\'] = 1;
+	for (k = '0'; k <= '9'; k++) stop[k] = 1;
+	stop['+'] = stop['-'] = 1;
+	for (k = 0; k < 256; k++)
+		if (L->n_keywords[k]) {
+			stop[k] = 1;
+			if (L->case_insensitive && k >= 'a' && k <= 'z') stop[k - 32] = 1;
+		}
+	while (i < len) {
+		int b = t[i], done = 0;
+		if (!stop[b]) {
+			if (L->word[b]) while (i < len && L->word[t[i]]) i++;
+			else i++;
+			continue;
+		}
+		int token_start = i == 0 || !L->word[t[i - 1]];
+		for (k = 0; k < L->n_block && !done; k++)
+			if (match_at(t, len, i, &L->block_open[k], 0)) {
+				int end = find_bytes(t, i + L->block_open[k].n, len, &L->block_close[k]);
+				if (end < 0) return i;
+				i = end + L->block_close[k].n;
+				done = 1;
+			}
+		for (k = 0; k < L->n_line && !done; k++)
+			if (match_at(t, len, i, &L->line_comments[k], 0)) {
+				const uchar *nl = memchr(t + i, '\n', (size_t) (len - i));
+				if (!nl) return i;
+				i = (int) (nl - t);
+				done = 1;
+			}
+		for (k = 0; k < L->n_strings && !done; k++)
+			if (match_at(t, len, i, &L->strings[k], 0)) {
+				int j = i + L->strings[k].n, closed = 0;
+				while (j < len) {
+					if (L->escape >= 0 && t[j] == L->escape) j += 2;
+					else if (match_at(t, len, j, &L->strings[k], 0)) { j += L->strings[k].n; closed = 1; break; }
+					else j++;
+				}
+				if (!closed) return i;
+				i = j;
+				done = 1;
+			}
+		if (done) continue;
+		if (L->char_prefix.n && match_at(t, len, i, &L->char_prefix, 0)) {
+			i += L->char_prefix.n + 1;
+			if (i > len) i = len;
+			while (i < len && L->word[t[i]]) i++;
+			continue;
+		}
+		if (token_start && L->backslash_commands && b == '\\' && i + 1 < len &&
+		    ((t[i + 1] | 32) >= 'a' && (t[i + 1] | 32) <= 'z')) {
+			i++;
+			while (i < len && (t[i] | 32) >= 'a' && (t[i] | 32) <= 'z') i++;
+			continue;
+		}
+		if (token_start && (k = scan_number(L, t, len, i)) >= 0) { i = k; continue; }
+		if (token_start && (k = scan_keyword(L, t, len, i)) >= 0) { i = k; continue; }
+		if (L->word[b]) {
+			while (i < len && L->word[t[i]]) i++;
+			continue;
+		}
+		i++;
+	}
+	return -1;
+}
+
+int highlight_open_id(int id, const unsigned char *text, int len)
+{
+	if (id < 0 || id >= n_languages) return -2;
+	return open_construct(languages[id], text, len);
+}
+
 static uchar *colors_of(value_t v, int len, const char *who)
 {
 	if (!iscvalue(v) || (int) cvalue_len(v) < len) lerror(ArgError, who);

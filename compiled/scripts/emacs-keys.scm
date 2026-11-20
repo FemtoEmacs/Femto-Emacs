@@ -16,13 +16,38 @@
 
 (define (buffer-get i) (fe-char-at i))
 
+;; A reader over the buffer for one scan: it asks C for the text in blocks
+;; of 64 KB (buffer-bytes) and reads the bytes from them.  Asking for each
+;; byte (fe-char-at) crossed the bridge once a byte: C-M-f over the
+;; outermost list of a 9.7 MB file took 48 seconds (20 November 2026).  A
+;; scan does not change the text, so the blocks stay valid while it runs.
+(define *reader-block* 65536)
+(define (buffer-reader)
+  (let ((size (buffer-size)) (start 0) (end 0) (bytes #f))
+    (lambda (i)
+      (cond ((or (< i 0) (>= i size)) -1)
+            ((and bytes (>= i start) (< i end)) (bytevector-u8-ref bytes (- i start)))
+            (else
+             (set! start (* (quotient i *reader-block*) *reader-block*))
+             (set! bytes (buffer-bytes start (min size (+ start *reader-block*))))
+             (set! end (+ start (bytevector-length bytes)))
+             (bytevector-u8-ref bytes (- i start)))))))
+
 (define (octets-get s)
   "A reader over the bytes of S (a string or a bytevector), for the tests."
   (let ((b (%utf8 s)))
     (lambda (i) (if (and (>= i 0) (< i (bytevector-length b))) (bytevector-u8-ref b i) -1))))
 
 (define (byte-in b chars)
-  (and (>= b 0) (<= b 127) (string-index chars (integer->char b)) #t))
+  "Is B one of the ASCII CHARS?  The scanners ask this of every byte, so it
+is a plain loop: string-index (variadic, and a closure a call) cost a
+microsecond, and C-M-f over a 9.7 MB list took 42 seconds."
+  (and (>= b 0) (<= b 127)
+       (let ((n (string-length chars)))
+         (let loop ((k 0))
+           (cond ((= k n) #f)
+                 ((= b (char->integer (string-ref chars k))) #t)
+                 (else (loop (+ k 1))))))))
 
 (define (word-constituent-p b)
   "Letters, digits and every non-ASCII byte make words."
@@ -136,8 +161,8 @@
   (let ((lang (language-for-file (or (buffer-filename) (get-buffer-name)))))
     (and lang (member (language-name lang) '("Common Lisp" "Scheme" "VHDL Lisp")) #t)))
 
-(define (open-byte-p b) (byte-in b "([{"))
-(define (close-byte-p b) (byte-in b ")]}"))
+(define (open-byte-p b) (or (= b 40) (= b 91) (= b 123)))      ; ( [ {
+(define (close-byte-p b) (or (= b 41) (= b 93) (= b 125)))     ; ) ] }
 
 (define (escaped-at-p get i)
   "Is the byte at I a Lisp character literal (#\\x) or escaped (\\x)?"
@@ -368,7 +393,7 @@ kills join into one entry, as in Emacs."
           ((string=? (get-key-name) "SPC") " ")
           (else #f))))
 
-(define (scan f . args) (apply f buffer-get (buffer-size) args))
+(define (scan f . args) (apply f (buffer-reader) (buffer-size) args))
 
 ;;; ------------------------------------------------------------------
 ;;; Motion
@@ -391,7 +416,7 @@ kills join into one entry, as in Emacs."
     (if s (goto-char s) (message "No expression before the cursor"))))
 
 (defcommand (backward-up-list)
-  (let ((s (up-list-position buffer-get (point))))
+  (let ((s (up-list-position (buffer-reader) (point))))
     (if s (goto-char s) (message "Not inside a list"))))
 
 (defcommand (down-list)
@@ -778,13 +803,25 @@ item keeps its marker, and the lines after it go under its text."
 
 (defvar *comment-column* 32)
 
+(define (line-comment-position-bytes text start language)
+  "Find a line-comment run starting on this line, preserving earlier syntax state."
+  (let* ((lang (cond ((not language) *default-language*)
+                     ((string? language) (or (find-language language) (language-for-file language)))
+                     (else language)))
+         (len (bytevector-length text))
+         (colors (make-colors len)))
+    ;; Tokenize the whole language prefix, but inspect only this line.  Building
+    ;; highlight-string's substring runs walked and copied every earlier token.
+    (highlight-octets lang text len colors)
+    (let loop ((i start))
+      (cond ((>= i len) #f)
+            ((and (= (bytevector-u8-ref colors i) +comment+)
+                  (or (= i 0) (not (= (bytevector-u8-ref colors (- i 1)) +comment+)))) i)
+            (else (loop (+ i 1)))))))
+
 (define (line-comment-position text start language)
   "Find a real line comment, ignoring markers inside strings and block comments."
-  (let loop ((runs (highlight-string text language)) (offset 0))
-    (and (pair? runs)
-         (let* ((run (car runs)) (end (+ offset (bytes-length (cdr run)))))
-           (if (and (= (car run) +comment+) (>= offset start)) offset
-               (loop (cdr runs) end))))))
+  (line-comment-position-bytes (%utf8 text) start language))
 
 (defcommand (comment-dwim)
   "M-;: toggle region comments, or insert/align this line's comment."
@@ -798,9 +835,26 @@ item keeps its marker, and the lines after it go under its text."
            (let* ((ls (line-start)) (le (line-end ls))
                   (place (language-place))
                   (language (car place))
-                  (from (cdr place))
+                  ;; Where the line's text stands: inside a string or a block
+                  ;; comment that began on an earlier line, or not.  The C
+                  ;; tokenizer of the language answers, as Emacs's
+                  ;; parse-partial-sexp does, scanning from the start of the
+                  ;; language's text without copying it here; then only this
+                  ;; line, or the string or comment it continues, is lexed in
+                  ;; Scheme.  A language with a highlighter of its own (Python,
+                  ;; Nim) still lexes from the start.
+                  (from (let* ((start (cdr place))
+                               (lang (cond ((not language) *default-language*)
+                                           ((string? language) (or (find-language language)
+                                                                   (language-for-file language)))
+                                           (else language)))
+                               (id (and (not (language-highlighter lang)) (language-token-id lang)))
+                               (open (if id (fe-syntax-open id start ls) -2)))
+                          (cond ((>= open 0) open)
+                                ((= open -1) ls)
+                                (else start))))
                   (text (buffer-bytes from le))
-                  (found (let ((at (line-comment-position (utf8->string text) (- ls from) language)))
+                  (found (let ((at (line-comment-position-bytes text (- ls from) language)))
                            (and at (+ at from))))
                   (single (if (string=? comment ";;") ";" comment))
                   (end (or found le))

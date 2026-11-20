@@ -116,7 +116,12 @@ matching parentheses."
   "C-x C-e: evaluate the expression before the cursor; its value goes to
 the message line."
   (let* ((end (point))
-         (from (max 0 (- end 65536)))
+         ;; in a block of code of an Org or Markdown file (#+begin_src,
+         ;; ```), the text from the block's first line: a lone " in the
+         ;; prose above opened a string that hid the code (21 Nov 2026)
+         (place (language-place end))
+         (block (if (and place (> (cdr place) 0)) (cdr place) 0))
+         (from (max block (- end 65536)))
          (text (buffer-bytes from end))
          (start (sexp-before text (blen text))))
     (if (not start)

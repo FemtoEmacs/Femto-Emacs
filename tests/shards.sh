@@ -57,7 +57,7 @@ keys ^X^C
 EOF
 run "$work/k1"
 # the first line of shard 3: shards end at the first newline after 200 bytes
-third=$(awk 'BEGIN { n = 0; k = 1 } { n += length($0) + 1; if (n >= 200) { k++; n = 0; if (k == 3) { print NR + 1; exit } } }' LC_ALL=C "$work/orig.txt")
+third=$(LC_ALL=C awk 'BEGIN { n = 0; k = 1 } { n += length($0) + 1; if (n >= 200) { k++; n = 0; if (k == 3) { print NR + 1; exit } } }' "$work/orig.txt")
 awk -v third="$third" 'NR == 50 { $0 = "ABC" $0 } NR == third { $0 = "XYZ" $0 } NR == 90 { sub(/line 90 /, "line 90 QQ") } { print }' "$work/orig.txt" > "$work/want.txt"
 cmp -s "$work/f.txt" "$work/want.txt" || { diff "$work/want.txt" "$work/f.txt" || true; fail 'the saved file is not the original with the three edits'; }
 grep -aq 'Shard 2/' "$work/screen" || fail 'C-c C-v n did not report shard 2'
@@ -138,7 +138,19 @@ keys ^X^C
 wait 300
 keys y
 EOF
-( sleep 3; echo 'another program' >> "$work/f.txt"; echo go > "$work/changed" ) &
+# Change the file only after the editor has read its first shard.  A fixed
+# delay can expire during compilation on a busy runner, before the visit.
+rm -f "$work/screen" "$work/changed"
+(
+  tries=0
+  until grep -aq 'Shard 1/' "$work/screen" 2>/dev/null; do
+    tries=$((tries + 1))
+    [ "$tries" -lt 60 ] || exit 1
+    sleep 1
+  done
+  echo 'another program' >> "$work/f.txt"
+  echo go > "$work/changed"
+) &
 run "$work/k4"
 wait
 grep -aq 'File changed on disk' "$work/screen" || fail 'a shard was read from a file another program changed'
@@ -170,7 +182,7 @@ keys ^X^C
 EOF
 run "$work/k5"
 # Z at the start of shard 2: the first line after 200 bytes
-second=$(awk '{ n += length($0) + 1; if (n >= 200) { print NR + 1; exit } }' "$work/o-orig.org")
+second=$(LC_ALL=C awk '{ n += length($0) + 1; if (n >= 200) { print NR + 1; exit } }' "$work/o-orig.org")
 awk -v l="$second" 'NR == l { $0 = "Z" $0 } { print }' "$work/o-orig.org" > "$work/o-want.org"
 cmp -s "$work/o.org" "$work/o-want.org" || { diff "$work/o-want.org" "$work/o.org" || true; fail 'C-c C-v n in an Org file did not go to the next shard'; }
 echo 'PASS shards: in an Org file, C-c C-v n (after Babel'"'"'s prefix) goes to the next shard'
