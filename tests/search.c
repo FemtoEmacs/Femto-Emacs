@@ -21,6 +21,11 @@ void display(window_t *w,int full){(void)w;(void)full;renders++;}
 /* narrow.c: this buffer is never narrowed */
 point_t visible_start(buffer_t *b){(void)b;return 0;}
 point_t visible_end(buffer_t *b){return pos(b,b->b_ebuf);}
+/* This isolated search fixture has no shards.  End-to-end shard searches
+ * and cancellation are exercised by tests/shards.sh. */
+int shard_current(buffer_t *b){assert(!b->b_shard);return -1;}
+int shard_switch(buffer_t *b,int k,int at_end){(void)b;(void)k;(void)at_end;assert(0 && "unexpected shard switch");return 0;}
+int shard_search_forward(const char *s){(void)s;assert(0 && "unexpected shard search");return 0;}
 void dispmsg(void){}
 void msg(char *format,...){(void)format;}
 void display_prompt_and_response(char *p,char *s){(void)p;(void)s;}
