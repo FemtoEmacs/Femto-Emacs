@@ -1783,3 +1783,12 @@ cursor, pairing parentheses and skipping strings; a lone " in the prose
 above opened a string to the end. Reproduced with one line `He said
 "hello.` above the block (Markdown too). Now, inside an Org or Markdown
 block, the scan starts at the block (language-place). tests/org-eval.sh.
+
+## 21 Nov 2026: M-q inside a Lean comment: "fills comments and text, not code"
+
+Eduardo, in Lean/utf8-cursor.lean, in a /- -/ comment. fill-paragraph knew
+only line comments (the marker on every line) and text buffers. Now it asks
+fe-syntax-open whether the line is in a block comment (scan to the line
+start, then the line: 16 ms at the end of 8 MB; scanning twice from 0 took
+37 ms and tests/speed.sh caught it) and fills the paragraph between blank
+lines inside the comment, the markers left in place. tests/block-fill.sh.
