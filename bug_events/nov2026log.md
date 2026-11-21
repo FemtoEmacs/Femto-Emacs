@@ -1792,3 +1792,8 @@ fe-syntax-open whether the line is in a block comment (scan to the line
 start, then the line: 16 ms at the end of 8 MB; scanning twice from 0 took
 37 ms and tests/speed.sh caught it) and fills the paragraph between blank
 lines inside the comment, the markers left in place. tests/block-fill.sh.
+
+An empty /**/ comment could skip its closing marker as decoration and fill
+following C code, even splitting a string literal. Locate the closing
+marker first and bound decoration skipping by it. tests/block-fill.sh
+checks that a long C declaration after an empty comment stays unchanged.

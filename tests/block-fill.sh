@@ -73,3 +73,11 @@ int x; /* not a comment: "/*" */
 C
 diff "$work/want.c" "$work/t.c" || { echo 'FAIL M-q in C block comments'; exit 1; }
 echo 'PASS M-q refills the paragraph of a block comment (Lean, C)'
+
+# Empty documentation comments must not make the code after them fillable.
+printf '/**/ const char *s = "these are words inside a string that must stay on its original source line even when the line is long";\n' > "$work/empty.c"
+cp "$work/empty.c" "$work/empty-original.c"
+printf 'await-screen [SAVE]\nkeys \\eq\nwait 200\nkeys ^X^S\nwait 200\nkeys ^X^C\n' > "$work/keys"
+(cd "$work"; HOME="$work/home" CHEZEMAX_NO_INIT=1 LC_ALL=C.UTF-8 "$work/pty" "$work/keys" 30 "$work/screen" "$root/chezemax" empty.c)
+cmp "$work/empty-original.c" "$work/empty.c" || { echo 'FAIL empty comment reflowed following C code'; exit 1; }
+echo 'PASS filling an empty documentation comment leaves following code unchanged'
