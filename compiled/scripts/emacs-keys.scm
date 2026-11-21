@@ -773,13 +773,16 @@ line is in none."
                 (o (car found)) (open (cadr found)) (close (caddr found))
                 ;; the text starts after the marker and the bytes that
                 ;; decorate it: /-- /-! /**
+                ;; Find the closing marker before skipping decoration. In
+                ;; /**/ the decorative star also starts the closing marker.
+                (rc (let ((c (fe-buffer-search close (+ o (bytes-length open)) size)))
+                      (if (< c 0) size c)))
                 (ro (let skip ((i (+ o (bytes-length open))))
-                      (if (and (< i size) (let ((c (buffer-get i)))
+                      (if (and (< i rc) (let ((c (buffer-get i)))
                                              (and (> c 32) (< c 128)
                                                   (not (or (and (<= 48 c) (<= c 57)) (and (<= 65 c) (<= c 90))
                                                            (and (<= 97 c) (<= c 122)))))))
                           (skip (+ i 1)) i)))
-                (rc (let ((c (fe-buffer-search close ro size))) (if (< c 0) size c)))
                 (deco (and (> (string-length open) 0)
                            (char=? (string-ref open (- (string-length open) 1)) #\*) "*"))
                 ;; the part of the line at S inside the comment
