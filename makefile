@@ -478,3 +478,9 @@ check: check-syntax-open
 check-org-eval: chezemax chezemax.wasm chezemax.cwasm
 	sh tests/org-eval.sh
 check: check-org-eval
+
+# M-q in Lean's /- -/ and C's /* */ comments
+.PHONY: check-block-fill
+check-block-fill: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/block-fill.sh
+check: check-block-fill

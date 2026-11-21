@@ -725,6 +725,109 @@ item keeps its marker, and the lines after it go under its text."
                               (append acc (split-words (%sub line (min (string-length p) (string-length line)))))))))))
     (join-lines (fill-words (glue-break-words words) prefix width rest-prefix))))
 
+;; M-q in a block comment (Lean's /- -/ and /-- -/, C's /* */): the
+;; paragraph is the comment's lines between blank lines, and never takes in
+;; the comment's markers.  The C tokenizer says whether the line is in one
+;; (fe-syntax-open, as for M-;).  Lean files are mostly such comments, and
+;; M-q answered "fills comments and text, not code" there (21 Nov 2026).
+(define (block-comment-around ls le)
+  "(open-position open close) of the block comment containing the line at
+LS (ending at LE), or #f."
+  (let* ((lang (language-at-point))
+         (id (and lang (not (language-highlighter lang)) (language-token-id lang)))
+         (pairs (if lang (language-block-comments lang) '()))
+         (size (buffer-size)))
+    (define (opened-at o)
+      (and (>= o 0)
+           (let loop ((ps pairs))
+             (and (pair? ps)
+                  (let* ((open (caar ps)) (n (bytes-length open)))
+                    (if (and (<= (+ o n) size) (string=? (buffer-substring o (+ o n)) open))
+                        (list o open (cdar ps))
+                        (loop (cdr ps))))))))
+    ;; a comment that opens and closes on this line: its marker, where
+    ;; nothing (a string, a -- comment) is open
+    (define (opened-on-line)
+      (let loop ((ps pairs))
+        (and (pair? ps)
+             (let ((at (fe-buffer-search (caar ps) ls le)))
+               (if (and (>= at 0) (= (fe-syntax-open id base at) -1))
+                   (list at (caar ps) (cdar ps))
+                   (loop (cdr ps)))))))
+    ;; one scan of the text above: what is open at LS; from there (or from
+    ;; LS) to the end of the line is short
+    (define at-ls (if (and id (pair? pairs)) (fe-syntax-open id 0 ls) -1))
+    (define base (if (>= at-ls 0) at-ls ls))
+    (and id (pair? pairs)
+         (or (opened-at at-ls)
+             (opened-at (fe-syntax-open id base le))
+             (opened-on-line)))))
+
+(define (fill-block-comment ls)
+  "Refill the paragraph of the block comment at the line LS; #f when the
+line is in none."
+  (let* ((le (line-end ls))
+         (found (block-comment-around ls le)))
+    (and found
+         (let* ((size (buffer-size))
+                (o (car found)) (open (cadr found)) (close (caddr found))
+                ;; the text starts after the marker and the bytes that
+                ;; decorate it: /-- /-! /**
+                (ro (let skip ((i (+ o (bytes-length open))))
+                      (if (and (< i size) (let ((c (buffer-get i)))
+                                             (and (> c 32) (< c 128)
+                                                  (not (or (and (<= 48 c) (<= c 57)) (and (<= 65 c) (<= c 90))
+                                                           (and (<= 97 c) (<= c 122)))))))
+                          (skip (+ i 1)) i)))
+                (rc (let ((c (fe-buffer-search close ro size))) (if (< c 0) size c)))
+                (deco (and (> (string-length open) 0)
+                           (char=? (string-ref open (- (string-length open) 1)) #\*) "*"))
+                ;; the part of the line at S inside the comment
+                (part (lambda (s) (buffer-substring (max s ro) (min (line-end s) rc))))
+                (blank? (lambda (s) (string=? (trim (part s)) "")))
+                (first-line (line-start ro))
+                (last-line (line-start rc)))
+           (cond ((or (< ls first-line) (> ls last-line)) #f)
+                 ((blank? ls) (message "No paragraph here") #t)
+                 (else
+                  (let* ((top (let up ((s ls))
+                                (if (and (> s first-line) (not (blank? (line-start (- s 1)))))
+                                    (up (line-start (- s 1))) s)))
+                         (bottom (let down ((s ls))
+                                   (let ((next (+ 1 (line-end s))))
+                                     (if (and (<= next last-line) (< next size) (not (blank? next)))
+                                         (down next) s))))
+                         ;; on the marker's line the text starts after it
+                         (a (if (= top first-line)
+                                (let sk ((i ro)) (if (and (< i rc) (memv (buffer-get i) '(32 9))) (sk (+ i 1)) i))
+                                top))
+                         (b (let back ((i (min (line-end bottom) rc)))
+                              (if (and (> i a) (memv (buffer-get (- i 1)) '(32 9))) (back (- i 1)) i)))
+                         (lines (let loop ((s top) (acc '()))
+                                  (let ((acc (cons (buffer-substring (max s a) (min (line-end s) b)) acc)))
+                                    (if (>= s bottom) (reverse acc) (loop (+ 1 (line-end s)) acc)))))
+                         (lead (string-length (buffer-substring (line-start a) a)))
+                         (rest-prefix (cond ((pair? (cdr lines)) (fill-prefix-of (cadr lines) deco))
+                                            ((= a top) (fill-prefix-of (car lines) deco))
+                                            (else (fill-prefix-of (buffer-substring top a) #f))))
+                         (first-prefix (if (= a top) (fill-prefix-of (car lines) deco) ""))
+                         (words (let loop ((ls lines) (first #t) (acc '()))
+                                  (if (null? ls) acc
+                                      (let* ((line (car ls))
+                                             (p (if (and first (not (= a top))) "" (fill-prefix-of line deco))))
+                                        (loop (cdr ls) #f
+                                              (append acc (split-words (%sub line (min (string-length p) (string-length line))))))))))
+                         ;; the first line already has LEAD columns before A
+                         (filled (fill-words (glue-break-words words)
+                                             (string-append (make-spaces (if (= a top) 0 lead)) first-prefix)
+                                             *fill-column* rest-prefix))
+                         (new (let ((text (join-lines filled)))
+                                (if (= a top) text (%sub text (min lead (string-length text)))))))
+                    (unless (string=? new (buffer-substring a b))
+                      (replace-region a b new))
+                    (goto-char (+ a (bytes-length new)))
+                    #t)))))))
+
 (defcommand (fill-paragraph)
   "M-q: refill the paragraph (or comment block) at the cursor to
 *FILL-COLUMN* columns."
@@ -768,7 +871,8 @@ item keeps its marker, and the lines after it go under its text."
                    (not (and text-mode (unfillable-line-p text)))
                    (not (and org (org-heading-text-p text)))
                    (if in-comment (and (string-search comment (fill-prefix-of text comment)) #t) #t))))))
-    (cond ((blank-line-p buffer-get size ls) (message "No paragraph here"))
+    (cond ((and (not text-mode) (fill-block-comment ls)))
+          ((blank-line-p buffer-get size ls) (message "No paragraph here"))
           ((not (or in-comment text-mode)) (message "M-q fills comments and text, not code"))
           ((and text-mode (or (unfillable-line-p here)
                               ;; org.scm: an Org heading, or a line in a #+BEGIN_ block

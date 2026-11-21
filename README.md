@@ -2,7 +2,7 @@
 Chezweb is a simpler implementation of Emacs, where simpler means fewer
 features, but also means it's easier to learn and install.
 
-The current version is [Chezweb 1.14](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/v1.14).
+The current version is [Chezweb 1.15](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/v1.15).
 
 ## Installation on Silicon macOS
 There is no macOS installer yet. On the Mac, you build Chezweb from
@@ -13,9 +13,9 @@ The same steps work on Intel Macs.
 ## Installation on Linux
 On Ubuntu (22.04 or later) and Debian (12 or later), download the
 installer for your processor:
-[chezweb_amd64.deb](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.14/chezweb_amd64.deb)
+[chezweb_amd64.deb](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.15/chezweb_amd64.deb)
 for Intel and AMD, or
-[chezweb_arm64.deb](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.14/chezweb_arm64.deb)
+[chezweb_arm64.deb](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.15/chezweb_arm64.deb)
 for ARM (`dpkg --print-architecture` says which). Then, in the folder
 where it is:
 
@@ -28,15 +28,15 @@ makes the machine code for your processor, which takes about half a
 minute. Then `chezweb notes.md` opens the editor in the terminal, in any
 folder, and **Chezweb** in the applications menu opens it in a window.
 `sudo apt remove chezweb` removes it. The
-[release page](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/v1.14)
+[release page](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/v1.15)
 has the checksums. On other distributions, build from the sources, as
 explained in [Building from sources](#building-from-sources).
 
 ## Installation on Windows
 
-[Download Chezweb 1.14 for Windows x86-64 (Setup.exe)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.14/Chezweb-Windows-x86_64-Setup.exe)
+[Download Chezweb 1.15 for Windows x86-64 (Setup.exe)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.15/Chezweb-Windows-x86_64-Setup.exe)
 
-Built from the Windows branch for Chezweb 1.14. [Release notes and checksums](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/v1.14)
+Built from the Windows branch for Chezweb 1.15. [Release notes and checksums](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/v1.15)
 
 Run the installer to add **Chezweb**, **Chezweb GUI**, and **Uninstall**
 to your Start menu. It installs for your account and bundles Cygwin and
