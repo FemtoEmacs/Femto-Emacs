@@ -192,13 +192,22 @@ int main(int argc, char **argv)
 	}
 	deadline = now_ms() + timeout;
 	int trace = getenv("CHEZWEB_PTY_TRACE") != NULL;
+	int status = 0, child_done = 0;
 	char line[4096];
 	while (fgets(line, sizeof line, script)) {
+		if (waitpid(pid, &status, WNOHANG) == pid) { child_done = 1; break; }
 		line[strcspn(line, "\n")] = '\0';
 		if (trace) fprintf(stderr, "PTY step: %s\n", line);
 		if (strncmp(line, "wait ", 5) == 0) drain(atol(line + 5));
 		else if (strncmp(line, "keys ", 5) == 0) {
 			if (!type_text(line + 5, 0)) {
+				/* A closed PTY can precede waitpid reporting the exit. */
+				for (int tries = 0; tries < 100; tries++) {
+					if (waitpid(pid, &status, WNOHANG) == pid) { child_done = 1; break; }
+					if (errno != EIO) break;
+					usleep(10000);
+				}
+				if (child_done) break;
 				fprintf(stderr, "Could not send keys: %s\n", line + 5);
 				kill(pid, SIGKILL);
 				waitpid(pid, NULL, 0);
@@ -246,8 +255,7 @@ int main(int argc, char **argv)
 	fclose(script);
 
 	/* the program should end by itself now */
-	int status = 0;
-	for (;;) {
+	while (!child_done) {
 		pid_t r = waitpid(pid, &status, WNOHANG);
 		if (r == pid) break;
 		if (now_ms() >= deadline) {
