@@ -2,7 +2,7 @@
 Chezweb is a simpler implementation of Emacs, where simpler means fewer
 features, but also means it's easier to learn and install.
 
-The current version is [Chezweb 1.15](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/v1.15).
+The current version is [Chezweb 1.16](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/v1.16).
 
 ## Installation on Silicon macOS
 There is no macOS installer yet. On the Mac, you build Chezweb from
@@ -13,9 +13,9 @@ The same steps work on Intel Macs.
 ## Installation on Linux
 On Ubuntu (22.04 or later) and Debian (12 or later), download the
 installer for your processor:
-[chezweb_amd64.deb](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.15/chezweb_amd64.deb)
+[Chezweb 1.16 for Linux Intel/AMD (chezweb_amd64.deb)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.16/chezweb_amd64.deb)
 for Intel and AMD, or
-[chezweb_arm64.deb](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.15/chezweb_arm64.deb)
+[Chezweb 1.16 for Linux ARM64 (chezweb_arm64.deb)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.16/chezweb_arm64.deb)
 for ARM (`dpkg --print-architecture` says which). Then, in the folder
 where it is:
 
@@ -28,21 +28,26 @@ makes the machine code for your processor, which takes about half a
 minute. Then `chezweb notes.md` opens the editor in the terminal, in any
 folder, and **Chezweb** in the applications menu opens it in a window.
 `sudo apt remove chezweb` removes it. The
-[release page](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/v1.15)
+[release page](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/v1.16)
 has the checksums. On other distributions, build from the sources, as
 explained in [Building from sources](#building-from-sources).
 
 ## Installation on Windows
 
-[Download the Chezweb Windows x86-64 preview (Setup.exe)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/chezweb-windows-preview-de7d0960997db2dcddf4dbe8c875ad9f7fbf7e60/Chezweb-Windows-x86_64-Setup.exe)
+[Download Chezweb 1.16 for Windows x86-64 (Setup.exe)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.16/Chezweb-Windows-x86_64-Setup.exe)
 
-Preview built from `de7d0960997d`. [Release notes, checksums, and matching sources](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/chezweb-windows-preview-de7d0960997db2dcddf4dbe8c875ad9f7fbf7e60)
+Built from the Windows branch for Chezweb 1.16. [Release notes, checksums, and matching sources](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/v1.16)
 
 Run the installer to add **Chezweb**, **Chezweb GUI**, and **Uninstall**
 to your Start menu. It installs for your account and bundles Cygwin and
 the tools it needs. The browser editor uses Google Chrome.
 
 ## Building from sources
+The [Chezweb 1.16 source archive (tar.gz)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.16/Chezweb-1.16-source.tar.gz)
+and [Chezweb 1.16 source archive (zip)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.16/Chezweb-1.16-source.zip)
+contain the same portable sources for Apple Silicon and Intel Macs. Extract
+either archive and run `make` in its folder, or clone as below.
+
 First, the tools that every Mac and Linux machine can have:
 
 - **macOS:** Apple's command line tools. In the Terminal, type
@@ -70,6 +75,14 @@ opens the text window, and `./chezweb --gui` the graphical window. On
 the Mac, you can also double-click `Chezweb.command` or
 `Chezweb-GUI.command`, and `make app` makes an application, `Chezweb.app`.
 To update, type `git pull`, then `make`.
+
+**Maintaining the browser build.** Ordinary `make` installs the matching
+browser files shipped in `web/prebuilt/`; it does not run
+`make browser-rebuild`. After changing the browser or editor inputs, a
+maintainer runs `make browser-rebuild` with Emscripten installed, then
+`make`, and commits the rebuilt bundle and its checksum manifest with
+the source changes. A source release already includes that matching bundle,
+so users on either Mac architecture need only `make`.
 
 **The path.** Chezweb finds its scripts beside itself, so leave
 `chezweb` in its folder, and do not copy it elsewhere or make a link
