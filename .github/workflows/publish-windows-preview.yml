@@ -43,13 +43,16 @@ jobs:
           cp installer/build/windows/installed-packages.txt installer/
           test "$(git get-tar-commit-id < <(gzip -dc source/Chezweb-source.tar.gz))" = "$SOURCE_SHA"
           test -d source/cygwin-sources
+          version=$(tar -xOzf source/Chezweb-source.tar.gz src/header.h | sed -n 's/^#define VERSION.*Chezweb \([0-9][0-9]*\.[0-9][0-9]*\).*/\1/p')
+          test -n "$version"
+          echo "CHEZWEB_VERSION=$version" >> "$GITHUB_ENV"
           (cd source && zip -q -0 -r "../installer/$SOURCES" .)
           (cd installer && sha256sum "$INSTALLER" "$SOURCES" installed-packages.txt > RELEASE-SHA256SUMS)
           tag="chezweb-windows-preview-$SOURCE_SHA"
           if ! gh release view "$tag" >/dev/null 2>&1; then
             gh release create "$tag" --draft --prerelease --latest=false \
-              --target "$SOURCE_SHA" --title "Chezweb Windows preview (${SOURCE_SHA:0:12})" \
-              --notes "Windows x86-64 preview built from $SOURCE_SHA. Build and editor checks passed. Installed terminal behavior can be checked manually in Wine. [Build run](https://github.com/$GH_REPO/actions/runs/$RUN_ID)."
+              --target "$SOURCE_SHA" --title "Chezweb $version for Windows (${SOURCE_SHA:0:12})" \
+              --notes "Chezweb $version for Windows x86-64, built from $SOURCE_SHA. Build and editor checks passed. Installed terminal behavior can be checked manually in Wine. [Build run](https://github.com/$GH_REPO/actions/runs/$RUN_ID)."
           fi
           if [ "$(gh release view "$tag" --json isDraft --jq .isDraft)" = true ]; then
             gh release upload "$tag" "installer/$INSTALLER" "installer/$SOURCES" installer/installed-packages.txt installer/RELEASE-SHA256SUMS --clobber
@@ -74,7 +77,7 @@ jobs:
             test "$SOURCE_SHA" = "$(gh api "repos/$GH_REPO/git/ref/heads/windows" --jq .object.sha)" || exit 0
             gh api "repos/$GH_REPO/contents/README.md?ref=master" > readme.json
             jq -e --arg repo "$GH_REPO" --arg tag "$PREVIEW_TAG" \
-              --arg revision "${SOURCE_SHA:0:12}" --arg installer "$INSTALLER" '
+              --arg revision "${SOURCE_SHA:0:12}" --arg installer "$INSTALLER" --arg version "$CHEZWEB_VERSION" '
               . as $readme
               | (.content | gsub("\n"; "") | @base64d) as $old
               | ($old | split("\n\n")) as $paragraphs
@@ -91,8 +94,8 @@ jobs:
                 end
               | ("https://github.com/" + $repo + "/releases") as $base
               | ($paragraphs
-                 | .[$i] = "[Download the Chezweb Windows x86-64 preview (Setup.exe)](\($base)/download/\($tag)/\($installer))"
-                 | .[$i + 1] = "Preview built from `\($revision)`. [Release notes, checksums, and matching sources](\($base)/tag/\($tag))"
+                 | .[$i] = "[Download Chezweb \($version) for Windows x86-64 (Setup.exe)](\($base)/download/\($tag)/\($installer))"
+                 | .[$i + 1] = "Built from `\($revision)` for Chezweb \($version). [Release notes, checksums, and matching sources](\($base)/tag/\($tag))"
                  | join("\n\n")) as $new
               | if $new == $old then {changed: false}
                 else {changed: true, request: {
