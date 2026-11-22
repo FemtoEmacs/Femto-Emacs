@@ -18,7 +18,7 @@ void *clip_test_realloc(void *p,size_t n) {
  void *q=realloc(p,n);assert(q);blocks[i].p=q;blocks[i].n=n;return q;
 }
 void clip_test_free(void *p) { if(p) { int i=slot(p);blocks[i].p=NULL;free(p); } }
-#ifdef __CYGWIN__
+#if defined(__CYGWIN__) || defined(CHEZWEB_TEST_CYGWIN_CLIPBOARD)
 #include "system.h"
 /* Exercise the no-fork branch on every host; process launching itself is
  * covered by Windows integration tests. This fake never starts a process. */
@@ -51,7 +51,7 @@ int main(void) {
  assert(blocks[slot(s)].n==n+1); /* no retained doubling capacity */
  size_t m=0;char *other=screen_get_clipboard_unless(s,n,&m,&same);
  assert(!other && same);
-#ifdef __CYGWIN__
+#if defined(__CYGWIN__) || defined(CHEZWEB_TEST_CYGWIN_CLIPBOARD)
  assert(launches>=3);
 #endif
  clip_test_free(s);
