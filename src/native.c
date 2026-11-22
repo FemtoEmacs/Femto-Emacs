@@ -212,6 +212,26 @@ static value_t wrap_fe_discard_undo_history(value_t *a, uint32_t n) {
  argcount("fe_discard_undo_history", n, 0);
  fe_discard_undo_history(); return FL_T;
 }
+extern long fe_scrap_length(void);
+static value_t wrap_fe_scrap_length(value_t *a, uint32_t n) {
+ argcount("fe_scrap_length", n, 0);
+ return fixnum(fe_scrap_length());
+}
+extern long fe_system_clipboard_length(void);
+static value_t wrap_fe_system_clipboard_length(value_t *a, uint32_t n) {
+ argcount("fe_system_clipboard_length", n, 0);
+ return fixnum(fe_system_clipboard_length());
+}
+extern int fe_system_clipboard_nul(void);
+static value_t wrap_fe_system_clipboard_nul(value_t *a, uint32_t n) {
+ argcount("fe_system_clipboard_nul", n, 0);
+ return fixnum(fe_system_clipboard_nul());
+}
+extern int fe_system_clipboard_to_scrap(void);
+static value_t wrap_fe_system_clipboard_to_scrap(value_t *a, uint32_t n) {
+ argcount("fe_system_clipboard_to_scrap", n, 0);
+ return fixnum(fe_system_clipboard_to_scrap());
+}
 extern char * fe_get_clipboard(void);
 static value_t wrap_fe_get_clipboard(value_t *a, uint32_t n) {
  argcount("fe_get_clipboard", n, 0);
@@ -253,6 +273,26 @@ static value_t wrap_fe_search_backward(value_t *a, uint32_t n) {
  return fixnum(fe_search_backward(tostring(a[0], "fe_search_backward")));
 }
 extern int fe_buffer_count(void);
+extern long fe_undo_limit(long n);
+static value_t wrap_fe_undo_limit(value_t *a, uint32_t n) {
+ argcount("fe_undo_limit", n, 1);
+ return fixnum(fe_undo_limit(tofixnum(a[0], "fe_undo_limit")));
+}
+extern long fe_meter(long which);
+static value_t wrap_fe_meter(value_t *a, uint32_t n) {
+ argcount("fe_meter", n, 1);
+ return fixnum(fe_meter(tofixnum(a[0], "fe_meter")));
+}
+extern void fe_meter_note(char *label);
+static value_t wrap_fe_meter_note(value_t *a, uint32_t n) {
+ argcount("fe_meter_note", n, 1);
+ fe_meter_note(tostring(a[0], "fe_meter_note")); return FL_T;
+}
+extern long fe_leak_check(void);
+static value_t wrap_fe_leak_check(value_t *a, uint32_t n) {
+ argcount("fe_leak_check", n, 0);
+ return fixnum(fe_leak_check());
+}
 static value_t wrap_fe_buffer_count(value_t *a, uint32_t n) {
  argcount("fe_buffer_count", n, 0);
  return fixnum(fe_buffer_count());
@@ -632,14 +672,21 @@ static builtinspec_t editor_builtins[] = {
  {"fe-delete-region", wrap_fe_delete_region},
  {"fe-discard-undo-history", wrap_fe_discard_undo_history},
  {"fe-get-clipboard", wrap_fe_get_clipboard},
+ {"fe-scrap-length", wrap_fe_scrap_length},
  {"fe-set-scrap", wrap_fe_set_scrap},
  {"fe-set-clipboard", wrap_fe_set_clipboard},
  {"fe-clipboard-tool", wrap_fe_clipboard_tool},
  {"fe-set-system-clipboard", wrap_fe_set_system_clipboard},
  {"fe-get-system-clipboard", wrap_fe_get_system_clipboard},
+ {"fe-system-clipboard-length", wrap_fe_system_clipboard_length},
+ {"fe-system-clipboard-to-scrap", wrap_fe_system_clipboard_to_scrap},
+ {"fe-system-clipboard-nul", wrap_fe_system_clipboard_nul},
  {"fe-search-forward", wrap_fe_search_forward},
  {"fe-search-backward", wrap_fe_search_backward},
  {"fe-buffer-count", wrap_fe_buffer_count},
+ {"fe-meter", wrap_fe_meter},
+ {"fe-meter-note", wrap_fe_meter_note},
+ {"fe-leak-check", wrap_fe_leak_check},
  {"fe-buffer-name", wrap_fe_buffer_name},
  {"fe-buffer-filename", wrap_fe_buffer_filename},
  {"fe-buffer-modified", wrap_fe_buffer_modified},
@@ -672,6 +719,7 @@ static builtinspec_t editor_builtins[] = {
  {"fe-syntax-open", wrap_fe_syntax_open},
  {"fe-buffer-search", wrap_fe_buffer_search},
  {"fe-undo-recording", wrap_fe_undo_recording},
+ {"fe-undo-limit", wrap_fe_undo_limit},
  {"fe-shard-threshold", wrap_fe_shard_threshold},
  {"fe-shard-size", wrap_fe_shard_size},
  {"fe-shard-current", wrap_fe_shard_current},

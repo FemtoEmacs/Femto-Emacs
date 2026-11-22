@@ -342,7 +342,9 @@ the C core's.  For buttons and menus.  #f when KEY is bound to nothing."
 
 (define (remember-kill buffer-name)
   (let ((text (get-clipboard)))
-    (when (> (length text) 0) (push-kill text))))
+    ;; a kill with a NUL byte comes as the string before it: kept whole by
+    ;; C-y (the scrap), not cut on the kill ring
+    (when (and (> (length text) 0) (= (length text) (fe-scrap-length))) (push-kill text))))
 
 (add-hook! '*kill-hook* 'remember-kill)
 
@@ -358,12 +360,23 @@ the C core's.  For buttons and menus.  #f when KEY is bound to nothing."
 
 (define (adopt-system-clipboard)
   "If the system clipboard holds text that is not the newest kill, push it
-on the kill ring and make it what C-y inserts."
-  (let ((text (and *use-system-clipboard* (system-clipboard))))
-    (when (and text (not (and (pair? *kill-ring*) (string=? text (car *kill-ring*)))))
-      (push-kill text)
-      (fe-set-scrap text)
-      text)))
+on the kill ring and make it what C-y inserts.  The C core reads it, and
+says nothing when it holds what C-y inserts already (this editor's own last
+C-w or M-w); a text too long for the kill ring becomes what C-y inserts
+without passing through Scheme."
+  (when *use-system-clipboard*
+    (let ((n (fe-system-clipboard-length)))
+      (cond ((or (> n (max 0 (min *kill-ring-entry-limit* *kill-ring-byte-limit*)))
+                 (= (fe-system-clipboard-nul) 1))   ; a NUL byte: no string carries it
+             (fe-system-clipboard-to-scrap)
+             #t)
+            ((> n 0)
+             (let ((text (system-clipboard)))
+               (when (and text (not (and (pair? *kill-ring*) (string=? text (car *kill-ring*)))))
+                 (push-kill text)
+                 (fe-set-scrap text)
+                 text)))
+            (else #f)))))
 
 (define *undo-mode* #t)
 ;; The C core sends the bytes of each change to undo only while undo

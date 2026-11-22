@@ -9,6 +9,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifndef _WIN32
+#include <errno.h>
+#include <unistd.h>
+#endif
 #include "screen.h"
 extern int term_poll_ms(void);
 
@@ -94,6 +98,8 @@ void screen_addch(int c)
 }
 
 int screen_save_file(const char *path) { (void)path; return 1; }
+static int pushed_back = 0;     /* screen_key_waiting gave curses a byte back */
+
 int screen_getch(void)
 {
  int c;
@@ -102,6 +108,7 @@ int screen_getch(void)
   while ((c = getch()) == ERR) editor_idle_poll();
   timeout(-1);
  } else c = getch();
+ if (c != ERR) pushed_back = 0;
 	/* KEY_RESIZE (0x19A) arrives as its low byte, SCR_KEY_RESIZE */
 	return c < 0 ? c : (c & 0xFF);
 }
@@ -124,7 +131,39 @@ int screen_key_waiting(int ms)
 	timeout(-1);
 	if (c == ERR) return 0;
 	ungetch(c);
+	pushed_back = 1;
 	return 1;
+}
+
+/*
+ * Up to MAX key bytes at once, at least one (key.c, during a terminal
+ * paste).  Curses reads a byte a read() a byte: a paste of 15 MB took 11
+ * seconds (tests/paste-stress.sh).  Without keypad(), curses keeps no byte
+ * of its own once getch has returned one, except the one given back by
+ * screen_key_waiting, read first.
+ */
+int screen_read_keys(unsigned char *buf, int max)
+{
+	int c;
+	if (pushed_back || max <= 1) {
+		c = screen_getch();
+		if (c < 0) return c;
+		buf[0] = (unsigned char) c;
+		return 1;
+	}
+#ifndef _WIN32
+	for (;;) {
+		ssize_t n = read(0, buf, (size_t) max);
+		if (n > 0) return (int) n;
+		if (n < 0 && errno == EINTR) continue;
+		return -1;
+	}
+#else
+	c = screen_getch();
+	if (c < 0) return c;
+	buf[0] = (unsigned char) c;
+	return 1;
+#endif
 }
 
 int screen_colors(void)
@@ -280,35 +319,67 @@ void screen_set_clipboard(const char *text)
 	osc52_copy(text);
 }
 
-char *screen_get_clipboard(void)
+/* the growing copy of what the paste tool prints; CRLF and CR become LF */
+struct clip_copy { char *buf; size_t len, cap; int prev, failed; };
+
+static void clip_put(struct clip_copy *k, int c)
+{
+	char *bigger;
+	if (k->failed) return;
+	if (c == '\n' && k->prev == '\r') { k->prev = c; return; }
+	if (k->len + 2 > k->cap) {
+		size_t cap = k->cap ? 2 * k->cap : 4096;
+		if ((bigger = realloc(k->buf, cap)) == NULL) { k->failed = 1; return; }
+		k->buf = bigger;
+		k->cap = cap;
+	}
+	k->buf[k->len++] = (char) (c == '\r' ? '\n' : c);
+	k->prev = c;
+}
+
+/*
+ * What the paste tool prints, or NULL when it prints nothing, fails, or
+ * prints exactly the N bytes of SAME (the text C-y inserts, put there by
+ * this editor's own C-w or M-w).  The bytes are compared as they come, and
+ * a copy is made only from the first byte that differs: a cut of 21 MB
+ * pasted back costs no second copy.
+ */
+char *screen_get_clipboard_unless(const char *same, size_t n, size_t *len, int *was_same)
 {
 	const struct clip_tool *t = clip_tool();
+	struct clip_copy k = { NULL, 0, 0, 0, 0 };
 	FILE *f;
-	char *buf = NULL, *bigger;
-	size_t len = 0, cap = 0;
-	int c, prev = 0, status;
+	size_t i = 0, j;
+	int c, matching = same != NULL, status;
 
+	if (len) *len = 0;
+	if (was_same) *was_same = 0;
 	if (!t || (f = popen(t->paste, "r")) == NULL) return NULL;
 	while ((c = getc(f)) != EOF) {
-		if (len + 2 > cap) {
-			cap = cap ? 2 * cap : 4096;
-			if ((bigger = realloc(buf, cap)) == NULL) {
-				free(buf);
-				pclose(f);
-				return NULL;
-			}
-			buf = bigger;
+		if (matching) {
+			if (i < n && (unsigned char) same[i] == (unsigned char) c) { i++; continue; }
+			matching = 0;
+			for (j = 0; j < i; j++) clip_put(&k, (unsigned char) same[j]);
 		}
-		/* CRLF and CR line ends become LF */
-		if (c == '\n' && prev == '\r') { prev = c; continue; }
-		buf[len++] = (char) (c == '\r' ? '\n' : c);
-		prev = c;
+		clip_put(&k, c);
 	}
 	status = pclose(f);
-	if (status != 0 || buf == NULL) { free(buf); return NULL; }
-	buf[len] = '\0';
-	return buf;
+	if (matching && i < n)                 /* a proper prefix of SAME */
+		for (j = 0; j < i; j++) clip_put(&k, (unsigned char) same[j]);
+	if (status == 0 && matching && i == n && n > 0 && was_same) *was_same = 1;
+	if (status != 0 || k.failed || k.buf == NULL) { free(k.buf); return NULL; }
+	k.buf[k.len] = '\0';
+	if (len) *len = k.len;                 /* NUL bytes included */
+	/* the copy may stay as what C-y inserts: no doubling's spare room */
+	if (k.cap > k.len + 1 + 4096) {
+		char *exact = realloc(k.buf, k.len + 1);
+		if (exact) k.buf = exact;
+	}
+	return k.buf;
 }
+
+char *screen_get_clipboard(void) { return screen_get_clipboard_unless(NULL, 0, NULL, NULL); }
+
 const char *screen_clipboard_tool(void)
 {
 	const struct clip_tool *t = clip_tool();
@@ -319,6 +390,13 @@ const char *screen_clipboard_tool(void)
 const char *screen_clipboard_tool(void) { return ""; }
 void screen_set_clipboard(const char *text) { (void) text; }
 char *screen_get_clipboard(void) { return NULL; }
+char *screen_get_clipboard_unless(const char *same, size_t n, size_t *len, int *was_same)
+{
+	(void) same; (void) n;
+	if (len) *len = 0;
+	if (was_same) *was_same = 0;
+	return NULL;
+}
 #endif
 
 void screen_pause(int ms) { refresh(); napms(ms); }

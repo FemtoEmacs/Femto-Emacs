@@ -319,6 +319,30 @@ static void b_fe_discard_undo_history(bridge_in *in, bridge_out *out)
 	bridge_put_nothing(out);
 }
 
+extern long fe_scrap_length(void);
+static void b_fe_scrap_length(bridge_in *in, bridge_out *out)
+{
+	bridge_put_int(out, (long) fe_scrap_length());
+}
+
+extern long fe_system_clipboard_length(void);
+static void b_fe_system_clipboard_length(bridge_in *in, bridge_out *out)
+{
+	bridge_put_int(out, (long) fe_system_clipboard_length());
+}
+
+extern int fe_system_clipboard_nul(void);
+static void b_fe_system_clipboard_nul(bridge_in *in, bridge_out *out)
+{
+	bridge_put_int(out, (long) fe_system_clipboard_nul());
+}
+
+extern int fe_system_clipboard_to_scrap(void);
+static void b_fe_system_clipboard_to_scrap(bridge_in *in, bridge_out *out)
+{
+	bridge_put_int(out, (long) fe_system_clipboard_to_scrap());
+}
+
 extern char * fe_get_clipboard(void);
 static void b_fe_get_clipboard(bridge_in *in, bridge_out *out)
 {
@@ -387,6 +411,35 @@ extern int fe_buffer_count(void);
 static void b_fe_buffer_count(bridge_in *in, bridge_out *out)
 {
 	bridge_put_int(out, (long) fe_buffer_count());
+}
+
+extern long fe_undo_limit(long n);
+static void b_fe_undo_limit(bridge_in *in, bridge_out *out)
+{
+	long a1 = (long) bridge_int(in);
+	bridge_put_int(out, (long) fe_undo_limit(a1));
+}
+
+extern long fe_meter(long which);
+static void b_fe_meter(bridge_in *in, bridge_out *out)
+{
+	long a1 = (long) bridge_int(in);
+	bridge_put_int(out, (long) fe_meter(a1));
+}
+
+extern void fe_meter_note(char *label);
+static void b_fe_meter_note(bridge_in *in, bridge_out *out)
+{
+	char *a1 = bridge_string(in);
+	fe_meter_note(a1);
+	bridge_put_nothing(out);
+	free(a1);
+}
+
+extern long fe_leak_check(void);
+static void b_fe_leak_check(bridge_in *in, bridge_out *out)
+{
+	bridge_put_int(out, (long) fe_leak_check());
 }
 
 extern char * fe_buffer_name(void);
@@ -939,6 +992,10 @@ void bridge_register_editor(void)
 	bridge_register("fe-set-modified", b_fe_set_modified);
 	bridge_register("fe-delete-region", b_fe_delete_region);
 	bridge_register("fe-discard-undo-history", b_fe_discard_undo_history);
+	bridge_register("fe-scrap-length", b_fe_scrap_length);
+	bridge_register("fe-system-clipboard-length", b_fe_system_clipboard_length);
+	bridge_register("fe-system-clipboard-nul", b_fe_system_clipboard_nul);
+	bridge_register("fe-system-clipboard-to-scrap", b_fe_system_clipboard_to_scrap);
 	bridge_register("fe-get-clipboard", b_fe_get_clipboard);
 	bridge_register("fe-set-scrap", b_fe_set_scrap);
 	bridge_register("fe-set-clipboard", b_fe_set_clipboard);
@@ -948,6 +1005,10 @@ void bridge_register_editor(void)
 	bridge_register("fe-search-forward", b_fe_search_forward);
 	bridge_register("fe-search-backward", b_fe_search_backward);
 	bridge_register("fe-buffer-count", b_fe_buffer_count);
+	bridge_register("fe-undo-limit", b_fe_undo_limit);
+	bridge_register("fe-meter", b_fe_meter);
+	bridge_register("fe-meter-note", b_fe_meter_note);
+	bridge_register("fe-leak-check", b_fe_leak_check);
 	bridge_register("fe-buffer-name", b_fe_buffer_name);
 	bridge_register("fe-buffer-filename", b_fe_buffer_filename);
 	bridge_register("fe-buffer-modified", b_fe_buffer_modified);

@@ -8,6 +8,7 @@ static long count;
 buffer_t *curbp;
 char *m_alloc="allocation failed";
 int read_key_byte(void) { if (!remaining) return -1; --remaining; return *next++; }
+void key_bulk(int on) { (void)on; }
 void msg(char *fmt, ...) { (void)fmt; }
 void fe_insert_bytes(long p,char *s,long n) {
  assert(p==0 && n<(long)sizeof result); memcpy(result,s,n);count=n;++calls;

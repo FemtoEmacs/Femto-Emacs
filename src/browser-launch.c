@@ -29,7 +29,7 @@ static long source_id;
 static buffer_t *source;
 static pid_t server_pid;
 static char *snapshot(buffer_t *bp,size_t *n){buffer_t *save=curbp;curbp=bp;*n=(size_t)document_size(bp);char *s=malloc(*n+1);if(s){fe_copy_text(0,(long)*n,s);s[*n]=0;}curbp=save;return s;}
-static void cleanup(void){if(server_pid>0){kill(server_pid,SIGTERM);waitpid(server_pid,NULL,0);}if(*session){const char *names[]={"initial","name","pending","pending.new","incoming","ready","target","save.pending","save.pending.new","save.incoming","save.result","save.result.new","refresh","initial.new","snapshot","snapshot.new",NULL};char p[8192];for(int i=0;names[i];i++){snprintf(p,sizeof p,"%s/%s",session,names[i]);unlink(p);}rmdir(session);}free(baseline);baseline=NULL;free(disk_baseline);disk_baseline=NULL;disk_known=0;*save_path=0;*source_path=0;server_pid=0;*session=0;*url=0;}
+static void cleanup(void){if(server_pid>0){kill(server_pid,SIGTERM);waitpid(server_pid,NULL,0);}if(*session){const char *names[]={"initial","name","pending","pending.new","incoming","ready","target","save.pending","save.pending.new","save.incoming","save.result","save.result.new","refresh","initial.new","snapshot","snapshot.new","alive",NULL};char p[8192];for(int i=0;names[i];i++){snprintf(p,sizeof p,"%s/%s",session,names[i]);unlink(p);}rmdir(session);}free(baseline);baseline=NULL;free(disk_baseline);disk_baseline=NULL;disk_known=0;*save_path=0;*source_path=0;server_pid=0;*session=0;*url=0;}
 #include "browser-save.h"
 
 static const char *open_chrome(void){
@@ -55,7 +55,19 @@ static const char *browser_result(const char *why){
 const char *chezweb_launch(void){
  /* shard.c: the browser loads whole files; a file in shards stays native */
  if(curbp&&curbp->b_shard)return "A file in shards opens in this window only: the browser loads whole files.";
- if(server_pid>0&&waitpid(server_pid,NULL,WNOHANG)==0){return browser_result(open_chrome());}
+ if(server_pid>0&&waitpid(server_pid,NULL,WNOHANG)==0){
+  /* One tab per file: while the tab already open on this session says it
+   * is there (web/page.js, every 2 seconds, or once a minute when Chrome
+   * hides it), C-c d opens no second one.  A tab that closed said goodbye;
+   * one that crashed is taken for closed after 70 seconds of silence. */
+  char alive[8192];struct stat st;snprintf(alive,sizeof alive,"%s/alive",session);
+  if(!stat(alive,&st)&&time(NULL)-st.st_mtime<=70){
+   const char *name=strrchr(source_path,'/');name=name&&name[1]?name+1:*source_name?source_name:"This buffer";
+   snprintf(launch_message,sizeof launch_message,"%s is already open in Chrome; use that tab. C-x C-c there closes it.",name);
+   return launch_message;
+  }
+  return browser_result(open_chrome());
+ }
  cleanup();
  static int registered;if(!registered){atexit(cleanup);registered=1;}
  const char *root=bridge_install_dir();char exe[8192],html[8192];snprintf(exe,sizeof exe,"%s/chezweb-server",root);snprintf(html,sizeof html,"%s/Chezweb.html",root);

@@ -80,3 +80,8 @@ bkp/
 /Lean/.build/
 /Lean/chez-tester
 /Lean/results/
+
+# tests/fuzz-editor.sh: the sanitized editor, and the walks that failed
+/chezemax-sanitized
+/fuzz-editor-*/
+/endurance-meters.txt

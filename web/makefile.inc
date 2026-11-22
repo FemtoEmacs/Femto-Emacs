@@ -72,5 +72,6 @@ check-browser: browser chezweb
 	node tests/chezweb-save-native.cjs
 	node tests/chezweb-save-roundtrip.cjs
 	node tests/chezweb-native.cjs
+	node tests/chezweb-one-tab.cjs
 run: chezweb
 	./chezweb

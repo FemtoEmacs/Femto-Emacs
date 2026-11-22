@@ -74,6 +74,7 @@ extern int screen_test_cancelled(void);
 /* input */
 extern int  screen_getch(void);            /* blocks; returns one byte */
 extern int  screen_key_waiting(int ms);   /* a byte within MS ms? (it stays to be read) */
+extern int  screen_read_keys(unsigned char *buf, int max);  /* 1 to MAX key bytes, or < 0 */
 extern void screen_cursor_shown(int on);  /* the screen's own cursor on or off (M-x term draws its own) */
 extern void screen_flushinp(void);        /* discard pending input */
 
@@ -81,10 +82,14 @@ extern void screen_flushinp(void);        /* discard pending input */
  * The system clipboard.  In the window, through SDL; in a terminal,
  * through pbcopy/pbpaste (macOS), wl-copy/wl-paste (Wayland) or xclip/xsel
  * (X11), and otherwise an OSC 52 escape, which only writes.
- * screen_get_clipboard returns malloc'd text (LF line ends), or NULL.
+ * screen_get_clipboard returns malloc'd text (LF line ends), or NULL;
+ * screen_get_clipboard_unless also NULL when the clipboard holds exactly
+ * the N bytes of SAME (in a terminal, without copying them; *WAS_SAME is
+ * then 1), and gives the text's length in *LEN, NUL bytes included.
  */
 extern void screen_set_clipboard(const char *text);
 extern char *screen_get_clipboard(void);
+extern char *screen_get_clipboard_unless(const char *same, size_t n, size_t *len, int *was_same);
 /* how the clipboard is reached: "SDL", "pbcopy", "xclip" ..., or "" when
  * only OSC 52 is left (copies may still work, pasting from others not) */
 extern const char *screen_clipboard_tool(void);

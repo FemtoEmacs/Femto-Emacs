@@ -214,6 +214,12 @@ lost: they go to the recovery file `#name#`, beside the file, as in
 Emacs. A read-only native buffer (C-x C-q) is not overwritten: Chrome
 says so and keeps your text unsaved.
 
+A file is open in one Chrome tab at a time. While a tab has it, C-c d
+opens no second tab, C-x C-f in another tab refuses it, and a second tab
+on the same address says why instead of starting. Closing the tab frees
+the file at once. A save in Chrome never writes over a change made on disk
+since the tab read the file: it says so, and your text stays in the tab.
+
 To open other files in Chrome, press **C-x C-f**, then **TAB**. Chrome
 asks you to choose a folder, and asks only once per folder. TAB then
 completes the names of its subfolders and files, and C-x C-s saves

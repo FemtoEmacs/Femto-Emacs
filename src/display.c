@@ -29,6 +29,7 @@ static void clear_pane_line(int col)
 	else for (; col < pane_cols(); col++) screen_addch(' ');
 }
 
+static int in_long_line(buffer_t *bp, point_t pos);
 static point_t wrap_row_end(buffer_t *bp, point_t start)
 {
 	static char_t *text = NULL;
@@ -43,6 +44,7 @@ static point_t wrap_row_end(buffer_t *bp, point_t start)
 	    wrap_hook(key, NULL, 0, cols) != -1)
 		return NOMARK;
 	if (start >= size) return size;
+	if (in_long_line(bp, start)) return NOMARK;
 	/* Four bytes per UTF-8 cell, plus the next character/newline. */
 	len = (int) ((size - start < (point_t) cols * 4 + 4) ?
 	             size - start : (point_t) cols * 4 + 4);
@@ -57,14 +59,130 @@ static point_t wrap_row_end(buffer_t *bp, point_t start)
 	return count > 0 && count <= len ? start + count : NOMARK;
 }
 
+/*
+ * Long lines (tests/complexity.sh, 22 November 2026).  The display finds
+ * the row of the screen that holds a position by scanning its line from
+ * the start (segstart), and the start of a line by scanning back to its
+ * newline (lnstart), several times a key.  At the end of a line of 10 MB
+ * that cost seconds a key.  Both now remember, for the text as it is (the
+ * buffer, its b_changes and size, the width of the window), what they
+ * found in the last long line: where it starts, and the starts of rows
+ * every LONG_STEP bytes along it.  A row starts with column 0, whatever
+ * came before it, so a scan may begin at any row start it knows; it then
+ * reads at most LONG_STEP bytes, and more only the first time.  A change
+ * to the text (record_change counts it in b_changes) forgets it all.
+ */
+#define LONG_LINE 65536                 /* shorter lines are scanned as before */
+#define LONG_STEP 32768
+static struct {
+	long id;                        /* the buffer (b_id: never reused) */
+	unsigned long changes;          /* its b_changes then */
+	point_t size;
+	int cols;                       /* 2 x the width, + 1 for rows of words */
+	point_t line;                   /* the start of the long line */
+	point_t known;                  /* lnstart is line up to here */
+	point_t *rows;                  /* row starts, increasing, past line */
+	int nrows, cap;
+} long_line = { -1, 0, 0, 0, 0, 0, NULL, 0, 0 };
+
+/* CHEZWEB_LONG_LINES=scan: nothing is remembered, every scan from the
+ * start as before -- tests/complexity.sh compares the two displays */
+static int long_line_off = -1;
+
+static int long_line_valid(buffer_t *bp)
+{
+	if (long_line_off < 0) {
+		const char *v = getenv("CHEZWEB_LONG_LINES");
+		long_line_off = v != NULL && strcmp(v, "scan") == 0;
+	}
+	return !long_line_off && long_line.id == bp->b_id && long_line.changes == bp->b_changes &&
+	       long_line.size == document_size(bp);
+}
+
+static void long_line_reset(buffer_t *bp, point_t line)
+{
+	long_line.id = bp->b_id;
+	long_line.changes = bp->b_changes;
+	long_line.size = document_size(bp);
+	long_line.cols = -1;                    /* no rows yet */
+	long_line.line = line;
+	long_line.known = line;
+	long_line.nrows = 0;
+}
+
 /* Reverse scan for start of logical line containing offset */
 point_t lnstart(buffer_t *bp, register point_t off)
 {
 	register char_t *p;
+	point_t from = off;
+	if (long_line_valid(bp) && long_line.line < off && off <= long_line.known)
+		return long_line.line;
 	do
 		p = ptr(bp, --off);
 	while (bp->b_buf < p && *p != '\n');
-	return (bp->b_buf < p ? ++off : 0);
+	off = bp->b_buf < p ? off + 1 : 0;
+	if (from - off >= LONG_LINE) {
+		if (!long_line_valid(bp) || long_line.line != off) long_line_reset(bp, off);
+		if (long_line.known < from) long_line.known = from;
+	}
+	return off;
+}
+
+/*
+ * Is POS in a line of LONG_LINE bytes or more?  Such a line is wrapped at
+ * the window's edge, not at words: the words are a script's (wrap_hook),
+ * asked a row at a time, and the first display after M-% in one line of
+ * 1.4 MB asked 17,500 rows, 25 times (188 seconds; tests/complexity.sh).
+ * Emacs's so-long mode gives up more for less.
+ */
+static int in_long_line(buffer_t *bp, point_t pos)
+{
+	point_t size = document_size(bp), a = pos, b = pos;
+	if (long_line_valid(bp) && long_line.line <= pos && pos <= long_line.known &&
+	    long_line.known - long_line.line >= LONG_LINE)
+		return 1;
+	while (a > 0 && pos - a < LONG_LINE && *ptr(bp, a - 1) != '\n') a--;
+	while (b < size && b - a < LONG_LINE && *ptr(bp, b) != '\n') b++;
+	return b - a >= LONG_LINE;
+}
+
+/* a row start of the long line starting at START, the last known at or
+ * before FINISH, or START */
+static point_t long_row_before(buffer_t *bp, point_t start, point_t finish, int words)
+{
+	int lo = 0, hi;
+	if (!long_line_valid(bp) || long_line.line != start || long_line.cols != pane_cols() * 2 + words)
+		return start;
+	hi = long_line.nrows;
+	while (lo < hi) {                       /* the first row past FINISH */
+		int mid = (lo + hi) / 2;
+		if (long_line.rows[mid] <= finish) lo = mid + 1; else hi = mid;
+	}
+	return lo > 0 ? long_line.rows[lo - 1] : start;
+}
+
+/* ROW starts a row of the long line starting at START: kept when it is
+ * LONG_STEP past the last one kept */
+static void long_row_seen(buffer_t *bp, point_t start, point_t row, int words)
+{
+	point_t last;
+	if (row - start < LONG_STEP) return;
+	if (!long_line_valid(bp) || long_line.line != start || long_line.cols != pane_cols() * 2 + words) {
+		if (!long_line_valid(bp) || long_line.line != start) long_line_reset(bp, start);
+		long_line.cols = pane_cols() * 2 + words;   /* another width or way: other rows */
+		long_line.nrows = 0;
+	}
+	last = long_line.nrows ? long_line.rows[long_line.nrows - 1] : start;
+	if (row < last + LONG_STEP) return;
+	if (long_line.nrows == long_line.cap) {
+		int cap = long_line.cap ? 2 * long_line.cap : 64;
+		point_t *grown = realloc(long_line.rows, (size_t) cap * sizeof *grown);
+		if (grown == NULL) return;
+		long_line.rows = grown;
+		long_line.cap = cap;
+	}
+	long_line.rows[long_line.nrows++] = row;
+	if (long_line.known < row) long_line.known = row;
 }
 
 /*
@@ -123,6 +241,15 @@ point_t segstart(buffer_t *bp, point_t start, point_t finish)
 	point_t next = wrap_row_end(bp, start);
 
 	if (next != NOMARK) {
+		/* rows of words (wrap_hook): from the last row start known
+		 * before FINISH in a long line, as below */
+		point_t line = start, from = long_row_before(bp, line, finish, 1);
+		int crossed = 0;
+		if (from != line) {
+			start = from;
+			next = wrap_row_end(bp, start);
+			if (next == NOMARK) return start;
+		}
 		while (next > start && next <= finish) {
 			/*
 			 * The end of the text closes the last row; the cursor
@@ -135,25 +262,35 @@ point_t segstart(buffer_t *bp, point_t start, point_t finish)
 			    finish > 0 && *ptr(bp, finish - 1) != '\n')
 				break;
 			start = next;
+			if (*ptr(bp, start - 1) == '\n') crossed = 1;
+			if (!crossed) long_row_seen(bp, line, start, 1);
 			next = wrap_row_end(bp, start);
 			if (next == NOMARK) break;
 		}
 		return start;
 	}
-	while (scan < finish) {
-		int w;
-		p = ptr(bp, scan);
-		w = cell_width(bp, scan, c);
-		if (*p == '\n') {
-			c = 0;
-			start = scan+1;
-		} else if (pane_cols() <= c || crosses_edge(bp, scan, c, w)) {
-			c = 0;
-			start = scan;
-			if (*p == '\t') w = 8;
+	{
+		/* a long line: from the last row start known before FINISH */
+		point_t line = start, from = long_row_before(bp, line, finish, 0);
+		int newline = 0;
+		scan = start = from;
+		while (scan < finish) {
+			int w;
+			p = ptr(bp, scan);
+			w = cell_width(bp, scan, c);
+			if (*p == '\n') {
+				c = 0;
+				start = scan+1;
+				newline = 1;
+			} else if (pane_cols() <= c || crosses_edge(bp, scan, c, w)) {
+				c = 0;
+				start = scan;
+				if (*p == '\t') w = 8;
+				if (!newline) long_row_seen(bp, line, start, 0);
+			}
+			scan += utf8_size(*p);
+			c += w;
 		}
-		scan += utf8_size(*p);
-		c += w;
 	}
 	/* upup may ask about the last byte of a multi-byte character.
 	 * Keep that byte on its row; never return it as a cursor position. */
@@ -264,6 +401,25 @@ static point_t hl_start = 0;    /* buffer offset of hl_text[0] */
 static int hl_len = 0;
 static int hl_active = 0;
 
+/*
+ * The start of the line holding OFF, looked for at most MAX bytes back;
+ * in a longer line, OFF itself (moved back to the start of its character).
+ * The highlighter reads from the start of the line before the page: in a
+ * line of 10 MB, all of it, for every key (tests/complexity.sh).  It then
+ * starts inside the line, HL_LOOKBACK before the page: what the colours
+ * of so long a line lose is less than seconds a key.
+ */
+#define HL_LONG_LINE 65536
+static point_t lnstart_within(buffer_t *bp, point_t off, point_t max)
+{
+	point_t p = off, stop = off - max;
+	if (stop < 0) stop = 0;
+	while (p > stop && *ptr(bp, p - 1) != '\n') p--;
+	if (p == 0 || *ptr(bp, p - 1) == '\n') return p;
+	while (off > 0 && (*ptr(bp, off) & 0xC0) == 0x80) off--;
+	return off;
+}
+
 static void highlight_window(buffer_t *bp, int rows)
 {
 	point_t size = document_size(bp);
@@ -275,7 +431,7 @@ static void highlight_window(buffer_t *bp, int rows)
 	if (start <= 0)
 		start = 0;
 	else
-		start = lnstart(bp, start);
+		start = lnstart_within(bp, start, HL_LONG_LINE);
 	/* a screen row shows at most pane_cols() characters of up to 4 bytes each */
 	end = bp->b_page + (point_t) (rows + 1) * (pane_cols() + 1) * 4;
 	if (end > size) end = size;
@@ -1074,13 +1230,8 @@ void w2b(window_t *w)
 	w->w_bufp->b_epage = w->w_epage;
 	w->w_bufp->b_row = w->w_row;
 	w->w_bufp->b_col = w->w_col;
-
-	/* fixup pointers in other windows of the same buffer, if size of edit text changed */
-	if (w->w_bufp->b_point > w->w_bufp->b_cpoint) {
-		w->w_bufp->b_point += (w->w_bufp->b_size - w->w_bufp->b_psize);
-		w->w_bufp->b_page += (w->w_bufp->b_size - w->w_bufp->b_psize);
-		w->w_bufp->b_epage += (w->w_bufp->b_size - w->w_bufp->b_psize);
-	}
+	/* the window's point and page have followed every change of the text
+	   (record_change, undo.c): nothing to fix up here */
 }
 
 void b2w(window_t *w)

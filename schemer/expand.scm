@@ -39,6 +39,7 @@
     (%make-record . 2) (%record? . 1) (%record-tag . 1) (%record-fields . 1)
     (%catch . 2) (%throw . 2) (%protect . 2) (%number-char . 1) (%number-end . 0) (%table . 4) (%file . 3) (%editor . 1)
     (%mem-u8 . 1) (%mem-u8-set! . 2)
+    (%make-bytes . 2) (%bytes-ref . 2) (%bytes-set! . 3) (%bytes-length . 1) (%bytes-copy! . 5)
     (%fxand . 2) (%fxior . 2) (%fxxor . 2) (%fxsra . 2)))
 
 (define (primitive? sym env)

@@ -111,7 +111,21 @@ Module.browsered=(function(){
   try{var r=await fetch('snapshot',{cache:'no-store'});if(!r.ok)r=await fetch('session',{cache:'no-store'});if(r.ok){initial=new Uint8Array(await r.arrayBuffer());Module.chezwebSession=true;nativeRevision=r.headers.get('X-Chezweb-Revision')||'0';Module.chezwebInitialModified=r.headers.get('X-Chezweb-Modified')==='1';}}catch(_){}
   if(Module.chezwebSession)try{var target=await fetch('target',{cache:'no-store'});if(target.ok){nativeSave=true;nativeTarget=await target.text();}}catch(_){}
   var name='browser.txt';try{var nr=await fetch('name',{cache:'no-store'});if(nr.ok){var value=await nr.text();if(value&&!/[\/\\\x00-\x1f]/.test(value))name=value;}}catch(_){}
-  Module.chezwebSessionPath='/home/web_user/'+name;FS.writeFile(Module.chezwebSessionPath,initial);
+  Module.chezwebSessionPath='/home/web_user/'+name;
+  // The file C-c d opened is this tab's only (ChezwebClaims, files.js): a
+  // second tab on it -- a duplicated tab, the address pasted again -- shows
+  // why, and starts no editor.  A reload releases the lock as the old page
+  // goes, so one second try is made before refusing.
+  if(nativeSave&&nativeTarget){
+   var claim={path:Module.chezwebSessionPath,native:nativeTarget},refused=await ChezwebClaims.claim(claim);
+   if(refused){await new Promise(r=>setTimeout(r,600));refused=await ChezwebClaims.claim(claim);}
+   if(refused){
+    var box=document.getElementById('starting');box.textContent=refused;box.className='failure';canvas.hidden=true;ended=true;
+    throw Error(refused);
+   }
+   alive();
+  }
+  FS.writeFile(Module.chezwebSessionPath,initial);
   document.getElementById('grammarly-toggle').onclick=()=>{evals.push('(toggle-grammarly)');push(-2);keys.focus();};
   document.getElementById('choose-folder').onclick=async()=>{try{var path=await ChezwebFiles.pickDirectory();var shown=await ChezwebShell.selectDirectory(path);notice('Current directory: '+shown);}catch(e){if(e.name==='AbortError')notice('Folder selection cancelled.');else notice(e.message,true);}finally{keys.focus();}};
   document.getElementById('open-file').onclick=async()=>{try{
@@ -119,9 +133,10 @@ Module.browsered=(function(){
    Module.chezwebHandles=Module.chezwebHandles||new Map();
    for(var [known,handle] of Module.chezwebHandles)if(handle===h||(h.isSameEntry&&await h.isSameEntry(handle))){path=known;break;}
    if(!path){path='/home/web_user/'+f.name;var n=1;while(FS.analyzePath(path).exists){path='/home/web_user/.picked-'+n+++'/'+f.name;}FS.mkdirTree(path.slice(0,path.lastIndexOf('/')));}
+   var refused=await ChezwebClaims.claim({path,handle:h});if(refused){notice(refused,true);return;}
    var bytes=new Uint8Array(await f.arrayBuffer());Module.chezwebLoading=true;
    try{FS.writeFile(path,bytes);}finally{Module.chezwebLoading=false;}
-   Module.chezwebHandles.set(path,h);evals.push('(find-file '+JSON.stringify(path)+')');push(-2);keys.focus();
+   Module.chezwebHandles.set(path,h);ChezwebFiles.remember(path,f);evals.push('(find-file '+JSON.stringify(path)+')');push(-2);keys.focus();
   }catch(e){if(e.name!=='AbortError')notice(e.message,true);}};
   ChezwebFiles.install();
   // A save has exactly one destination: a granted handle OR the fixed native
@@ -133,7 +148,11 @@ Module.browsered=(function(){
     if(ended)return false;
     notice('Saving '+(local?ChezwebFiles.describe(path):nativeTarget||'native buffer')+'…',false,true);
     try{
-     if(local){await ChezwebFiles.write(path,bytes);
+     if(local){
+      // a file opened without a prompt is claimed before its first save
+      var refused=ChezwebClaims.claimed(path)?null:await ChezwebClaims.claim({path,handle:(Module.chezwebHandles||new Map()).get(path)||null});
+      if(refused)throw Error(refused);
+      await ChezwebFiles.write(path,bytes);
       if(Module.chezwebSession)try{await fetch('refresh',{method:'POST',headers:{'Content-Type':'application/x-chezweb-refresh'}});}catch(_){}
       notice('Saved '+ChezwebFiles.describe(path));
      }else{
@@ -188,12 +207,25 @@ Module.browsered=(function(){
   nativeRevision=revision;
   notice(recovered?'Synced. Previous browser edits saved in #'+Module.chezwebSessionPath.split('/').pop()+'#.':'Synced from the native window.');
  }
+ // While this tab is open on the file of C-c d, it tells the native window
+ // so, every 2 seconds: C-c d there then refuses to open a second tab
+ // (src/browser-launch.c).  Closing the tab says goodbye at once.  Chrome
+ // slows the timers of a hidden tab to one a minute, so the native window
+ // waits 70 seconds before it takes a silent tab for closed.
+ function alive(){
+  var say=what=>fetch(what,{method:'POST',keepalive:what==='bye',headers:{'Content-Type':'application/x-chezweb-alive'}}).catch(()=>{});
+  say('alive');var timer=setInterval(()=>{if(!ended)say('alive');},2000);
+  addEventListener('pagehide',()=>{clearInterval(timer);say('bye');});
+  aliveEnd=()=>{clearInterval(timer);say('bye');};
+ }
+ var aliveEnd=()=>{};
  async function end(){
   if(ended)return;
   ended=true;
   ChezwebGrammar.update(null);
   // Let an explicitly requested save finish before the page disappears.
   await Module.chezwebSave;
+  aliveEnd();
   window.close();
   if(!window.closed)notice('Chezweb browser editor closed. Your native window remains open. You can close this tab.',true);
  }

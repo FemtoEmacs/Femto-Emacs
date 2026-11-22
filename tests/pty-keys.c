@@ -10,6 +10,14 @@
  *   await-file PATH    wait for a nonempty file, within TIMEOUT
  *   keys TEXT      type TEXT; \e is Esc, \r Return, \t Tab, \\ a backslash,
  *                  ^X the control key with X (^X^S is C-x C-s)
+ *   paste TEXT     the same keys, but all at once, in one write: a command
+ *                  that reads a prompt (M-%, C-s) is then timed by its work,
+ *                  not by the 30 ms each typed key waits
+ *   send-file PATH the bytes of the file PATH, as they are (NUL bytes,
+ *                  escapes, megabytes), written as fast as the program
+ *                  reads them, while what it writes is copied
+ *   resize ROWS COLS  the terminal takes that size: the program gets
+ *                  SIGWINCH, as when a window is resized
  * Everything the program writes goes to SCREEN-FILE.  The exit status is
  * the program's, or 124 when it did not finish in TIMEOUT-SECONDS.
  */
@@ -19,6 +27,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/ioctl.h>
 #include <sys/select.h>
 #include <sys/stat.h>
 #include <sys/time.h>
@@ -76,7 +85,7 @@ static void drain(long ms)
 	}
 }
 
-static void type_text(const char *s)
+static void type_text(const char *s, int at_once)
 {
 	char out[4096];
 	size_t n = 0;
@@ -91,11 +100,59 @@ static void type_text(const char *s)
 			out[n++] = *s;
 		}
 	}
+	if (at_once) {
+		size_t k = 0;
+		while (k < n) {
+			ssize_t w = write(master, out + k, n - k);
+			if (w <= 0) return;
+			k += (size_t) w;
+		}
+		drain(30);
+		return;
+	}
 	/* one key at a time, as typed */
 	for (size_t k = 0; k < n; k++) {
 		if (write(master, out + k, 1) != 1) return;
 		drain(30);
 	}
+}
+
+/* the bytes of PATH into the terminal; the program's output is read
+ * meanwhile, so that neither side waits for the other forever */
+static int send_file(const char *path, long deadline)
+{
+	FILE *f = fopen(path, "rb");
+	char buf[65536];
+	size_t have = 0, at = 0;
+	int eof = 0, flags, ok = 1;
+	if (!f) { perror(path); return 0; }
+	flags = fcntl(master, F_GETFL);
+	fcntl(master, F_SETFL, flags | O_NONBLOCK);     /* a full terminal must not block us */
+	for (;;) {
+		if (at == have && !eof) {
+			have = fread(buf, 1, sizeof buf, f);
+			at = 0;
+			if (have == 0) eof = 1;
+		}
+		if (eof && at == have) break;
+		if (now_ms() > deadline) { ok = 0; break; }
+		fd_set r, w;
+		FD_ZERO(&r); FD_ZERO(&w);
+		FD_SET(master, &r); FD_SET(master, &w);
+		struct timeval tv = { 1, 0 };
+		int n = select(master + 1, &r, &w, NULL, &tv);
+		if (n < 0) { if (errno == EINTR) continue; break; }
+		if (FD_ISSET(master, &r)) drain(0);
+		if (FD_ISSET(master, &w)) {
+			ssize_t k = write(master, buf + at, have - at);
+			if (k > 0) at += (size_t) k;
+			else if (k < 0 && errno != EAGAIN && errno != EINTR) { ok = 0; break; }
+		}
+	}
+	fcntl(master, F_SETFL, flags);
+	fclose(f);
+	if (ok) drain(30);
+	return ok;
 }
 
 int main(int argc, char **argv)
@@ -125,7 +182,23 @@ int main(int argc, char **argv)
 	while (fgets(line, sizeof line, script)) {
 		line[strcspn(line, "\n")] = '\0';
 		if (strncmp(line, "wait ", 5) == 0) drain(atol(line + 5));
-		else if (strncmp(line, "keys ", 5) == 0) type_text(line + 5);
+		else if (strncmp(line, "keys ", 5) == 0) type_text(line + 5, 0);
+		else if (strncmp(line, "paste ", 6) == 0) type_text(line + 6, 1);
+		else if (strncmp(line, "send-file ", 10) == 0) {
+			if (!send_file(line + 10, start + timeout)) {
+				fprintf(stderr, "Timed out or failed: %s\n", line);
+				kill(pid, SIGKILL);
+				waitpid(pid, NULL, 0);
+				fclose(script);
+				return 124;
+			}
+		}
+		else if (strncmp(line, "resize ", 7) == 0) {
+			struct winsize size = { 24, 80, 0, 0 };
+			if (sscanf(line + 7, "%hu %hu", &size.ws_row, &size.ws_col) == 2)
+				ioctl(master, TIOCSWINSZ, &size);   /* the kernel signals the program */
+			drain(50);
+		}
 		else if (strncmp(line, "await-screen ", 13) == 0 ||
 		         strncmp(line, "await-file ", 11) == 0) {
 			int is_screen = strncmp(line, "await-screen ", 13) == 0;

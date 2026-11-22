@@ -14,6 +14,7 @@ void editor_idle_poll(void)
  extern int chezweb_poll(void);
  int changed;
  if (!editor_idle_wait) return;
+ meters_tick();                       /* meters.c: $CHEZWEB_METERS_MS */
  changed = chezweb_poll();
  if (term_poll()) changed = 1;        /* terminal.c: the shells' output */
  if (changed) {
@@ -57,7 +58,19 @@ void editor_dispatch_key(void)
 			char key[2];
 			key[0] = (char) *input;
 			key[1] = '\0';
-			if (*input >= 128 || !call_lisp_event("self-insert", key))
+			if (*input >= 128) {
+				/*
+				 * A character beyond ASCII is typed by the C core,
+				 * but the scripts still mark the start of a command
+				 * for undo (core.scm, "typed").  Without it, ω typed
+				 * after C-x o joined the undo group of the C-x o, and
+				 * C-/ put point back where it was in the other window,
+				 * inside a character (tests/fuzz-editor.sh, 21
+				 * November 2026).
+				 */
+				call_lisp_event("typed", key);
+				insert();
+			} else if (!call_lisp_event("self-insert", key))
 				insert();
 		}
 		else
@@ -137,6 +150,7 @@ int fe_main(int argc, char **argv)
 
 	beginning_of_buffer();
 	undoset();
+	check_mode = getenv("CHEZWEB_CHECK") && *getenv("CHEZWEB_CHECK") == '1';
 	call_lisp_event("startup", "");
 	key_map = keymap;
 	match_parens();         /* the parens at the cursor before the first key */
@@ -148,6 +162,7 @@ int fe_main(int argc, char **argv)
 		if (backdoor_on) backdoor_refresh();
 		update_display();
 		if (backdoor_on) backdoor_shown();
+		if (check_mode) editor_check(1);        /* check.c: CHEZWEB_CHECK=1 */
 		if (term_takes_keys(curbp)) {   /* terminal.c: the keys are the shell's */
 			editor_idle_wait = 1;
 			term_take_key();
@@ -160,6 +175,7 @@ int fe_main(int argc, char **argv)
 		if (backdoor_on) backdoor_key(input, key_return);
         { extern int chezweb_poll(void); chezweb_poll(); }
 		editor_dispatch_key();
+		if (check_mode) editor_check(0);        /* before the display uses it */
 		if (backdoor_on) backdoor_commanded();
 		chez_tester_poll();
 	}

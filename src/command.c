@@ -293,13 +293,23 @@ void lnend()
 		left();
 }
 
+/*
+ * M-b and M-f of the C table.  They compare positions, not pointers: with
+ * the gap at the start, b_buf < ptr(0) let point go to -1, and the byte at
+ * the end of the text was read one past the buffer.  M-b stops on the
+ * first byte of a character, never inside one (tests/fuzz-core.c found
+ * both, 21 November 2026).
+ */
 void backward_word()
 {
-	char_t *p;
-	while (!isspace(*(p = ptr(curbp, curbp->b_point))) && curbp->b_buf < p)
-		--curbp->b_point;
-	while (isspace(*(p = ptr(curbp, curbp->b_point))) && curbp->b_buf < p)
-		--curbp->b_point;
+	point_t p = curbp->b_point, size = document_size(curbp);
+	while (p > 0 && (p >= size || !isspace(*ptr(curbp, p))))
+		--p;
+	while (p > 0 && isspace(*ptr(curbp, p)))
+		--p;
+	while (p > 0 && (*ptr(curbp, p) & 0xC0) == 0x80)
+		--p;
+	curbp->b_point = p;
 }
 
 /*
@@ -370,11 +380,12 @@ void backward_page()
 
 void forward_word()
 {
-	char_t *p;
-	while (!isspace(*(p = ptr(curbp, curbp->b_point))) && p < curbp->b_ebuf)
-		++curbp->b_point;
-	while (isspace(*(p = ptr(curbp, curbp->b_point))) && p < curbp->b_ebuf)
-		++curbp->b_point;
+	point_t p = curbp->b_point, size = document_size(curbp);
+	while (p < size && !isspace(*ptr(curbp, p)))
+		++p;
+	while (p < size && isspace(*ptr(curbp, p)))
+		++p;
+	curbp->b_point = p;
 }
 
 /* A read-only buffer refuses every change: say so, and return 1. */
@@ -500,6 +511,11 @@ void delete()
 	curbp->b_point = movegap(curbp, curbp->b_point);
 	undoset();
 	n = utf8_size(*(ptr(curbp, curbp->b_point)));
+	/* a lead byte without its continuation bytes (a file cut inside a
+	   character) announces more bytes than are left: the gap went past
+	   the buffer (tests/fuzz-core.c, 21 November 2026) */
+	if (n > curbp->b_ebuf - curbp->b_egap)
+		n = (int) (curbp->b_ebuf - curbp->b_egap);
 
 	if (curbp->b_egap < curbp->b_ebuf) {
 		/* record the deleted chars in the undo structure */
@@ -709,6 +725,10 @@ void toggle_overwrite_mode() {
 
 void killtoeol()
 {
+	/* at the end of the text there is nothing to kill, and no byte to read
+	   (tests/fuzz-core.c, 21 November 2026) */
+	if (curbp->b_point >= document_size(curbp))
+		return;
 	/* point = start of empty line or last char in file */
 	if (*(ptr(curbp, curbp->b_point)) == 0xa || (curbp->b_point + 1 == ((curbp->b_ebuf - curbp->b_buf) - (curbp->b_egap - curbp->b_gap))) ) {
 		delete();
@@ -775,7 +795,10 @@ void copy_cut(int cut)
 		undoset();
 		(void) memcpy(scrap, p, nscrap * sizeof (char_t));
 		*(scrap + nscrap) = '\0';  /* null terminate for insert_string */
-		if (!chez_tester_clipboard_isolated()) screen_set_clipboard((char *) scrap);  /* the system clipboard, in the GUI */
+		if (!chez_tester_clipboard_isolated()) {
+			screen_set_clipboard((char *) scrap);  /* the system clipboard, in the GUI */
+			clipboard_copied_scrap();       /* interface.c: as it keeps it */
+		}
 		if (cut) {
 			//debug("CUT: pt=%ld nscrap=%d\n", curbp->b_point, nscrap);
 			record_change(curbp, 'd', (curbp->b_point < curbp->b_mark ? curbp->b_point : curbp->b_mark), scrap, nscrap);
@@ -802,14 +825,25 @@ unsigned char *get_scrap()
  */
 void set_scrap(unsigned char *ptr)
 {
-	if (scrap != NULL) free(scrap);
 	assert(ptr != NULL);
-	scrap = ptr;
+	set_scrap_len(ptr, (point_t) strlen((char *) ptr));
 }
 
+/* the same, of LEN bytes (NUL bytes in them: a paste from the clipboard),
+ * still followed by a NUL */
+void set_scrap_len(unsigned char *ptr, point_t len)
+{
+	if (scrap != NULL && scrap != ptr) free(scrap);
+	assert(ptr != NULL);
+	scrap = ptr;
+	nscrap = len;
+}
+
+/* C-y: the NSCRAP bytes of the scrap, NUL bytes included -- C-w of a text
+ * with a NUL in it then C-y gave back the text up to the NUL */
 void paste()
 {
-	insert_string((char *)scrap);
+	insert_bytes((char *) scrap, scrap ? (int) nscrap : 0);
 }
 
 /* Terminal Paste is one edit, not a sequence of typed Markdown commands.
@@ -838,9 +872,10 @@ void paste_bracketed(void)
     char *text = NULL;
     size_t len = 0, capacity = 0, matched = 0, i, out;
     int failure = 0, c;
+    key_bulk(1);                        /* key.c: the paste read in blocks */
     for (;;) {
         c = read_key_byte();
-        if (c < 0) { free(text); msg("Incomplete paste; nothing inserted"); return; }
+        if (c < 0) { key_bulk(0); free(text); msg("Incomplete paste; nothing inserted"); return; }
         if (c == end[matched]) {
             if (++matched == sizeof(end) - 1) break;
             continue;
@@ -851,6 +886,7 @@ void paste_bracketed(void)
         if (c == end[0]) matched = 1;
         else if (!failure) failure = paste_byte(&text, &len, &capacity, c);
     }
+    key_bulk(0);
     if (failure) {
         free(text);
         if (failure == 1) msg("Paste exceeds %u bytes; nothing inserted", TERMINAL_PASTE_LIMIT);
@@ -871,7 +907,11 @@ void paste_bracketed(void)
 
 void insert_string(char *str)
 {
-	int len = (str == NULL) ? 0 : strlen(str);
+	insert_bytes(str, (str == NULL) ? 0 : (int) strlen(str));
+}
+
+void insert_bytes(char *str, int len)
+{
 
 	if (read_only_refuses()) return;
 	if (curbp->b_flags & B_OVERWRITE)

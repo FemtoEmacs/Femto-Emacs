@@ -8,6 +8,7 @@ window_t *curwp;
 char_t *input;
 char *f_alloc="alloc", *m_alloc="alloc";
 int screen_getch(void) { assert(*keys);reads++;return *keys++; }
+int screen_read_keys(unsigned char *buf, int max) { (void) max; buf[0] = (unsigned char) screen_getch(); return 1; }
 void msg(char *s,...) { (void)s; }
 void fatal(char *s) { (void)s;abort(); }
 void input_test_undefined(void) {}

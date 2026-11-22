@@ -275,9 +275,19 @@ int tester_inject_key_bytes(const char *bytes, int count)
 
 /* Is a key byte there, or does one come within MS milliseconds?
  * (terminal.c: an Esc alone, or the start of a sequence) */
+/*
+ * Key bytes read ahead, many at a time, while a terminal paste is read
+ * (key_bulk, command.c): what follows the paste stays here for the keys
+ * after it, in order.
+ */
+static unsigned char ahead[65536];
+static int ahead_at = 0, ahead_n = 0, bulk = 0;
+
+void key_bulk(int on) { bulk = on; }
+
 int key_bytes_waiting(int ms)
 {
-	if (nunread > 0 || macro_play >= 0) return 1;
+	if (nunread > 0 || macro_play >= 0 || ahead_at < ahead_n) return 1;
 	return screen_key_waiting(ms);
 }
 
@@ -296,7 +306,17 @@ int read_key_byte(void)
 			return macro_buf[macro_play++];
 		macro_play = -1;
 	}
-	c = screen_getch();
+	if (ahead_at < ahead_n) {
+		c = ahead[ahead_at++];
+	} else if (bulk && !macro_recording && !macro_repeat) {
+		int n = screen_read_keys(ahead, (int) sizeof ahead);
+		if (n <= 0) return n < 0 ? n : -1;
+		ahead_n = n;
+		ahead_at = 1;
+		c = ahead[0];
+	} else {
+		c = screen_getch();
+	}
 	if (macro_repeat) {
 		macro_repeat = 0;
 		if (c == 'e' && macro_len > 0) {

@@ -14,7 +14,9 @@ const server=http.createServer((q,r)=>{
  await new Promise(r=>server.listen(0,'127.0.0.1',r));const browser=await chromium.launch({channel:'chrome',headless:true});
  try{const opener=await browser.newPage({viewport:{width:1100,height:740}});
  const opened=opener.waitForEvent('popup');await opener.evaluate(()=>window.open('about:blank'));const page=await opened,errors=[];
- await page.addInitScript(()=>{window.fixtureWrites=[];window.showOpenFilePicker=async()=>[{getFile:async()=>new File(['Local picker fixture\n'],'picked.md'),createWritable:async()=>({write:async b=>window.fixtureWrites.push(new TextDecoder().decode(b)),close:async()=>{}})}];});page.on('pageerror',e=>errors.push(e.stack));
+ // A real file keeps its date until it is written (lastModified): a save
+ // compares it with the date read (web/files.js), so the fixture has one.
+ await page.addInitScript(()=>{window.fixtureWrites=[];window.showOpenFilePicker=async()=>[{getFile:async()=>new File(['Local picker fixture\n'],'picked.md',{lastModified:123}),createWritable:async()=>({write:async b=>window.fixtureWrites.push(new TextDecoder().decode(b)),close:async()=>{}})}];});page.on('pageerror',e=>errors.push(e.stack));
  const text=()=>page.locator('#screen-text').textContent();
  const wait=async s=>{try{await page.waitForFunction(s=>document.getElementById('screen-text').textContent.includes(s),s,{timeout:15000});}catch(e){console.error('SCREEN:',await text(),'ERRORS:',errors);await page.screenshot({path:'/private/tmp/chezweb-failed.png'});throw e;}};
  const seq=async(...keys)=>{for(const key of keys)await page.keyboard.press(key);};

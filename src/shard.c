@@ -411,10 +411,32 @@ void shard_goto(void)
 }
 
 /* M-g in a file in shards: LINE of the whole file */
+/* does shard K end with a newline?  Not when a line longer than two
+ * shards was cut inside (build_index): the next shard starts in it */
+static int ends_with_newline(struct shard_t *s, int k)
+{
+	shard_entry *e = &s->e[k];
+	FILE *fp;
+	int c;
+	if (e->text) return e->tlen > 0 && e->text[e->tlen - 1] == '\n';
+	if (e->len <= 0 || (fp = fopen(s->path, "rb")) == NULL) return 1;
+	c = fseeko(fp, (off_t) (e->off + e->len - 1), SEEK_SET) == 0 ? getc(fp) : '\n';
+	fclose(fp);
+	return c == '\n';
+}
+
+/*
+ * M-g: line LINE of the whole file.  It starts after newline LINE - 1:
+ * in the shard that holds that newline, or at the start of the next one
+ * when the newline ends its shard.  Taking a shard's first line for the
+ * line after the newlines before it is wrong for a shard that starts
+ * inside a long line: M-g to that line went to the cut, not to the start
+ * of the line (tests/shard-boundary.sh).
+ */
 int shard_goto_line(int line)
 {
 	struct shard_t *s = curbp->b_shard;
-	long base = 0, first;
+	long base = 0, need = line - 1;
 	int k;
 	point_t p;
 
@@ -426,12 +448,21 @@ int shard_goto_line(int line)
 		for (k = 0; k < s->n; k++) total += s->e[k].lines;
 		if (line > total) return 0;
 	}
-	/* the last shard whose first line is LINE or before it */
-	for (k = 0; k + 1 < s->n && base + s->e[k].lines + 1 <= line; k++)
+	if (need == 0) {
+		if (!shard_switch(curbp, 0, 0)) return 0;
+		curbp->b_point = 0;
+		return 1;
+	}
+	/* the shard that holds newline NEED */
+	for (k = 0; k + 1 < s->n && base + s->e[k].lines < need; k++)
 		base += s->e[k].lines;
-	first = base + 1;
+	if (base + s->e[k].lines == need && k + 1 < s->n && ends_with_newline(s, k)) {
+		if (!shard_switch(curbp, k + 1, 0)) return 0;
+		curbp->b_point = 0;
+		return 1;
+	}
 	if (!shard_switch(curbp, k, 0)) return 0;
-	p = line_to_point((int) (line - first + 1));
+	p = line_to_point((int) (need - base + 1));
 	if (p == -1) return 0;
 	curbp->b_point = p;
 	return 1;
