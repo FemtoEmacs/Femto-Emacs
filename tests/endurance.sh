@@ -50,6 +50,7 @@ while getopts t:n:u:a o; do
 done
 [ -x "$editor" ] || { echo "make $(basename "$editor") first"; exit 2; }
 work=$(mktemp -d "${TMPDIR:-/tmp}/chezweb-endurance.XXXXXX")
+if [ -n "${ENDURANCE_KEEP:-}" ]; then echo "endurance diagnostics: $work"; fi
 trap '[ -n "${ENDURANCE_KEEP:-}" ] || rm -rf "$work"' EXIT HUP INT TERM
 cc=${CC:-cc}
 $cc -O2 tests/pty-keys.c -o "$work/pty" -lutil 2>/dev/null || $cc -O2 tests/pty-keys.c -o "$work/pty"
@@ -322,8 +323,8 @@ big_verdict() {
 	END {
 		printf "big: %s of %.1f MB: C heap %.1f -> %.1f MB at the peak, RSS %.1f -> %.1f MB\n", what, size / 1048576, h0 / 1048576, hp / 1048576, r0 / 1048576, rp / 1048576
 		bad = 0
-		if (hp - h0 > heap * size) { printf "  the C heap rose by more than %s copies of the text\n", heap; bad = 1 }
-		if (rp - r0 > rss * size && sanitized != "yes") { printf "  RSS rose by more than %s copies: the text was copied into the compiled program\n", rss; bad = 1 }
+		if (h0 < 0) printf "  SKIP C heap bound: allocator meter unavailable on this platform\n"; else if (hp - h0 > heap * size) { printf "  the C heap rose by more than %s copies of the text\n", heap; bad = 1 }
+		if (r0 < 0) printf "  SKIP RSS bound: resident-memory meter unavailable on this platform\n"; else if (rp - r0 > rss * size && sanitized != "yes") { printf "  RSS rose by more than %s copies: the text was copied into the compiled program\n", rss; bad = 1 }
 		exit bad
 	}' "$1"
 }
@@ -358,7 +359,7 @@ KEYS
 	  HOME="$dir/home" CHEZEMAX_NO_INIT=1 CHEZWEB_METERS="$meters" CHEZWEB_METERS_MS=250 \
 		"$work/pty" "$dir/keys" 300 "$dir/screen" "$root/$editor" "$dir/big.txt" ) > "$dir/pty.txt" 2>&1 || status=$?
 	if [ "$status" -ne 0 ] || [ ! -s "$dir/after.txt" ]; then
-		echo "FAIL big: the session did not finish (status $status)"; keep "$meters" "$dir/screen"; exit 1
+		echo "FAIL big: the session did not finish (status $status)"; cat "$dir/pty.txt"; tail -c 4096 "$dir/screen"; keep "$meters" "$dir/screen"; exit 1
 	fi
 	cmp -s "$dir/big.txt" "$dir/after.txt" || { echo "FAIL big: after C-w and C-y the text is not the same"; exit 1; }
 	cmp -s "$dir/big.txt" "$dir/clip/clipboard.txt" || { echo "FAIL big: C-w did not put the text on the system clipboard"; exit 1; }
@@ -386,7 +387,7 @@ KEYS
 	  HOME="$dir/home" CHEZEMAX_NO_INIT=1 CHEZWEB_METERS="$meters2" CHEZWEB_METERS_MS=250 \
 		"$work/pty" "$dir/keys2" 300 "$dir/screen2" "$root/$editor" "$dir/empty.txt" ) > "$dir/pty2.txt" 2>&1 || status=$?
 	if [ "$status" -ne 0 ] || [ ! -s "$dir/pasted.txt" ]; then
-		echo "FAIL big: the paste session did not finish (status $status)"; keep "$meters2" "$dir/screen2"; exit 1
+		echo "FAIL big: the paste session did not finish (status $status)"; cat "$dir/pty2.txt"; tail -c 4096 "$dir/screen2"; keep "$meters2" "$dir/screen2"; exit 1
 	fi
 	cmp -s "$dir/other.txt" "$dir/pasted.txt" || { echo "FAIL big: C-y did not insert what the other program copied"; exit 1; }
 	# the buffer's text and the scrap: two copies, and the gap

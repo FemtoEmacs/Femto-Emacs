@@ -14,6 +14,9 @@
 #include <unistd.h>
 #endif
 #include "screen.h"
+#ifdef __CYGWIN__
+#include "system.h"
+#endif
 extern int term_poll_ms(void);
 
 #define MAX_FACE 127             /* interface.c's FE_MAX_COLOR */
@@ -257,6 +260,16 @@ static const struct clip_tool clip_tools[] = {
 	{ NULL, NULL, NULL, NULL }
 };
 
+#ifdef __CYGWIN__
+/* Do not fork the editor after Wasmtime has reserved its JIT address
+ * space.  Use the same native process launcher as the rest of the port. */
+static int clip_run(const char *command, const char *input, size_t len, sys_run_result *r)
+{
+	char *args[] = {"-c", (char *) command};
+	return sys_run_program("/bin/sh", args, 2, input, len, 30, NULL, r) == NULL;
+}
+#endif
+
 /* the first tool whose program exists (and whose display is set); once */
 static const struct clip_tool *clip_tool(void)
 {
@@ -270,7 +283,14 @@ static const struct clip_tool *clip_tool(void)
 	for (t = clip_tools; t->program; t++) {
 		if (t->needs && !getenv(t->needs)) continue;
 		snprintf(probe, sizeof probe, "command -v %s >/dev/null 2>&1", t->program);
+#ifdef __CYGWIN__
+		sys_run_result r = {0};
+		int ok = clip_run(probe, NULL, 0, &r) && r.status == 0;
+		sys_run_result_free(&r);
+		if (ok) { found = t; break; }
+#else
 		if (system(probe) == 0) { found = t; break; }
+#endif
 	}
 	return found;
 }
@@ -312,10 +332,20 @@ void screen_set_clipboard(const char *text)
 
 	if (!text || !*text) return;
 	t = clip_tool();
+#ifdef __CYGWIN__
+	(void) f;
+	if (t) {
+		sys_run_result r = {0};
+		int ok = clip_run(t->copy, text, strlen(text), &r) && r.status == 0;
+		sys_run_result_free(&r);
+		if (ok) return;
+	}
+#else
 	if (t && (f = popen(t->copy, "w")) != NULL) {
 		fputs(text, f);
 		if (pclose(f) == 0) return;
 	}
+#endif
 	osc52_copy(text);
 }
 
@@ -328,7 +358,12 @@ static void clip_put(struct clip_copy *k, int c)
 	if (k->failed) return;
 	if (c == '\n' && k->prev == '\r') { k->prev = c; return; }
 	if (k->len + 2 > k->cap) {
-		size_t cap = k->cap ? 2 * k->cap : 4096;
+		/* Keep large clipboard growth within 12.5 percent.  Doubling
+		 * leaves huge freed blocks which macOS can reuse without
+		 * splitting for the subsequent gap-buffer allocation. */
+		size_t extra = k->cap < 1048576 ? k->cap : k->cap / 8;
+		if (extra > (size_t)-1 - k->cap) { k->failed = 1; return; }
+		size_t cap = k->cap ? k->cap + extra : 4096;
 		if ((bigger = realloc(k->buf, cap)) == NULL) { k->failed = 1; return; }
 		k->buf = bigger;
 		k->cap = cap;
@@ -354,6 +389,29 @@ char *screen_get_clipboard_unless(const char *same, size_t n, size_t *len, int *
 
 	if (len) *len = 0;
 	if (was_same) *was_same = 0;
+#ifdef __CYGWIN__
+	(void) f; (void) c;
+	if (!t) return NULL;
+	sys_run_result r = {0};
+	if (!clip_run(t->paste, NULL, 0, &r) || r.status != 0) {
+		sys_run_result_free(&r);
+		return NULL;
+	}
+	/* Adopt the launcher's exact-sized output; normalize CRLF in place. */
+	k.buf = r.out; k.cap = r.out_len + 1;
+	for (j = 0; j < r.out_len; j++) {
+		unsigned char byte = (unsigned char) k.buf[j];
+		if (byte == '\n' && k.prev == '\r') { k.prev = byte; continue; }
+		k.buf[k.len++] = byte == '\r' ? '\n' : byte;
+		k.prev = byte;
+	}
+	r.out = NULL; sys_run_result_free(&r);
+	if (same && k.len == n && memcmp(k.buf, same, n) == 0) {
+		if (was_same) *was_same = 1;
+		free(k.buf); return NULL;
+	}
+	matching = 0; status = 0;
+#else
 	if (!t || (f = popen(t->paste, "r")) == NULL) return NULL;
 	while ((c = getc(f)) != EOF) {
 		if (matching) {
@@ -364,6 +422,7 @@ char *screen_get_clipboard_unless(const char *same, size_t n, size_t *len, int *
 		clip_put(&k, c);
 	}
 	status = pclose(f);
+#endif
 	if (matching && i < n)                 /* a proper prefix of SAME */
 		for (j = 0; j < i; j++) clip_put(&k, (unsigned char) same[j]);
 	if (status == 0 && matching && i == n && n > 0 && was_same) *was_same = 1;
@@ -372,8 +431,13 @@ char *screen_get_clipboard_unless(const char *same, size_t n, size_t *len, int *
 	if (len) *len = k.len;                 /* NUL bytes included */
 	/* the copy may stay as what C-y inserts: no doubling's spare room */
 	if (k.cap > k.len + 1 + 4096) {
-		char *exact = realloc(k.buf, k.len + 1);
-		if (exact) k.buf = exact;
+		/* realloc may keep the old capacity on a shrink (notably on
+		 * macOS).  A fresh allocation bounds the scrap we retain. */
+		char *exact = malloc(k.len + 1);
+		if (exact == NULL) { free(k.buf); return NULL; }
+		memcpy(exact, k.buf, k.len + 1);
+		free(k.buf);
+		k.buf = exact;
 	}
 	return k.buf;
 }
