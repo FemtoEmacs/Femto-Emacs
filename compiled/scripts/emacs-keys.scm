@@ -33,6 +33,13 @@
              (set! end (+ start (bytevector-length bytes)))
              (bytevector-u8-ref bytes (- i start)))))))
 
+(define (reader-substring get a b)
+  "The text from A to B, read with GET (a buffer-reader), as a string."
+  (let ((v (make-bytevector (max 0 (- b a)) 0)))
+    (let loop ((i a))
+      (when (< i b) (bytevector-u8-set! v (- i a) (get i)) (loop (+ i 1))))
+    (utf8->string v)))
+
 (define (octets-get s)
   "A reader over the bytes of S (a string or a bytevector), for the tests."
   (let ((b (%utf8 s)))
@@ -671,17 +678,46 @@ is a comment."
   (case-lambda
     ((words prefix width) (fill-words words prefix width prefix))
     ((words prefix width rest-prefix)
-  "Lines of at most WIDTH columns (when possible)."
-  (let loop ((words words) (current #f) (lines '()))
-    (cond ((null? words) (reverse (if current (cons current lines) lines)))
-          ((not current) (loop (cdr words) (string-append prefix (car words)) lines))
-          ((> (+ (string-length current) 1 (string-length (car words))) width)
-           (loop (cdr words) (string-append rest-prefix (car words)) (cons current lines)))
-          (else (loop (cdr words) (string-append current " " (car words)) lines)))))))
+  "Lines of at most WIDTH columns (when possible).  A line is made once,
+when it is full: made again with each word it took, it cost a string for
+every word (tests/complexity.sh)."
+  (let loop ((words words) (pre #f) (line '()) (n 0) (lines '()))
+    (cond ((null? words) (reverse (if pre (cons (filled-line pre line) lines) lines)))
+          ((not pre)
+           (loop (cdr words) prefix (list (car words))
+                 (+ (string-length prefix) (string-length (car words))) lines))
+          ((> (+ n 1 (string-length (car words))) width)
+           (loop (cdr words) rest-prefix (list (car words))
+                 (+ (string-length rest-prefix) (string-length (car words)))
+                 (cons (filled-line pre line) lines)))
+          (else (loop (cdr words) pre (cons (car words) line)
+                      (+ n 1 (string-length (car words))) lines)))))))
+
+;; PREFIX and the WORDS (newest first) of a line, a space between them
+(define (filled-line prefix words)
+  (string-append prefix (string-join (reverse words) " ")))
+
+;; The lines of the bytes V, as strings, cut at the newlines (one pass: a
+;; split at every character took a fifth of a second for 344 KB)
+(define (byte-lines v)
+  (let ((n (bytevector-length v)))
+    (let loop ((i 0) (start 0) (acc '()))
+      (cond ((= i n) (reverse (cons (utf8->string v start n) acc)))
+            ((= (bytevector-u8-ref v i) 10) (loop (+ i 1) (+ i 1) (cons (utf8->string v start i) acc)))
+            (else (loop (+ i 1) start acc))))))
 
 (define (split-words s)
-  (filter (lambda (w) (> (string-length w) 0))
-          (string-split (substitute-byte (substitute-byte s 9 32) 10 32) " ")))
+  "The words of S, between spaces, tabs and newlines.  One pass over its
+bytes: replacing the tabs and newlines, splitting at spaces and dropping
+the empty pieces took a second for 50,000 words (tests/complexity.sh)."
+  (let* ((v (%utf8 s)) (n (bytevector-length v)))
+    (let loop ((i 0) (start -1) (acc '()))
+      (if (= i n)
+          (reverse (if (>= start 0) (cons (utf8->string v start n) acc) acc))
+          (let ((b (bytevector-u8-ref v i)))
+            (if (or (= b 32) (= b 9) (= b 10))
+                (loop (+ i 1) -1 (if (>= start 0) (cons (utf8->string v start i) acc) acc))
+                (loop (+ i 1) (if (< start 0) i start) acc)))))))
 
 ;; M-q never starts a line with a word that would turn the line into
 ;; something else: a list item (1935.  2)  -  +), a heading (*  ##), a
@@ -711,6 +747,13 @@ is a comment."
            (loop (cdr ws) (cons (string-append (car acc) " " (car ws)) (cdr acc))))
           (else (loop (cdr ws) (cons (car ws) acc))))))
 
+;; WORDS reversed onto ACC: the words of a paragraph are gathered line by
+;; line so, newest first; appended to the list of all the words before, each
+;; line copied that list, and M-q on 5,000 lines of 50,000 words took minutes
+;; (tests/complexity.sh)
+(define (prepend-reversed words acc)
+  (if (null? words) acc (prepend-reversed (cdr words) (cons (car words) acc))))
+
 (define (fill-text lines comment width)
   "Refill LINES of one paragraph; the first line gives the prefix.  A list
 item keeps its marker, and the lines after it go under its text."
@@ -718,11 +761,11 @@ item keeps its marker, and the lines after it go under its text."
          (prefix (or item (fill-prefix-of (car lines) comment)))
          (rest-prefix (if item (make-spaces (string-length item)) prefix))
          (words (let loop ((ls lines) (first #t) (acc '()))
-                  (if (null? ls) acc
+                  (if (null? ls) (reverse acc)
                       (let* ((line (car ls))
                              (p (if (and first item) item (fill-prefix-of line comment))))
                         (loop (cdr ls) #f
-                              (append acc (split-words (%sub line (min (string-length p) (string-length line)))))))))))
+                              (prepend-reversed (split-words (%sub line (min (string-length p) (string-length line)))) acc)))))))
     (join-lines (fill-words (glue-break-words words) prefix width rest-prefix))))
 
 ;; M-q in a block comment (Lean's /- -/ and /-- -/, C's /* */): the
@@ -815,11 +858,11 @@ line is in none."
                                             (else (fill-prefix-of (buffer-substring top a) #f))))
                          (first-prefix (if (= a top) (fill-prefix-of (car lines) deco) ""))
                          (words (let loop ((ls lines) (first #t) (acc '()))
-                                  (if (null? ls) acc
+                                  (if (null? ls) (reverse acc)
                                       (let* ((line (car ls))
                                              (p (if (and first (not (= a top))) "" (fill-prefix-of line deco))))
                                         (loop (cdr ls) #f
-                                              (append acc (split-words (%sub line (min (string-length p) (string-length line))))))))))
+                                              (prepend-reversed (split-words (%sub line (min (string-length p) (string-length line)))) acc))))))
                          ;; the first line already has LEAD columns before A
                          (filled (fill-words (glue-break-words words)
                                              (string-append (make-spaces (if (= a top) 0 lead)) first-prefix)
@@ -835,7 +878,14 @@ line is in none."
   "M-q: refill the paragraph (or comment block) at the cursor to
 *FILL-COLUMN* columns."
   (let* ((size (buffer-size))
-         (ls (line-start))
+         ;; the text read through one reader (blocks of 64 KB): a call to C
+         ;; for each line's start, end and text made M-q on 5,000 lines take
+         ;; seconds (tests/complexity.sh)
+         (get (buffer-reader))
+         (line-start (lambda (i) (line-start-position get i)))
+         (line-end (lambda (i) (line-end-position get size i)))
+         (buffer-substring (lambda (a b) (reader-substring get a b)))
+         (ls (line-start (point)))
          (here (buffer-substring ls (line-end ls)))
          (text-mode (text-buffer-p))
          (lang (language-for-file (or (buffer-filename) (get-buffer-name))))
@@ -844,7 +894,14 @@ line is in none."
          (comment (if (and text-mode (starts-with-p ">" (string-trim here))) ">" (line-comment-start)))
          (prefix (fill-prefix-of here comment))
          (in-comment (and comment (string-search comment prefix) #t))
-         (line-at (lambda (start) (buffer-substring start (line-end start))))
+         ;; the text of the line at START; the last asked is kept, since
+         ;; the walk down the paragraph asks each line twice
+         (line-at (let ((at -1) (text ""))
+                    (lambda (start)
+                      (unless (= start at)
+                        (set! text (buffer-substring start (line-end start)))
+                        (set! at start))
+                      text)))
          ;; Inside a paragraph only "1." or "1)" starts a list (CommonMark);
          ;; "1935." there is text, so M-q takes it into the paragraph -- a
          ;; reference pasted with the break already in it.  In Org too,
@@ -861,7 +918,7 @@ line is in none."
                  ;; are text: none is an item (then it would be a list)
                  (let up ((s (line-start (- start 1))) (seen #f))
                    (let ((text (line-at s)))
-                     (cond ((blank-line-p buffer-get size s) seen)
+                     (cond ((blank-line-p get size s) seen)
                            ((and org (org-heading-text-p text)) seen)
                            ((list-item-prefix text) #f)
                            ((block-start-line-p text) seen)
@@ -869,13 +926,13 @@ line is in none."
                            (else (up (line-start (- s 1)) #t))))))))
          (member-line-p
           (lambda (start)
-            (let ((text (buffer-substring start (line-end start))))
-              (and (not (blank-line-p buffer-get size start))
+            (let ((text (line-at start)))
+              (and (not (blank-line-p get size start))
                    (not (and text-mode (unfillable-line-p text)))
                    (not (and org (org-heading-text-p text)))
                    (if in-comment (and (string-search comment (fill-prefix-of text comment)) #t) #t))))))
     (cond ((and (not text-mode) (fill-block-comment ls)))
-          ((blank-line-p buffer-get size ls) (message "No paragraph here"))
+          ((blank-line-p get size ls) (message "No paragraph here"))
           ((not (or in-comment text-mode)) (message "M-q fills comments and text, not code"))
           ((and text-mode (or (unfillable-line-p here)
                               ;; org.scm: an Org heading, or a line in a #+BEGIN_ block
@@ -898,11 +955,12 @@ line is in none."
                              (loop next)
                              b))))
                   (end (line-end b))
-                  (lines (let loop ((s a) (acc '()))
-                           (let ((acc (cons (buffer-substring s (line-end s)) acc)))
-                             (if (>= s b) (reverse acc) (loop (+ 1 (line-end s)) acc)))))
+                  ;; the paragraph's text read at once, then cut at its newlines
+                  (bytes (buffer-bytes a end))
+                  (old (utf8->string bytes))
+                  (lines (byte-lines bytes))
                   (new (fill-text lines comment *fill-column*)))
-             (unless (string=? new (buffer-substring a end))
+             (unless (string=? new old)
                (replace-region a end new))
              (goto-char (min (buffer-size) (+ a (bytes-length new)))))))))
 

@@ -37,7 +37,7 @@
 
 (define T-PAIR #f) (define T-FLO #f) (define T-CHAR #f) (define T-CODES #f)
 (define T-STR #f) (define T-SYM #f) (define T-VEC #f) (define T-BOX #f)
-(define T-IMM #f) (define T-INT #f) (define T-REC #f) (define T-CLO #f) (define T-FV #f) (define T-CLOV #f)
+(define T-IMM #f) (define T-INT #f) (define T-BYTES #f) (define T-REC #f) (define T-CLO #f) (define T-FV #f) (define T-CLOV #f)
 (define *fn-types* #f)    ; vector: F_n
 (define *clo-types* #f)   ; vector: Clo_n
 (define *sigs* '())       ; ((params . results) . typeidx)
@@ -54,6 +54,7 @@
   (set! T-BOX (add-type! '(struct ((#t eqref)))))
   (set! T-IMM (add-type! '(struct ((#f i32) (#f i32)))))
   (set! T-INT (add-type! '(struct ((#f i64)))))
+  (set! T-BYTES (add-type! '(array (#t i8))))   ; a bytevector's bytes, one byte each
   (set! T-REC (add-type! (list 'struct (list '(#f eqref) (list #f (list 'ref T-VEC))))))   ; record: type, fields
   (set! T-CLO (add-type! '(sub #f () (struct ((#f i32))))))
   (set! *fn-types* (make-vector (+ *max-args* 1) #f))
@@ -746,6 +747,16 @@ GROUP: variables of a letrec group, whose slots are filled later."
                               (list (list 'array.new T-CODES) (list 'struct.new T-STR))))
       ((char->integer) (append (arg 0) (list (list 'ref.cast 'null T-CHAR) (list 'struct.get T-CHAR 0) 'ref.i31)))
       ((integer->char) (append (fix 0) (list (list 'call (helper '$char)))))
+      ;; a bytevector's bytes, packed (prelude.scm, %bv): (%make-bytes n fill),
+      ;; (%bytes-ref b k), (%bytes-set! b k byte), (%bytes-length b),
+      ;; (%bytes-copy! dst at src start count)
+      ((%make-bytes) (append (fix 1) (fix 0) (list (list 'array.new T-BYTES))))
+      ((%bytes-ref) (append (arg 0) (list (list 'ref.cast 'null T-BYTES)) (fix 1) (list (list 'array.get_u T-BYTES) 'ref.i31)))
+      ((%bytes-set!) (append (arg 0) (list (list 'ref.cast 'null T-BYTES)) (fix 1) (fix 2) (list (list 'array.set T-BYTES)) (unspec)))
+      ((%bytes-length) (append (arg 0) (list (list 'ref.cast 'null T-BYTES) 'array.len 'ref.i31)))
+      ((%bytes-copy!)
+       (append (arg 0) (list (list 'ref.cast 'null T-BYTES)) (fix 1) (arg 2) (list (list 'ref.cast 'null T-BYTES)) (fix 3) (fix 4)
+               (list (list 'array.copy T-BYTES T-BYTES)) (unspec)))
       ((%make-record) (append (arg 0) (arg 1) (list (list 'ref.cast T-VEC) (list 'struct.new T-REC))))
       ((%record-tag) (append (arg 0) (list (list 'ref.cast 'null T-REC) (list 'struct.get T-REC 0))))
       ((%record-fields) (append (arg 0) (list (list 'ref.cast 'null T-REC) (list 'struct.get T-REC 1))))

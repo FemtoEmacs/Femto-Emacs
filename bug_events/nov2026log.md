@@ -1429,3 +1429,106 @@ An empty /**/ comment could skip its closing marker as decoration and fill
 following C code, even splitting a string literal. Locate the closing
 marker first and bound decoration skipping by it. tests/block-fill.sh
 checks that a long C declaration after an empty comment stays unchanged.
+
+## 21 Nov 2026: one Chrome tab per file
+
+Asked whether multi-tab collisions were tested: they were not, and the
+browser tests showed the second save silently replacing the first.
+Eduardo chose to forbid a second tab on a file. Web Locks per file,
+compared by isSameEntry over a BroadcastChannel; C-c d refuses while the
+tab's heartbeat is fresh; a save into a granted folder checks the file's
+date and size first. tests/chezweb-one-tab.cjs. Playwright's newPage()
+gives each page its own profile, so a test of tabs needs one context;
+chezweb-save-roundtrip.cjs opens two tabs of one session in two contexts
+and is unaffected. Tested here with the edited page.js and files.js put
+into the prebuilt bundle (no emsdk in the cloud): make browser-rebuild.
+
+## 21 Nov 2026: random walks under the sanitizers; six faults
+
+Eduardo asked for stress tests: random UTF-8 and editing keys, ASan and
+UBSan, invariants after every key. Built tests/fuzz-core.c (the C core
+alone; seeds, shrinking in child processes), src/check.c (CHEZWEB_CHECK=1:
+the editor checks itself after every key) and tests/fuzz-editor.sh (the
+sanitized editor in a PTY, undo/redo checkpoints compiled in as a user's
+script). Found and fixed: M-b inside a character or at -1; reads one past
+the buffer at the end of the text (a 0 sentinel in growgap); C-d on a cut
+lead byte moving the gap past the buffer; the mark not following C edits
+(C-w then cut half a character); other windows' points guessed by w2b
+(-10 after C-w) and the page start left past the end (use-after-free in
+the display); non-ASCII typing without an undo boundary (undo put point in
+the other window's place, inside U+FFFD). Regressions: fuzz-core's table,
+tests/fuzz-found.sh. Wasmtime ran under AddressSanitizer without settings
+beyond detect_leaks=0. mawk 1.3.4's srand(seed) was not reproducible: the
+walks use their own generator.
+
+## 22 Nov 2026: long sessions (endurance tests)
+
+Eduardo's plan: buffer churn, terminal flood, undo eviction, with RSS and
+LSan. Meters first (src/meters.c): the live C heap (exact under ASan),
+RSS, descriptors, terminal bytes; fe-leak-check for LSan mid-run. RSS
+alone misleads: under ASan it holds the quarantine (1 MB a cycle of
+churn with no leak), and the compiled program's heap never shrinks.
+Churn of 5000 buffers: flat. The first sanitized churn stopped at the
+first M-x term: UBSan, memcpy from NULL in put_text (terminal.c); and
+put_text changed the buffer without record_change, so other windows and
+the page did not follow the shell's text. Both fixed. Flood: three
+rounds, the third adds nothing. Undo: plateau, but the first 20 MB
+insertion raises RSS by 330 MB for good (not fixed; to investigate).
+An injected leak (b_buf not freed) was caught at 2.2 KB a cycle.
+
+## 22 Nov 2026: the 330 MB of a 20 MB insertion
+
+Probed step by step (a user's script writing meters): in the compiled
+program a bytevector takes four bytes a byte (an eqref array of i31), a
+string four a character (i32 code points). A 20 MB bytevector made in
+Scheme: +80 MB; inserted with undo off: +80 (gap, the bridge's linear
+memory, heap room); with undo on: +100 more, the change copied into undo
+only to be dropped by trim-history; a second one: +80 again. C-w of 21 MB
+from the keys: +231 MB, the kill copied into Scheme as a string that
+push-kill drops over 1 MB. Fixed both routes: 'o' for a change over
+*undo-limit* (undo.c, undo.scm forget-oversized, Lean
+oversized_without_bytes), and remember-kill asks fe-scrap-length first.
+C-w of 21 MB: +22 MB. Not changed: the four bytes a byte in Schemer itself.
+
+## 22 Nov 2026: make check-big-edit failed on the Mac only
+
+C heap +53.5 MB and RSS +324 MB for C-w and C-y of 21 MB, on macOS; the
+cloud (Linux, no clipboard tool) passed. The system clipboard: C-w gave
+the 21 MB to pbcopy, and C-y read them back with pbpaste into C (a
+doubling buffer of 32 MB) and into the compiled program (a string, four
+bytes a character), took them for something another program copied, and
+copied them once more into the scrap. Reproduced in the cloud with a
+stand-in xclip. Fixed: the terminal compares what the paste tool prints
+with the scrap as it reads and copies nothing when they are the same
+(term.c, screen_get_clipboard_unless); a foreign text too long for the
+kill ring goes to the scrap in C (fe-system-clipboard-length,
+fe-system-clipboard-to-scrap, adopt-system-clipboard). The big test now
+runs with a stand-in clipboard on every system (never the user's), and
+also pastes 21 MB "from another program" and a few words.
+
+## 22 Nov 2026: the classic traps of an editor (tests/complexity.sh)
+
+Every key within 2 s on large files, timed by the backdoor. Found: the end
+of a 10 MB line cost 2.6-5.1 s a key (the highlighter read the whole line,
+the display scanned it from its start several times a key: now a bounded
+lookback and a memory of the long line's row starts); M-% ! of 100,000
+occurrences took 83 s and could not be undone (undo summed its history for
+every change; 200,000 reports; a 512-byte gap: now one pass, one deletion
+and one insertion, counts kept as they come, a gap growing by an eighth);
+the first display after it in a word-wrapped 1.4 MB line took 188 s (lines
+of 64 KB or more now wrap at the edge); M-q on 50,000 words did not end in
+minutes on the second press (append per line); C-s at the end of 50 MB took
+1.6 s (now memchr). Report: tests/reports/complexity.md.
+
+## 22 Nov 2026: shard cuts and malformed pastes (tests/shard-boundary.sh, tests/paste-stress.sh)
+
+Shards held: no character cut (4 KB and 16 MB, after a 4-byte character
+and inside a 35 MB line), no offset moved, edits on both sides of a cut
+saved exactly. Found and fixed: M-g to a line cut across shards went to
+the cut (shard_goto_line now finds the shard of newline N-1); a 15 MB
+bracketed paste took 11 s, curses reading a byte a read() (key.c reads
+64 KB blocks during a paste: 0.22 s); C-y stopped at a NUL (the scrap
+carries its length; NUL text from the clipboard goes to the scrap in C);
+the editor's own kill came back cut from the clipboard and was taken for
+another program's (its image is remembered). The 16 MB paste limit stays:
+50 MB refused whole. Report: tests/reports/boundaries.md.

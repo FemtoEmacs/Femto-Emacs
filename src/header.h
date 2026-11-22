@@ -311,6 +311,9 @@ extern point_t pos(buffer_t *, char_t *);
 extern char_t *ptr(buffer_t *, point_t);
 extern int accent_at(buffer_t *, point_t);  /* display.c */
 extern int utf8_fix;             /* command.c: M-x toggle-utf8-fix */
+extern int check_mode;           /* check.c: CHEZWEB_CHECK=1, the invariants after every key */
+extern void editor_check(int shown);
+extern void meters_tick(void);   /* meters.c: $CHEZWEB_METERS_MS */
 extern int posix_file(char *);
 extern int save_buffer(buffer_t *,char *);
 extern void buffer_remember_disk(buffer_t *, const char *);
@@ -342,6 +345,10 @@ extern int line_number(buffer_t *, point_t);
 extern void insert(void);
 extern void paste(void);
 extern void paste_bracketed(void);
+extern void key_bulk(int on);
+extern void set_scrap_len(unsigned char *ptr, point_t len);
+extern void insert_bytes(char *str, int len);
+extern void clipboard_copied_scrap(void);
 /* backdoor.c: M-x backdoor-claude / backdoor-codex (B/D on the mode line) */
 /* narrow.c: C-x n n, C-x n s, C-x n w */
 extern point_t visible_start(buffer_t *);

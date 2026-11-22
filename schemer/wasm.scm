@@ -191,6 +191,7 @@
           ((array.new_default) (list #xfb #x07 (uleb (car a))))
           ((array.new_fixed) (list #xfb #x08 (uleb (car a)) (uleb (cadr a))))
           ((array.get) (list #xfb #x0b (uleb (car a))))
+          ((array.get_u) (list #xfb #x0d (uleb (car a))))
           ((array.set) (list #xfb #x0e (uleb (car a))))
           ((array.fill) (list #xfb #x10 (uleb (car a))))
           ((array.copy) (list #xfb #x11 (uleb (car a)) (uleb (cadr a))))

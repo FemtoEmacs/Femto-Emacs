@@ -7,7 +7,17 @@
 #include <errno.h>
 #include "header.h"
 
-/* Enlarge gap by n chars, position of gap cannot change */
+/*
+ * Enlarge gap by n chars, position of gap cannot change.
+ *
+ * One byte more than the buffer is allocated, after b_ebuf, and kept 0: a
+ * sentinel.  The commands read the byte at point (*ptr(bp, point)) without
+ * asking whether point is at the end of the text, where ptr gives b_ebuf;
+ * C-f at the end of the text, C-k on the last line, M-f, read it.  Without
+ * the sentinel that was one byte past the allocation, which no test saw
+ * until tests/fuzz-core.c ran under AddressSanitizer (21 November 2026).
+ * With it, every such read finds 0, as at the end of a C string.
+ */
 int growgap(buffer_t *bp, point_t n)
 {
 	char_t *new;
@@ -21,14 +31,18 @@ int growgap(buffer_t *bp, point_t n)
 	xegap = bp->b_egap - bp->b_buf;
 	buflen = bp->b_ebuf - bp->b_buf;
 
-	/* reduce number of reallocs by growing by a minimum amount */
+	/* reduce number of reallocs by growing by a minimum amount, and by an
+	 * eighth of the buffer: by 512 bytes alone, M-% of 100,000 foo by
+	 * barbaz moved all the text after the gap 600 times, and typing in a
+	 * large file every 512 keys (tests/complexity.sh) */
 	n = (n < MIN_GAP_EXPAND ? MIN_GAP_EXPAND : n);
+	if (n < buflen / 8) n = buflen / 8;
 	newlen = buflen + n * sizeof (char_t);
 
 	if (buflen == 0) {
 		if (newlen < 0 || MAX_SIZE_T < newlen)
 			fatal(f_alloc);
-		new = (char_t*) malloc((size_t) newlen);
+		new = (char_t*) malloc((size_t) newlen + 1);
 		if (new == NULL)
 			fatal(f_alloc);	/* Cannot edit a file without a buffer. */
 	} else {
@@ -36,7 +50,7 @@ int growgap(buffer_t *bp, point_t n)
 			msg(m_alloc);
 			return (FALSE);
 		}
-		new = (char_t*) realloc(bp->b_buf, (size_t) newlen);
+		new = (char_t*) realloc(bp->b_buf, (size_t) newlen + 1);
 		if (new == NULL) {
 			msg(m_alloc); /* Report non-fatal error. */
 			return (FALSE);
@@ -49,10 +63,11 @@ int growgap(buffer_t *bp, point_t n)
 	bp->b_buf = new;
 	bp->b_gap = bp->b_buf + xgap;
 	bp->b_ebuf = bp->b_buf + buflen;
-	bp->b_egap = bp->b_buf + newlen;
-	while (xegap < buflen--)
-		*--bp->b_egap = *--bp->b_ebuf;
+	/* the text after the gap moves to the end of the new buffer */
+	memmove(bp->b_buf + newlen - (buflen - xegap), bp->b_buf + xegap, (size_t) (buflen - xegap));
+	bp->b_egap = bp->b_buf + newlen - (buflen - xegap);
 	bp->b_ebuf = bp->b_buf + newlen;
+	*bp->b_ebuf = 0;                        /* the sentinel */
 
 	assert(bp->b_buf < bp->b_ebuf);          /* Buffer must exist. */
 	assert(bp->b_buf <= bp->b_gap);

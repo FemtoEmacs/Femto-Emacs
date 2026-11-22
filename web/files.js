@@ -1,9 +1,92 @@
+// One tab per file (21 November 2026).  Two tabs that edit the same file
+// lose work: the second C-x C-s replaces the first without a question.  So
+// a tab claims each file it opens with Chrome's Web Locks, and a second tab
+// is refused the file.  Chrome releases a tab's locks when the tab closes,
+// reloads or crashes: no lock is ever left behind to be cleared by hand.
+//
+// A lock has a name, and the same file can have different names in two
+// tabs (two folders granted under different names), while two different
+// files can have the same one (README.md picked in two tabs).  So the lock
+// names a file by its base name only, and the tabs compare the files
+// themselves: one asks the tab holding the name, over a BroadcastChannel,
+// whether its file is the same entry (FileSystemHandle.isSameEntry).  A
+// different file takes the next free name (README.md#2).  The asking is
+// done under one more lock, chezweb-claims, so that two tabs opening the
+// same file at the same moment cannot both find it free.  A tab that does
+// not answer within two seconds counts as holding the file: refusing is
+// safe, opening might not be.  The native file of C-c d is named by its
+// path on disk, which the page knows (GET target).
+var ChezwebClaims=(function(){
+ 'use strict';
+ var held=new Map(),byPath=new Map(),waiting=new Map(),tab=Math.random().toString(36).slice(2)+Date.now().toString(36),serial=0;
+ var channel=typeof BroadcastChannel==='function'?new BroadcastChannel('chezweb-claims'):null;
+ function base(file){return file.native?'chezweb-native\n'+file.native:'chezweb-file\n'+file.path.slice(file.path.lastIndexOf('/')+1);}
+ async function same(a,b){
+  if(a.native||b.native)return a.native===b.native;
+  if(a.handle&&b.handle&&a.handle.isSameEntry){try{return await a.handle.isSameEntry(b.handle);}catch(_){}}
+  return a.path===b.path;
+ }
+ function shown(path){return path.startsWith('/home/web_user/')?'~'+path.slice(14):path;}
+ if(channel)channel.onmessage=async e=>{
+  var m=e.data;if(!m||m.to&&m.to!==tab)return;
+  if(m.type==='reply'){var w=waiting.get(m.id);if(w){waiting.delete(m.id);w(m.same);}return;}
+  if(m.type!=='ask')return;
+  var mine=held.get(m.name);if(!mine)return;
+  var answer=await same(mine,{path:m.path,native:m.native,handle:m.handle});
+  channel.postMessage({type:'reply',to:m.from,id:m.id,same:answer});
+  if(answer&&Module.browsered)Module.browsered.notice('Another tab asked to open '+(mine.native||shown(mine.path))+'. It stays open here; close this tab to open it there.',false,true);
+ };
+ function ask(name,file){
+  if(!channel)return Promise.resolve(null);
+  var id=tab+':'+(++serial);
+  return new Promise(resolve=>{
+   waiting.set(id,resolve);
+   var m={type:'ask',from:tab,id,name,path:file.path,native:file.native||null,handle:file.handle||null};
+   try{channel.postMessage(m);}catch(_){m.handle=null;channel.postMessage(m);}   // a handle that cannot be sent
+   setTimeout(()=>{if(waiting.has(id)){waiting.delete(id);resolve(null);}},2000);
+  });
+ }
+ function acquire(name){
+  return new Promise(resolve=>{
+   navigator.locks.request(name,{ifAvailable:true},lock=>{if(!lock){resolve(null);return;}return new Promise(release=>resolve(release));});
+  });
+ }
+ // Claim FILE ({path, handle, native}) for this tab: null when it is ours,
+ // else the reason another tab has it.
+ async function claim(file){
+  if(!navigator.locks)return null;          // no Web Locks: the save check (ChezwebFiles.write) remains
+  if(byPath.has(file.path))return null;
+  var stem=base(file);
+  return await navigator.locks.request('chezweb-claims',async()=>{
+   var state=await navigator.locks.query(),names=new Set();
+   for(var l of state.held)if(l.name===stem||l.name.startsWith(stem+'#'))names.add(l.name);
+   for(var name of names){
+    var mine=held.get(name);
+    if(mine){if(await same(mine,file)){byPath.set(file.path,name);return null;}continue;}
+    var answer=await ask(name,file);
+    if(answer===true)return (file.native||shown(file.path))+' is open in another Chezweb tab. Close that tab to open it here.';
+    if(answer!==false)return (file.native||shown(file.path))+' may be open in another Chezweb tab that does not answer. Close that tab to open it here.';
+   }
+   for(var i=1;;i++){
+    var name=i===1?stem:stem+'#'+i;if(names.has(name))continue;
+    var release=await acquire(name);
+    if(release){held.set(name,{path:file.path,native:file.native||null,handle:file.handle||null,release});byPath.set(file.path,name);return null;}
+   }
+  });
+ }
+ return {claim,claimed:path=>byPath.has(path)};
+})();
+
 // Chrome folder grants, adapted from Browsered's lazy filesystem adapter.
 // Only a directory's immediate children are listed; listing/opening never
 // creates or writes a file on the computer. The C prompt remains unchanged.
 var ChezwebFiles=(function(){
  'use strict';
  var home='/home/web_user',folders=new Map(),directories=new Map(),listed=new Set(),busy=false;
+ // The date and size of each file as this tab last read or wrote it: a
+ // save checks them first (write, below).
+ var seen=new Map();
+ function remember(path,file){seen.set(path,{time:file.lastModified,size:file.size});}
  function normalize(path){
   if(path==='~')path=home;else if(path.startsWith('~/'))path=home+path.slice(1);
   if(!path.startsWith('/'))path=FS.cwd()+'/'+path;
@@ -22,7 +105,7 @@ var ChezwebFiles=(function(){
     else {
      // Keep File metadata, not its contents. Large files cost no read here.
      var file=await entry.getFile();handles().set(child,entry);
-     if(!FS.analyzePath(child).exists){Module.chezwebLoading=true;try{FS.writeFile(child,new Uint8Array(0));}finally{Module.chezwebLoading=false;}var node=FS.lookupPath(child).node;node.chezwebFile=file;node.usedBytes=file.size;node.timestamp=file.lastModified;}
+     if(!FS.analyzePath(child).exists){Module.chezwebLoading=true;try{FS.writeFile(child,new Uint8Array(0));}finally{Module.chezwebLoading=false;}var node=FS.lookupPath(child).node;node.chezwebFile=file;node.usedBytes=file.size;node.timestamp=file.lastModified;remember(child,file);}
     }
    }
    listed.add(path);
@@ -113,9 +196,18 @@ var ChezwebFiles=(function(){
   }
   // A trailing slash in a Tab prompt means complete inside this directory.
   if(partial&&typed.endsWith('/')&&directories.has(path))await list(directories.get(path),path);
+  // A file (an existing one, or a new one in a granted folder) is this
+  // tab's only, or the prompt is refused (ChezwebClaims, above).
+  // (A file of the browser's own temporary storage belongs to this tab
+  // anyway, and is not claimed.)
+  if(!partial&&!directories.has(path)&&(handles().has(path)||(folder&&!FS.analyzePath(path).exists))){
+   var refused=await ChezwebClaims.claim({path,handle:handles().get(path)||null});
+   if(refused){Module.browsered.notice(refused,true);return false;}
+  }
   if(!partial&&handles().has(path)){
    var file=await handles().get(path).getFile(),bytes=new Uint8Array(await file.arrayBuffer());
    Module.chezwebLoading=true;try{FS.writeFile(path,bytes);delete FS.lookupPath(path).node.chezwebFile;}finally{Module.chezwebLoading=false;}
+   remember(path,file);
   }
   return true;
  }
@@ -134,6 +226,10 @@ var ChezwebFiles=(function(){
     var mode=typeof flags==='string'?FS.modeStringToFlags(flags):flags,node;
     try{node=FS.lookupPath(path).node;}catch(_){}
     if(node&&node.chezwebFile){if(mode&512){node.contents=new Uint8Array(0);node.usedBytes=0;delete node.chezwebFile;}else load(node);}
+    // Opened without a prompt (a buffer list, a script): claimed now, in the
+    // background; a save waits for the claim (page.js).
+    if(node&&handles().has(path)&&!ChezwebClaims.claimed(path))
+     ChezwebClaims.claim({path,handle:handles().get(path)}).then(r=>{if(r)Module.browsered.notice(r,true);});
    }
    return open.apply(this,arguments);
   };
@@ -146,10 +242,20 @@ var ChezwebFiles=(function(){
    handle=await dir.getFileHandle(parts[parts.length-1],{create:true});handles().set(path,handle);
   }
   if(!handle)throw Error('No local folder was granted for this file.');
+  // As the native C-x C-s does, never write over a change made since this
+  // tab read the file: another tab, another program.  Nothing is written,
+  // and the buffer stays modified (page.js), so no text is lost.
+  var before=seen.get(path),now=null;
+  try{now=await handle.getFile();}catch(_){}
+  if(before&&now&&(now.lastModified!==before.time||now.size!==before.size))
+   throw Error(shown(path)+' changed on disk since this tab read it, and was not saved. C-x C-w saves your text under another name.');
+  if(!before&&now&&now.size>0)
+   throw Error(shown(path)+' was created on disk by another program meanwhile, and was not saved. C-x C-w saves your text under another name.');
   var writable=await handle.createWritable();await writable.write(bytes);await writable.close();
+  try{remember(path,await handle.getFile());}catch(_){seen.delete(path);}
  }
  return {
-  install,write,normalize,pickDirectory,prepareListing,readDirectory:directory,
+  install,write,normalize,remember,pickDirectory,prepareListing,readDirectory:directory,
   target:path=>handles().has(path)||!!folderOf(normalize(path)),
   describe(path){
    path=normalize(path);var folder=folderOf(path),handle=handles().get(path);

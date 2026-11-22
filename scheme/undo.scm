@@ -143,16 +143,43 @@ POS), 100 #\\d (deleted), 114 #\\r (replaced wholesale: forget) or 115
             (done (undo-history-done h))
             (group (and (pair? done) (car done))))
        (unless (= (undo-history-blocked-command h) *command-serial*)
-         (vector-set! h 1 '())            ; a new change: no redo
+         (when (pair? (undo-history-undone h))   ; a new change: no redo
+           (vector-set! h 1 '())
+           (vector-set! h 2 (history-actual-bytes h))
+           (set! *counted-history* #f))
          (unless (and group (= (undo-group-id group) *command-serial*))
            (set! group (make-undo-group *command-serial*
                                         (if (= id *command-buffer-id*) *command-point* (max pos 0))))
            (vector-set! h 0 (cons group (undo-history-done h))))
+         (count-history h group)
          (unless (merge-change group change)
-           (vector-set! group 2 (cons change (undo-group-changes group))))
-         (vector-set! h 2 (history-actual-bytes h))
-         (trim-history h)))))
+           (vector-set! group 2 (cons change (undo-group-changes group)))
+           (set! *counted-changes* (+ *counted-changes* 1)))
+         ;; the bytes and changes kept, counted as they come: summed over
+         ;; the whole history for every change, they made M-% of 100,000
+         ;; occurrences quadratic, 83 seconds (tests/complexity.sh)
+         (vector-set! h 2 (+ (undo-history-bytes h) (length text)))
+         (when (or (> (undo-history-bytes h) (max 0 *undo-limit*))
+                   (> *counted-groups* (max 0 *undo-group-limit*))
+                   (> *counted-changes* (max 0 *undo-change-limit*)))
+           (trim-history h)
+           (set! *counted-history* #f))))))
   #f)
+
+;;; The groups and changes of the history of the change being recorded,
+;;; counted once a command (when its group is new) and then kept as the
+;;; changes come; the bytes are kept in the history itself (its slot 2,
+;;; exact: what trim-history and the stack of redo change, they set again)
+(define *counted-history* #f)
+(define *counted-group* #f)
+(define *counted-groups* 0)
+(define *counted-changes* 0)
+(define (count-history h group)
+  (unless (and (eq? h *counted-history*) (eq? group *counted-group*))
+    (set! *counted-history* h)
+    (set! *counted-group* group)
+    (set! *counted-groups* (+ (length (undo-history-done h)) (length (undo-history-undone h))))
+    (set! *counted-changes* (history-change-count h))))
 
 ;;; Applying changes, without recording them
 
@@ -175,6 +202,7 @@ POS), 100 #\\d (deleted), 114 #\\r (replaced wholesale: forget) or 115
 (define (current-history) (get *undo-histories* (fe-buffer-id) #f))
 
 (define (call-undoing thunk)
+  (set! *counted-history* #f)            ; undo and redo move groups
   (dynamic-wind (lambda () (set! *undoing* #t)) thunk (lambda () (set! *undoing* #f))))
 
 (defcommand (undo)

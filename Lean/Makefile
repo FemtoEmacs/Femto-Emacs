@@ -58,7 +58,7 @@ audit: utf8-audit
 visit-audit:
 	mkdir -p .build
 	cat undo-visit.lean > .build/visit-audit.lean
-	printf '\n#print axioms UndoVisit.visit_forgets\n#print axioms UndoVisit.visit_display\n#print axioms UndoVisit.peak_before\n#print axioms UndoVisit.held_after\n#print axioms UndoVisit.trim_oversized\n' >> .build/visit-audit.lean
+	printf '\n#print axioms UndoVisit.visit_forgets\n#print axioms UndoVisit.visit_display\n#print axioms UndoVisit.peak_before\n#print axioms UndoVisit.held_after\n#print axioms UndoVisit.trim_oversized\n#print axioms UndoVisit.oversized_without_bytes\n' >> .build/visit-audit.lean
 	$(LEAN) .build/visit-audit.lean
 audit: visit-audit
 

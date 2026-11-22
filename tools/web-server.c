@@ -130,6 +130,14 @@ int main(int argc,char **argv){
   else if(!*name||!strcmp(name,"Chezweb.html")){snprintf(path,sizeof path,"%s/Chezweb.html",root);file(c,path,"text/html; charset=utf-8");}
   else if(!strcmp(name,"build/chezweb.js")||!strcmp(name,"build/chezweb.wasm")){snprintf(path,sizeof path,"%s/%s",root,name);file(c,path,strstr(name,".wasm")?"application/wasm":"text/javascript");}
   else reply(c,404,"text/plain","Not found",9);
+ }else if(!strcmp(method,"POST")&&(!strcmp(name,"alive")||!strcmp(name,"bye"))&&o&&equalheader(header(h,"Content-Type"),"application/x-chezweb-alive")){
+  /* The tab open on this session says it is there, every 2 seconds, and
+     goodbye when it closes: DIR/alive is dated by the last word, and gone
+     after a goodbye.  C-c d reads it (src/browser-launch.c). */
+  snprintf(path,sizeof path,"%s/alive",dir);int ok=1;
+  if(!strcmp(name,"bye")){if(unlink(path)&&errno!=ENOENT)ok=0;}
+  else{FILE *f=fopen(path,"wb");ok=f!=NULL;if(f&&fclose(f))ok=0;}
+  reply(c,ok?200:500,"text/plain",ok?"Noted":"Failed",ok?5:6);
  }else if(!strcmp(method,"POST")&&!strcmp(name,"refresh")&&o&&equalheader(header(h,"Content-Type"),"application/x-chezweb-refresh")){
   snprintf(path,sizeof path,"%s/refresh",dir);FILE *f=fopen(path,"wb");int ok=f!=NULL;if(f&&fclose(f))ok=0;reply(c,ok?200:500,"text/plain",ok?"Refresh requested":"Refresh failed",ok?17:14);
  }else if(!strcmp(method,"PUT")&&(!strcmp(name,"session")||!strcmp(name,"save")||!strcmp(name,"backup"))&&equalheader(header(h,"Content-Type"),"application/x-chezweb-text")&&o){

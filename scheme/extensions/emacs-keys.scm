@@ -659,6 +659,13 @@ is a comment."
            (loop (cdr ws) (cons (string-append (car acc) " " (car ws)) (cdr acc))))
           (else (loop (cdr ws) (cons (car ws) acc))))))
 
+;; WORDS reversed onto ACC: the words of a paragraph are gathered line by
+;; line so, newest first; appended to the list of all the words before, each
+;; line copied that list, and M-q on 5,000 lines of 50,000 words took minutes
+;; (tests/complexity.sh)
+(define (prepend-reversed words acc)
+  (if (null? words) acc (prepend-reversed (cdr words) (cons (car words) acc))))
+
 (define (fill-text lines comment width)
   "Refill LINES of one paragraph; the first line gives the prefix.  A list
 item keeps its marker, and the lines after it go under its text."
@@ -666,11 +673,11 @@ item keeps its marker, and the lines after it go under its text."
          (prefix (or item (fill-prefix-of (car lines) comment)))
          (rest-prefix (if item (make-spaces (string-length item)) prefix))
          (words (let loop ((ls lines) (first #t) (acc '()))
-                  (if (null? ls) acc
+                  (if (null? ls) (reverse acc)
                       (let* ((line (car ls))
                              (p (if (and first item) item (fill-prefix-of line comment))))
                         (loop (cdr ls) #f
-                              (append acc (split-words (byte-substring line (min (length p) (length line)))))))))))
+                              (prepend-reversed (split-words (byte-substring line (min (length p) (length line)))) acc)))))))
     (join-lines (fill-words (glue-break-words words) prefix width rest-prefix))))
 
 (defcommand (fill-paragraph)

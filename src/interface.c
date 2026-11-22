@@ -426,8 +426,7 @@ void fe_delete_region(long start, long end)
 	record_change(curbp, 'd', start, curbp->b_egap, len);
 	curbp->b_egap += len;
 	curbp->b_point = start;
-	if (curbp->b_mark > start)
-		curbp->b_mark = curbp->b_mark >= end ? curbp->b_mark - len : start;
+	/* the mark has followed the deletion (record_change, undo.c) */
 	add_mode(curbp, B_MODIFIED);
 }
 
@@ -447,13 +446,19 @@ void fe_insert_bytes(long p, char *bytes, long len)
 	curbp->b_gap += len;
 	record_change(curbp, 'i', p, (char_t *) bytes, len);
 	curbp->b_point = p + len;
-	if (curbp->b_mark >= p && curbp->b_mark != NOMARK)
+	/* a mark after P has followed the insertion (record_change, undo.c);
+	   the scripts' insertions also push on a mark at P, as they always did */
+	if (curbp->b_mark == p)
 		curbp->b_mark += len;
 	add_mode(curbp, B_MODIFIED);
 }
 void fe_discard_undo_history(void) { discard_undo_history(); }
 
 /* clipboard */
+/* (fe-scrap-length): the bytes of the last kill, without copying them:
+   core.scm asks before it takes a kill into the kill ring */
+long fe_scrap_length(void) { return scrap != NULL ? (long) nscrap : 0; }
+
 char *fe_get_clipboard(void)
 {
 	static char empty[] = "";
@@ -480,6 +485,7 @@ void fe_set_clipboard(char *str)
 {
 	fe_set_scrap(str);
 	screen_set_clipboard(str);
+	clipboard_copied_scrap();
 }
 
 /* how the system clipboard is reached (screen.h) */
@@ -488,19 +494,112 @@ char *fe_clipboard_tool(void)
 	return (char *) screen_clipboard_tool();
 }
 
-/* put STR on the system clipboard only: what C-y inserts is unchanged */
+/* put STR on the system clipboard only: what C-y inserts is unchanged
+ * (copy-on-select: the next C-y takes it in, as another program's copy) */
 void fe_set_system_clipboard(char *str)
 {
 	screen_set_clipboard(str);
 }
 
-/* what other programs put on the system clipboard, or NULL; Lisp copies
- * the string at once, and it is freed at the next call */
+/*
+ * What other programs put on the system clipboard, or NULL.  NULL too when
+ * the clipboard holds exactly the text C-y inserts: then it is this
+ * editor's own last C-w or M-w, nothing new to adopt (and a cut of 21 MB is
+ * not read back into C and into the compiled program at the next C-y).
+ *
+ * The clipboard may not give back what it was given: a C string stops at
+ * a NUL byte, and pbcopy may change bytes that are not UTF-8.  Then the
+ * first read after this editor's own copy (clipboard_copied_scrap) is
+ * taken for that copy as the clipboard keeps it, and remembered (its
+ * length and a hash), so that C-y inserts the cut and not its damaged
+ * image (tests/paste-stress.sh).  The text another program copies after
+ * it differs, and is adopted.
+ *
+ * fe_system_clipboard_length reads it and keeps it for what follows in the
+ * same command: fe_get_system_clipboard, which hands it to Lisp, or
+ * fe_system_clipboard_to_scrap, which makes it what C-y inserts without
+ * passing it through Lisp (for a text too long for the kill ring, or with
+ * NUL bytes, which a Lisp string from C cannot carry).
+ */
+static char *clipboard_read = NULL;    /* read by fe_system_clipboard_length */
+static size_t clipboard_len = 0;       /* its bytes, NUL bytes included */
+static int own_copy_pending = 0;       /* the scrap was put on the clipboard */
+static int own_image_known = 0;        /* and the clipboard keeps it as: */
+static size_t own_image_len = 0;
+static unsigned long long own_image_hash = 0;
+
+static unsigned long long clip_hash(const char *s, size_t n)
+{
+	unsigned long long h = 1469598103934665603ULL;        /* FNV-1a */
+	size_t i;
+	for (i = 0; i < n; i++) { h ^= (unsigned char) s[i]; h *= 1099511628211ULL; }
+	return h;
+}
+
+void clipboard_copied_scrap(void)
+{
+	own_copy_pending = 1;
+	own_image_known = 0;
+}
+
+static char *read_system_clipboard(size_t *len)
+{
+	const char *s = (const char *) get_scrap();
+	int same = 0;
+	char *text = screen_get_clipboard_unless(s, s != NULL ? (size_t) nscrap : 0, len, &same);
+	if (same) { own_copy_pending = 0; return NULL; }        /* our copy, whole */
+	if (text == NULL) return NULL;
+	if (own_copy_pending) {                 /* our copy, as the clipboard keeps it */
+		own_copy_pending = 0;
+		own_image_known = 1;
+		own_image_len = *len;
+		own_image_hash = clip_hash(text, *len);
+		free(text);
+		*len = 0;
+		return NULL;
+	}
+	if (own_image_known && *len == own_image_len && clip_hash(text, *len) == own_image_hash) {
+		free(text);
+		*len = 0;
+		return NULL;
+	}
+	own_image_known = 0;                    /* another program's copy */
+	return text;
+}
+
+long fe_system_clipboard_length(void)
+{
+	free(clipboard_read);
+	clipboard_read = read_system_clipboard(&clipboard_len);
+	return clipboard_read != NULL ? (long) clipboard_len : 0;
+}
+
+/* (fe-system-clipboard-nul): 1 when the text read has a NUL byte */
+int fe_system_clipboard_nul(void)
+{
+	return clipboard_read != NULL && memchr(clipboard_read, '\0', clipboard_len) != NULL;
+}
+
+int fe_system_clipboard_to_scrap(void)
+{
+	if (clipboard_read == NULL) return 0;
+	set_scrap_len((unsigned char *) clipboard_read, (point_t) clipboard_len);
+	clipboard_read = NULL;
+	return 1;
+}
+
+/* Lisp copies the string at once; it is freed at the next call */
 char *fe_get_system_clipboard(void)
 {
 	static char *last = NULL;
+	size_t len;
 	free(last);
-	last = screen_get_clipboard();
+	if (clipboard_read != NULL) {
+		last = clipboard_read;
+		clipboard_read = NULL;
+	} else {
+		last = read_system_clipboard(&len);
+	}
 	return last;
 }
 

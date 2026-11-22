@@ -809,6 +809,22 @@ char *screen_get_clipboard(void)
 	return copy;
 }
 
+/* NULL also when the clipboard holds exactly the N bytes of SAME (then
+ * *WAS_SAME is 1); *LEN its bytes (a C string here: no NUL in it) */
+char *screen_get_clipboard_unless(const char *same, size_t n, size_t *len, int *was_same)
+{
+	char *text = screen_get_clipboard();
+	if (len) *len = text ? strlen(text) : 0;
+	if (was_same) *was_same = 0;
+	if (text && same && strlen(text) == n && memcmp(text, same, n) == 0) {
+		free(text);
+		if (len) *len = 0;
+		if (was_same) *was_same = 1;
+		return NULL;
+	}
+	return text;
+}
+
 /* paste the system clipboard: put it in the editor's scrap and yank */
 static void paste_clipboard(void)
 {
@@ -1209,4 +1225,14 @@ int screen_test_cancelled(void)
  }
  q_head = q_tail = 0;
  return cancel;
+}
+
+/* key.c, during a terminal paste: here a key byte at a time */
+int screen_read_keys(unsigned char *buf, int max)
+{
+	int c = screen_getch();
+	(void) max;
+	if (c < 0) return c;
+	buf[0] = (unsigned char) c;
+	return 1;
 }

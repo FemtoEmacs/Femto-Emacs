@@ -39,6 +39,10 @@
 #include "header.h"
 #include "screen.h"
 
+/* bytes the shells have written, all terminals together (meters.c: the
+   terminal flood of tests/endurance.sh measures its throughput with it) */
+long long term_bytes_read;
+
 #ifdef __EMSCRIPTEN__
 const char *term_open(void) { return "M-x term needs the terminal or SDL window: a browser page cannot start a shell"; }
 int term_poll(void) { return 0; }
@@ -140,14 +144,20 @@ static void put_text(term_t *t, point_t start, point_t end, const char *s, const
 	if (n >= bp->b_egap - bp->b_gap + del && !growgap(bp, n)) return;
 	movegap(bp, start);
 	bp->b_egap += del;                       /* the old bytes go */
-	memcpy(bp->b_gap, s, (size_t) n);         /* the new come */
+	if (n > 0) memcpy(bp->b_gap, s, (size_t) n);   /* the new come */
 	bp->b_gap += n;
 	memmove(t->face + start + n, t->face + end, (size_t) (t->nface - end));
-	memcpy(t->face + start, f, (size_t) n);
+	/* nothing to copy when the text is emptied: memcpy from NULL, even of
+	   0 bytes, is undefined (UndefinedBehaviorSanitizer, tests/endurance.sh,
+	   22 November 2026) */
+	if (n > 0 && f != NULL) memcpy(t->face + start, f, (size_t) n);
 	t->nface += grow;
-	bp->b_changes++;                         /* display.c: redraw */
-	if (bp->b_mark != NOMARK && bp->b_mark > start)
-		bp->b_mark = bp->b_mark >= end ? bp->b_mark + grow : start;
+	/* the display, the mark, the other windows' points and the page start
+	   follow the change, as for any edit (undo.c); the shell's output is
+	   not sent to undo */
+	if (del > 0) record_change_unreported(bp, 'd', start, del);
+	if (n > 0) record_change_unreported(bp, 'i', start, n);
+	if (del == 0 && n == 0) bp->b_changes++;
 }
 
 /* ------------------------------------------------------------------ */
@@ -646,12 +656,12 @@ int term_poll(void)
 		for (int rounds = 0; rounds < 64; rounds++) {
 #ifdef __CYGWIN__
 			int n = windows_terminal_read(t->transport, buf, sizeof buf);
-			if (n > 0) { vterm_input_write(t->vt, buf, (size_t)n); continue; }
+			if (n > 0) { term_bytes_read += n; vterm_input_write(t->vt, buf, (size_t)n); continue; }
 			if (n == 0) break;
 			int status = 0, known = windows_terminal_status(t->transport, &status);
 #else
 			ssize_t n = read(t->fd, buf, sizeof buf);
-			if (n > 0) { vterm_input_write(t->vt, buf, (size_t) n); continue; }
+			if (n > 0) { term_bytes_read += n; vterm_input_write(t->vt, buf, (size_t) n); continue; }
 			if (n < 0 && (errno == EAGAIN || errno == EINTR)) break;
 			/* EOF or EIO: the shell is gone */
 			int status = 0, known = waitpid(t->pid, &status, 0) == t->pid;

@@ -13,6 +13,20 @@ compiler.scm, link.scm, wasm.scm and the helper files are identical, and
 so is compiler.wasm, byte for byte (the seed this host builds is the seed
 Browsered's builds). Update both together, and compare their md5 sums.
 
+Since 22 November 2026 Chezemax's Schemer packs bytevectors: a bytevector
+is still a record (`%bv`), but its bytes are a WebAssembly GC array of i8,
+one byte a byte, read unsigned (`array.get_u`), where they were a vector
+of fixnums, four bytes a byte. The compiler writes five primitives inline
+(`%make-bytes`, `%bytes-ref`, `%bytes-set!`, `%bytes-length`,
+`%bytes-copy!`); the prelude's bytevector procedures use them, and
+`bytevector-u8-set!`, `make-bytevector`, `u8-list->bytevector` and
+`bytevector-fill!` refuse a value that is not a byte instead of storing
+it. The seed was rebuilt in three stages (the old seed compiling the new
+sources, that compiler compiling them again, and once more: the last two
+byte for byte the same). Until Schememax and Browsered take the same
+change, their Schemer differs from this one in these four files and in
+compiler.wasm. tests/compiled-fixtures/bytevectors.scm tests it.
+
 ## Self-hosted compiler
 
 `compiler.wasm` contains the compiler, expander, linker and runtime prelude,

@@ -484,3 +484,74 @@ check: check-org-eval
 check-block-fill: chezemax chezemax.wasm chezemax.cwasm
 	sh tests/block-fill.sh
 check: check-block-fill
+
+# The editor built with AddressSanitizer and UndefinedBehaviorSanitizer, for
+# tests/fuzz-editor.sh (make check-fuzz-editor).  Its objects are kept in
+# build/sanitized/, apart from the editor's own.  Developers only.
+SAN_FLAGS ?= -g -O1 -fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer
+SAN_OBJECTS = $(patsubst %.c,build/sanitized/%.o,$(CORE) src/term.c src/app.c schemer/native-host.c)
+build/sanitized/%.o: %.c src/header.h src/screen.h
+	@mkdir -p $(dir $@)
+	$(CC) $(CPPFLAGS) -std=gnu11 $(CURSES_CFLAGS) $(SAN_FLAGS) -c $< -o $@
+chezemax-sanitized: $(SAN_OBJECTS) $(VTERM_OBJECTS) runtime schemer-compile chezemax.wasm chezemax.cwasm
+	$(CC) $(SAN_FLAGS) $(LDFLAGS) $(SAN_OBJECTS) $(VTERM_OBJECTS) $(RUNTIME) $(CURSES_LIBS) $(PDF_LIBS) $(WASMTIME_LIBS) $(PTY_LIBS) -lm -o $@
+
+# Random walks (21 November 2026).  check-fuzz-core: the C core under the
+# sanitizers, a short run with a fixed seed and the walks that found faults
+# (in make check).  check-fuzz-found: those faults of the whole editor, as
+# fixed tests (in make check).  check-fuzz: five minutes of the C core with
+# a new seed, then walks over the whole sanitized editor (developers; the
+# first run compiles the checkpoints into it: some minutes more).
+.PHONY: check-fuzz-core check-fuzz-found check-fuzz check-fuzz-editor
+check-fuzz-core:
+	sh tests/fuzz-core.sh
+check-fuzz-found: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/fuzz-found.sh
+check: check-fuzz-core check-fuzz-found
+check-fuzz-editor: chezemax chezemax-sanitized
+	sh tests/fuzz-editor.sh -n 10
+check-fuzz: chezemax chezemax-sanitized
+	sh tests/fuzz-core.sh -t 300
+	sh tests/fuzz-editor.sh -n 10
+
+# Long sessions (tests/endurance.sh, 22 November 2026): buffer churn, a
+# terminal flooded and killed, megabytes through undo; the meters of
+# src/meters.c read as curves.  Developers: some minutes, and the first run
+# compiles the scenarios into the editor (some three minutes more).
+# check-endurance-sanitized: the same under the sanitizers, LeakSanitizer
+# included (Linux).
+.PHONY: check-endurance check-endurance-sanitized
+check-endurance: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/endurance.sh
+check-endurance-sanitized: chezemax chezemax-sanitized
+	sh tests/endurance.sh -a -n 1000 -u 30
+
+# A cut and a yank of 21 MB cost one copy of the text: neither undo nor
+# the kill ring copies what it cannot keep into the compiled program
+# (tests/endurance.sh -t big; some seconds)
+.PHONY: check-big-edit
+check-big-edit: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/endurance.sh -t big
+check: check-big-edit
+
+# The classic traps of an editor, each key within 2 seconds: unclosed
+# delimiters in 10 MB, a failing search in 50 MB, M-% of 100,000
+# occurrences, a line of 5 MB, M-q on 50,000 words (tests/complexity.sh;
+# a minute or two, so not part of make check; COMPLEXITY_LIMIT_MS)
+.PHONY: check-complexity
+check-complexity: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/complexity.sh all
+
+# Where a file in shards is cut (a 4-byte character, a split s-expression,
+# a line cut inside), and huge or malformed pastes (NUL bytes, surrogates,
+# bytes that are not UTF-8; 15 and 50 MB).  make check runs the quick part
+# of each; the whole of both takes a minute or two.
+.PHONY: check-shard-boundary check-paste-stress check-boundaries-quick
+check-shard-boundary: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/shard-boundary.sh
+check-paste-stress: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/paste-stress.sh
+check-boundaries-quick: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/shard-boundary.sh quick
+	sh tests/paste-stress.sh quick
+check: check-boundaries-quick

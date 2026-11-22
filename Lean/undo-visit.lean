@@ -206,4 +206,26 @@ theorem trim_oversized (limit g : Nat) (hg : g > limit) :
 example : trim (8 * 1024 * 1024) 4 [9 * 1024 * 1024, 100, 200, 300] = [] :=
   trim_oversized _ _ (by decide) 4 _ (by decide)
 
+/-! ## 5. Any change larger than the limit: its bytes are not sent
+
+C-x i was the only route refused before the copy. A cut, a yank or a paste
+of 21 MB still sent its bytes to undo.scm, where a byte of a bytevector
+takes four, only for `trim_oversized` to drop them: C-w of 21 MB raised the
+editor's memory by 231 MB that stayed (tests/endurance.sh, 22 November
+2026). Since then the C core knows the limit (undo.scm tells it,
+`sync-undo-limit`), and for such a change it sends 'o' without the bytes
+(src/undo.c); undo.scm's `forget-oversized` empties the history. -/
+
+/-- What undo.scm does on 'o', for the sizes alone: nothing is left. -/
+def forgetOversized (_rest : List Nat) : List Nat := []
+
+/-- **'o' leaves the history that recording the change would have left.**
+Whatever came before, the history after `forget-oversized` is the one that
+recording the oversized group and trimming gives: empty. So no undo is lost
+by not sending the bytes. (undo.scm also forbids the rest of that command,
+as recording did: the oldest group dropped was the command's own.) -/
+theorem oversized_without_bytes (limit g : Nat) (hg : g > limit) (n : Nat) (rest : List Nat)
+    (hn : rest.length < n) : forgetOversized rest = trim limit n (g :: rest) := by
+  rw [trim_oversized limit g hg n rest hn]; rfl
+
 end UndoVisit

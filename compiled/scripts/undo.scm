@@ -66,12 +66,34 @@
          (set! *command-serial* (+ *command-serial* 1))
          (set! *self-insert-run* 0))
        (when kind (set! *self-insert-run* (+ *self-insert-run* 1)))
+       (sync-undo-limit)
        (set! *last-boundary-kind* kind)
        ;; without a buffer (scripts run by --eval) there is no point to read
        (let ((live (> (fe-buffer-count) 0)))
          (set! *command-point* (if live (fe-get-point) 0))
          (set! *command-buffer-id* (if live (fe-buffer-id) -1))))
      #f)))
+
+;; The C core sends no bytes of a change larger than *undo-limit* (it
+;; could never be kept), only 'o' (src/undo.c): told here, before every key,
+;; when *undo-limit* changed since it was last told.
+(define *undo-limit-told* #f)
+(define (sync-undo-limit)
+  (unless (eqv? *undo-limit* *undo-limit-told*)
+    (set! *undo-limit-told* *undo-limit*)
+    (fe-undo-limit (max 0 *undo-limit*))))
+
+;;; A change larger than the history keeps (kind 'o', its bytes not sent):
+;;; what trim-history did when the group was recorded and then dropped --
+;;; nothing to undo, no redo, and the rest of this command not recorded
+;;; (a part of a command must not be undone alone); the text never counts
+;;; as saved by undo again.
+(define (forget-oversized h)
+  (vector-set! h 0 '())
+  (vector-set! h 1 '())
+  (vector-set! h 2 0)
+  (vector-set! h 3 -1)
+  (vector-set! h 4 *command-serial*))
 
 (define (history-of id)
   (or (hashtable-ref *undo-histories* id #f)
@@ -136,10 +158,13 @@ typing or deleting; true if joined."
 (define (record-change id kind pos text)
   "The C core's report (src/undo.c): KIND is 105 #\\i (TEXT, a bytevector,
 inserted at POS), 100 #\\d (deleted), 114 #\\r (replaced wholesale:
-forget) or 115 #\\s (saved)."
+forget), 115 #\\s (saved) or 111 #\\o (a change larger than
+*undo-limit*, without its bytes: forget-oversized)."
   (cond
     ((= kind 114) (hashtable-delete! *undo-histories* id))
     ((= kind 115) (let ((h (history-of id))) (vector-set! h 3 (top-id h))))
+    ((= kind 111)
+     (when (and (not *undoing*) *undo-mode*) (forget-oversized (history-of id))))
     ((and (or (= kind 105) (= kind 100))
           (not *undoing*) *undo-mode* (> (bytevector-length text) 0))
      (let* ((h (history-of id))
@@ -147,16 +172,43 @@ forget) or 115 #\\s (saved)."
             (done (undo-history-done h))
             (group (and (pair? done) (car done))))
        (unless (= (undo-history-blocked-command h) *command-serial*)
-         (vector-set! h 1 '())            ; a new change: no redo
+         (when (pair? (undo-history-undone h))   ; a new change: no redo
+           (vector-set! h 1 '())
+           (vector-set! h 2 (history-actual-bytes h))
+           (set! *counted-history* #f))
          (unless (and group (= (undo-group-id group) *command-serial*))
            (set! group (make-undo-group *command-serial*
                                         (if (= id *command-buffer-id*) *command-point* (max pos 0))))
            (vector-set! h 0 (cons group (undo-history-done h))))
+         (count-history h group)
          (unless (merge-change group change)
-           (vector-set! group 2 (cons change (undo-group-changes group))))
-         (vector-set! h 2 (history-actual-bytes h))
-         (trim-history h)))))
+           (vector-set! group 2 (cons change (undo-group-changes group)))
+           (set! *counted-changes* (+ *counted-changes* 1)))
+         ;; the bytes and changes kept, counted as they come: summed over
+         ;; the whole history for every change, they made M-% of 100,000
+         ;; occurrences quadratic, 83 seconds (tests/complexity.sh)
+         (vector-set! h 2 (+ (undo-history-bytes h) (bytevector-length text)))
+         (when (or (> (undo-history-bytes h) (max 0 *undo-limit*))
+                   (> *counted-groups* (max 0 *undo-group-limit*))
+                   (> *counted-changes* (max 0 *undo-change-limit*)))
+           (trim-history h)
+           (set! *counted-history* #f))))))
   #f)
+
+;;; The groups and changes of the history of the change being recorded,
+;;; counted once a command (when its group is new) and then kept as the
+;;; changes come; the bytes are kept in the history itself (its slot 2,
+;;; exact: what trim-history and the stack of redo change, they set again)
+(define *counted-history* #f)
+(define *counted-group* #f)
+(define *counted-groups* 0)
+(define *counted-changes* 0)
+(define (count-history h group)
+  (unless (and (eq? h *counted-history*) (eq? group *counted-group*))
+    (set! *counted-history* h)
+    (set! *counted-group* group)
+    (set! *counted-groups* (+ (length (undo-history-done h)) (length (undo-history-undone h))))
+    (set! *counted-changes* (history-change-count h))))
 
 ;;; Applying changes, without recording them
 
@@ -179,6 +231,7 @@ forget) or 115 #\\s (saved)."
 (define (current-history) (hashtable-ref *undo-histories* (fe-buffer-id) #f))
 
 (define (call-undoing thunk)
+  (set! *counted-history* #f)            ; undo and redo move groups
   (dynamic-wind (lambda () (set! *undoing* #t)) thunk (lambda () (set! *undoing* #f))))
 
 (defcommand (undo)
