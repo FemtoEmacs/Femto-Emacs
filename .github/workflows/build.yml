@@ -50,6 +50,8 @@ jobs:
         run: brew install pkg-config sdl2 sdl2_ttf
       - name: Show detected configuration
         run: make show-config check-platform
+      - name: Check clipboard allocation and platform fixture
+        run: make check-clipboard-capacity
       - name: Build with the common makefile
         run: make -j2
       - name: Verify browser editor is included without a browser SDK

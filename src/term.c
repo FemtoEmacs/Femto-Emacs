@@ -14,7 +14,7 @@
 #include <unistd.h>
 #endif
 #include "screen.h"
-#ifdef __CYGWIN__
+#if defined(__CYGWIN__) || defined(CHEZWEB_TEST_CYGWIN_CLIPBOARD)
 #include "system.h"
 #endif
 extern int term_poll_ms(void);
@@ -260,7 +260,7 @@ static const struct clip_tool clip_tools[] = {
 	{ NULL, NULL, NULL, NULL }
 };
 
-#ifdef __CYGWIN__
+#if defined(__CYGWIN__) || defined(CHEZWEB_TEST_CYGWIN_CLIPBOARD)
 /* Do not fork the editor after Wasmtime has reserved its JIT address
  * space.  Use the same native process launcher as the rest of the port. */
 static int clip_run(const char *command, const char *input, size_t len, sys_run_result *r)
@@ -283,7 +283,7 @@ static const struct clip_tool *clip_tool(void)
 	for (t = clip_tools; t->program; t++) {
 		if (t->needs && !getenv(t->needs)) continue;
 		snprintf(probe, sizeof probe, "command -v %s >/dev/null 2>&1", t->program);
-#ifdef __CYGWIN__
+#if defined(__CYGWIN__) || defined(CHEZWEB_TEST_CYGWIN_CLIPBOARD)
 		sys_run_result r = {0};
 		int ok = clip_run(probe, NULL, 0, &r) && r.status == 0;
 		sys_run_result_free(&r);
@@ -332,7 +332,7 @@ void screen_set_clipboard(const char *text)
 
 	if (!text || !*text) return;
 	t = clip_tool();
-#ifdef __CYGWIN__
+#if defined(__CYGWIN__) || defined(CHEZWEB_TEST_CYGWIN_CLIPBOARD)
 	(void) f;
 	if (t) {
 		sys_run_result r = {0};
@@ -389,7 +389,7 @@ char *screen_get_clipboard_unless(const char *same, size_t n, size_t *len, int *
 
 	if (len) *len = 0;
 	if (was_same) *was_same = 0;
-#ifdef __CYGWIN__
+#if defined(__CYGWIN__) || defined(CHEZWEB_TEST_CYGWIN_CLIPBOARD)
 	(void) f; (void) c;
 	if (!t) return NULL;
 	sys_run_result r = {0};
