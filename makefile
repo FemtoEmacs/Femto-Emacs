@@ -555,3 +555,9 @@ check-boundaries-quick: chezemax chezemax.wasm chezemax.cwasm
 	sh tests/shard-boundary.sh quick
 	sh tests/paste-stress.sh quick
 check: check-boundaries-quick
+
+# Clipboard storage stays bounded even when realloc refuses to shrink.
+.PHONY: check-clipboard-capacity
+check-clipboard-capacity:
+	sh tests/clipboard-capacity.sh
+check: check-clipboard-capacity
