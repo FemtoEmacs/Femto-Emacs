@@ -80,5 +80,7 @@ git archive HEAD | gzip > "$work/Chezweb-source.tar.gz"
 makensis=$(cygpath -u 'C:\Program Files (x86)\NSIS\makensis.exe')
 [ -x "$makensis" ] || makensis=$(command -v makensis)
 cp windows/installer.nsi "$work/"
-(cd "$work" && "$makensis" installer.nsi)
+version=$(sed -n 's/^#define VERSION.*Chezweb \([0-9][0-9]*\.[0-9][0-9]*\).*/\1/p' src/header.h)
+test -n "$version"
+(cd "$work" && "$makensis" "/DCHEZWEB_VERSION=$version" installer.nsi)
 (cd "$work" && sha256sum *Setup.exe > SHA256SUMS)
