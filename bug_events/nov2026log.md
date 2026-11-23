@@ -1377,6 +1377,374 @@ and test the same code, passed. The install step now gives up a try
 after six minutes (apt's own timeouts 30 s, three retries), tries three
 times (finishing an install cut short first), and has 20 minutes in all.
 
+## November 14, 2026. C-x 3: the window jumped, the panes lost the name, a cursor went missing (Claude)
+
+Eduardo added the side-by-side split (C-x 3) and, testing it, lost the
+cursor once without being able to repeat it. A review of the split in a
+pty, at 80 columns, found three faults.
+
+1. C-x 3 moved the window: the cursor's line went to the bottom row of
+   both panes. relayout_windows set each window's page end to its page
+   start; the display took point for past the end of the page and
+   reframed. The page end is now the end of the text, so the display
+   keeps the page, and, when point is no longer on it (narrower panes
+   wrap more), finds that while drawing and shows point (window.c).
+   The backdoor showed it: "page 168 -> 24 ... point 192 at or past the
+   page's end 168 (as last drawn): point on the last row".
+2. A pane's mode line (39 columns) showed no file name: the name was cut
+   before any button. Now the buttons a narrow window can do without go
+   first, then the name is cut at its left, then the kept buttons
+   (menu.scm, both copies), as the README says.
+3. A y/n question asked from M-x term (C-c C-x C-c: "A terminal is still
+   running; quit anyway (y/n) ?") left the screen's cursor hidden, since
+   the display hides it while a shell has the keys and only the line
+   editor showed it again. yesno now shows it (command.c). This may be
+   the cursor Eduardo lost; ~/mysand/paper/vsplit.md is a script to find
+   out with the backdoor open.
+
+The backdoor's key lines now say the pane while side by side: "rows.txt
+(right pane, from column 40)" (backdoor.c).
+
+Evidence: tests/vsplit.sh (make check): fails on 1 and 3 with the old
+window.c and command.c, passes with the new. Checked by hand in the pty:
+typing in each pane and in one buffer shown in both, Korean at the bar,
+Markdown wrapping at the pane's width, a click in the right pane, M-x term
+in a pane, C-x 2 refused, C-x 0 and C-x 1.
+
+Later that evening Eduardo ran
+~/mysand/paper/vsplit.md with the backdoor open. C-x 3 kept the page
+(985) and the cursor on row 3, as fixed. His screenshot showed two
+cursors: the screen's own in the left pane, where he was, and the
+orange cell of M-x term in the right pane. terminal.c colours the
+cursor's cell in the buffer's faces, so every window showing the
+terminal drew it. The display now draws that cell only in the selected
+window (display.c, color_at); returning to the terminal shows it again.
+Checked in the pty: the cell at row 2, column 42 with the terminal
+selected, none after C-c o, back after C-x o.
+
+## November 15, 2026. One rule for saving: C-x C-s in either window (Claude)
+
+Eduardo found the old way, which kept the browser and the native window
+apart when both had edits (a refused save, M-x native-window-update,
+*native-N* and *web-N* buffers), clumsy and confusing. Chezweb 1.05
+(266c9c6) replaced it with one rule: C-x C-s in either window saves the
+file and puts its text in the other window. Asked to check the code
+against that rule, Claude found the two directions right
+(chezweb-save-roundtrip.cjs passes) and five things left over.
+
+1. Three tests still expected the old refusal (409), so make
+   browser-test failed: chezweb-save-native.cjs now states the rule;
+   chezweb-native-update.cjs and chezweb-native-update-page.cjs are gone.
+2. M-x native-window-update and its *native-N* buffers had nothing left
+   to do. Removed: the command (compiled/chezweb.scm), the page's request
+   (web/page.js, web/shell.js), the server's "update" route
+   (tools/web-server.c) and update_native (src/browser-save.h).
+3. A save into a granted folder (C-x C-f, TAB) over native edits still
+   made a *web-N* conflict buffer. Now the native edits go to #name#,
+   as in the two save directions.
+4. A read-only native buffer (C-x C-q) was overwritten by a browser
+   save. Eduardo agreed: the browser save is refused, and the message
+   says how to make the buffer writable.
+5. After C-x k and C-x C-f of the same file, or a Save As, the link was
+   silently broken: the session followed the buffer C-c d had opened.
+   Now it follows the file: the native buffer that visits it, found by
+   its real path (attach_source, chezweb_saved).
+
+The README says the rule. Evidence: chezweb-save-native.cjs (17 checks,
+among them the recovery file, the refused read-only save, the
+reconnection after C-x k and C-x C-f in both directions), and
+chezweb-save-roundtrip.cjs and chezweb-native.cjs, which pass unchanged.
+The browser bundle must be rebuilt (make browser-rebuild): Emscripten
+could not be installed in Claude's cloud.
+
+## November 15, 2026. C-x k showed *backdoor* (Claude)
+
+Testing the save rule (natbrowser-interaction.org) with the backdoor
+open, Eduardo opened the recovery file with C-x C-f and closed it with
+C-x k; the window then showed *backdoor*, not the file he came from.
+C-x k showed the next buffer in the list, which is sorted by name. Now
+it shows the buffer used most recently, as Emacs does: a buffer is used
+when a key starts or ends in it (main.c, buffer_used), so buffers a
+script visits for a moment inside a command do not count. With C-x 3,
+a buffer the other pane shows comes after the rest; when no other
+buffer was used, *scratch*. Kill-buffer from a script (fe-kill-buffer)
+does the same. Evidence: tests/kill-buffer.sh (make check), which shows
+*backdoor* with the old code.
+
+## November 15, 2026. A number first on a line becomes a list (Claude)
+
+Eduardo pasted a reference from the Internet into an Org file
+(~/mysand/paper/minor-nuisance.org); after M-q, or as pasted, "1935."
+began a line, and C-c C-e l l made it an enumerate item: the year was
+gone from the PDF, replaced by "1." Org mode in Emacs 29.3 behaves
+alike, though its M-q never makes such a break (tried at widths 50 to
+75): Org reads a pasted "1935. Book VII" line as a list item, and M-q
+leaves items alone. The complaint is old (Org mailing list, 2011, 2012,
+2021); CommonMark settled it for Markdown: inside a paragraph only 1.
+starts a list. Three rules:
+
+1. M-q never starts a line with a word that would make the line
+   something else (1935. 2) - + * ## > | :): the word goes down with the
+   word before it (fill-break-word-p, glue-break-words, both copies of
+   emacs-keys.scm). Our M-q broke anywhere.
+2. Markdown follows CommonMark: a numbered line other than 1 inside a
+   paragraph is text, for the export (lx-interrupts?) and for M-q, which
+   now joins a pasted "1935." line to its paragraph.
+3. Org keeps Org's syntax, as Emacs does, and M-x latex-export (C-c C-e l
+   l) names the line: "Wrote x.tex; line 8: 1935. starts a list inside a
+   paragraph". A list that starts at 1 after a line of text is not named.
+
+Evidence: tests/stray-number.sh (make check), which fails with the old
+scripts; a check of fill-text in tests/run-tests.scm; minor-nuisance.org,
+copied: the export names its line 8; as Markdown, 1935. stays text.
+
+Later the same day: Eduardo pressed M-q on reference [19] in
+minor-nuisance.org and nothing changed. M-q followed Org's syntax, as in
+Emacs, and left the "1935." line alone as a list item; only Markdown
+joined it. He expected the year back in its line, so M-q now uses the
+same rule in Org: inside a paragraph (back to a blank line or a
+heading, with no item in it), a numbered line other than 1 is text.
+A heading right above the reference had also stopped the Markdown join.
+Checked on a copy of his file, with the cursor where his was: the year
+joins its line, and a second M-q changes nothing.
+
+## November 15-16, 2026. Pedro on Windows: the mouse inside a key, and paths (Claude)
+
+Pedro, who tests Chezweb 1.09 on Windows (the installer of the windows
+branch), could not get through tests/manual: the scripts' step 0 was for
+Linux and the Mac (cp -r, ~, chezweb on the PATH), and inside the editor
+only Cygwin's form of a path works (/c/Users/name, not C:\Users\name);
+other drives and network folders (/d/, //server/share) were out of reach
+for someone who does not know it. His backdoor (front end gui) showed
+that the configuration was not read (he could not put it in
+~/.chezemax), that the native window had no browser session after
+C-c d (no "chezweb:" lines after a native C-x C-s), and a bug that is not
+Windows':
+
+- #64 "C-c esc", then "[<35;46;13M" typed into the text; again at #375
+  after "esc". The window reports a mouse motion as a sequence starting
+  with Esc; when the mouse moved after C-c, C-x or Esc, the prefix took
+  the Esc, the rest of the report went in as text, and the key after the
+  prefix (C-c d) was lost. Reproduced on Linux in a terminal. Now
+  get_key drops a mouse report (SGR or X10) found inside a key, and the
+  key goes on, as in Emacs (key.c). tests/mouse-prefix.sh: C-x, motion,
+  h is C-x h; Esc, motion, f is M-f, in both encodings; C-x <left> still
+  arrives; the text is untouched. It fails with the old key.c.
+- Paths: a filename typed in Windows' form (C:\Users\name\doc.md, D:\,
+  \\server\share\x, notes\a.md) becomes Cygwin's in the file prompts, in
+  TAB completion and on the command line (file_path_posix,
+  fileprompt.c), with cygwin_conv_path on Windows and the same rule by
+  hand as its fallback; elsewhere a backslash stays a character of a
+  filename. tests/windows-paths.c, built both ways. The Windows build
+  gets it when the windows branch takes master.
+- tests/manual: step 0 for Windows in both scripts and languages (the ZIP
+  from GitHub, cmd's mkdir, copy and xcopy, the Start menu, the Unix form
+  of paths, a subfolder for Choose folder, dir for ls in M-x term).
+
+Not done here, for the windows branch: the installer puts no chezweb
+command on the PATH.
+
+## November 17, 2026. RET in an Org #+begin_src block (Claude)
+
+Eduardo: in a .scm file, RET after "(define (fib n)" indents the next
+line for Scheme; inside "#+begin_src Scheme ... #+end_src" in an Org
+file it did not. Org has no indentation rules of its own, so RET there
+was a bare newline, block or no block. Markdown already lends its ```
+blocks to their language (an inner language, md-code-place); Org now
+does the same for #+BEGIN_SRC (org-code-place, any case), and the
+indentation (indent-place, indent.scm) follows the language of the
+block, reading the block's lines alone, from its first line, as if they
+were a file of that language. So RET, TAB and the electric keys inside
+a block indent as in a .scm (or .c, .py) file; M-; comments in the
+block's language. Outside blocks, and in a block that names no language
+or one without rules, Org behaves as before. Evidence:
+tests/org-src-indent.sh (make check): the same keys in fib.scm and in an
+Org block give the same code; TAB re-indents a block line; the prose
+around is untouched. It fails with the old scripts.
+
+## November 17, 2026. Quotations: M-q and the LaTeX environment (Claude)
+
+Eduardo asked how to format an Org code block and a #+begin_quote
+block. Indentation (RET and TAB, now by the block's language) never
+decides where lines break; laying out code would need a pretty printer
+for each language, and Eduardo chose none rather than Scheme and Lisp
+alone ("exceptions are always problematic"). Quotations are prose: M-q
+refused every #+BEGIN_ block; now it fills the paragraph at the cursor
+in a #+BEGIN_QUOTE block, between blank lines, never the #+BEGIN_ and
+#+END_ lines, so a quotation can have several paragraphs (org.scm,
+org-fill-refused?). Verse, example and code blocks are still refused.
+The export wrote quote for every quotation; LaTeX's quotation is the
+environment for several paragraphs (it indents them as the body's), so
+the export writes quote for one paragraph and quotation for more, from
+Org's #+begin_quote and Markdown's > (latex-export.scm, lx-quote-env).
+Evidence: tests/org-quote.sh (make check), which fails with the old
+scripts.
+
+Later the same day: Eduardo's block was #+begin_quotation, LaTeX's name
+for a quotation of several paragraphs, and M-q still refused it ("Headings,
+tables and code are not refilled"): only #+BEGIN_QUOTE was prose. Now
+#+BEGIN_QUOTATION is too, and the export makes it \begin{quotation}, as
+Org makes \begin{NAME} of any #+begin_NAME block. tests/org-quote.sh
+checks it with his own lines.
+
+## November 17, 2026. Another program changes the file being edited (Claude)
+
+Eduardo asked what happens when another application changes the file
+being edited. Nothing was noticed: a buffer with no unsaved edits kept
+showing the old text, and C-x C-s wrote the buffer over the other
+program's change without a word. Of Emacs's two rules (ask when an
+unmodified buffer whose file changed is first edited; ask when saving
+over a file changed since it was read or saved), the first was found
+costly -- a buffer becomes modified on many paths, scripts among them,
+and the question would come in the middle of a command -- and Eduardo
+chose the second only.
+
+Each buffer keeps its file as last read or written (b_disk: the
+modification time in ns and the size, or "absent"; gap.c, insert_file
+and save_buffer). C-x C-s to the buffer's own file compares the disk
+with it and, if they differ, asks "NAME changed on disk since it was
+read or saved; save over it (y/n) ?": y writes as before, n writes
+nothing and says the file keeps the other program's version. A new
+file that another program created meanwhile is asked about too. Not in
+the browser's editor (web/, __EMSCRIPTEN__): its saves go through the
+native window, whose rule does not change ("the last C-x C-s wins").
+The only contact with the browser interaction: when the native window
+writes the file for a browser save (process_save_request) or reloads it
+after a save into a granted folder (refresh_native_file), it refreshes
+the record (buffer_remember_disk), so that its own next C-x C-s does not
+take Chezweb's save for another program's. Without those two lines the
+existing test of a reopened buffer stops at the question.
+
+Evidence: tests/disk-changed.sh (make check): a second process changes
+the file under an open buffer; n keeps it, y saves over it; unchanged
+files and new ones save without a question. chezweb-save-native.cjs:
+after a browser save, and after a granted-folder save, a native C-x C-s
+does not ask; with C-c d open, a change by another program is asked
+about. chezweb-save-roundtrip.cjs and chezweb-native.cjs pass unchanged.
+
+## November 18, 2026. A buffer older than its file said "No changes" (Claude)
+
+Eduardo edited and saved one file in Emacs and in Chezweb by turns and
+found the two showing different texts; the disk had Emacs's. Repeated
+with a disposable file: open it in Chezweb, change and save it in
+Emacs; Chezweb, with nothing to save, kept the old lines and answered
+C-x C-s with "(No changes need to be saved)". Rule 2 compared the disk
+only before a write, and an unmodified buffer writes nothing. Reloading
+unmodified buffers by themselves (Emacs's auto-revert) was judged too
+costly and too close to the browser interaction; Eduardo chose a
+message only. Now C-x C-s on a buffer with nothing to save, whose file
+changed on disk, says "NAME changed on disk; C-x C-v RET reads it
+again" and writes nothing (gap.c, save_buffer). A file whose time
+changed but not its text (touch, git, a backup tool) is compared with
+the buffer and still gives "No changes" (file_is_buffer): the browser
+suite's case of an unchanged native save caught this. No contact with
+the browser logic. Evidence: tests/disk-changed.sh, cases 4 and 5;
+chezweb-save-native.cjs, 21 checks.
+
+The message became Eduardo's: "File changed on disk; C-x C-w overwrites
+it. C-x C-v reads it again." For C-x C-w to keep that promise it skips
+the disk check (save_overwrites, set by writefile in command.c): the
+file it writes is the one named at its prompt. Eduardo found that C-x
+C-w already wrote; that held for a file opened by its short name
+(chezweb stale.txt), because C-x C-w offers the full path, and the check
+compares the two names as strings. Opened by its full path (C-x C-f
+gives one too), the names were the same, and C-x C-w repeated the
+message and wrote nothing. tests/disk-changed.sh checks both openings.
+
+## 18 Nov 2026: the Lean specification of UTF-8 cursor boundaries
+
+Lean/utf8-cursor.lean (checked by lean 4.30.0, standard axioms only)
+proves that C-f, C-b, C-n, C-p, typing, overwrite, C-d and backspace
+keep point on a character boundary in well-formed UTF-8, folds
+included, and that the display never sees half a character. Writing it
+showed two gaps in the C code: key.c and insert() insert a lone
+continuation byte, or a lead byte whose continuation bytes did not
+follow, as they are; after that C-b or C-f can stop inside a character
+(the file's last examples prove two cases). And fe_fold accepts ends
+that are not boundaries (Org's folds, newline to newline, are). The
+Lean reminder was removed from AGENTS.md.
+
+## 18 Nov 2026: stray bytes typed as U+FFFD; folds over whole characters
+
+The two gaps the Lean specification found are fixed. insert()
+(command.c, complete_char) types U+FFFD for a byte that is not a
+complete character: a continuation byte alone, a lead byte whose
+continuation bytes never came, any other byte from 80 up. fe_fold
+(fold.c) refuses a fold that starts inside a character or hides part
+of one. M-x toggle-utf8-fix (emacs-keys.scm, fe-utf8-fix) turns both
+off, to show the old behaviour. tests/stray-bytes.sh types the bytes in
+a PTY with the fix on and off and checks C-b and C-f over U+FFFD; the
+Lean model's key reader and folds were changed to match and the proofs
+checked again. 0x9A alone is the resize key, not text, and stays so.
+Lean/utf8-comb.txt is text for testing by hand. The paper
+grounding-ai.org explains the episode under "Proof with Lean".
+
+## 18 Nov 2026: C-f and C-b over combining accents, as Emacs
+
+Eduardo: in Lean/utf8-comb.txt, C-f took two presses over "é" typed as
+e + U+0301; Emacs takes one. Emacs 29 (emacs -nw -Q, in a PTY) gave
+the positions: C-f from before e goes past the accent; C-b comes back
+in one press; DEL after it deletes the accent alone; C-d on e deletes
+the e alone. right() and left() (command.c) now repeat while the
+character at point is an accent (accent_at, display.c, the test
+past_accents uses); deletion is unchanged. tests/accent-motion.sh.
+
+M-x toggle-utf8-fix now also turns off the accent motion (Eduardo could
+not show the old two presses over e + U+0301); tests/accent-motion.sh
+checks it off: 51 53 51 over n + U+0303.
+
+## 19 Nov 2026: a visited file took six times its size
+
+Measured: 100 MB opened in 4.5 s with 651 MB; 300 MB in 11 s with
+1.77 GB. An LD_PRELOAD tracer of allocations of 20 MB and more showed
+growgap (the gap buffer, needed) and bridge_put_bytes under
+compiled_change: the undo report of the whole file, made by insert_file
+and erased at once by the 'r' of load_file and main. Fixed in
+insert_file (report only with MODFLAG, C-x i). After: 100 MB in 0.35 s
+with 151 MB (50 MB is the empty editor), 1 GB in 2 s with 1 GB.
+Lean/undo-visit.lean, tests/visit-memory.sh. C-x i of a huge file
+still makes the copies, since undo needs that change.
+
+## 19 Nov 2026: the accent motion had changed forward-char
+
+The accent loop of 18 Nov was in right() and left(), which are also the
+scripts' forward-char and backward-char (fe_forward_char): those moved over
+letter and accent at once, unlike Emacs, and the Lean edit experiment,
+which counts code points, failed on accented text (found by Claude when
+asked how sure the fixes were). The loop is now in forward_character and
+backward_character (key.c: C-f, C-b, the arrows); chez-edit-tester.h moves
+to a column with fe_forward_char; Lean/tests/edit.sh has accents.
+
+## 19 Nov 2026: files in shards (VLF)
+
+src/shard.c and shards.scm: files above 1 GB (or M-x find-file-shards)
+open in shards of about 16 MB. Tested on a 1.35 GB file: opens, M-g, C-c
+C-v g, edits and C-x C-s in 9 s with 80 MB of memory. A first test of C-c
+C-v n in an Org file looked failed: its message is overwritten after
+Babel's prefix; the test now checks the saved text. Lean/shards.lean.
+
+The same day: C-c C-v [ and ] (first shard, end of the last), and a
+section "Files in shards" on the help page (C-h), keys and settings.
+
+## 19 Nov 2026: C-x i of a file larger than undo keeps
+
+Refused before any copy (insertfile asks undo.scm, undo-fits?). Testing it
+found that C-x i never marked the buffer modified: insert_file did
+b_flags &= B_MODIFIED (keeps the flag, clears the others). Fixed.
+visit-memory.sh measures only the editor's process and needs status 0.
+
+With *undo-mode* off, C-x i sent the whole file to undo.scm, which ignored
+it (Eduardo found the route): now record_change_unreported; 64 MB took
+480 MB, now 115 MB (tests/visit-memory.sh).
+
+The general case: with *undo-mode* off, no change sends its bytes to
+undo.scm (undo_recording in undo.c, told by the scripts before each event;
+again after C-x C-r, which the femtoscheme test caught).
+
+visit-memory.sh failed on the Mac (195 MB, limit 184): the undo-off case
+loads init.scm, which Schemer compiles in the editor on the first run
+(about 50 MB here, more on the Mac) and caches. Its base is now the same
+editor with the same init.scm, after a warming run.
 
 ## 20 Nov 2026: C-M-f and C-M-b slow on a large .wat
 
@@ -1532,3 +1900,14 @@ carries its length; NUL text from the clipboard goes to the scrap in C);
 the editor's own kill came back cut from the clipboard and was taken for
 another program's (its image is remembered). The 16 MB paste limit stays:
 50 MB refused whole. Report: tests/reports/boundaries.md.
+
+## 23 Nov 2026: the cursor on the mode line in a line of wide characters
+
+Eduardo, playing with big.txt in shards: C-n from the last short line of a
+shard onto the 35 MB line of ção€😀ñ中 drew the cursor on the mode line; C-n
+stuck on a row that starts with 中; the right arrow at the end of the bottom
+row drew the cursor on the mode line. A wide character that would cross the
+window's edge starts the next row: segnext breaks there, segstart answered
+with the row before (display.c). Fixed; tests/shard-boundary.sh 2b. Not
+bugs: line 401002 at the end (the file has 401,001 newlines), and lines
+400001 on in shards 19 to 35 (one line of 35 MB, cut inside).

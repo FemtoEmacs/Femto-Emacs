@@ -294,7 +294,17 @@ point_t segstart(buffer_t *bp, point_t start, point_t finish)
 	}
 	/* upup may ask about the last byte of a multi-byte character.
 	 * Keep that byte on its row; never return it as a cursor position. */
-	return (c < pane_cols() || scan > finish ? start : scan);
+	if (scan > finish) return start;
+	if (c >= pane_cols()) return scan;
+	/* a wide character (CJK, emoji) that would cross the right edge starts
+	 * the next row (segnext breaks there): FINISH, at it, starts that row.
+	 * Taken for the row before, the display reframed one row too high, and
+	 * C-n onto a line whose first row ended so drew the cursor on the mode
+	 * line (a line of 中 after a newline, 23 November 2026) */
+	if (scan < document_size(bp) && *ptr(bp, scan) != '\n' &&
+	    crosses_edge(bp, scan, c, cell_width(bp, scan, c)))
+		return scan;
+	return start;
 }
 
 /* Forward scan for start of logical line segment following 'finish' */
@@ -659,7 +669,7 @@ again:
 	/* paint screen from top of page until we hit maxline */
 	while (1) {
 		/* reached point - store the cursor position */
-		if (bp->b_point == bp->b_epage && i < wp->w_top + wp->w_rows) {
+		if (bp->b_point == bp->b_epage) {
 			found = 1;
 			bp->b_row = i;
 			bp->b_col = wrap_end != NOMARK && j >= pane_cols() ? pane_cols() - 1 : j;

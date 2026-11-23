@@ -26,7 +26,7 @@
 #define FALSE 0
 #endif
 
-#define VERSION	 "Chezweb 1.16, compiled Scheme (femtoscheme compatibility core), Public Domain"
+#define VERSION	 "Chezweb 1.17, compiled Scheme (femtoscheme compatibility core), Public Domain"
 #define EXIT_OK         0               /* Success */
 #define EXIT_ERROR      1               /* Unknown error. */
 #define EXIT_USAGE      2               /* Usage */
@@ -218,7 +218,6 @@ extern char lisp_query[];
 extern char *prog_name;         /* Name used to invoke editor. */
 extern keymap_t *key_map;       /* Command key mappings. */
 extern keymap_t keymap[];
-extern keymap_t idle_key;
 extern keymap_t *key_return;    /* Command key return */
 extern command_t commands[];
 
@@ -333,7 +332,6 @@ extern void editor_mouse_event(void);
 extern int mouse_button, mouse_col, mouse_row, mouse_release;
 extern int mark_active;
 extern int read_key_byte(void);
-extern int read_nonmouse_key_byte(void);
 extern void kmacro_start(void);
 extern void kmacro_end(void);
 extern void kmacro_call(void);
@@ -473,9 +471,6 @@ extern void associate_b2w(buffer_t *, window_t *);
 extern void disassociate_b(window_t *);
 extern void hijack_window(window_t *, buffer_t *);
 extern void restore_hijacked_window(window_t *);
-#ifdef __CYGWIN__
-extern int windows_path_to_posix(char *, size_t);
-#endif
 extern int getfilename(char *, char *, int);
 extern int getfilename_default(char *, char *, int);
 extern int getcommand(char *, int);
@@ -494,7 +489,6 @@ extern void match_paren_backwards(buffer_t *, char, char);
 extern void call_lisp(char *, char *, int);
 extern int call_lisp_event(char *, char *);
 extern int menu_hit(int row, int col);
-extern void clear_button_hover(void);
 extern void fe_set_completions(char *names);
 extern void menu_press(int row, int index);
 extern int call_lisp_highlight(buffer_t *, point_t, char_t *, int, char_t *);
