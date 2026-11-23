@@ -98,6 +98,43 @@ On Linux, whose shell is usually bash, write `~/.bashrc` instead of
 `~/.zshrc`. Open a new terminal window, and `chezweb paper.md` opens
 your paper wherever you are.
 
+## Repeat the four stress-test tasks
+
+Users can repeat the experiments that found the bugs fixed in 1.16.
+The [step-by-step instructions in tests/reports](tests/reports/RUNNING.md)
+cover building, running all four tasks, repeating chosen seeds and keeping
+results. The [reports index](tests/reports/README.md) links the findings
+and measurements. Passing the tasks on the repaired editor is the expected
+result and provides confidence under demanding editing conditions.
+
+1. **Random-walk fuzzing** mixes UTF-8 text, malformed bytes and editing
+   commands, checking cursor/buffer invariants and undo/redo identity.
+   **AddressSanitizer** adds C runtime checks for memory errors such as
+   out-of-bounds access and use-after-free. **UndefinedBehaviorSanitizer**
+   checks selected invalid C operations, including signed integer overflow
+   and invalid shifts. [Task 1 instructions](tests/reports/RUNNING.md#task-1-random-walk-fuzzing).
+2. **Long-session memory tests** churn buffers, evict undo history and
+   flood terminal buffers. They measure RSS (resident memory), heap use
+   and resource cleanup. Linux **LeakSanitizer** checks for allocations
+   that became unreachable without being freed. This suite uses sanitizers
+   and memory meters, not Valgrind. [Task 2 instructions](tests/reports/RUNNING.md#task-2-long-session-memory-and-leak-detection).
+3. **Algorithmic-complexity tests** exercise large searches, replacements,
+   long lines, unclosed delimiters and paragraph filling, with timing and
+   correctness assertions. [Task 3 instructions](tests/reports/RUNNING.md#task-3-adversarial-algorithmic-complexity).
+4. **Shard and clipboard stress tests** edit at shard boundaries and send
+   huge or malformed pastes, checking saved bytes, UTF-8 boundaries and
+   whole-paste rejection when a limit is exceeded.
+   [Task 4 instructions](tests/reports/RUNNING.md#task-4-shard-boundaries-and-malformed-or-huge-pastes).
+
+Use a source checkout; the installed application alone is insufficient.
+Linux is the reference platform for all four tasks with leak detection.
+The guide explains macOS/Windows coverage and sanitizer requirements.
+`make check` includes shorter regressions; it does not replace running
+all four full experiments. Official descriptions:
+[AddressSanitizer](https://clang.llvm.org/docs/AddressSanitizer.html),
+[UndefinedBehaviorSanitizer](https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html),
+[LeakSanitizer](https://clang.llvm.org/docs/LeakSanitizer.html).
+
 ## Keybindings
 Chezweb tries really hard to use the same basic keybindings as Emacs.
 Therefore, if you already use Emacs, you should be able to create
