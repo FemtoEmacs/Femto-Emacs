@@ -23,7 +23,12 @@
 #      then one line of 35 MB of characters of 2 to 4 bytes, cut inside;
 #      marks at both ends of each shard, saved: as in 1
 #
-#   sh tests/shard-boundary.sh [quick]    quick: 1 and 2 only (make check)
+#   2b C-n from the last short line of a shard onto a long line of wide
+#      characters, and down its rows: the cursor stays on a row of the
+#      text, and goes down a row each time; C-e then the right arrow at
+#      the bottom row, onto a row that starts with a wide character
+#
+#   sh tests/shard-boundary.sh [quick]    quick: 1, 2 and 2b (make check)
 #
 # The marks are "|", which the files do not hold.  Disposable files, PTY.
 # Each key within SHARD_LIMIT_MS (2000), as the backdoor's time measures.
@@ -276,6 +281,29 @@ if session edit-small 120; then
 	check edit-small "C-M-f did not say there is no expression whole" grep -aq 'No expression after the cursor' "$work/edit-small.screen"
 	check edit-small "C-M-b at the start of a shard moved (to $after_b)" [ "${after_b:-x}" = 0 ]
 	check edit-small "C-M-b did not say there is no expression" grep -aq 'No expression before the cursor' "$work/edit-small.screen"
+fi
+
+# --------------------------------------------------------------- 2b
+# C-n from the last short line of a shard onto a long line of wide
+# characters (a line of 64 KB or more wraps at the window's edge, and a CJK
+# character that would cross it starts the next row): the cursor must be on
+# a row of the text, not on the mode line (found by Eduardo on big.txt,
+# 23 November 2026: segstart took such a row for the row before it)
+awk 'BEGIN { for (i = 0; i < 4000; i++) printf "ç line %06d of the first shard, ends 😀\n", i
+             s = "ção€😀ñ中"; for (i = 0; i < 12; i++) s = s s; for (i = 0; i < 15; i++) printf "%s", s; printf "\n"
+             for (i = 0; i < 50; i++) printf "ç tail %04d 😀\n", i }' > "$work/wide.txt"
+printf 'keys \\e:(fe-shard-size 200000)\\r\nwait 300\nkeys \\exfind-file-shards\\r\nwait 300\nkeys ^A^Kwide.txt\\r\nwait 1000\n' > "$work/wide-row.open"
+printf 'keys \\eg4000\\r\nwait 500\nkeys \\e[B\nwait 500\nkeys ^N\nwait 300\nkeys ^N\nwait 300\nkeys ^N\nwait 300\nkeys ^P^P\nwait 300\nkeys \\eg4001\\r\nwait 400\nkeys ^E\nwait 200\nkeys \\e[C\nwait 300\nkeys ^E\nwait 200\nkeys \\e[C\nwait 300\nkeys ^E\nwait 200\nkeys \\e[C\nwait 300\nkeys ^E\nwait 200\nkeys \\e[C\nwait 300\nkeys ^E\nwait 200\nkeys \\e[C\nwait 300\nkeys ^E\nwait 200\nkeys \\e[C\nwait 300\n' > "$work/wide-row.keys"
+if session wide-row 120; then
+	key_times wide-row "C-n and C-p between the last short line of a shard and a long line of wide characters"
+	rows=$(grep -a '^#' "$work/wide-row.log" | sed 's/.* cur=\([0-9]*\),.*/\1/' | tr '\n' ' ')
+	check wide-row "the cursor went below the window's 22 rows of text (rows: $rows)" \
+		sh -c "! grep -a '^#' '$work/wide-row.log' | grep -q ' cur=2[2-9],'"
+	# each C-n inside the long line goes one row down, also from a row that
+	# starts with the 中 the row above could not hold (it stayed there)
+	pts=$(grep -a '^#[0-9]* C-n ' "$work/wide-row.log" | sed 's/.* pt=\([0-9]*\) .*/\1/' | tr '\n' ' ')
+	check wide-row "C-n did not go down a row each time (points: $pts)" \
+		sh -c "echo '$pts' | awk '{ for (i = 2; i <= NF; i++) if (\$i <= \$(i-1)) exit 1; exit NF < 3 }'"
 fi
 
 # --------------------------------------------------------------- 3

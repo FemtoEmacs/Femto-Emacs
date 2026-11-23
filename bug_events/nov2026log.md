@@ -1900,3 +1900,14 @@ carries its length; NUL text from the clipboard goes to the scrap in C);
 the editor's own kill came back cut from the clipboard and was taken for
 another program's (its image is remembered). The 16 MB paste limit stays:
 50 MB refused whole. Report: tests/reports/boundaries.md.
+
+## 23 Nov 2026: the cursor on the mode line in a line of wide characters
+
+Eduardo, playing with big.txt in shards: C-n from the last short line of a
+shard onto the 35 MB line of ção€😀ñ中 drew the cursor on the mode line; C-n
+stuck on a row that starts with 中; the right arrow at the end of the bottom
+row drew the cursor on the mode line. A wide character that would cross the
+window's edge starts the next row: segnext breaks there, segstart answered
+with the row before (display.c). Fixed; tests/shard-boundary.sh 2b. Not
+bugs: line 401002 at the end (the file has 401,001 newlines), and lines
+400001 on in shards 19 to 35 (one line of 35 MB, cut inside).
