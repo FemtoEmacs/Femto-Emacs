@@ -669,7 +669,7 @@ again:
 	/* paint screen from top of page until we hit maxline */
 	while (1) {
 		/* reached point - store the cursor position */
-		if (bp->b_point == bp->b_epage) {
+		if (bp->b_point == bp->b_epage && i < wp->w_top + wp->w_rows) {
 			found = 1;
 			bp->b_row = i;
 			bp->b_col = wrap_end != NOMARK && j >= pane_cols() ? pane_cols() - 1 : j;
