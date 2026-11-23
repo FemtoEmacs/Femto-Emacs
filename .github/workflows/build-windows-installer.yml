@@ -72,7 +72,13 @@ jobs:
       - name: Install installer compiler
         if: steps.product.outputs.cache-hit != 'true'
         shell: pwsh
-        run: choco install nsis --no-progress -y
+        run: |
+          for ($attempt = 1; $attempt -le 3; $attempt++) {
+            choco install nsis --no-progress -y
+            if ($LASTEXITCODE -eq 0) { exit 0 }
+            if ($attempt -lt 3) { Start-Sleep -Seconds 15 }
+          }
+          throw 'Installer compiler installation failed after three attempts'
       - name: Build native installer PATH helper
         if: steps.product.outputs.cache-hit != 'true'
         shell: pwsh

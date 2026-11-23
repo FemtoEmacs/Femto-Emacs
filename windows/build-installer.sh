@@ -1,6 +1,7 @@
 #!/bin/bash
 # Run on a Windows Cygwin builder, not on an end user's computer.
-set -euo pipefail
+set -Eeuo pipefail
+trap 'status=$?; printf "Installer packaging failed at line %s: %s (exit %s)\n" "$LINENO" "$BASH_COMMAND" "$status" >&2; exit "$status"' ERR
 cd "$(dirname "$0")/.."
 sh windows/prepare-runtime.sh
 bash windows/prepare-sdl.sh
