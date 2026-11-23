@@ -34,9 +34,9 @@ explained in [Building from sources](#building-from-sources).
 
 ## Installation on Windows
 
-[Download Chezweb 1.17 for Windows x86-64 (Setup.exe)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.17/Chezweb-Windows-x86_64-Setup.exe)
+[Download Chezweb 1.17 for Windows x86-64 (Setup.exe)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/chezweb-windows-preview-70117607f389cb5133506bb00ac288257d8724c0/Chezweb-Windows-x86_64-Setup.exe)
 
-Built from `fd19dd3` for Chezweb 1.17. [Release notes, checksums, and matching sources](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/v1.17)
+Built from `70117607f389` for Chezweb 1.17. [Release notes, checksums, and matching sources](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/chezweb-windows-preview-70117607f389cb5133506bb00ac288257d8724c0)
 
 Run the installer to add **Chezweb**, **Chezweb GUI**, and **Uninstall**
 to your Start menu. It installs for your account and bundles Cygwin and
