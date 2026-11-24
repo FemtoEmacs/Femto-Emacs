@@ -46,7 +46,7 @@ split.
 - **C string.** In C, a string ends at its first NUL byte. A function that
   takes a C string sees only the text before the first NUL.
 
-## Bugs found: four, all fixed
+## Bugs found: five, all fixed
 
 ```lisp
 (bugs
@@ -89,7 +89,19 @@ split.
   (fix "The first read after the editor's own copy is taken for that copy as
         the clipboard keeps it, and remembered (length and hash). A later,
         different text is another program's and is adopted
-        (read_system_clipboard, interface.c)")))
+        (read_system_clipboard, interface.c)"))
+ (bug 5
+  (what "C-k, then a copy in another program (a browser), then C-y; found
+         by Eduardo on 24 November 2026, after the fix of bug 4")
+  (before "C-y inserted the kill. The other program's copy was taken for the
+           kill as the clipboard keeps it, and dropped")
+  (after "C-y inserts what the other program copied")
+  (cause "The fix of bug 4 took the first read after any copy of the editor
+          for that copy, even when nothing in the copy could be damaged")
+  (fix "Only a copy with a NUL byte or bytes that are not UTF-8 makes the
+        first read stand for it (clip_clean, clipboard_copied_scrap,
+        interface.c). Clean text comes back whole, and then the read finds
+        it the same; any other text is another program's")))
 ```
 
 Findings 1 and 2 were measured. Findings 3 and 4 were found by reading
@@ -161,6 +173,9 @@ compared, byte for byte, with what went in.
 5. A few bytes with a NUL copied by another program, then C-y.
 6. C-w of a text with NUL bytes, then C-y. Then another program copies,
    and C-y again.
+7. C-k, then another program copies before any C-y, then C-y: what the
+   other program copied (bug 5; without its fix, the test fails: the
+   kill, 25 bytes, instead of the copy, 43).
 
 The system clipboard is a stand-in: `pbcopy`, `pbpaste` and `xclip`
 scripts on PATH. The user's own clipboard is never touched. The stand-in
@@ -171,7 +186,7 @@ output meanwhile so that neither side waits for the other.
 
 In both tests every key must finish within 2 seconds, as the backdoor's
 `time` measures it. `make check` runs a quick part of each (shard tests 1
-and 2, paste tests 3, 5 and 6; about 40 seconds).
+and 2, paste tests 3, 5, 6 and 7; about 40 seconds).
 
 ## Not changed, and why
 
@@ -198,8 +213,10 @@ The shard index held: no character was cut, no offset moved, and edits
 on both sides of a cut were saved exactly. The tests found four faults
 and all are fixed: M-g to a line cut across shards; a slow paste (11 s
 for 15 MB); C-y stopping at a NUL byte; and the editor's own kill coming
-back cut from the clipboard. `make check`, the fuzzers and the endurance
-tests pass.
+back cut from the clipboard. Eduardo found a fifth, in the fix of the
+fourth: a copy in a browser after a C-k was dropped, and C-y gave the
+kill. It is fixed too. `make check`, the fuzzers and the endurance tests
+pass.
 
 ```lisp
 (summary
