@@ -299,6 +299,40 @@ void lnbegin()
 	curbp->b_point = segstart(curbp, lnstart(curbp,curbp->b_point), curbp->b_point);
 }
 
+/*
+ * M-x move-beginning-of-line, M-x move-end-of-line: the ends of the line,
+ * however long, where C-a and C-e go to the ends of the row shown (as
+ * Emacs's beginning-of-visual-line and end-of-visual-line).  The names are
+ * Emacs's.  The line is the one the buffer holds: in a file in shards, a
+ * line cut between two shards ends at the shard's end; in a narrowed
+ * buffer, at the edge of the part shown.  Over a folded Org heading the
+ * line ends where the heading's text ends, before its "...": the newline
+ * there is the fold's first byte, which is shown.  The end is found with
+ * memchr, a run of the text at a time: a line of 35 MB takes milliseconds.
+ */
+void move_beginning_of_line(void)
+{
+	point_t p = lnstart(curbp, curbp->b_point), start = visible_start(curbp);
+	curbp->b_point = p < start ? start : p;
+}
+
+void move_end_of_line(void)
+{
+	point_t p = curbp->b_point, end = visible_end(curbp);
+	point_t gap = curbp->b_gap - curbp->b_buf;
+
+	while (p < end) {
+		const char_t *run, *nl;
+		point_t len;
+		if (p < gap) { run = curbp->b_buf + p; len = (gap < end ? gap : end) - p; }
+		else { run = curbp->b_egap + (p - gap); len = end - p; }
+		nl = memchr(run, '\n', (size_t) len);
+		if (nl != NULL) { p += nl - run; break; }
+		p += len;
+	}
+	curbp->b_point = p;
+}
+
 void lnend()
 {
 	point_t next = dndn(curbp, curbp->b_point);

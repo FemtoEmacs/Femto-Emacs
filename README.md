@@ -2,7 +2,7 @@
 Chezweb is a simpler implementation of Emacs, where simpler means fewer
 features, but also means it's easier to learn and install.
 
-The current version is [Chezweb 1.17](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/v1.17).
+The current version is [Chezweb 1.18](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/v1.18).
 
 ## Installation on Silicon macOS
 There is no macOS installer yet. On the Mac, you build Chezweb from
@@ -13,9 +13,9 @@ The same steps work on Intel Macs.
 ## Installation on Linux
 On Ubuntu (22.04 or later) and Debian (12 or later), download the
 installer for your processor:
-[Chezweb 1.17 for Linux Intel/AMD (chezweb_amd64.deb)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.17/chezweb_amd64.deb)
+[Chezweb 1.18 for Linux Intel/AMD (chezweb_amd64.deb)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.18/chezweb_amd64.deb)
 for Intel and AMD, or
-[Chezweb 1.17 for Linux ARM64 (chezweb_arm64.deb)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.17/chezweb_arm64.deb)
+[Chezweb 1.18 for Linux ARM64 (chezweb_arm64.deb)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.18/chezweb_arm64.deb)
 for ARM (`dpkg --print-architecture` says which). Then, in the folder
 where it is:
 
@@ -28,23 +28,23 @@ makes the machine code for your processor, which takes about half a
 minute. Then `chezweb notes.md` opens the editor in the terminal, in any
 folder, and **Chezweb** in the applications menu opens it in a window.
 `sudo apt remove chezweb` removes it. The
-[release page](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/v1.17)
+[release page](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/v1.18)
 has the checksums. On other distributions, build from the sources, as
 explained in [Building from sources](#building-from-sources).
 
 ## Installation on Windows
 
-[Download Chezweb 1.17 for Windows x86-64 (Setup.exe)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.17/Chezweb-Windows-x86_64-Setup.exe)
+[Download Chezweb 1.18 for Windows x86-64 (Setup.exe)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.18/Chezweb-Windows-x86_64-Setup.exe)
 
-Chezweb 1.17 for Windows x86-64. [Release notes, checksums, and matching sources](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/v1.17)
+Built from the maintained Windows branch for Chezweb 1.18. [Release notes, checksums, and matching sources](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/v1.18)
 
 Run the installer to add **Chezweb**, **Chezweb GUI**, and **Uninstall**
 to your Start menu. It installs for your account and bundles Cygwin and
 the tools it needs. The browser editor uses Google Chrome.
 
 ## Building from sources
-The [Chezweb 1.17 source archive (tar.gz)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.17/Chezweb-1.17-source.tar.gz)
-and [Chezweb 1.17 source archive (zip)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.17/Chezweb-1.17-source.zip)
+The [Chezweb 1.18 source archive (tar.gz)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.18/Chezweb-1.18-source.tar.gz)
+and [Chezweb 1.18 source archive (zip)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.18/Chezweb-1.18-source.zip)
 contain the same portable sources for Apple Silicon and Intel Macs. Extract
 either archive and run `make` in its folder, or clone as below.
 
@@ -83,6 +83,24 @@ maintainer runs `make browser-rebuild` with Emscripten installed, then
 `make`, and commits the rebuilt bundle and its checksum manifest with
 the source changes. A source release already includes that matching bundle,
 so users on either Mac architecture need only `make`.
+
+**When you have changed the sources.** On both Apple Silicon and Intel
+Macs, a developer with Emscripten installed uses:
+
+```sh
+make browser-rebuild
+make
+make check
+```
+
+The first command rebuilds and records the browser bundle after edits. It is
+not included in ordinary `make`: requiring it would require every user to
+install Emscripten. For an unchanged release archive or a published checkout
+with its matching bundle, use `make`, then `make check` if you want to run
+the tests. If ordinary `make` reports that the browser bundle does not match
+the sources, rebuild it after your edits or restore the matching source and
+bundle files together. These instructions are the same on both Mac
+architectures.
 
 **The path.** Chezweb finds its scripts beside itself, so leave
 `chezweb` in its folder, and do not copy it elsewhere or make a link
