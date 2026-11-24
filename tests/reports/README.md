@@ -48,15 +48,15 @@ then lists the bugs that running it found.
   (tests "make check-complexity"))
  (task "4. Boundary-crossing shard and clipboard stress"
   (report "task4-boundaries.md")
-  (bugs-found 4)
-  (fixed 4)
+  (bugs-found 5)
+  (fixed 5)
   (tests "quick part in make check; make check-shard-boundary, make
           check-paste-stress")))
 ```
 
-**20 bugs found, 20 fixed.** Most were found by a test failing, and the
+**21 bugs found, 21 fixed.** Most were found by a test failing, and the
 test passes now. A few were found by reading the code while writing a
-test (task 2, bug 2; task 4, bugs 3 and 4), and one was slow without
+test (task 2, bug 2; task 4, bugs 3 and 4), one by Eduardo using the editor (task 4, bug 5), and one was slow without
 failing (task 3, bug 5, C-s within its limit); each report says which.
 
 Task 2 also has a proof in Lean, `oversized_without_bytes`

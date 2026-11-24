@@ -19,8 +19,11 @@
 #   6  C-w of a text with NUL bytes (the clipboard keeps it cut at the
 #      first NUL), C-y gives the whole of it back; then another program
 #      copies, and C-y takes that in
+#   7  C-k, then another program copies before any C-y, then C-y: what the
+#      other program copied (24 November 2026: Eduardo's C-k, a copy in
+#      the browser, and C-y gave the kill)
 #
-#   sh tests/paste-stress.sh [quick]    quick: 3, 5 and 6 only (make check)
+#   sh tests/paste-stress.sh [quick]    quick: 3, 5, 6 and 7 (make check)
 #
 # The system clipboard is a stand-in (pbcopy, pbpaste, xclip on PATH); the
 # user's own is never touched.  Disposable files and PTY.
@@ -189,5 +192,17 @@ if session kill-nul kill.txt 120; then
 	same kill-nul "C-y gave the clipboard's cut image instead of the kill, or missed the other program's copy" "$work/want6.txt" "$work/out6.txt"
 fi
 rm -f "$clip/foreign.2"
+
+# ------------------------------------------------------------ 7
+printf 'keep this\nkill this line\n' > "$work/kill7.txt"
+printf 'copied in a browser after the C-k' > "$clip/foreign.1"
+rm -f "$clip/clipboard.txt"
+{ printf 'keys ^N^K^K\nwait 500\nkeys ^Y\nwait 500\n'; save_as "$work/out7.txt"; } > "$work/kill-then-copy.keys"
+if session kill-then-copy kill7.txt 120; then
+	key_times kill-then-copy "C-k, then another program copies before any C-y, then C-y"
+	printf 'keep this\ncopied in a browser after the C-k' > "$work/want7.txt"
+	same kill-then-copy "C-y gave the kill instead of what another program copied after it" "$work/want7.txt" "$work/out7.txt"
+fi
+rm -f "$clip/foreign.1"
 
 exit $failed

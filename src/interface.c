@@ -536,9 +536,42 @@ static unsigned long long clip_hash(const char *s, size_t n)
 	return h;
 }
 
+/* 1 when the N bytes of S are UTF-8 with no NUL: what the clipboard gives
+ * back whole, since nothing in them can be cut or changed */
+static int clip_clean(const unsigned char *s, size_t n)
+{
+	size_t i = 0;
+	while (i < n) {
+		unsigned c = s[i];
+		size_t k, need;
+		unsigned long cp;
+		if (c == 0) return 0;
+		if (c < 0x80) { i++; continue; }
+		if (c >= 0xC2 && c <= 0xDF) { need = 1; cp = c & 0x1F; }
+		else if (c >= 0xE0 && c <= 0xEF) { need = 2; cp = c & 0x0F; }
+		else if (c >= 0xF0 && c <= 0xF4) { need = 3; cp = c & 0x07; }
+		else return 0;
+		if (i + need >= n) return 0;            /* cut short */
+		for (k = 1; k <= need; k++) {
+			if ((s[i + k] & 0xC0) != 0x80) return 0;
+			cp = (cp << 6) | (s[i + k] & 0x3F);
+		}
+		if ((need == 2 && cp < 0x800) || (need == 3 && (cp < 0x10000 || cp > 0x10FFFF)) ||
+		    (cp >= 0xD800 && cp <= 0xDFFF)) return 0;
+		i += need + 1;
+	}
+	return 1;
+}
+
+/* This editor put the scrap on the system clipboard.  Text that is UTF-8
+ * without NUL comes back whole, and then the first read finds it the same:
+ * anything else is another program's copy, made after (copied in a browser
+ * after a C-k, and then C-y: the browser's text, not the kill).  Only a
+ * scrap the clipboard may damage makes the first read stand for it. */
 void clipboard_copied_scrap(void)
 {
-	own_copy_pending = 1;
+	const unsigned char *s = (const unsigned char *) get_scrap();
+	own_copy_pending = s != NULL && !clip_clean(s, (size_t) nscrap);
 	own_image_known = 0;
 }
 
