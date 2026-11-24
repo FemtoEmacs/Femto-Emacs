@@ -23,6 +23,8 @@ extern void right(void);
 extern void backsp(void);
 extern void lnbegin(void);
 extern void lnend(void);
+extern void move_beginning_of_line(void);
+extern void move_end_of_line(void);
 extern void beginning_of_buffer(void);
 extern void end_of_buffer(void);
 extern void backward_word(void);

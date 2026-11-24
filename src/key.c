@@ -49,6 +49,8 @@ command_t commands[] = {
 	{"list-bindings", list_bindings},
 	{"list-buffers", list_buffers},
 	{"list-undo", list_undos},
+	{"move-beginning-of-line", move_beginning_of_line},
+	{"move-end-of-line", move_end_of_line},
 	{"list-stats-undo", list_undo_stats},
 	{"next-buffer", next_buffer},
 	{"previous-buffer", previous_buffer},

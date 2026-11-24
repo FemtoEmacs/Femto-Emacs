@@ -313,6 +313,11 @@ check-ghost-window: chezemax chezemax.wasm chezemax.cwasm
 	sh tests/ghost-window.sh
 check: check-ghost-window
 
+.PHONY: check-line-motion
+check-line-motion: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/line-motion.sh
+check: check-line-motion
+
 .PHONY: check-vsplit
 check-vsplit: chezemax chezemax.wasm chezemax.cwasm
 	sh tests/vsplit.sh
