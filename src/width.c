@@ -92,6 +92,21 @@ int fe_char_width(long cp)
 	return cp < 0 ? 1 : char_width((unsigned long) cp);
 }
 
+/* (fe-cluster-width PREV CP): the cells of CP after PREV as the screen
+ * draws them (display.c, cluster_cell_width): in the window and the
+ * browser, U+FE0F widens a narrow character before it by one, and an emoji
+ * joined by U+200D takes none.  A flag's two letters take one each, as
+ * there, in total.  Markdown's rows (markdown.scm) wrap with it. */
+int fe_cluster_width(long prev, long cp)
+{
+	extern int screen_clusters;
+	int w = fe_char_width(cp);
+	if (!screen_clusters || prev <= 0) return w;
+	if (cp == 0xFE0F) return char_width((unsigned long) prev) == 1 ? 1 : 0;
+	if (prev == 0x200D && w == 2) return 0;
+	return w;
+}
+
 /* The code point at offset OFF of BP, whose first byte is not ASCII, read
  * across the gap if need be; a malformed sequence is U+FFFD (one column) */
 unsigned long code_point_at(buffer_t *bp, point_t off)

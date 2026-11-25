@@ -1,0 +1,27 @@
+dem-minified.gls -- dem-minified.json
+
+The file: one line of 5.4 MB of minified JSON, {"k0":[1,2.5,"café
+中文",{"x":null}],"k1":...,"end":true}, with 2-byte and wide characters.
+
+Open:   chezweb dem-minified.json
+
+1. C-e  C-a              Expect: the end and the start of the first row
+                         shown, at once.
+2. C-f C-f C-f  C-b C-b  Expect: one character each, at once.
+3. x                     Expect: typed, at once.
+4. M->                   Expect: the end of the line, "end":true}, within
+                         0.5 s.
+5. C-p C-p C-n           Expect: row by row, at once; the cursor never
+                         below the last row of the window.
+6. Click with the mouse on three places of the text
+                         Expect: the cursor where you click, at once.
+7. On the bottom row: C-e then the right arrow, several times
+                         Expect: the window scrolls a row each time, the
+                         cursor stays on the text, never on the mode line.
+8. Still deep in the line, where step 7 left you: type the letter y
+   (it is inserted, as x was in step 3), then C-a, then click on some
+   text, then C-e.
+                         Expect: each at once, though the cursor is
+                         megabytes into a single line.
+9. M-<                   Expect: at once.
+10. C-x k RET, then "y": do not save.

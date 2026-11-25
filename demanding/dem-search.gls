@@ -1,0 +1,17 @@
+dem-search.gls -- dem-search.txt
+
+The file: 880,000 lines of "line NNNNNN of fifty megabytes of plain text,
+all the same." (52 MB), without the letters q and z.
+
+Open:   chezweb dem-search.txt
+
+1. C-s zqxj              typed one letter at a time
+   Expect: "Failing search" from the first letter; each letter a search of
+   the whole 52 MB, within 1 s each.  RET.
+2. C-s line 879999 RET   Expect: the last line, within 1 s.
+3. C-r zqxj  RET         Expect: failing, within 1 s, the cursor stays.
+4. M-<  M-% zqxj RET found RET
+                         Expect: "0 substitutions" (or nothing replaced),
+                         within 1 s.
+5. C-s 050000 C-s C-s    Expect: line 050000, then no other (failing), at once.
+6. C-x k RET.

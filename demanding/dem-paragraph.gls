@@ -1,0 +1,27 @@
+dem-paragraph.gls -- dem-paragraph.txt
+
+The file: one paragraph of 50,000 words on one line (345 KB).
+
+Open:   chezweb dem-paragraph.txt
+
+1. M-q                   Expect: some 5,000 lines of at most 70 columns,
+                         within 2 s (1.3 to 1.9 s in the cloud: close to
+                         the limit).
+2. M-<  M-q              Expect: the same text (nothing to change), within
+                         2 s (it did not end in minutes before 22 November
+                         2026).
+3. C-x C-w /tmp/dem-paragraph-filled.txt RET
+   In a terminal:
+     tr -s ' \n' '\n\n' < dem-paragraph.txt > /tmp/a
+     tr -s ' \n' '\n\n' < /tmp/dem-paragraph-filled.txt > /tmp/b
+     cmp /tmp/a /tmp/b
+   Expect: no output (every word kept, in order).
+4. C-/                   Expect: the one line back.  The buffer is marked
+                         changed again (* on the mode line), and stays so:
+                         since step 3 the file on disk is the filled text,
+                         and the buffer no longer is.  More C-/ say "No
+                         further undo information" (M-q was the only
+                         change).  Emacs does the same.
+5. C-x k RET, then "y" or "yes" when it asks about the unsaved changes:
+   they are not to be saved (/tmp/dem-paragraph-filled.txt keeps the
+   filled text).

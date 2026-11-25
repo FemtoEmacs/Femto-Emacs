@@ -25,15 +25,18 @@ extern void set_scrap(unsigned char *);
 extern int term_poll_ms(void);    /* terminal.c */
 #define PAD 4                   /* margin around the text, in points */
 
+#define NMARK 6                 /* 👨‍👩‍👧: the man, then four more */
 typedef struct {
 	Uint32 cp;                  /* Unicode code point, 0 = blank, WIDE_TAIL =
 	                               the right half of the cell before */
-	Uint32 mark[2];             /* combining accents drawn with cp, 0 = none */
+	Uint32 mark[NMARK];         /* drawn with cp, 0 = none: combining accents,
+	                               and the rest of an emoji sequence */
 	unsigned char face;         /* ID_COLOR_* */
 	unsigned char reverse;      /* the mark */
 } cell_t;
 #define WIDE_TAIL 0xFFFFFFFFu
 extern int char_width(unsigned long);   /* width.c */
+extern int screen_clusters;             /* display.c */
 
 static SDL_Window   *window = NULL;
 static SDL_Renderer *renderer = NULL;
@@ -42,6 +45,8 @@ static TTF_Font     *fonts[4];  /* regular, bold, italic, bold italic */
  * in the order of wide_candidates; NULL where absent */
 #define NWIDE 4
 static TTF_Font     *wide_fonts[NWIDE];
+static TTF_Font     *emoji_font = NULL;  /* the system's colour emoji, or NULL */
+static void clear_emoji(void);
 static TTF_Font     *font_for(Uint32 cp, int style);
 static int active = 0;
 static int focused = 1;
@@ -297,9 +302,29 @@ static TTF_Font *font_for(Uint32 cp, int style)
 	return fonts[style];
 }
 
+static const char *emoji_candidates[] = {
+#if defined(__APPLE__)
+	"/System/Library/Fonts/Apple Color Emoji.ttc",
+#elif defined(_WIN32)
+	"C:\\Windows\\Fonts\\seguiemj.ttf",
+#else
+	"/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf",
+	"/usr/share/fonts/noto/NotoColorEmoji.ttf",
+	"/usr/share/fonts/google-noto-emoji/NotoColorEmoji.ttf",
+	"/usr/share/fonts/TTF/NotoColorEmoji.ttf",
+#endif
+	NULL
+};
+
 static void open_wide_fonts(int px)
 {
 	int i, k;
+
+	clear_emoji();
+	if (emoji_font) TTF_CloseFont(emoji_font);
+	emoji_font = NULL;
+	for (k = 0; emoji_candidates[k] && !emoji_font; k++)
+		emoji_font = TTF_OpenFontIndex(emoji_candidates[k], px, 0);
 
 	for (i = 0; i < NWIDE; i++) {
 		if (wide_fonts[i]) TTF_CloseFont(wide_fonts[i]);
@@ -413,7 +438,7 @@ static void measure(int *out_rows, int *out_cols)
 static void blank(cell_t *c)
 {
 	c->cp = 0;
-	c->mark[0] = c->mark[1] = 0;
+	memset(c->mark, 0, sizeof c->mark);
 	c->face = 1;
 	c->reverse = 0;
 }
@@ -476,38 +501,82 @@ static void advance(void)
 	}
 }
 
+/* the cell of the character before the cursor, or NULL at a row's start */
+static cell_t *cell_before(void)
+{
+	cell_t *row = grid + cur_row * cols, *c;
+	if (cur_col == 0) return NULL;
+	c = row + cur_col - 1;
+	if (c->cp == WIDE_TAIL && c > row) c--;
+	return c;
+}
+
+static void add_mark(cell_t *c, Uint32 cp)
+{
+	int k;
+	for (k = 0; k < NMARK; k++)
+		if (c->mark[k] == 0) { c->mark[k] = cp; return; }
+}
+
+/* the cell at the cursor becomes the right half of the one before */
+static void tail_here(int reverse)
+{
+	cell_t *c = &grid[cur_row * cols + cur_col];
+	c->cp = WIDE_TAIL;
+	memset(c->mark, 0, sizeof c->mark);
+	c->face = (unsigned char) cur_face;
+	c->reverse = (unsigned char) reverse;
+	advance();
+}
+
+static int regional(Uint32 cp) { return cp >= 0x1F1E6 && cp <= 0x1F1FF; }
+
 /*
  * A character into the cell at the cursor.  A combining accent (width 0,
  * width.c) joins the character in the cell before; a wide one takes the
  * next cell too, marked WIDE_TAIL, on the same row (display.c never
- * starts one in the last column).
+ * starts one in the last column).  An emoji sequence is one picture in two
+ * cells, as display.c counts it (screen_clusters, cluster_cell_width): the
+ * selector U+FE0F widens the heart before it to two cells; an emoji after
+ * U+200D joins the one before (the family); a second regional letter joins
+ * the first, and the flag takes two cells.
  */
+static int joining = 0;         /* the character before was U+200D */
+
 static void put(Uint32 cp, int reverse)
 {
-	cell_t *c = &grid[cur_row * cols + cur_col];
+	cell_t *c = &grid[cur_row * cols + cur_col], *before = cell_before();
 	int width = cp >= 0x300 ? char_width(cp) : 1;
+	int join = joining;
 
+	joining = 0;
+	if (before && join && width == 2) { add_mark(before, cp); dirty = 1; return; }
+	if (before && cp == 0xFE0F) {
+		add_mark(before, cp);
+		if (before == c - 1 && char_width(before->cp) == 1 && cur_col < cols) tail_here(reverse);
+		dirty = 1;
+		return;
+	}
+	if (before && regional(cp) && before == c - 1 && regional(before->cp) && before->mark[0] == 0 &&
+	    cur_col < cols) {
+		add_mark(before, cp);
+		tail_here(reverse);
+		dirty = 1;
+		return;
+	}
 	if (width == 0) {
-		if (cur_col > 0) c--;
-		if (c->cp == WIDE_TAIL && c > grid + cur_row * cols) c--;
-		if (c->mark[0] == 0) c->mark[0] = cp;
-		else if (c->mark[1] == 0) c->mark[1] = cp;
+		if (before) c = before;
+		add_mark(c, cp);
+		joining = cp == 0x200D;
 		dirty = 1;
 		return;
 	}
 	c->cp = cp;
-	c->mark[0] = c->mark[1] = 0;
+	memset(c->mark, 0, sizeof c->mark);
 	c->face = (unsigned char) cur_face;
 	c->reverse = (unsigned char) reverse;
 	advance();
-	if (width == 2 && cur_col > 0) {
-		c = &grid[cur_row * cols + cur_col];
-		c->cp = WIDE_TAIL;
-		c->mark[0] = c->mark[1] = 0;
-		c->face = (unsigned char) cur_face;
-		c->reverse = (unsigned char) reverse;
-		advance();
-	}
+	if (width == 2 && cur_col > 0) tail_here(reverse);
 	dirty = 1;
 }
 
@@ -635,24 +704,110 @@ static void draw_glyph(Uint32 cp, int style, int x, int y, long color)
 	SDL_RenderCopy(renderer, g->tex, NULL, &dst);
 }
 
-/* A cell's character with its combining accents, rendered together (not
- * cached: accents are rare) so that the font places them */
-static void draw_cell(const cell_t *cell, int style, int x, int y, long color)
+/*
+ * Emoji: the window's font has none, so they come from the system's colour
+ * emoji font (emoji_font), as a sequence: the heart with its selector, a
+ * flag's two letters, a family joined by U+200D become one picture, drawn
+ * in their colours (not tinted with the face) and scaled into the cells
+ * the sequence takes.  Cached by sequence: the window is painted whole on
+ * every change.
+ */
+static int is_emoji(const cell_t *cell)
 {
-	char utf8[16];
-	int n;
+	int k;
+	if (!emoji_font || cell->cp == 0 || cell->cp == WIDE_TAIL) return 0;
+	if (cell->cp >= 0x1F000 && cell->cp <= 0x1FAFF) return 1;
+	for (k = 0; k < NMARK && cell->mark[k]; k++)
+		if (cell->mark[k] == 0xFE0F || cell->mark[k] == 0x200D) return 1;
+	return 0;
+}
+
+#define ECACHE 256
+typedef struct {
+	Uint32 cps[NMARK + 1];      /* the sequence, cps[0] == 0: empty */
+	SDL_Texture *tex;
+	int w, h;
+} emoji_t;
+static emoji_t ecache[ECACHE];
+
+static void clear_emoji(void)
+{
+	int i;
+	for (i = 0; i < ECACHE; i++) {
+		if (ecache[i].tex) SDL_DestroyTexture(ecache[i].tex);
+		memset(&ecache[i], 0, sizeof ecache[i]);
+	}
+}
+
+static emoji_t *emoji(const cell_t *cell)
+{
+	Uint32 h = cell->cp * 2654435761u;
+	char utf8[4 * (NMARK + 1) + 1];
+	SDL_Color white = { 255, 255, 255, 255 };
+	SDL_Surface *surf;
+	int k, n, probes;
+
+	for (k = 0; k < NMARK; k++) h = (h ^ cell->mark[k]) * 16777619u;
+	for (probes = 0; probes < ECACHE; probes++) {
+		emoji_t *e = &ecache[(h + (Uint32) probes) % ECACHE];
+		if (e->cps[0] == cell->cp && memcmp(e->cps + 1, cell->mark, sizeof cell->mark) == 0)
+			return e->tex ? e : NULL;
+		if (e->cps[0] == 0) {
+			n = encode_utf8(cell->cp, utf8);
+			for (k = 0; k < NMARK && cell->mark[k]; k++) n += encode_utf8(cell->mark[k], utf8 + n);
+			e->cps[0] = cell->cp;
+			memcpy(e->cps + 1, cell->mark, sizeof cell->mark);
+			surf = TTF_RenderUTF8_Blended(emoji_font, utf8, white);
+			if (!surf) return NULL;
+			e->tex = SDL_CreateTextureFromSurface(renderer, surf);
+			e->w = surf->w;
+			e->h = surf->h;
+			SDL_FreeSurface(surf);
+			return e->tex ? e : NULL;
+		}
+	}
+	clear_emoji();              /* full: start again */
+	return emoji(cell);
+}
+
+static void draw_emoji(const cell_t *cell, int span, int x, int y)
+{
+	emoji_t *e = emoji(cell);
+	SDL_Rect dst;
+	double k;
+
+	if (!e || e->w <= 0 || e->h <= 0) return;
+	k = (double) (span * cell_w) / e->w;
+	if (e->h * k > cell_h) k = (double) cell_h / e->h;
+	dst.w = (int) (e->w * k + 0.5);
+	dst.h = (int) (e->h * k + 0.5);
+	dst.x = x + (span * cell_w - dst.w) / 2;
+	dst.y = y + (cell_h - dst.h) / 2;
+	SDL_RenderCopy(renderer, e->tex, NULL, &dst);
+}
+
+/* A cell's character with its combining accents, rendered together (not
+ * cached: accents are rare) so that the font places them.  SPAN: the
+ * cells it takes, 2 when the next is its right half. */
+static void draw_cell(const cell_t *cell, int style, int x, int y, long color, int span)
+{
+	char utf8[4 * (NMARK + 1) + 1];
+	int n, k;
 	SDL_Color c = rgb(color);
 	SDL_Surface *surf;
 	SDL_Texture *tex;
 	SDL_Rect dst;
 
+	if (is_emoji(cell)) {
+		draw_emoji(cell, span, x, y);
+		return;
+	}
 	if (cell->mark[0] == 0 || cell->cp == 0 || cell->cp == WIDE_TAIL) {
 		draw_glyph(cell->cp, style, x, y, color);
 		return;
 	}
 	n = encode_utf8(cell->cp, utf8);
-	n += encode_utf8(cell->mark[0], utf8 + n);
-	if (cell->mark[1]) encode_utf8(cell->mark[1], utf8 + n);
+	for (k = 0; k < NMARK && cell->mark[k]; k++) n += encode_utf8(cell->mark[k], utf8 + n);
 	surf = TTF_RenderUTF8_Blended(fonts[style], utf8, c);
 	if (!surf) return;
 	tex = SDL_CreateTextureFromSurface(renderer, surf);
@@ -716,7 +871,8 @@ static void render(void)
 			int x = pad + j * cell_w, y = pad + i * cell_h;
 
 			cell_colors(c, &fg, &bg, &style, &underline);
-			draw_cell(c, style, x, y, fg);
+			draw_cell(c, style, x, y, fg,
+			          j + 1 < cols && grid[i * cols + j + 1].cp == WIDE_TAIL ? 2 : 1);
 			if (underline)
 				fill(x, y + cell_h - (int) scale - 1, cell_w, (int) scale, fg);
 		}
@@ -728,14 +884,17 @@ static void render(void)
 		long fg, bg;
 		int style, underline;
 
+		int span = cur_col + 1 < cols && grid[cur_row * cols + cur_col + 1].cp == WIDE_TAIL ? 2 : 1;
+
 		cell_colors(c, &fg, &bg, &style, &underline);
 		if (focused) {
-			fill(x, y, cell_w, cell_h, cursor_color);
-			draw_cell(c, style, x, y, bg);
+			/* as wide as the emoji, CJK character it is on */
+			fill(x, y, span * cell_w, cell_h, cursor_color);
+			draw_cell(c, style, x, y, bg, span);
 		} else {
 			SDL_Color cc = rgb(cursor_color);
 			SDL_Rect r;
-			r.x = x; r.y = y; r.w = cell_w; r.h = cell_h;
+			r.x = x; r.y = y; r.w = span * cell_w; r.h = cell_h;
 			SDL_SetRenderDrawColor(renderer, cc.r, cc.g, cc.b, 255);
 			SDL_RenderDrawRect(renderer, &r);
 		}
@@ -1135,6 +1294,7 @@ int screen_init(int mouse)
 	int i, r, c;
 
 	(void) mouse;                        /* the mouse is always on */
+	screen_clusters = 1;                 /* display.c: emoji sequences in two cells */
 	hints();
 	if (SDL_Init(SDL_INIT_VIDEO) != 0) {
 		fprintf(stderr, "chezemax: SDL_Init: %s\n", SDL_GetError());

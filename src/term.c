@@ -85,7 +85,21 @@ int screen_rows(void)   { return LINES; }
 int screen_cols(void)   { return COLS; }
 
 void screen_move(int row, int col)      { move(row, col); }
-void screen_addstr(const char *s)       { addstr(s); }
+/*
+ * U+FE0F, the variation selector after ❤ that asks for the emoji: the
+ * terminal then draws the pair two columns wide, but curses (and the C
+ * core, width.c) count one, so everything after it on the row was drawn
+ * a column to the right of where the cursor goes (Eduardo, dem-unicode.txt,
+ * 25 November 2026: over the heart the cursor seemed to need two presses,
+ * and over the faces after it to jump two).  It is left out here, in the
+ * terminal only: the heart is drawn as text, one column, where the cursor
+ * expects it.  The text keeps it; the window and the browser draw it.
+ */
+void screen_addstr(const char *s)
+{
+	if (strcmp(s, "\xEF\xB8\x8F") == 0) return;
+	addstr(s);
+}
 void screen_mvaddstr(int r, int c, const char *s) { mvaddstr(r, c, s); }
 void screen_clrtoeol(void)              { clrtoeol(); }
 void screen_clear(void)                 { clear(); }

@@ -1,0 +1,28 @@
+dem-open-parens.gls -- dem-open-parens.scm
+
+The file: 10 MB of ( on one line, and a newline.  No ) anywhere.  A
+scanner that reads the text again from its start for every character, or
+a display that scans the whole line for every key, takes seconds here.
+
+Open:   chezweb dem-open-parens.scm
+
+1. C-M-f                 at the start (Esc C-f)
+   Expect: "No expression after the cursor", the cursor stays at the start,
+   within 2 s (about 1.5 s in the cloud: the slowest key of all these tests).
+2. C-M-b                 Expect: "No expression before the cursor", at once.
+3. x                     Expect: an x at the start, at once.
+4. M->                   to the end of the text (Esc >)
+   Expect: the end of the long line on the screen, within 2 s.
+5. C-M-b                 Expect: no expression before, at once.
+6. y                     Expect: a y typed at the end, within 0.5 s.
+7. DEL                   Expect: the y gone, within 0.5 s.
+8. C-a  then  C-e        After M-> the cursor is on the empty line after
+                         the final newline.  Expect: C-a and C-e leave it
+                         there, at once.
+8b. C-p  then  C-a  then  C-e
+                         Expect: the last row of the long line; C-a and
+                         C-e go to the start and the end of that row, at
+                         once (they work on rows; M-x move-beginning-of-line
+                         goes to the start of the whole line).
+9. M-<                   Expect: back at the start, at once.
+10. C-x k RET, then "y" if it asks: the text is changed, do not save it.

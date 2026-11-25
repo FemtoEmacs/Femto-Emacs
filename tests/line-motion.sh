@@ -7,6 +7,7 @@
 #      C-e still stops at the end of the row
 #   2  narrowed (C-x n n) inside that line: the ends of the narrowed part
 #   3  a folded Org heading: the end of the heading's own text
+#   4  the empty line after a final newline: C-a and C-e stay on it
 #
 # The point after each key is read from the backdoor.  Disposable files.
 set -eu
@@ -92,6 +93,25 @@ if session fold fold.org; then
 	# TAB folds at 0; C-f C-f C-f; end (19, the heading's newline); beginning; end;
 	# C-f goes past the fold to the second heading (38)
 	check fold "a folded Org heading: the end of the heading's own text" "0 1 2 3 19 0 19 38"
+fi
+
+# ------------------------------------------------------------ 4
+# the empty line after a final newline: C-e stays there (it went back to
+# the end of the line before, 25 November 2026); a line of 300 ( first,
+# cut into rows, as in dem-open-parens.scm
+awk 'BEGIN { for (i = 0; i < 300; i++) printf "("; printf "\n" }' > "$work/parens.scm"
+{ printf 'keys \\e>\nwait 300\nkeys ^A\nwait 300\nkeys ^E\nwait 300\n'
+  mx move-end-of-line; mx move-beginning-of-line
+  printf 'keys ^P\nwait 300\nkeys ^E\nwait 300\n'; } > "$work/last.keys"
+if session last parens.scm; then
+	# M-> (301); C-a, C-e, the two commands: all at 301; C-p goes to the
+	# last row of the long line, and C-e to its end, before the newline (300)
+	set -- $(cat "$work/last.pts")
+	if [ "$1 $2 $3 $4 $5" = "301 301 301 301 301" ] && [ "$7" = 300 ]; then
+		echo "PASS last: on the empty line after a final newline, C-a and C-e stay; C-e on the row before goes to its end"
+	else
+		echo "FAIL last: expected 301 301 301 301 301 then the last row and 300; got: $*"; failed=1
+	fi
 fi
 
 exit $failed

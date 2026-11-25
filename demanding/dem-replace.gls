@@ -1,0 +1,22 @@
+dem-replace.gls -- dem-replace.txt
+
+The file: 100,000 lines "NNNNNN: a foo on the line" (2.6 MB).
+
+Open:   chezweb dem-replace.txt
+
+1. M-% foo RET barbaz RET !
+   Expect: "100000 substitutions", within 0.5 s (it took 83 s before
+   22 November 2026).
+2. C-x C-w /tmp/dem-replace-grown.txt RET
+   In a terminal:
+     sed s/foo/barbaz/g dem-replace.txt | cmp - /tmp/dem-replace-grown.txt
+   Expect: no output.
+3. C-/                   Expect: all 100,000 replacements undone at once
+                         (one command, one undo).
+4. C-x C-w /tmp/dem-replace-undone.txt RET
+     cmp dem-replace.txt /tmp/dem-replace-undone.txt
+   Expect: no output.
+5. M-< M-% foo RET x RET y y n !
+                         Expect: two replaced one by one, one skipped,
+                         the rest at once; "99999 substitutions".
+6. C-x k RET, then "y": do not save.

@@ -752,6 +752,14 @@ static void b_fe_char_width(bridge_in *in, bridge_out *out)
 	bridge_put_int(out, (long) fe_char_width(a1));
 }
 
+extern int fe_cluster_width(long prev, long cp);
+static void b_fe_cluster_width(bridge_in *in, bridge_out *out)
+{
+	long a1 = (long) bridge_int(in);
+	long a2 = (long) bridge_int(in);
+	bridge_put_int(out, (long) fe_cluster_width(a1, a2));
+}
+
 extern char * fe_term_open(void);
 static void b_fe_term_open(bridge_in *in, bridge_out *out)
 {
@@ -1051,6 +1059,7 @@ void bridge_register_editor(void)
 	bridge_register("fe-narrow-start", b_fe_narrow_start);
 	bridge_register("fe-narrow-end", b_fe_narrow_end);
 	bridge_register("fe-char-width", b_fe_char_width);
+	bridge_register("fe-cluster-width", b_fe_cluster_width);
 	bridge_register("fe-term-open", b_fe_term_open);
 	bridge_register("fe-term-state", b_fe_term_state);
 	bridge_register("fe-term-copy-mode", b_fe_term_copy_mode);

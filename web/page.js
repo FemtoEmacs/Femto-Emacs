@@ -24,18 +24,19 @@ Module.browsered=(function(){
   ctx.save();ctx.translate(x+(want-w*kx)/2,top+(ch-points*ky)/2+points*ky*0.85);ctx.scale(kx,ky);ctx.fillText(s,0,0);ctx.restore();
  }
  function paint(p,nr,nc,r,c,bg,cursor){
-  var grid=HEAP32.slice(p>>2,(p>>2)+nr*nc*6);last={grid,nr,nc,r,c};
+  var CELL=10;  // words a cell (web/screen.c, cell_t): cp fg bg style and six marks
+  var grid=HEAP32.slice(p>>2,(p>>2)+nr*nc*CELL);last={grid,nr,nc,r,c};
   ctx.fillStyle=rgb(bg);ctx.fillRect(0,0,innerWidth,innerHeight);
   var lines=[];
   for(var y=0;y<nr;y++)for(var x=0;x<nc;x++){
-   var i=(y*nc+x)*6;ctx.fillStyle=rgb(y===r&&x===c?cursor:grid[i+2]);ctx.fillRect(pad+x*cw,pad+y*ch,cw,ch);
+   var i=(y*nc+x)*CELL;ctx.fillStyle=rgb(y===r&&x===c?cursor:grid[i+2]);ctx.fillRect(pad+x*cw,pad+y*ch,cw,ch);
   }
   for(var y=0;y<nr;y++){var line='';for(var x=0;x<nc;x++){
-   var i=(y*nc+x)*6,cp=grid[i]||32,fg=grid[i+1],back=grid[i+2],style=grid[i+3];
+   var i=(y*nc+x)*CELL,cp=grid[i]||32,fg=grid[i+1],back=grid[i+2],style=grid[i+3];
    if(cp===-1)continue;
-   var s=String.fromCodePoint(cp)+(grid[i+4]?String.fromCodePoint(grid[i+4]):'')+(grid[i+5]?String.fromCodePoint(grid[i+5]):'');
+   var s=String.fromCodePoint(cp);for(var m=4;m<CELL&&grid[i+m];m++)s+=String.fromCodePoint(grid[i+m]);
    ctx.fillStyle=rgb(y===r&&x===c?back:fg);ctx.font=(style&2?'italic ':'')+(style&1?'bold ':'')+points+'px Menlo,Consolas,monospace';
-   if(x+1<nc&&grid[i+6]===-1)wideText(s,pad+x*cw,pad+y*ch);else ctx.fillText(s,pad+x*cw,pad+y*ch+points);line+=s;
+   if(x+1<nc&&grid[i+CELL]===-1)wideText(s,pad+x*cw,pad+y*ch);else ctx.fillText(s,pad+x*cw,pad+y*ch+points);line+=s;
   }lines.push(line);}document.getElementById('screen-text').textContent=lines.join('\n');
  }
   var shiftedPunct = { "`": "~", "1": "!", "2": "@", "3": "#", "4": "$", "5": "%",

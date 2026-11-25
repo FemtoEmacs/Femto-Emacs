@@ -1,0 +1,52 @@
+dem-wide-line.gls -- dem-wide-line.txt
+
+The file (52.8 MB, 401,001 lines):
+  lines 1 to 400,000         "ç line 000000 of the first shard, ends 😀"
+  line 400,001               ção€😀ñ中 repeated: one line of 35 MB
+  lines 400,002 to 401,001   "ç tail 0000 😀"
+Too long a line for words: it wraps at the window's edge, and a 中 that
+would cross the edge starts the next row.
+
+A. Whole, without shards
+Open:   chezweb dem-wide-line.txt
+1. M-g 400000 RET      Expect: line 400000, at once.
+2. C-n                   Expect: the first row of the long line, the
+                         cursor on the text (not on the mode line).
+3. C-n C-n C-n           Expect: a row down each time, also from a row
+                         that starts with 中.
+4. C-e then the right arrow, several times
+                         Expect: a row down each time; the window scrolls
+                         at the bottom; never the mode line.
+5. M->                   Expect: line 401002 (the empty line after the last
+                         newline), within 2 s.
+6. C-x k RET.
+
+B. In shards of 16 MB (the size Chezweb uses above 1 GB)
+Open:   chezweb, then M-x find-file-shards RET dem-wide-line.txt RET
+1. The mode line shows [1/3]: three shards.  A shard ends at a newline;
+   the long line, longer than two shards (32 MB), is cut inside it, at a
+   character.
+2. M->  then  |          Expect: a | at the end of shard 1.
+3. C-c C-v n  then  |    Expect: shard 2 ([2/3]), a | at its start.
+4. M->  |  C-c C-v n  |  Expect: the cut inside the long line; marks on
+                         both sides of it.
+5. M-g 400001 RET      Expect: the start of the long line, in shard 2
+                         (not the cut in shard 3).
+6. C-c C-v ]  then  C-c C-v [
+                         Expect: the end of the last shard, then the start
+                         of the first.
+7. C-x C-w /tmp/dem-wide-marked.txt RET
+   Then, in a terminal:
+     tr -d '|' < /tmp/dem-wide-marked.txt | cmp - dem-wide-line.txt
+   Expect: no output (the file without its marks is the original).
+     iconv -f UTF-8 -t UTF-8 /tmp/dem-wide-marked.txt > /dev/null
+   Expect: no error (no character was cut in two).
+
+C. In small shards (many cuts)
+Open:   chezweb, then M-: (fe-shard-size 1048576) RET,
+        then M-x find-file-shards RET dem-wide-line.txt RET
+1. Expect about 35 shards: lines 1 to 400,000 in shards 1 to 18, the long
+   line in shards 18 to 35.
+2. M-g 400000 RET  C-n  C-n  C-n   as in A.2 and A.3.
+3. C-c C-v ]             Expect: line 401002 on the mode line.
+4. C-x k RET, then "y" if asked: do not save.

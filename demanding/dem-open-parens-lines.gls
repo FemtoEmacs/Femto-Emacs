@@ -1,0 +1,17 @@
+dem-open-parens-lines.gls -- dem-open-parens-lines.scm
+
+The file: 100,000 lines of 100 ( each (10 MB).  No ) anywhere.
+
+Open:   chezweb dem-open-parens-lines.scm
+
+1. C-M-f                 Expect: "No expression after the cursor", within
+                         2 s, the cursor at the start.
+2. C-M-b                 Expect: at once, no move.
+3. x  C-n                Expect: x typed, the cursor one line down, at once.
+4. M->                   Expect: the last lines, at once.
+5. C-M-b  C-p  y  C-M-f  Expect: each at once; C-M-f says there is no
+                         expression after the cursor.
+6. M-<                   Expect: at once.
+7. M-g 50000 RET       Expect: line 50000 at once (L. 50000 on the
+                         mode line).
+8. C-x k RET, then "y": do not save.

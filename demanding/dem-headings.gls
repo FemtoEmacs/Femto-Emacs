@@ -1,0 +1,30 @@
+dem-headings.gls -- dem-headings.org
+
+The file: 10,000 chapters "* Chapter NNNNN", each with a section
+"** Section" and a note "*** Note" with a short list: 30,000 headings,
+80,000 lines (eight a chapter).
+
+Open:   chezweb dem-headings.org
+
+Times measured in the cloud are given: some keys here are slower than
+they should be, and C-c C-j is over the 2 s limit.  Note yours.
+
+1. TAB                   on "* Chapter 00001"  Expect: its section and note
+                         folded (0.3 s in the cloud).
+2. TAB  TAB              Expect: unfolded, folded (0.3 to 0.4 s each).
+3. C-c C-n  ×5           Expect: the next heading each time (0.7 s each in
+                         the cloud: slow for one heading).
+4. C-c C-j               (org-goto) Expect: a list of the headings to choose
+                         from (2.6 s in the cloud: over the limit);
+                         choose Chapter 05000.
+5. M-g 50000 RET         Expect: the line "- two" under "*** Note 06250.1.1",
+                         at once.
+6. C-c C-u               (outline-up-heading: the cursor is under
+                         "*** Note 06250.1.1", and goes to the heading
+                         that holds it) Expect: "** Section 06250.1"
+                         (0.7 s in the cloud).
+7. C-c C-u               Expect: "* Chapter 06250".
+8. C-c C-u               Expect: "No parent heading" in the echo area, and
+                         no move: a chapter has no heading above it.
+9. M->  C-c C-p          Expect: the last heading, at once.
+10. C-x k RET.

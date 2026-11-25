@@ -1,0 +1,25 @@
+dem-unicode.gls -- dem-unicode.txt
+
+The file: 2,000 lines, each of twelve pieces among: e + combining acute;
+a + two combining accents; Greek with a combining iota; a family emoji
+(three emoji joined by ZWJ); a flag (two regional letters); 中文; 한글;
+a heart with a variation selector; a tab; each followed by x.  The pieces
+shift by one on each line, so every kind falls at every column.
+
+Open:   chezweb dem-unicode.txt
+
+1. C-f and C-b (or the arrows) across a line
+   Expect: one press for each thing drawn as one character: a letter
+   with its accents, the family (three emoji joined), the flag (two
+   regional letters), the heart with its variation selector.  The
+   cursor never stops inside one of them.
+1b. Before a flag, C-f, then type z, then C-/
+   Expect: the z after the whole flag, never between its two letters;
+   C-/ takes it away.
+2. C-n and C-p down and up 30 lines, at several columns
+   Expect: the cursor on the screen where the character is.
+3. C-e on long lines     Expect: the cursor at the end of the row, never
+                         past the window's edge.
+4. Typing in the middle of a line, then DEL
+   Expect: the line as it was.
+5. C-x k RET, then "y" if asked.

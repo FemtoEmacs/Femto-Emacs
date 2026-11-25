@@ -276,10 +276,10 @@ after \"2. eggs\", \"> \" after a quotation.  Two values; the second is
 ;; The columns of the UTF-8 character of BYTES bytes at POS: 0 for a
 ;; combining accent, 2 for a wide character (CJK, emoji), else 1 -- the C
 ;; core's table (src/width.c), so that the rows wrap where it draws them.
-(define (markdown-char-width text pos bytes size)
-  (if (or (< bytes 2) (> (+ pos bytes) size)) 1
+(define (markdown-code-point text pos bytes size)
+  (if (or (< bytes 2) (> (+ pos bytes) size)) -1
       (let ((lead (aref text pos)) (b1 (logand (aref text (+ pos 1)) 63)))
-        (fe-char-width
+        (begin
          (cond ((= bytes 2) (+ (* 64 (logand lead 31)) b1))
                ((= bytes 3) (+ (* 4096 (logand lead 15))
                                (+ (* 64 b1) (logand (aref text (+ pos 2)) 63))))
@@ -291,16 +291,17 @@ after \"2. eggs\", \"> \" after a quotation.  Two values; the second is
 (define (markdown-wrap-end text columns)
   "Bytes in one visual row: words are kept together where they fit.  Tabs
 use eight-column stops; a character takes the columns the C core gives it
-(markdown-char-width): accents none, wide characters two."
+(fe-cluster-width): accents none, wide characters two."
   (let ((size (length text)))
-    (let loop ((pos 0) (column 0) (boundary #f))
+    (let loop ((pos 0) (column 0) (boundary #f) (prev 0))
       (if (>= pos size) pos
           (let* ((byte (aref text pos))
                  (bytes (cond ((and (<= #xC2 byte) (<= byte #xDF)) 2) ((and (<= #xE0 byte) (<= byte #xEF)) 3) ((and (<= #xF0 byte) (<= byte #xF4)) 4) (else 1)))
+                 (cp (if (>= byte #xC2) (markdown-code-point text pos bytes size) 0))
                  (width (cond ((= byte 13) 0)
                               ((= byte 9) (- 8 (modulo column 8)))
                               ((or (< byte 32) (= byte 127)) 2)
-                              ((>= byte #xC2) (markdown-char-width text pos bytes size))
+                              ((>= byte #xC2) (if (< cp 0) 1 (fe-cluster-width prev cp)))
                               (else 1))))
             (cond ((= byte 10) (+ pos 1))
                   ((> (+ column width) columns)
@@ -309,7 +310,7 @@ use eight-column stops; a character takes the columns the C core gives it
                        (or boundary (if (> pos 0) pos (min size bytes)))))
                   (else
                    (let ((next (+ pos (min bytes (- size pos)))))
-                     (loop next (+ column width) (if (memv byte '(9 32)) next boundary))))))))))
+                     (loop next (+ column width) (if (memv byte '(9 32)) next boundary) cp)))))))))
 
 ;; Prose wraps at word boundaries, like Emacs's visual-line-mode: Markdown,
 ;; TeX and plain-text files.  M-x toggle-word-wrap switches it per file.

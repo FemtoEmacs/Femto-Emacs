@@ -338,6 +338,11 @@ check-accent-motion: chezemax chezemax.wasm chezemax.cwasm
 	sh tests/accent-motion.sh
 check: check-accent-motion
 
+.PHONY: check-cluster-motion
+check-cluster-motion: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/cluster-motion.sh
+check: check-cluster-motion
+
 # The speed of the commands on a small and a large file: a few minutes,
 # so not part of make check (tests/speed.sh)
 .PHONY: check-speed

@@ -1,0 +1,22 @@
+dem-long-list.gls -- dem-long-list.scm
+
+The file: (define before-list 1), then (define big-list (quote ( ... )))
+whose list has 100,000 lines of (item NNNNNN "ção € 😀" #\x 3.14 (nested
+(deeper N))), then (define after-list 2).  6.8 MB, well closed.
+
+Open:   chezweb dem-long-list.scm
+
+1. C-n  C-M-f            from the start of line 2
+   Expect: the cursor after ")))" at the end of big-list, within 2 s.
+2. C-M-b                 Expect: back at the start of line 2, within 2 s.
+3. M-g 50003 RET  C-M-f
+                         Expect: the cursor after that (item ...), at once.
+4. C-M-u                 Expect: the cursor on the ( that opens the list
+                         of items (line 3), within 2 s.
+5. C-M-SPC               mark-sexp, then M-w
+                         Expect: "Copied ..." (6.8 MB), within 2 s.
+6. M->  C-y              Expect: 6.8 MB yanked at the end, within 2 s.
+7. C-/                   Expect: the yank undone, within 2 s.
+8. M-x indent-region on a small region only (C-SPC, C-n C-n C-n, C-M-\)
+                         Expect: the three lines indented, at once.
+9. C-x k RET, then "y": do not save.

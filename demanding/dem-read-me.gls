@@ -1,0 +1,57 @@
+dem-read-me.gls -- how to use the demanding files
+
+The files dem-* of this folder are made to strain Chezweb: very large
+files, very long lines, deep and long s-expressions, files read in shards,
+lists and paragraphs to refill, text that is not valid UTF-8.  Each file
+dem-NAME.EXT has its guidelines in dem-NAME.gls: what the file is, the
+keys to type, and what must happen.
+
+1. Making the files.  They are not kept: make them, and make them again
+   after a test saved over one.
+     cd demanding             (from the Chezweb source folder)
+     sh dem-make.sh            (about 175 MB, seconds)
+     sh dem-make.sh huge       (also dem-huge.txt, 1.28 GB)
+     sh dem-make.sh clean      (removes them; the .gls stay)
+
+2. Opening a file.  From this folder:
+     chezweb dem-search.txt
+   or, inside Chezweb, C-x C-f and the file's name.
+
+3. Measuring.  What "at once" means here: each key within 2 seconds,
+   command and display together.  The backdoor measures every key:
+     a. once: make ~/.chezemax/backdoor-claude.conf hold these lines
+          time
+          repeats keep
+          lines 5000
+     b. in Chezweb, before the keys of a test: M-x backdoor-claude RET
+        (the mode line shows B/D)
+     c. the keys of the test
+     d. M-x backdoor-claude RET again
+     e. ~/.chezemax/backdoor.txt has a line a key, ending
+          | 1102.6 ms: command 1100.4, display 2.2
+        Send it to Claude when something is slow or wrong.
+
+4. Keys.  C-x is Control-x; M-x is Esc then x (or Option-x); RET is
+   Return.  "C-x C-f dem-search.txt RET" means: Control-x, Control-f,
+   type the name, Return.
+
+5. Never save over a file you care about: these files are made to be
+   thrown away.  To keep a result, C-x C-w with a new name.
+
+The guidelines:
+  dem-open-parens.gls         10 MB of ( on one line, never closed
+  dem-open-parens-lines.gls   100,000 lines of (, never closed
+  dem-deep-sexp.gls           one s-expression 20,000 levels deep
+  dem-long-list.gls           one list of 100,000 lines (6.8 MB)
+  dem-minified.gls            one line of 5 MB of JSON
+  dem-wide-line.gls           a line of 35 MB of wide characters; shards
+  dem-search.gls              C-s, C-r and M-% over 52 MB
+  dem-replace.gls             M-% of 100,000 occurrences, and C-/
+  dem-replace-line.gls        the same on one line
+  dem-paragraph.gls           M-q on 50,000 words
+  dem-list.gls                M-q in nested Markdown and Org lists
+  dem-headings.gls            30,000 Org headings: folding, C-c C-j
+  dem-malformed.gls           NUL bytes and bytes that are not UTF-8
+  dem-unicode.gls             combining accents, emoji, flags, CJK, tabs
+  dem-clipboard.gls           pasting 24 MB from the system clipboard
+  dem-huge.gls                1.28 GB: C-x C-f opens it in shards

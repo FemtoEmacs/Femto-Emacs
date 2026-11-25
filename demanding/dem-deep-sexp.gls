@@ -1,0 +1,25 @@
+dem-deep-sexp.gls -- dem-deep-sexp.scm
+
+The file: (define deep, then 20,000 lines "(level-NNNNN "ção" N" each
+opening one level, then one line of 20,001 ) that closes them all, then
+(define after-deep 42).  So the first s-expression is 20,000 levels deep
+and well closed.
+
+Open:   chezweb dem-deep-sexp.scm
+
+1. C-M-f                 at the start
+   Expect: the cursor after the last ) of the long line, before
+   (define after-deep 42), within 2 s.
+2. C-M-b                 Expect: back at the start, within 2 s.
+3. M-g 10001 RET  C-M-u
+                         (backward-up-list) Expect: the cursor on the (
+                         of line 10000, at once.
+4. C-M-f                 from that ( Expect: the cursor after its matching
+                         ) in the long line, within 2 s.
+5. M-g 3 RET  TAB      Expect: the line indented under (level-00001,
+                         at once (indentation reads only what it needs).
+6. C-/                   Expect: the indentation undone.
+7. M->  C-M-b  C-M-b     Expect: (define after-deep 42) then the whole
+                         (define deep ...) selected by motion: the cursor at
+                         the start of the file, within 2 s each.
+8. C-x k RET, then "y" if asked: do not save.
