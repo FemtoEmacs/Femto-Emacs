@@ -352,6 +352,11 @@ check-accent-motion: chezemax chezemax.wasm chezemax.cwasm
 	sh tests/accent-motion.sh
 check: check-accent-motion
 
+.PHONY: check-cluster-motion
+check-cluster-motion: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/cluster-motion.sh
+check: check-cluster-motion
+
 .PHONY: check-shards
 check-shards: chezemax chezemax.wasm chezemax.cwasm
 	sh tests/shards.sh

@@ -1,0 +1,19 @@
+dem-malformed.gls -- dem-malformed.txt
+
+The file: 1 MB of a block of bytes that is not valid text, repeated:
+  abc NUL def, ED A0 80 and ED B0 80 (UTF-16 surrogates written as UTF-8),
+  FF FE (bytes no UTF-8 has), C0 80 (an overlong NUL), 80 (a lone
+  continuation byte), ção, E2 82 (a character cut short), newline.
+
+Open:   chezweb dem-malformed.txt
+
+1. Expect: the text drawn without stopping at the NUL (shown as ^@) and
+   without breaking the rows; the bad bytes drawn one by one.
+2. C-f  ×20  C-b ×20     Expect: no stop between the bytes of ç or ã.
+3. M->  M-<              Expect: at once.
+4. C-x h  C-w  C-y       Expect: everything cut and yanked back, NUL bytes
+                         included.
+5. C-x C-w /tmp/dem-malformed-copy.txt RET
+     cmp dem-malformed.txt /tmp/dem-malformed-copy.txt
+   Expect: no output: every byte kept.
+6. C-x k RET.

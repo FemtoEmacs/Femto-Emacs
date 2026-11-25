@@ -502,6 +502,11 @@ static value_t wrap_fe_char_width(value_t *a, uint32_t n) {
  argcount("fe_char_width", n, 1);
  return fixnum(fe_char_width(tofixnum(a[0], "fe_char_width")));
 }
+extern int fe_cluster_width(long prev, long cp);
+static value_t wrap_fe_cluster_width(value_t *a, uint32_t n) {
+ argcount("fe_cluster_width", n, 2);
+ return fixnum(fe_cluster_width(tofixnum(a[0], "fe_cluster_width"), tofixnum(a[1], "fe_cluster_width")));
+}
 extern char * fe_term_open(void);
 static value_t wrap_fe_term_open(value_t *a, uint32_t n) {
  argcount("fe_term_open", n, 0);
@@ -750,6 +755,7 @@ static builtinspec_t editor_builtins[] = {
  {"fe-narrow-start", wrap_fe_narrow_start},
  {"fe-narrow-end", wrap_fe_narrow_end},
  {"fe-char-width", wrap_fe_char_width},
+ {"fe-cluster-width", wrap_fe_cluster_width},
  {"fe-message", wrap_fe_message},
  {"fe-clear-message-line", wrap_fe_clear_message_line},
  {"fe-log-debug", wrap_fe_log_debug},

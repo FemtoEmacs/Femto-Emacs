@@ -1,0 +1,28 @@
+dem-huge.gls -- dem-huge.txt (made by: sh dem-make.sh huge)
+
+The file: 18,000,000 lines "huge NNNNNNNN: ção € 😀 a line of a file of
+more than a gigabyte" (1.28 GB): above the 1 GB at which C-x C-f opens a
+file in shards of 16 MB by itself.
+
+Open:   chezweb, then C-x C-f dem-huge.txt RET
+1. Expect: "Shard 1/77", within some seconds (the index is built in
+   one pass); the mode line shows [1/77].
+2. C-c C-v n  C-c C-v p  Expect: the next shard and back, within 1 s each.
+3. C-c C-v g 40 RET      Expect: shard 40.
+4. M-g 17999999 RET    Expect: that line, in the last shard.
+5. Searching across shards.  C-s searches only the shard on screen;
+   when it fails there, C-s once more searches the shards AFTER it,
+   never the ones before (it does not wrap around to shard 1).
+   a. C-c C-v g 40 RET, then C-s huge 17999990 (do not press RET)
+      Expect: "Failing Search forward: huge 17999990" (it is in the last shard).
+      Press C-s again.
+      Expect: "Searching shard 41/77...", up to 77/77, then the cursor
+      just after "huge 17999990", in the last shard.  RET ends the search.
+   b. From there, C-s huge 00000001, then C-s again
+      Expect: still failing, at once: that line is in shard 1, before
+      the last, and there are no shards after the last.  C-g returns
+      the cursor to where the search started.
+6. C-c C-v [  then  XYZ  then  C-x C-s
+   Expect: the whole file written again with XYZ at its start, within a
+   minute; then in a terminal:  head -c 20 dem-huge.txt
+7. Make it again afterwards:  sh dem-make.sh huge

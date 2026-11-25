@@ -26,13 +26,15 @@ extern void web_layer_update(void);
 
 #define MAX_FACE 16
 
-/* one cell as the page reads it: 4 int32 words */
+/* one cell as the page reads it: 10 int32 words (web/page.js, CELL) */
+#define NMARK 6         /* 👨‍👩‍👧: the man, then four more */
 typedef struct {
 	int cp;         /* Unicode code point, 0 = blank, -1 = the right half
 	                   of the wide character in the cell before */
 	int fg, bg;     /* 24-bit colours, resolved */
 	int style;      /* 1 bold, 2 italic, 4 underline */
-	int mark[2];    /* combining accents drawn with cp (width.c), 0 = none */
+	int mark[NMARK];/* drawn with cp, 0 = none: combining accents (width.c),
+	                   and the rest of an emoji sequence */
 } cell_t;
 
 static int active = 0;
@@ -176,7 +178,7 @@ static void resize_grid(int r, int c)
 static void blank(int i)
 {
 	grid[i].cp = 0;
-	grid[i].mark[0] = grid[i].mark[1] = 0;
+	memset(grid[i].mark, 0, sizeof grid[i].mark);
 	faces[i] = (unsigned char) cur_face;
 	reversed[i] = 0;
 }
@@ -209,38 +211,83 @@ static void advance(void)
 	}
 }
 
+/* the index of the cell of the character before the cursor, or -1 at a
+ * row's start */
+static int cell_before(void)
+{
+	int row = cur_row * cols, k;
+	if (cur_col == 0) return -1;
+	k = row + cur_col - 1;
+	if (grid[k].cp == -1 && k > row) k--;
+	return k;
+}
+
+static void add_mark(int k, int cp)
+{
+	int m;
+	for (m = 0; m < NMARK; m++)
+		if (grid[k].mark[m] == 0) { grid[k].mark[m] = cp; return; }
+}
+
+/* the cell at the cursor becomes the right half of the one before */
+static void tail_here(int reverse)
+{
+	int i = cur_row * cols + cur_col;
+	grid[i].cp = -1;
+	memset(grid[i].mark, 0, sizeof grid[i].mark);
+	faces[i] = (unsigned char) cur_face;
+	reversed[i] = (unsigned char) reverse;
+	advance();
+}
+
+static int regional(int cp) { return cp >= 0x1F1E6 && cp <= 0x1F1FF; }
+
 /*
  * A character into the cell at the cursor.  A combining accent (width 0)
  * joins the character in the cell before; a wide one (width 2) also takes
  * the next cell, marked -1, on the same row (display.c never starts one
- * in the last column).
+ * in the last column).  An emoji sequence is one picture in two cells, as
+ * display.c counts it (screen_clusters, cluster_cell_width), and as gui.c
+ * draws it: the selector U+FE0F widens the heart before it to two cells;
+ * an emoji after U+200D joins the one before (the family); a second
+ * regional letter joins the first, and the flag takes two cells.
  */
+static int joining = 0;         /* the character before was U+200D */
+
 static void put(int cp, int reverse)
 {
-	int i = cur_row * cols + cur_col;
+	int i = cur_row * cols + cur_col, before = cell_before();
 	int width = cp >= 0x300 ? char_width((unsigned long) cp) : 1;
+	int join = joining;
 
+	joining = 0;
+	if (before >= 0 && join && width == 2) { add_mark(before, cp); dirty = 1; return; }
+	if (before >= 0 && cp == 0xFE0F) {
+		add_mark(before, cp);
+		if (before == i - 1 && grid[before].cp > 0 && char_width((unsigned long) grid[before].cp) == 1)
+			tail_here(reverse);
+		dirty = 1;
+		return;
+	}
+	if (before >= 0 && regional(cp) && before == i - 1 && regional(grid[before].cp) &&
+	    grid[before].mark[0] == 0) {
+		add_mark(before, cp);
+		tail_here(reverse);
+		dirty = 1;
+		return;
+	}
 	if (width == 0) {
-		int k = cur_col > 0 ? i - 1 : i;
-		if (grid[k].cp == -1 && k % cols > 0) k--;
-		if (grid[k].mark[0] == 0) grid[k].mark[0] = cp;
-		else if (grid[k].mark[1] == 0) grid[k].mark[1] = cp;
+		add_mark(before >= 0 ? before : i, cp);
+		joining = cp == 0x200D;
 		dirty = 1;
 		return;
 	}
 	grid[i].cp = cp;
-	grid[i].mark[0] = grid[i].mark[1] = 0;
+	memset(grid[i].mark, 0, sizeof grid[i].mark);
 	faces[i] = (unsigned char) cur_face;
 	reversed[i] = (unsigned char) reverse;
 	advance();
-	if (width == 2 && cur_col > 0) {
-		i = cur_row * cols + cur_col;
-		grid[i].cp = -1;
-		grid[i].mark[0] = grid[i].mark[1] = 0;
-		faces[i] = (unsigned char) cur_face;
-		reversed[i] = (unsigned char) reverse;
-		advance();
-	}
+	if (width == 2 && cur_col > 0) tail_here(reverse);
 	dirty = 1;
 }
 
@@ -569,6 +616,7 @@ int screen_init(int mouse)
 	int i;
 
 	(void) mouse;
+	screen_clusters = 1;            /* display.c: emoji sequences in two cells */
 	for (i = 0; i <= MAX_FACE; i++) { face_fg[i] = -1; face_bg[i] = -1; face_attr[i] = 0; }
 	resize_grid(web_rows(), web_cols());
 	active = 1;

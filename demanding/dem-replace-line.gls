@@ -1,0 +1,16 @@
+dem-replace-line.gls -- dem-replace-line.txt
+
+The file: one line of 100,000 "NNNNNN foo " (1.1 MB).  It is wrapped at
+the window's edge (a line of 64 KB or more is not wrapped at words).
+
+Open:   chezweb dem-replace-line.txt
+
+1. M-% foo RET barbaz RET !
+   Expect: "100000 substitutions", and the display after it, within
+   0.5 s (the display alone took 188 s before 22 November 2026).
+2. C-/                   Expect: the text as it was, within 0.5 s.
+3. M-% foo RET x RET !   Expect: within 0.5 s.
+4. C-x C-w /tmp/dem-replace-line-x.txt RET
+     sed s/foo/x/g dem-replace-line.txt | cmp - /tmp/dem-replace-line-x.txt
+   Expect: no output.
+5. C-x k RET.

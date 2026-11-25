@@ -191,12 +191,15 @@ static void long_row_seen(buffer_t *bp, point_t start, point_t row, int words)
  * character as ^X, a combining accent none (it is drawn on the character
  * before it), a wide character (CJK, emoji) two -- width.c.
  */
+static int cluster_cell_width(buffer_t *bp, point_t off);
+
 static int cell_width(buffer_t *bp, point_t off, int col)
 {
 	char_t c = *ptr(bp, off);
 
 	if (c == '\t') return 8 - (col & 7);
-	if (c >= 0xC0 && utf8_size(c) > 1) return char_width(code_point_at(bp, off));
+	if (c >= 0xC0 && utf8_size(c) > 1)
+		return screen_clusters ? cluster_cell_width(bp, off) : char_width(code_point_at(bp, off));
 	if (isprint(c) || c == '\n') return 1;
 	return (int) strlen(screen_unctrl(c));
 }
@@ -208,14 +211,89 @@ static int crosses_edge(buffer_t *bp, point_t off, int col, int width)
 	return col > 0 && width > 1 && col + width > pane_cols() && *ptr(bp, off) >= 0xC0;
 }
 
-/* After a cursor column was reached: the combining accents of the
- * character before belong to it, so the cursor goes past them */
+/* The offset where the character before OFF starts (OFF > 0) */
+static point_t char_before(buffer_t *bp, point_t off)
+{
+	point_t p = off - 1;
+	int k;
+	for (k = 0; k < 3 && p > 0 && (*ptr(bp, p) & 0xC0) == 0x80; k++) p--;
+	return p;
+}
+
+static int regional_at(buffer_t *bp, point_t off)
+{
+	unsigned long cp;
+	if (off >= document_size(bp) || *ptr(bp, off) < 0xC0) return 0;
+	cp = code_point_at(bp, off);
+	return cp >= 0x1F1E6 && cp <= 0x1F1FF;
+}
+
+/*
+ * Does a character start at OFF that the cursor may stand before?  Not
+ * inside what is drawn as one character (Unicode's grapheme clusters, for
+ * the cases a text has): a letter and its combining accents (e + U+0301);
+ * an emoji and its variation selector (U+FE0F, the red heart); emoji
+ * joined by U+200D (the family 👨‍👩‍👧); a flag, two regional letters (🇧🇷),
+ * paired from the start of their run.  Typing inside a flag split it into
+ * two letters (Eduardo, dem-unicode.txt, 25 November 2026).
+ */
+int cluster_boundary(buffer_t *bp, point_t off)
+{
+	point_t size = document_size(bp), q;
+	char_t *p;
+	int run;
+
+	if (off <= 0 || off >= size) return 1;
+	p = ptr(bp, off);
+	if (*p < 0xC0) return 1;                        /* ASCII, a newline */
+	if (char_width(code_point_at(bp, off)) == 0) return 0;   /* an accent */
+	q = char_before(bp, off);
+	if (*ptr(bp, q) >= 0xC0 && code_point_at(bp, q) == 0x200D) return 0;  /* joined */
+	if (!regional_at(bp, off)) return 1;
+	/* a flag: the regional letters before, back to the start of their run
+	   (at most 256: a run longer than that is no text) */
+	for (run = 0; run < 256 && q >= 0 && regional_at(bp, q); run++) {
+		if (q == 0) { run++; break; }
+		q = char_before(bp, q);
+	}
+	return run % 2 == 0;
+}
+
+/*
+ * The window and the browser draw an emoji sequence as one picture in
+ * two cells (screen_clusters, set by gui.c and web/screen.c): the red
+ * heart (U+2764 U+FE0F), a flag (two regional letters), a family (emoji
+ * joined by U+200D).  So the first character of the sequence takes two
+ * cells and the rest none.  The terminal draws them as it can (term.c):
+ * one column for the heart, one for each regional letter, two for each
+ * joined emoji.
+ */
+int screen_clusters = 0;
+
+static int cluster_cell_width(buffer_t *bp, point_t off)
+{
+	unsigned long cp = code_point_at(bp, off);
+	int w = char_width(cp);
+	point_t size = document_size(bp), next;
+
+	if (!cluster_boundary(bp, off)) return 0;      /* drawn with the one before */
+	next = off + utf8_size(*ptr(bp, off));
+	if (next < size && *ptr(bp, next) >= 0xC0) {
+		unsigned long n = code_point_at(bp, next);
+		if (w == 1 && n == 0xFE0F) return 2;          /* the emoji, not the text */
+		if (regional_at(bp, off) && regional_at(bp, next)) return 2;   /* a flag */
+	}
+	return w;
+}
+
+/* After a cursor column was reached: what is drawn with the character
+ * before (accents, joined emoji, a flag's second letter) belongs to it, so
+ * the cursor goes past it */
 static point_t past_accents(buffer_t *bp, point_t off, point_t end)
 {
 	char_t *p;
 
-	while (off < end && (p = ptr(bp, off)) < bp->b_ebuf && *p >= 0xC0 &&
-	       char_width(code_point_at(bp, off)) == 0)
+	while (off < end && (p = ptr(bp, off)) < bp->b_ebuf && !cluster_boundary(bp, off))
 		off += utf8_size(*p);
 	return off;
 }

@@ -1,0 +1,18 @@
+dem-clipboard.gls -- dem-clipboard.txt
+
+The file: 400,000 lines "row NNNNNN that another program copied, ção 中文
+😀.." (24 MB), to put on the system clipboard as another program would.
+
+1. In a terminal:   pbcopy < dem-clipboard.txt
+2. chezweb /tmp/dem-empty.txt     (a new, empty file)
+3. C-y                   Expect: 24 MB inserted, within 2 s; nothing cut.
+4. C-x C-s, then in the terminal:
+     cmp dem-clipboard.txt /tmp/dem-empty.txt
+   Expect: no output.
+5. C-x h  C-w  C-y       Expect: the 24 MB cut and yanked back, within 2 s
+                         each; C-y inserts the cut, not the clipboard read
+                         back.
+6. Then, in the terminal:   echo "something else" | pbcopy
+   and in Chezweb:  C-y
+   Expect: "something else" inserted: another program's copy is taken in.
+7. C-x k RET, then "y".

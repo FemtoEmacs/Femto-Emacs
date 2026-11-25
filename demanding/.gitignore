@@ -1,0 +1,6 @@
+# Disposable fixtures created by dem-make.sh for human tests.
+/dem-*.txt
+/dem-*.scm
+/dem-*.json
+/dem-*.md
+/dem-*.org

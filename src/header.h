@@ -26,7 +26,7 @@
 #define FALSE 0
 #endif
 
-#define VERSION	 "Chezweb 1.19, compiled Scheme (femtoscheme compatibility core), Public Domain"
+#define VERSION	 "Chezweb 1.20, compiled Scheme (femtoscheme compatibility core), Public Domain"
 #define EXIT_OK         0               /* Success */
 #define EXIT_ERROR      1               /* Unknown error. */
 #define EXIT_USAGE      2               /* Usage */
@@ -310,6 +310,8 @@ extern point_t movegap(buffer_t *, point_t);
 extern point_t pos(buffer_t *, char_t *);
 extern char_t *ptr(buffer_t *, point_t);
 extern int accent_at(buffer_t *, point_t);  /* display.c */
+extern int cluster_boundary(buffer_t *, point_t);  /* display.c */
+extern int screen_clusters;      /* display.c: the front end draws emoji sequences in two cells */
 extern int utf8_fix;             /* command.c: M-x toggle-utf8-fix */
 extern int check_mode;           /* check.c: CHEZWEB_CHECK=1, the invariants after every key */
 extern void editor_check(int shown);

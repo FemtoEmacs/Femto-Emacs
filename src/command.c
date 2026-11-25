@@ -93,7 +93,9 @@ void right()
 
 /*
  * The commands C-b, C-f and the arrows (key.c): a letter and the combining
- * accents after it are one press, as in Emacs, whose command loop takes
+ * accents after it are one press, and so are a flag, joined emoji and an
+ * emoji with its variation selector (cluster_boundary, display.c), as in
+ * Emacs, whose command loop takes
  * point out of such a group after a command (e + U+0301); backspace and
  * C-d still delete one code point, so an accent can be removed alone.
  * With M-x toggle-utf8-fix off, they stop between the letter and the
@@ -102,14 +104,15 @@ void right()
 void backward_character()
 {
 	left();
-	while (utf8_fix && 0 < curbp->b_point && accent_at(curbp, curbp->b_point))
+	while (utf8_fix && 0 < curbp->b_point && !cluster_boundary(curbp, curbp->b_point))
 		left();
 }
 
 void forward_character()
 {
 	right();
-	while (utf8_fix && accent_at(curbp, curbp->b_point))
+	while (utf8_fix && curbp->b_point < document_size(curbp) &&
+	       !cluster_boundary(curbp, curbp->b_point))
 		right();
 }
 
@@ -335,12 +338,17 @@ void move_end_of_line(void)
 
 void lnend()
 {
-	point_t next = dndn(curbp, curbp->b_point);
+	point_t from = curbp->b_point;
+	point_t next = dndn(curbp, from);
 
 	curbp->b_point = next;
 	/* on the last line of a file without a final newline, dndn() stops at
-	   the end of the buffer, which already is the end of the line */
-	if (next < document_size(curbp) || (next > 0 && *ptr(curbp, next - 1) == '\n'))
+	   the end of the buffer, which already is the end of the line.  So it
+	   does on the empty line after a final newline: there the cursor is at
+	   the end already, and stays (it went back to the end of the line
+	   before; Eduardo, dem-open-parens.scm, 25 November 2026) */
+	if (next < document_size(curbp) ||
+	    (next > from && *ptr(curbp, next - 1) == '\n'))
 		left();
 }
 

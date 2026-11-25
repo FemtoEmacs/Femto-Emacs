@@ -1,0 +1,16 @@
+dem-list.gls -- dem-list.md and dem-list.org
+
+The files: 12,000 list items "- item N, at depth D, with a line long
+enough ...", eight levels deep (two spaces a level); the .org one under a
+heading.
+
+Open:   chezweb dem-list.md   (then the same with dem-list.org)
+
+1. M-q                   on the first item  Expect: that item refilled
+                         into two or three lines under its "- ", within
+                         0.5 s; the other items untouched.
+2. M->  C-p C-p  M-q     Expect: the same for an item at the end.
+3. M-<  C-n ×7  M-q      (the deepest item, depth 7)  Expect: refilled
+                         under its own indentation.
+4. M-q again             Expect: nothing changes.
+5. C-x k RET, then "y": do not save.
