@@ -2,7 +2,7 @@
 Chezweb is a simpler implementation of Emacs, where simpler means fewer
 features, but also means it's easier to learn and install.
 
-The current version is [Chezweb 1.20](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/v1.20).
+The current version is [Chezweb 1.21](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/v1.21).
 
 ## Installation on Silicon macOS
 There is no macOS installer yet. On the Mac, you build Chezweb from
@@ -13,9 +13,9 @@ The same steps work on Intel Macs.
 ## Installation on Linux
 On Ubuntu (22.04 or later) and Debian (12 or later), download the
 installer for your processor:
-[Chezweb 1.20 for Linux AMD64 (Intel/AMD) (chezweb_amd64.deb)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.20/chezweb_amd64.deb)
+[Chezweb 1.21 for Linux AMD64 (Intel/AMD) (chezweb_amd64.deb)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.21/chezweb_amd64.deb)
 for Intel and AMD, or
-[Chezweb 1.20 for Linux ARM64 (chezweb_arm64.deb)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.20/chezweb_arm64.deb)
+[Chezweb 1.21 for Linux ARM64 (chezweb_arm64.deb)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.21/chezweb_arm64.deb)
 for ARM (`dpkg --print-architecture` says which). Then, in the folder
 where it is:
 
@@ -28,23 +28,23 @@ makes the machine code for your processor, which takes about half a
 minute. Then `chezweb notes.md` opens the editor in the terminal, in any
 folder, and **Chezweb** in the applications menu opens it in a window.
 `sudo apt remove chezweb` removes it. The
-[release page](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/v1.20)
+[release page](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/v1.21)
 has the checksums. On other distributions, build from the sources, as
 explained in [Building from sources](#building-from-sources).
 
 ## Installation on Windows
 
-[Download Chezweb 1.20 for Windows x86-64 (Setup.exe)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.20/Chezweb-Windows-x86_64-Setup.exe)
+[Download Chezweb 1.21 for Windows x86-64 (Setup.exe)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.21/Chezweb-Windows-x86_64-Setup.exe)
 
-Built from the maintained Windows branch for Chezweb 1.20. [Release notes, checksums, and matching sources](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/v1.20)
+Built from the maintained Windows branch for Chezweb 1.21. [Release notes, checksums, and matching sources](https://github.com/FemtoEmacs/Femto-Emacs/releases/tag/v1.21)
 
 Run the installer to add **Chezweb**, **Chezweb GUI**, and **Uninstall**
 to your Start menu. It installs for your account and bundles Cygwin and
 the tools it needs. The browser editor uses Google Chrome.
 
 ## Building from sources
-The [Chezweb 1.20 source archive (tar.gz)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.20/Chezweb-1.20-source.tar.gz)
-and [Chezweb 1.20 source archive (zip)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.20/Chezweb-1.20-source.zip)
+The [Chezweb 1.21 source archive (tar.gz)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.21/Chezweb-1.21-source.tar.gz)
+and [Chezweb 1.21 source archive (zip)](https://github.com/FemtoEmacs/Femto-Emacs/releases/download/v1.21/Chezweb-1.21-source.zip)
 contain the same portable sources for Apple Silicon and Intel Macs. Extract
 either archive and run `make` in its folder, or clone as below.
 
@@ -152,6 +152,20 @@ all four full experiments. Official descriptions:
 [AddressSanitizer](https://clang.llvm.org/docs/AddressSanitizer.html),
 [UndefinedBehaviorSanitizer](https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html),
 [LeakSanitizer](https://clang.llvm.org/docs/LeakSanitizer.html).
+
+## Auto-save and backups
+
+The native editor keeps numbered backups in `~/.chezemax/backup` on the
+first save of an eligible file in each session. Temporary files are excluded;
+backups that require copying rather than a hard link are limited to 10 MB.
+Unsaved changes in eligible files up
+to 10 MB are auto-saved in `~/.chezemax/auto-save` after 30 seconds without a
+key or every 300 keys. `M-x recover-file` restores an auto-save into the
+buffer; save normally to keep the recovered text in the file. Large files
+and files in shards are not auto-saved: `**` marks their unsaved changes.
+The browser keeps its existing save mechanism. See the human
+[auto-save guide](demanding/dem-autosave.gls) and
+[backup guide](demanding/dem-backup.gls), or C-h in the editor.
 
 ## Human demanding tests
 

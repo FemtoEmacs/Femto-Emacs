@@ -1172,7 +1172,8 @@ void modeline(window_t *wp)
 	och = ((wp->w_bufp->b_flags & B_OVERWRITE) ? 'O' : lch);
 
 	/*
-	 * a * after the name: modified; [overwrite]: overwrite mode.  A
+	 * a * after the name: modified (**: and not auto-saved, backup.c);
+	 * [overwrite]: overwrite mode.  A
 	 * buffer with a hint of its own (the assistants' windows) shows
 	 * only that, to stay short:
 	 *   SBEmacs: *discussion*, L. 8 == C-c r send; C-c t code-tangle
@@ -1187,7 +1188,8 @@ void modeline(window_t *wp)
 			| ((wp->w_bufp->b_flags & B_SPECIAL) ? 8 : 0)
 			| ((wp->w_bufp->b_flags & B_READONLY) ? 16 : 0)
 			| (backdoor_on ? 32 : 0)
-			| (wp->w_bufp->b_narrowed ? 64 : 0);   /* narrow.c */
+			| (wp->w_bufp->b_narrowed ? 64 : 0)   /* narrow.c */
+			| (autosave_unprotected(wp->w_bufp) ? 512 : 0);  /* backup.c: ** */
 		int ts = term_state(wp->w_bufp);       /* terminal.c */
 		if (ts == 1 || ts == 2) flags = (flags & ~16) | (ts == 2 ? 256 : 128);
 
@@ -1202,11 +1204,11 @@ void modeline(window_t *wp)
 	hint = buffer_hint(wp->w_bufp);
 	if (hint != NULL)
 		snprintf(modeline_buf, sizeof(modeline_buf), "Chezemax: %s%s%s, L. %d%s %c%c %s ",
-			 name, mch == '*' ? "*" : "", och == 'O' ? " [overwrite]" : "",
+			 name, mch == '*' ? (autosave_unprotected(wp->w_bufp) ? "**" : "*") : "", och == 'O' ? " [overwrite]" : "",
 			 (int) (line_number(wp->w_bufp, point) + wp->w_bufp->b_line_base), backdoor_on ? " B/D" : "", lch, lch, hint);
 	else
 		snprintf(modeline_buf, sizeof(modeline_buf), "Chezemax: %s %c%c %s%s%s, L. %d%s %c%c %s ",
-			 modeline_help, lch, lch, name, mch == '*' ? "*" : "",
+			 modeline_help, lch, lch, name, mch == '*' ? (autosave_unprotected(wp->w_bufp) ? "**" : "*") : "",
 			 och == 'O' ? " [overwrite]" : "",
 			 (int) (line_number(wp->w_bufp, point) + wp->w_bufp->b_line_base), backdoor_on ? " B/D" : "", lch, lch, modeline_tail);
 	/* too wide: "Ctrl-h" becomes "C-h", "Ctrl c r" "C-c r", then the end is cut */

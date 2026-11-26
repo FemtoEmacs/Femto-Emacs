@@ -1,0 +1,53 @@
+dem-backup.gls -- the safe save and the backups (dem-backup.txt,
+dem-backup-link.txt, dem-hard.txt, dem-hard-twin.txt)
+
+The files (made by sh dem-make.sh): dem-backup.txt, one line "version 1",
+readable by you and your group only (-rw-r-----); dem-backup-link.txt, a
+symbolic link to it; dem-hard.txt and dem-hard-twin.txt, two names of one
+file (a hard link).  The backups go to ~/.chezemax/backup, named by the
+file's whole path with / as !, so  ls ~/.chezemax/backup | grep dem-  finds
+them.  C-h, "Backups and auto-save", explains it all.
+
+Open:   chezweb dem-backup.txt
+
+1. Before anything, in a terminal in this folder:
+     ls -li dem-backup.txt
+   Note the number at the start (the file's inode) and -rw-r-----.
+2. M->  version 2  RET  C-x C-s
+   Expect: File "dem-backup.txt" ... bytes saved.  Then in the terminal:
+     ls -li dem-backup.txt        another inode number (the new text was
+                                  written beside it and renamed over it),
+                                  still -rw-r-----
+     ls -a | grep chezweb-        nothing: no temporary file left
+3. In the terminal:
+     ls ~/.chezemax/backup | grep dem-backup
+     cat ~/.chezemax/backup/*dem-backup.txt.~1~
+   Expect: one backup, .~1~, holding only "version 1 of dem-backup.txt".
+4. version 3  RET  C-x C-s, then  cat ~/.chezemax/backup/*dem-backup.txt.~1~
+   Expect: still only version 1: a session backs up a file once, at its
+   first save.
+5. C-x C-c, then again  chezweb dem-backup.txt,  M->  version 4  RET  C-x C-s
+   Expect, in the terminal:
+     cat ~/.chezemax/backup/*dem-backup.txt.~1~    versions 1, 2 and 3
+     cat ~/.chezemax/backup/*dem-backup.txt.~2~    version 1
+   Three are kept: .~1~ the newest, .~2~, .~3~.
+6. A symbolic link.  C-x C-c, then  chezweb dem-backup-link.txt
+   M->  through the link  RET  C-x C-s, then in the terminal:
+     ls -l dem-backup-link.txt     still -> dem-backup.txt (a link)
+     tail -1 dem-backup.txt        through the link
+7. A hard link.  C-x C-c, then  chezweb dem-hard.txt
+   M->  seen by the twin  RET  C-x C-s, then in the terminal:
+     cat dem-hard-twin.txt         the new line too: written in place, so
+                                   that both names keep one file
+     cat ~/.chezemax/backup/*dem-hard.txt.~1~     the old text, a copy
+8. In Chezweb:  C-x d ~/.chezemax/backup RET
+   Expect: the backups listed; RET on one opens it, as any file.  C-x k RET.
+9. M-x delete-old-backups RET  (it offers 30)  RET
+   Expect: "No backups to delete (N kept)": these are new.
+   M-x delete-old-backups RET  C-a C-k 0 RET
+   Expect: "Delete N backups for good, keep 0 (y/n) ?".  0 means ALL the
+   backups, those of your own files too: answer n unless you want that.
+10. C-x C-c, then  sh dem-make.sh  makes the files again.
+
+Not tried here: a real power cut.  What protects the file then is step 2:
+the old text stays whole until the new one is on the disk.

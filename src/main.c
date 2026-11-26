@@ -16,7 +16,8 @@ void editor_idle_poll(void)
  if (!editor_idle_wait) return;
  editor_idle_wait = 0;
  meters_tick();                       /* meters.c: $CHEZWEB_METERS_MS */
- changed = chezweb_poll();
+ changed = autosave_idle();
+ if (chezweb_poll()) changed = 1;
  if (call_lisp_event("idle", "") || msgflag) changed = 1;
  if (term_poll()) changed = 1;        /* terminal.c: the shells' output */
  if (changed) {
@@ -157,6 +158,7 @@ int fe_main(int argc, char **argv)
 	undoset();
 	check_mode = getenv("CHEZWEB_CHECK") && *getenv("CHEZWEB_CHECK") == '1';
 	call_lisp_event("startup", "");
+	autosave_visited(curbp);
 	key_map = keymap;
 	match_parens();         /* the parens at the cursor before the first key */
 
@@ -186,6 +188,7 @@ int fe_main(int argc, char **argv)
 			clear_button_hover();
 			editor_dispatch_key();
 		}
+		autosave_key();
 		if (check_mode) editor_check(0);
 		if (backdoor_on) backdoor_commanded();
 		chez_tester_poll();

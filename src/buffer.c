@@ -39,6 +39,9 @@ void buffer_init(buffer_t *bp)
 	bp->b_changes = bp->b_drawn = 0;
 	bp->b_used = 0;            /* never yet the buffer of a key */
 	bp->b_disk = 0;            /* its file: not read yet (gap.c) */
+	bp->b_backed_up = 0;       /* backup.c */
+	bp->b_autosaved = 0;
+	bp->b_autosave_warned = 0;
 }
 
 void zero_buffer(buffer_t *bp)

@@ -357,6 +357,11 @@ check-cluster-motion: chezemax chezemax.wasm chezemax.cwasm
 	sh tests/cluster-motion.sh
 check: check-cluster-motion
 
+.PHONY: check-backup
+check-backup: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/backup.sh
+check: check-backup
+
 .PHONY: check-shards
 check-shards: chezemax chezemax.wasm chezemax.cwasm
 	sh tests/shards.sh
