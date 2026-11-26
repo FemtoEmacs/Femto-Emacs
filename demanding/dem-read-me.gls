@@ -41,6 +41,8 @@ keys to type, and what must happen.
 The guidelines:
   dem-open-parens.gls         10 MB of ( on one line, never closed
   dem-open-parens-lines.gls   100,000 lines of (, never closed
+  dem-balanced.gls            8 MB of good Scheme: 1,000,000 deep, parens in
+                              strings, comments, characters
   dem-deep-sexp.gls           one s-expression 20,000 levels deep
   dem-long-list.gls           one list of 100,000 lines (6.8 MB)
   dem-minified.gls            one line of 5 MB of JSON

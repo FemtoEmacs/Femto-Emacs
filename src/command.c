@@ -1115,6 +1115,22 @@ void match_parens()
 	char before = bp->b_point > 0 ? *ptr(bp, bp->b_point - 1) : 0;
 	char at = bp->b_point < size ? *ptr(bp, bp->b_point) : 0;
 
+	/* sexp.c: in Lisp, a paren in a string, a comment or #\( is not one,
+	   and is neither matched nor matches (26 November 2026) */
+	if (sexp_lisp_buffer(bp)) {
+		long m;
+		if (closing_of(before, &other) && sexp_match_paren(bp, bp->b_point - 1, &m)) {
+			bp->b_paren_at = bp->b_point - 1;
+			bp->b_paren = (point_t) m;
+		} else if ((opening_of(at, &other) || closing_of(at, &other)) &&
+			   sexp_match_paren(bp, bp->b_point, &m)) {
+			bp->b_paren_at = bp->b_point;
+			bp->b_paren = (point_t) m;
+		}
+		announce_offscreen_match(bp);
+		return;
+	}
+
 	if (closing_of(before, &other)) {
 		bp->b_paren_at = bp->b_point - 1;
 		match_paren_backwards(bp, other, before);

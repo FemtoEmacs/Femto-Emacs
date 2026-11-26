@@ -26,7 +26,7 @@
 #define FALSE 0
 #endif
 
-#define VERSION	 "Chezweb 1.21, compiled Scheme (femtoscheme compatibility core), Public Domain"
+#define VERSION	 "Chezweb 1.22, compiled Scheme (femtoscheme compatibility core), Public Domain"
 #define EXIT_OK         0               /* Success */
 #define EXIT_ERROR      1               /* Unknown error. */
 #define EXIT_USAGE      2               /* Usage */
@@ -328,6 +328,11 @@ extern int save_file_safely(buffer_t *, const char *);
 extern void autosave_key(void);
 extern int autosave_idle(void);
 extern int autosave_unprotected(buffer_t *);
+/* sexp.c: Lisp expressions, read as Lisp (strings, comments, #\( ...) */
+extern int sexp_lisp_buffer(buffer_t *);
+extern int sexp_match_paren(buffer_t *, long, long *);
+extern void sexp_changed(buffer_t *, long), sexp_buffer_gone(buffer_t *);
+extern long fe_scan_sexp(long, long);
 extern void autosave_saved(buffer_t *), autosave_visited(buffer_t *);
 extern void recover_file(void), delete_old_backups(void), delete_auto_saves(void);
 extern void append_string(buffer_t *, char *);

@@ -348,6 +348,11 @@ check-backup: chezemax chezemax.wasm chezemax.cwasm
 	sh tests/backup.sh
 check: check-backup
 
+.PHONY: check-sexp-scan
+check-sexp-scan: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/sexp-scan.sh
+check: check-sexp-scan
+
 # The speed of the commands on a small and a large file: a few minutes,
 # so not part of make check (tests/speed.sh)
 .PHONY: check-speed

@@ -185,6 +185,7 @@ int delete_buffer(buffer_t *bp)
 	fold_free(bp);
 	shard_free(bp);                 /* shard.c: its index and kept texts */
 	term_buffer_gone(bp);           /* terminal.c: its shell goes */
+	sexp_buffer_gone(bp);           /* sexp.c: its checkpoints */
 	free(bp);
 	return TRUE;
 }

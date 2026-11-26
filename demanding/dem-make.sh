@@ -16,7 +16,7 @@ LC_ALL=C; export LC_ALL
 made() { printf '  %-28s %s bytes\n' "$1" "$(wc -c < "$1" | tr -d ' ')"; }
 
 if [ "${1:-}" = clean ]; then
-	rm -f dem-open-parens.scm dem-open-parens-lines.scm dem-deep-sexp.scm \
+	rm -f dem-open-parens.scm dem-open-parens-lines.scm dem-deep-sexp.scm dem-balanced.scm \
 	      dem-long-list.scm dem-minified.json dem-wide-line.txt dem-search.txt \
 	      dem-replace.txt dem-replace-line.txt dem-paragraph.txt dem-list.md \
 	      dem-list.org dem-headings.org dem-malformed.txt dem-unicode.txt \
@@ -38,6 +38,34 @@ made dem-open-parens.scm
 awk 'BEGIN { s = "(((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((("
              for (i = 0; i < 100000; i++) print s }' > dem-open-parens-lines.scm
 made dem-open-parens-lines.scm
+
+# 8 MB of good Scheme, demanding: a quoted list 1,000,000 deep on one line,
+# closed, with a string at the bottom; nested #| |# with parens; a table of
+# 80,000 rows with ) and ( in strings, characters (#\( #\)), |symbols| and
+# comments; a short definition after.  Chez Scheme loads it.
+awk 'BEGIN {
+	print ";;;; dem-balanced.scm -- demanding, and good Scheme: every paren is closed"
+	print ""
+	print "(define deep"
+	printf "  \047"
+	for (i = 0; i < 1000000; i++) printf "("
+	printf "\"the bottom, with ) and ( in a string\""
+	for (i = 0; i < 1000000; i++) printf ")"
+	print ")"
+	print ""
+	print "#| A block comment with ( and ) in it,"
+	print "   #| a comment nested in it, with a ) |#"
+	print "   and still a ( in the outer one. |#"
+	print ""
+	print "(define table"
+	print "  (quote ("
+	for (i = 1; i <= 80000; i++)
+		printf "    (row %06d \"a ) in a string\" #\\( #\\) |a (symbol| 3.14) ; a ( in a comment\n", i
+	print "  )))"
+	print ""
+	print "(define (after-all) (vector-length (list->vector table)))"
+}' > dem-balanced.scm
+made dem-balanced.scm
 
 # one s-expression nested 20,000 levels deep, closed on its last line
 awk 'BEGIN { print "(define deep"

@@ -374,12 +374,29 @@ kills join into one entry, as in Emacs."
 (defcommand (backward-paragraph) (goto-char (scan backward-paragraph-position (point))))
 (defcommand (back-to-indentation) (goto-char (scan indentation-end (line-start))))
 
+;; In Lisp, the expressions are read by the C core (src/sexp.c, as Emacs's
+;; scan-sexps): a paren in a string, a ; or #| |# comment, a |symbol| or a
+;; #\( is not a paren, and it reads from checkpoints, not from the start
+;; (26 November 2026).  From inside a string or a comment (-3) the text is
+;; read from the cursor, as before.
+(define (sexp-end-after from lispish)
+  (let ((r (if lispish (fe-scan-sexp from 1) -3)))
+    (cond ((>= r 0) r)
+          ((= r -3) (scan forward-sexp-position from lispish))
+          (else #f))))
+
+(define (sexp-start-before from lispish)
+  (let ((r (if lispish (fe-scan-sexp from -1) -3)))
+    (cond ((>= r 0) r)
+          ((= r -3) (scan backward-sexp-position from lispish))
+          (else #f))))
+
 (defcommand (forward-sexp)
-  (let ((e (scan forward-sexp-position (point) (lisp-buffer-p))))
+  (let ((e (sexp-end-after (point) (lisp-buffer-p))))
     (if e (goto-char e) (message "No expression after the cursor"))))
 
 (defcommand (backward-sexp)
-  (let ((s (scan backward-sexp-position (point) (lisp-buffer-p))))
+  (let ((s (sexp-start-before (point) (lisp-buffer-p))))
     (if s (goto-char s) (message "No expression before the cursor"))))
 
 (defcommand (backward-up-list)
@@ -402,7 +419,7 @@ kills join into one entry, as in Emacs."
   (kill-between (scan backward-word-position (point)) (point) 'backward))
 
 (defcommand (kill-sexp)
-  (let ((e (scan forward-sexp-position (point) (lisp-buffer-p))))
+  (let ((e (sexp-end-after (point) (lisp-buffer-p))))
     (if e (kill-between (point) e) (message "No expression after the cursor"))))
 
 (defcommand (kill-sentence) (kill-between (point) (scan forward-sentence-position (point))))
@@ -824,7 +841,7 @@ deactivates the region."
 
 (defcommand (mark-sexp)
   (let* ((from (if (region-active-p) (mark) (point)))
-         (e (scan forward-sexp-position from (lisp-buffer-p))))
+         (e (sexp-end-after from (lisp-buffer-p))))
     (if e (set-mark e) (message "No expression after the cursor"))))
 
 (defcommand (copy-region-command)
