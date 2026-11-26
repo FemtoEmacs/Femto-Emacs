@@ -15,7 +15,8 @@ void editor_idle_poll(void)
  int changed;
  if (!editor_idle_wait) return;
  meters_tick();                       /* meters.c: $CHEZWEB_METERS_MS */
- changed = chezweb_poll();
+ changed = autosave_idle();           /* backup.c: after 30 s without a key; says so */
+ if (chezweb_poll()) changed = 1;
  if (term_poll()) changed = 1;        /* terminal.c: the shells' output */
  if (changed) {
   update_display();
@@ -152,6 +153,8 @@ int fe_main(int argc, char **argv)
 	undoset();
 	check_mode = getenv("CHEZWEB_CHECK") && *getenv("CHEZWEB_CHECK") == '1';
 	call_lisp_event("startup", "");
+	autosave_visited(curbp);        /* backup.c: newer work kept?  After the
+	                                   startup message, which would hide it */
 	key_map = keymap;
 	match_parens();         /* the parens at the cursor before the first key */
 
@@ -175,6 +178,7 @@ int fe_main(int argc, char **argv)
 		if (backdoor_on) backdoor_key(input, key_return);
         { extern int chezweb_poll(void); chezweb_poll(); }
 		editor_dispatch_key();
+		autosave_key();                         /* backup.c: every 300 keys */
 		if (check_mode) editor_check(0);        /* before the display uses it */
 		if (backdoor_on) backdoor_commanded();
 		chez_tester_poll();

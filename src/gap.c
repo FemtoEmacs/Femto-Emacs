@@ -267,6 +267,22 @@ int save_buffer(buffer_t *bp, char *fn)
 		}
 	}
 #endif
+#ifndef __EMSCRIPTEN__
+	/* backup.c: a temporary file, forced onto the disk and renamed over
+	   the file, and the first save of a session keeps a backup */
+	(void) fp; (void) length;
+	{
+		struct stat parent;
+		char dir[NAME_MAX + 1], *slash;
+		safe_strncpy(dir, fn, NAME_MAX);
+		slash = strrchr(dir, '/');
+		if (slash && slash != dir) { *slash = '\0'; if (stat(dir, &parent) != 0) (void) make_parent_folders(fn); }
+	}
+	if (!save_file_safely(bp, fn)) {
+		msg("%s not saved: %s", fn, strerror(errno));
+		return (FALSE);
+	}
+#else
 	fp = fopen(fn, "wb");
 	if (fp == NULL && errno == ENOENT && make_parent_folders(fn))
 		fp = fopen(fn, "wb");
@@ -284,6 +300,7 @@ int save_buffer(buffer_t *bp, char *fn)
 		msg(m_close, fn);
 		return (FALSE);
 	}
+#endif
  if (!screen_save_file(fn)) {
   msg("Save failed; changes are still unsaved. See the browser notice.");
   return FALSE;
@@ -294,6 +311,7 @@ int save_buffer(buffer_t *bp, char *fn)
 	if (!strcmp(fn, bp->b_fname)) {
 		extern void chezweb_saved(buffer_t *);
 		chezweb_saved(bp);
+		autosave_saved(bp);             /* backup.c: its auto-save is not needed */
 	}
 	if (!strcmp(screen_backend(),"browser")) msg("File saved. See the destination above.");
 	else msg(m_saved, fn, pos(bp, bp->b_ebuf));

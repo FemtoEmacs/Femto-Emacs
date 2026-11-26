@@ -657,6 +657,7 @@ void readfile(char *fname)
 			msg(m_newfile, fname);
 		}
 		safe_strncpy(curbp->b_fname, fname, NAME_MAX);
+		autosave_visited(curbp);        /* backup.c: newer work kept? */
 	}
 	
 	undoset();

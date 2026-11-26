@@ -26,7 +26,7 @@
 #define FALSE 0
 #endif
 
-#define VERSION	 "Chezweb 1.20, compiled Scheme (femtoscheme compatibility core), Public Domain"
+#define VERSION	 "Chezweb 1.21, compiled Scheme (femtoscheme compatibility core), Public Domain"
 #define EXIT_OK         0               /* Success */
 #define EXIT_ERROR      1               /* Unknown error. */
 #define EXIT_USAGE      2               /* Usage */
@@ -171,6 +171,9 @@ typedef struct buffer_t
 	struct shard_t *b_shard;  /* shard.c: a file too large to hold, or NULL */
 	char b_shard_label[24];   /*   " [3/41]" in the mode line */
 	long b_line_base;         /*   lines of the file before this shard */
+	int b_backed_up;          /* backup.c: its file was backed up this session */
+	unsigned long b_autosaved;/*   b_changes when last auto-saved */
+	int b_autosave_warned;    /*   told it is not auto-saved (too large, shards) */
 } buffer_t;
 
 typedef struct window_t
@@ -320,6 +323,13 @@ extern int save_buffer(buffer_t *,char *);
 extern void buffer_remember_disk(buffer_t *, const char *);
 extern int load_file(char *);
 extern int insert_file(char *, int);
+/* backup.c: the safe save, backups and auto-save */
+extern int save_file_safely(buffer_t *, const char *);
+extern void autosave_key(void);
+extern int autosave_idle(void);
+extern int autosave_unprotected(buffer_t *);
+extern void autosave_saved(buffer_t *), autosave_visited(buffer_t *);
+extern void recover_file(void), delete_old_backups(void), delete_auto_saves(void);
 extern void append_string(buffer_t *, char *);
 extern void undoset(void);
 extern void backsp(void);

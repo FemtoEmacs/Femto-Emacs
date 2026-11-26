@@ -1,0 +1,68 @@
+dem-autosave.gls -- auto-save and recovery (dem-autosave.txt,
+dem-autosave-big.txt)
+
+The files (made by sh dem-make.sh): dem-autosave.txt, one line;
+dem-autosave-big.txt, 11 MB, above the 10 MB that auto-save takes.
+Changes not saved go to ~/.chezemax/auto-save after 30 s without a key
+and every 300 keys; their names start with # and end with #, so
+ls ~/.chezemax/auto-save | grep dem-  finds them.  C-h, "Backups and
+auto-save", explains it all.
+
+To measure what an auto-save costs on this computer (send it to Claude):
+make ~/.chezemax/backdoor-claude.conf hold the line  time ; in Chezweb,
+M-x backdoor-claude RET before step 1 and again at the end; then
+grep auto-saved ~/.chezemax/backdoor.txt   shows lines like
+  auto-saved 1 buffer(s) in 3 ms, after 30 s without a key
+
+Open:   chezweb dem-autosave.txt
+
+1. M->  typed but not saved  RET, then take your hands off the keyboard
+   for 30 seconds.  In a terminal:
+     ls ~/.chezemax/auto-save | grep dem-autosave
+     cat ~/.chezemax/auto-save/*dem-autosave.txt#
+   Expect: at the bottom, "Auto-saving dem-autosave.txt...done" once the
+   30 s are over; in the terminal, one auto-save, with your line; the
+   file itself unchanged:
+     cat dem-autosave.txt          only version 1
+2. A crash, or a power cut.  In the terminal:
+     pgrep -fl chezweb             the editor's number (PID)
+     kill -9 PID                   the editor dies at once, saving nothing
+   (kill -9 of that one number: pkill would close every Chezweb.)
+3. chezweb dem-autosave.txt
+   Expect: "dem-autosave.txt has auto-saved changes newer than the file:
+   M-x recover-file restores them"; the text is version 1 only.
+4. M-x recover-file RET
+   Expect: "Replace the text with its auto-save of N bytes (y/n) ?";  y
+   puts your line back (* on the mode line: changed, not saved).
+   C-/  Expect: version 1 again.  M-x recover-file RET y: your line back.
+5. C-x C-s, then in the terminal:
+     ls ~/.chezemax/auto-save | grep dem-autosave
+   Expect: nothing: saving removes the auto-save.
+6. 300 keys.  Hold a letter key down until some 300 letters are typed,
+   then at once (before 30 s pass):
+     ls ~/.chezemax/auto-save | grep dem-autosave
+   Expect: "Auto-saving dem-autosave.txt...done" at the bottom, and the
+   auto-save there already.
+7. Cleaning.  With dem-autosave.txt still changed:
+     M-x delete-auto-saves RET  C-a C-k 0 RET
+   Expect: "No auto-saves to delete; kept: dem-autosave.txt, open with
+   changes (C-x C-s or C-x k it first)": the auto-save of a buffer open
+   with changes is never deleted, even with 0.
+   C-x C-c, answer that the changes are not to be saved (y), then
+   chezweb dem-backup.txt  (any other file) and
+     M-x delete-auto-saves RET  (it offers 30)  RET
+   Expect: "No auto-saves to delete; kept: 1 newer than 30 days".
+     M-x delete-auto-saves RET  C-a C-k 0 RET
+   Expect: "Delete 1 auto-save of changes never saved (y/n) ?".
+   0 means ALL the auto-saves, those of your own files too: answer y only
+   when nothing else of yours is there (ls ~/.chezemax/auto-save).
+8. Too large.  chezweb dem-autosave-big.txt,  M->  typed  RET
+   Expect, at the first letter: the mode line shows
+   dem-autosave-big.txt** (two stars, not one: changed and not
+   auto-saved), and the bottom line "dem-autosave-big.txt: not auto-saved
+   (11 MB > 10 MB); ** until C-x C-s saves"; the next letter takes the
+   words away, the ** stays.  Then 30 s without a key; in the terminal:
+     ls ~/.chezemax/auto-save | grep big
+   Expect: nothing: 11 MB is above what auto-save takes, so that typing is
+   never held up.  C-x C-c, and y: not saved.
+9. sh dem-make.sh  makes the files again.

@@ -55,3 +55,5 @@ The guidelines:
   dem-unicode.gls             combining accents, emoji, flags, CJK, tabs
   dem-clipboard.gls           pasting 24 MB from the system clipboard
   dem-huge.gls                1.28 GB: C-x C-f opens it in shards
+  dem-backup.gls              the safe save and the backups
+  dem-autosave.gls            auto-save, a crash and M-x recover-file

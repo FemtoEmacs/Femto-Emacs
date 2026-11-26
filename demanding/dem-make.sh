@@ -20,7 +20,8 @@ if [ "${1:-}" = clean ]; then
 	      dem-long-list.scm dem-minified.json dem-wide-line.txt dem-search.txt \
 	      dem-replace.txt dem-replace-line.txt dem-paragraph.txt dem-list.md \
 	      dem-list.org dem-headings.org dem-malformed.txt dem-unicode.txt \
-	      dem-clipboard.txt dem-huge.txt
+	      dem-clipboard.txt dem-huge.txt dem-backup.txt dem-backup-link.txt \
+	      dem-hard.txt dem-hard-twin.txt dem-autosave.txt dem-autosave-big.txt
 	echo "removed"
 	exit 0
 fi
@@ -119,6 +120,22 @@ made dem-unicode.txt
 # 21 MB to put on the system clipboard (pbcopy < dem-clipboard.txt)
 awk 'BEGIN { for (i = 0; i < 400000; i++) printf "row %06d that another program copied, ção 中文 😀..\n", i }' > dem-clipboard.txt
 made dem-clipboard.txt
+
+# files for the safe save, the backups and auto-save (dem-backup.gls,
+# dem-autosave.gls): small texts, a symbolic link, two names of one file
+# (a hard link), and 11 MB, above the 10 MB that auto-save takes
+rm -f dem-backup-link.txt dem-hard-twin.txt
+printf 'version 1 of dem-backup.txt\n' > dem-backup.txt
+chmod 640 dem-backup.txt
+ln -s dem-backup.txt dem-backup-link.txt
+printf 'version 1 of dem-hard.txt, also named dem-hard-twin.txt\n' > dem-hard.txt
+ln dem-hard.txt dem-hard-twin.txt 2>/dev/null || echo "  (no hard links on this disk: step 7 of dem-backup.gls cannot be tried)"
+printf 'version 1 of dem-autosave.txt: type below, do not save\n' > dem-autosave.txt
+made dem-backup.txt
+made dem-hard.txt
+made dem-autosave.txt
+awk 'BEGIN { for (i = 0; i < 180000; i++) printf "line %06d of eleven megabytes, too large to be auto-saved..\n", i }' > dem-autosave-big.txt
+made dem-autosave-big.txt
 
 if [ "${1:-}" = huge ]; then
 	echo "  dem-huge.txt (1.28 GB): a minute or two"
