@@ -2,10 +2,9 @@
  * compiled-program.c -- Chezemax's compiled Scheme program in the editor
  *
  * `make` compiles the files of compiled/ into chezemax.wasm (PORT-TO-SCHEMER.md).
- * At start-up, before the femtoscheme scripts are loaded, the program is
- * loaded into Wasmtime and joined to the C core by the bridge (bridge.c):
- * it calls the C core's functions, and the C core gives it every event
- * first (hooks.c); what it does not handle goes on to the scripts.
+ * At start-up the program is loaded into Wasmtime and joined to the C core
+ * by the bridge (bridge.c): it calls the C core's functions, and the C core
+ * gives it every event (hooks.c); what it does not handle is the C core's.
  *
  * CHEZEMAX_PROGRAM=file.wasm loads another program (the tests do);
  * CHEZEMAX_PROGRAM= (empty) loads none.
@@ -14,8 +13,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#include "llt/llt.h"
-#include "flisp.h"
 #include "bridge.h"
 
 extern void fe_message(char *);
@@ -166,7 +163,7 @@ static void failed(const char *what, char *error)
 
 /* The whole editor is compiled (chezemax.wasm with the scripts,
  * compiled/start.scm): it has registered the evaluation hook, which a test
- * program does not.  Then femtoscheme runs no script. */
+ * program does not. */
 int compiled_scripts_running(void)
 {
 	return hooked(BRIDGE_HOOK_EVAL);
@@ -210,34 +207,14 @@ int compiled_event(const char *kind, const char *arg)
 	return bridge_int(&r) != 0;
 }
 
-/* For the femtoscheme scripts while they are ported, and for the tests:
- * (fe-compiled-event kind arg) and (fe-compiled-status) */
-static value_t fl_compiled_event(value_t *args, uint32_t nargs)
+/* why the program is not running ("running" when it is) */
+const char *compiled_program_status(void)
 {
-	argcount("fe-compiled-event", nargs, 2);
-	return compiled_event(tostring(args[0], "fe-compiled-event"),
-			      tostring(args[1], "fe-compiled-event")) ? FL_T : FL_F;
+	return program ? "running" : problem ? problem : "no compiled program";
 }
-
-static value_t fl_compiled_status(value_t *args, uint32_t nargs)
-{
-	const char *s = program ? "running" : problem ? problem : "no compiled program";
-	(void) args;
-	argcount("fe-compiled-status", nargs, 0);
-	return string_from_cstrn((char *) s, strlen(s));
-}
-
-void compiled_program_test_init(void);
 
 void compiled_program_init(const char *directory)
 {
-	static builtinspec_t builtins[] = {
-		{"fe-compiled-event", fl_compiled_event},
-		{"fe-compiled-status", fl_compiled_status},
-		{NULL, NULL}
-	};
-	assign_global_builtins(builtins);
-	compiled_program_test_init();
 	bridge_set_install_dir(directory);
 	compiled_program_start(directory);
 }
@@ -321,61 +298,4 @@ int compiled_wrap(const char *file, const unsigned char *text, int len, int cols
 	}
 	hook_text = NULL;
 	return done;
-}
-
-/* For the tests: the same calls as hooks.c makes, from --eval */
-static value_t fl_compiled_highlight(value_t *args, uint32_t nargs)
-{
-	argcount("fe-compiled-highlight", nargs, 3);
-	char *file = tostring(args[0], "fe-compiled-highlight"), *buffer = tostring(args[1], "fe-compiled-highlight");
-	char *text = tostring(args[2], "fe-compiled-highlight");
-	int n = (int) cvalue_len(args[2]);
-	unsigned char *colors = calloc((size_t) n + 1, 1);
-	value_t r = FL_F;
-	if (compiled_highlight(file, buffer, 0, (unsigned char *) text, n, colors)) {
-		r = FL_NIL;
-		for (int k = n - 1; k >= 0; k--) r = fl_cons(fixnum(colors[k]), r);
-	}
-	free(colors);
-	return r;
-}
-
-static value_t fl_compiled_modeline(value_t *args, uint32_t nargs)
-{
-	char out[512];
-	argcount("fe-compiled-mode-line", nargs, 3);
-	if (!compiled_modeline(tostring(args[0], "fe-compiled-mode-line"), tostring(args[1], "fe-compiled-mode-line"),
-			       tostring(args[0], "fe-compiled-mode-line"), 1, 0, (int) tofixnum(args[2], "fe-compiled-mode-line"), out, sizeof out)) return FL_F;
-	return string_from_cstrn(out, strlen(out));
-}
-
-static value_t fl_compiled_change(value_t *args, uint32_t nargs)
-{
-	argcount("fe-compiled-change", nargs, 2);
-	char *text = tostring(args[1], "fe-compiled-change");
-	return compiled_change(7, (int) tofixnum(args[0], "fe-compiled-change"), 0,
-			       (unsigned char *) text, (long) cvalue_len(args[1])) ? FL_T : FL_F;
-}
-
-static value_t fl_compiled_wrap(value_t *args, uint32_t nargs)
-{
-	int result = 0;
-	argcount("fe-compiled-wrap", nargs, 3);
-	char *text = fl_isstring(args[1]) ? tostring(args[1], "fe-compiled-wrap") : NULL;
-	if (!compiled_wrap(tostring(args[0], "fe-compiled-wrap"), (unsigned char *) text,
-			   text ? (int) cvalue_len(args[1]) : 0, (int) tofixnum(args[2], "fe-compiled-wrap"), &result))
-		return FL_F;
-	return fixnum(result);
-}
-
-void compiled_program_test_init(void)
-{
-	static builtinspec_t builtins[] = {
-		{"fe-compiled-highlight", fl_compiled_highlight},
-		{"fe-compiled-mode-line", fl_compiled_modeline},
-		{"fe-compiled-change", fl_compiled_change},
-		{"fe-compiled-wrap", fl_compiled_wrap},
-		{NULL, NULL}
-	};
-	assign_global_builtins(builtins);
 }

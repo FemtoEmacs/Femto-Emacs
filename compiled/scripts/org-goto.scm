@@ -1,9 +1,12 @@
 ;;;; org-goto.scm -- going about an Org file (a module of org.scm)
 ;;;;
 ;;;;   C-c C-j   the headings, in a read-only list in the window: move
-;;;;             with the arrows (or C-n C-p), then RET, or a click on a
+;;;;             with the arrows (or C-n C-p), or search it with C-s and
+;;;;             C-r, or M-g a line of it; then RET, or a click on a
 ;;;;             heading, goes there; s goes there and narrows to it;
-;;;;             q or C-g goes back to where you were
+;;;;             q or C-g goes back to where you were.  (Searching came on
+;;;;             27 November 2026: in a list of 30,000 headings, the
+;;;;             arrows alone could not reach the middle, dem-headings.gls)
 ;;;;   C-x n s   narrow to the subtree point is in: its heading and what is
 ;;;;             under it, down to the next heading of its level or above
 ;;;;             (C-x n w widens, narrow.scm)
@@ -55,7 +58,7 @@
 (define *org-goto-first-line* 3)        ; the headings start on line 3
 
 (define (org-goto-text headings file)
-  (string-append "Headings of " file ": RET or a click goes there, s narrows to it, q goes back\n\n"
+  (string-append "Headings of " file ": RET or a click goes there, C-s searches, q goes back\n\n"
                  (string-join (map caddr headings) "\n")
                  "\n"))
 
@@ -113,12 +116,13 @@
                          (set! choice (line-index))
                          (loop))))
                   ((member binding '("next-line" "previous-line" "forward-page" "backward-page"
-                                     "beginning-of-buffer" "end-of-buffer"))
+                                     "beginning-of-buffer" "end-of-buffer"
+                                     "search-forward" "search-backward" "goto-line"))
                    (execute-builtin binding)
                    (loop))
                   ((member key '("n" " ")) (execute-builtin "next-line") (loop))
                   ((string=? key "p") (execute-builtin "previous-line") (loop))
-                  (else (message "Headings: RET or a click goes there, s narrows to it, q goes back")
+                  (else (message "Headings: RET or a click goes there, C-s searches, s narrows, q goes back")
                         (loop))))))
            (lambda ()
              (hashtable-delete! *buffer-faces* *org-headings-buffer*)

@@ -1,12 +1,12 @@
-;;; scripts-cases.scm -- the compiled scripts against femtoscheme's
+;;; scripts-cases.scm -- the scripts' own procedures, case by case
 ;;;
-;;; tests/run-scripts.sh evaluates every case twice: in femtoscheme, with
-;;; the scripts of scheme/, and compiled, with those of compiled/scripts/.
-;;; Both must give the same values.  Each case is (name expression); its
-;;; value is written, or ERROR when it raised one.  Only what both dialects
-;;; share is used here: the scripts' own procedures, R7RS.  TEST-BYTES
-;;; makes the buffer text the scripts scan from a string: femtoscheme's
-;;; byte string, or a bytevector compiled; TEST-TEXT turns them back.
+;;; tests/run-scripts.sh compiles these cases with the scripts and compares
+;;; their values with tests/scripts-expected.txt.  Until 27 November 2026
+;;; every case also ran in femtoscheme, on the scripts of scheme/, and both
+;;; gave the same: the answers recorded are femtoscheme's.  Each case is
+;;; (name expression); its value is written, or ERROR when it raised one.
+;;; TEST-BYTES makes the buffer text the scripts scan from a string (a
+;;; bytevector); TEST-TEXT turns it back (tests/scripts-compiled.scm).
 
 (define (test-hook-fn . args) (set! *test-hook-calls* (cons args *test-hook-calls*)))
 (define *test-hook-calls* '())

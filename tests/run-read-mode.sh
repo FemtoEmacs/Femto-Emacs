@@ -49,10 +49,10 @@ for mode in read vim; do
   echo "PASS $mode $key traverses 1829 lines without edits or hook errors"
  done
 done
-# Exercise native copy state, Unicode boundaries and edit refusal in both
-# runtimes. These operations do not need a display or external clipboard.
-for runtime in compiled femtoscheme; do
- result=$(CHEZEMAX_SCHEME=$runtime CHEZEMAX_NO_INIT=1 ./chezemax --eval '
+# Exercise native copy state, Unicode boundaries and edit refusal. These
+# operations do not need a display or external clipboard.
+for runtime in compiled; do
+ result=$(CHEZEMAX_NO_INIT=1 ./chezemax --eval '
  (begin
   (insert "αβ🙂\nsecond\nthird") (goto-char 0) (enter-normal-mode (quote vim))
   (vim-key "v") (vim-key "l") (vim-key "l") (vim-key "y")
@@ -68,8 +68,8 @@ for runtime in compiled femtoscheme; do
  case "$result" in *'(#t #t #t #t)') ;; *) echo "FAIL $runtime native selection/copy/protection: $result";exit 1 ;; esac
  echo "PASS $runtime UTF-8 selection, yy, Vim edit refusal and explicit exit"
 done
-for runtime in compiled femtoscheme; do
- result=$(CHEZEMAX_SCHEME=$runtime CHEZEMAX_NO_INIT=1 ./chezemax --eval '
+for runtime in compiled; do
+ result=$(CHEZEMAX_NO_INIT=1 ./chezemax --eval '
  (begin
   (insert "a\nb\nc\n") (goto-char 0) (enter-normal-mode (quote read))
   (vim-key "3") (vim-key "y") (vim-key "y")

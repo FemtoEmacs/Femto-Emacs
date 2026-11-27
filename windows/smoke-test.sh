@@ -65,9 +65,10 @@ printf '(define (installed-answer) 42)\n' > "$HOME/.chezemax/users/answer.scm"
 chezweb --compile-scripts "$HOME/compile.log"
 [ "$(chezweb --eval '(installed-answer)')" = 42 ]
 echo 'PASS personal scripts compile using only the installed package'
-# The second distinct request starts a compiler after Wasmtime has run.
-[ "$(CHEZEMAX_SCHEME=femtoscheme chezweb --eval '(list (schemer-eval-string "(+ 20 22)") (schemer-eval-string "(+ 21 22)"))')" = '(42 43)' ]
-echo 'PASS installed compatibility compiler launches after Wasmtime activation'
+# Evaluation runs directly in Schemer; no interpreter or fallback is bundled.
+[ ! -e "$root/app/femtoscheme" ]
+[ "$(chezweb --eval '(list (+ 20 22) (+ 21 22))')" = '(42 43)' ]
+echo 'PASS installed Schemer-only evaluation, without an interpreter bundle'
 # The packaged browser bundle is genuinely present, and the compiler starts.
 [ -s "$root/app/build/chezweb.wasm" ] && [ -s "$root/app/build/chezweb.js" ]
 [ -s "$root/app/schemer/compiler.wasm" ]

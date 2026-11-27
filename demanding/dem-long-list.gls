@@ -2,7 +2,12 @@ dem-long-list.gls -- dem-long-list.scm
 
 The file: (define before-list 1), then (define big-list (quote ( ... )))
 whose list has 100,000 lines of (item NNNNNN "ção € 😀" #\x 3.14 (nested
-(deeper N))), then (define after-list 2).  6.8 MB, well closed.
+(deeper N))), then (define after-list 2).  6.8 MB, well closed.  In
+the middle, lines 50003 to 50005 are a sublist indented wrong:
+
+    (sublist 050000
+(item 050001 ...)
+                 (item 050002 ...))
 
 Open:   chezweb dem-long-list.scm
 
@@ -10,13 +15,27 @@ Open:   chezweb dem-long-list.scm
    Expect: the cursor after ")))" at the end of big-list, within 2 s.
 2. C-M-b                 Expect: back at the start of line 2, within 2 s.
 3. M-g 50003 RET  C-M-f
-                         Expect: the cursor after that (item ...), at once.
+                         Expect: the cursor after the (sublist ...), at
+                         the end of line 50005, at once.
 4. C-M-u                 Expect: the cursor on the ( that opens the list
                          of items (line 3), within 2 s.
-5. C-M-SPC               mark-sexp, then M-w
+5. C-M-SPC               mark-sexp (on the Mac, where C-M-SPC may change
+                         the keyboard: M-x mark-sexp RET), then M-w
                          Expect: "Copied ..." (6.8 MB), within 2 s.
 6. M->  C-y              Expect: 6.8 MB yanked at the end, within 2 s.
 7. C-/                   Expect: the yank undone, within 2 s.
-8. M-x indent-region on a small region only (C-SPC, C-n C-n C-n, C-M-\)
-                         Expect: the three lines indented, at once.
+8. Indent the sublist:
+   M-g 50003 RET         go to its first line, (sublist 050000;
+   C-SPC                 set the mark there (C-@ if C-SPC changes the
+                         keyboard);
+   C-n C-n C-n           go down three lines;
+   C-M-\                 indent the region (M-x indent-region).
+                         Expect: the two (item ...) lines of the
+                         sublist move to column 13, under 050000, and
+                         "Indented 4 lines" (the region ends at the start
+                         of a fourth line, which does not move).  It
+                         takes about 11 seconds in the cloud, because the
+                         editor reads the whole 6.8 MB list again for each
+                         line.  Before 27 November it took six minutes,
+                         and the editor seemed frozen.
 9. C-x k RET, then "y": do not save.

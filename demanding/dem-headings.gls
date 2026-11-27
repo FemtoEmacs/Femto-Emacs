@@ -15,8 +15,11 @@ they should be, and C-c C-j is over the 2 s limit.  Note yours.
 3. C-c C-n  ×5           Expect: the next heading each time (0.7 s each in
                          the cloud: slow for one heading).
 4. C-c C-j               (org-goto) Expect: a list of the headings to choose
-                         from (2.6 s in the cloud: over the limit);
-                         choose Chapter 05000.
+                         from (2.6 s in the cloud: over the limit).  In
+                         it: C-s Chapter 05000 RET (RET ends the search),
+                         then RET.  Expect: "* Chapter 05000".  (C-v and
+                         M-v page through the list, M-< and M-> go to its
+                         ends.)
 5. M-g 50000 RET         Expect: the line "- two" under "*** Note 06250.1.1",
                          at once.
 6. C-c C-u               (outline-up-heading: the cursor is under

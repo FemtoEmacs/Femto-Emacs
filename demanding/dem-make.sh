@@ -78,7 +78,13 @@ made dem-deep-sexp.scm
 awk 'BEGIN { print "(define before-list 1)"
              print "(define big-list"
              print "  (quote ("
-             for (i = 1; i <= 100000; i++) printf "    (item %06d \"ção € 😀\" #\\x 3.14 (nested (deeper %d)))\n", i, i
+             # lines 50003-50005: a sublist indented wrong, for C-M-\
+             # (dem-long-list.gls, step 8)
+             for (i = 1; i <= 100000; i++)
+               if (i == 50000) printf "    (sublist %06d\n", i
+               else if (i == 50001) printf "(item %06d \"ção € 😀\" #\\x 3.14 (nested (deeper %d)))\n", i, i
+               else if (i == 50002) printf "                 (item %06d \"ção € 😀\" #\\x 3.14 (nested (deeper %d))))\n", i, i
+               else printf "    (item %06d \"ção € 😀\" #\\x 3.14 (nested (deeper %d)))\n", i, i
              print "  )))"
              print "(define after-list 2)" }' > dem-long-list.scm
 made dem-long-list.scm

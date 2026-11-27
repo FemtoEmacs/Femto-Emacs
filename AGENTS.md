@@ -43,13 +43,17 @@ show how to drive and read it in a PTY.
 Chezemax is an Emacs-inspired editor: a C core and Scheme scripts. It was
 copied from Schememax (~/csand/c2s-cover/sbcl-rasp/schememax) on 1 November
 2026 to replace femtoscheme with Schemer, the user's Chez-inspired compiler to
-WasmGC, everywhere. Read README.md and PORT-TO-SCHEMER.md (the inventory and
-the order of the work) first.
+WasmGC, everywhere. Read README.md and PORT-TO-SCHEMER.md (the history of the
+work) first.
 
-- **The goal is no femtoscheme.** Every script runs compiled by Schemer; the
-  C core calls the compiled program through Wasmtime (six hooks, see
-  PORT-TO-SCHEMER.md); later the same program runs in the browser. Until
-  the port is complete both runtimes stay, and the tests must pass on both.
+- **There is no femtoscheme** (removed 27 November 2026). Every script is
+  compiled by Schemer into chezemax.wasm; the C core calls it through
+  Wasmtime (the hooks of src/hooks.c), in the terminal, the window and the
+  browser. Scripts live in compiled/scripts/ (and scheme/theme.scm,
+  scheme/languages/, which compiled/scripts/ORDER also compiles): write
+  them in Chez's Scheme. compiled/compat.scm keeps older names the scripts
+  still use (TABLE, PUT!, TRYCATCH); new code uses Chez's. The last commit
+  with femtoscheme is the parent of the one that removed it.
 - **Make Scheme faster in Schemer**, never by rewriting a script in C: users
   write their own scripts in Scheme.
 - **Users build with only cc (GCC or clang) and make.** No Node.js, Python,
@@ -82,12 +86,14 @@ the order of the work) first.
   Each side copies its arguments out of the mailbox before doing anything
   else: calls nest. Never edit src/bridge-functions.c or
   compiled/editor-functions.scm by hand: `make` generates them from
-  src/native.c. Keep Scheme hot paths free of variadic calls, `apply`,
+  src/editor-functions.def. Keep Scheme hot paths free of variadic calls, `apply`,
   `guard` and `string->utf8`/`utf8->string` until Schemer's prelude makes
   them cheap (PORT-TO-SCHEMER.md, Progress).
-- The compiled program sees every event first; what it does not handle
-  goes on to the femtoscheme scripts. Port a script by moving its commands
-  into compiled/ and deleting them from scheme/, never by keeping both.
+- The compiled program sees every event; what it does not handle is the C
+  core's. Without chezemax.wasm the editor says why and stops (src/start.c).
+- Tests of the scripts' procedures: tests/scripts-cases.scm, compared with
+  the answers recorded in tests/scripts-expected.txt (make check-scripts).
+  The hooks one by one: chezemax --test (src/test-hooks.c).
 
 The notes below were Schememax's, and still hold.
 
@@ -125,11 +131,16 @@ Help-menu wrappers menu-chatgpt/menu-claude pass native procedures to
 call-in-window-of. Keep this higher-order operation on the compatibility
 path in command compilation and expression evaluation; a procedure is not
 readable data for the text RPC bridge. Native assistant entry points remain
-compatible too. tests/compiled.scm exercises both real wrapper definitions
-with mocked window and provider functions, plus direct callback evaluation.
+compatible too.
 
 Save As uses getfilename_default for editable current filenames and real
 filename completion; never route it back through generic getinput. Browsered
 must wrap getfilename_default as well as getfilename so unnamed buffers use
 the remembered browser folder. Test existing and unnamed buffers, directory
 and filename TAB completion, Unicode and cancellation without disk writes.
+
+## Stress-test handoff
+
+Read `tests/STRESS-TESTS.md` before implementing or running the four native
+stress suites. It records the invariants, runtime limits, sanitizer scope,
+replay artifacts and the distinction between implemented and planned tests.

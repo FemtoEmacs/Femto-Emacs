@@ -1,10 +1,9 @@
 ;;;; editor.scm -- the compiled side of Chezemax's scripts
 ;;;;
 ;;;; The program `make` builds (chezemax.wasm) is bridge.scm, the C core's
-;;;; functions (editor-functions.scm), then this file.  While the scripts are
-;;;; ported (PORT-TO-SCHEMER.md), the C core gives every event to this program
-;;;; first: what it handles is done here; everything else goes on to the
-;;;; femtoscheme scripts as before.
+;;;; functions (editor-functions.scm), then this file.  The C core gives
+;;;; every event to this program: what it handles is done here, the rest is
+;;;; the C core's.
 
 ;;; Keys bound in compiled Scheme, by the C core's key names ("C-c a",
 ;;; "esc x" for M-x): key -> procedure of no arguments
@@ -26,7 +25,7 @@
 ;;; ------------------------------------------------------------------
 ;;; The C core's hooks (src/hooks.c).  C calls a hook only when this program
 ;;; has registered it: COMPILED-HOOK! tells C.  A hook answers #f to leave
-;;; the work to the femtoscheme scripts, as while they are being ported.
+;;; the work to the C core.
 ;;; ------------------------------------------------------------------
 
 ;;; The hooks' numbers (src/bridge.h)

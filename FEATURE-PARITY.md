@@ -26,8 +26,9 @@ Every script of SBEmacs's `lisp/` folder has a Scheme counterpart in
 
 ## Differences
 
-- Scripts are Scheme (femtoscheme), not Common Lisp; options are written
-  `'extensions '(".c")` instead of `:extensions '(".c")`.
+- Scripts are Scheme, compiled by Schemer (femtoscheme until 27 November
+  2026), not Common Lisp; options are written `'extensions '(".c")` instead
+  of `:extensions '(".c")`.
 - The highlighters that run at every redisplay (the generic tokenizer,
   Markdown's, Python's and Nim's) are in C, src/highlight.c: in
   femtoscheme's bytecode they cost 10-50 ms per key, in C under 1 ms.  The

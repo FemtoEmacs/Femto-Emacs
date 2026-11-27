@@ -23,11 +23,11 @@ keys ^X^S
 wait 150
 keys ^X^C
 KEYS
- (cd "$work"; CHEZEMAX_NO_INIT=1 CHEZEMAX_SCHEME=$runtime "$work/pty" "$work/keys" 30 "$work/screen" "$root/chezemax" "$name.md")
+ (cd "$work"; CHEZEMAX_NO_INIT=1 "$work/pty" "$work/keys" 30 "$work/screen" "$root/chezemax" "$name.md")
  cmp "$work/$name.md" "$work/expected"
  echo "PASS $runtime Markdown RET: $name"
 }
-for runtime in compiled femtoscheme; do
+for runtime in compiled; do
  run_case prose-blank '3. **Heading**\n   Paragraph.\n\n' '3. **Heading**\n   Paragraph.\n\n\n\n' 2
  run_case indented-blank '3. **Heading**\n   Paragraph.\n   ' '3. **Heading**\n   Paragraph.\n\n\n' 2
  run_case continue-item '- item' '- item\n- ' 1

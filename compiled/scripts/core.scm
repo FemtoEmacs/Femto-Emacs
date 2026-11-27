@@ -1,8 +1,7 @@
 ;;;; core.scm -- key bindings, commands, events from C, the kill ring
 ;;;;
 ;;;; In Chez Scheme, compiled by Schemer (PORT-TO-SCHEMER.md, step 4): the
-;;;; port of scheme/core.scm, which femtoscheme runs until all the scripts
-;;;; are compiled.  The C core owns the screen and the command loop; it
+;;;; port of scheme/core.scm, which femtoscheme ran until 27 November 2026.  The C core owns the screen and the command loop; it
 ;;;; offers every key, typed character, click and change to Scheme through
 ;;;; EDITOR-EVENT.  A binding made here takes precedence over the C core's
 ;;;; own.

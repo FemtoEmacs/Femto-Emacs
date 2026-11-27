@@ -4,7 +4,7 @@ cd "$(dirname "$0")/../.."
 root=$(pwd)
 work=$(mktemp -d "${TMPDIR:-/tmp}/chezweb-search-test.XXXXXX")
 trap 'status=$?; if [ "$status" -ne 0 ]; then
- for runtime in compiled femtoscheme; do
+ for runtime in compiled; do
   for name in summary.txt pending.trace failure.trace; do
    if [ -f "$work/$runtime/$name" ]; then cat "$work/$runtime/$name" >&2; fi
   done
@@ -24,8 +24,8 @@ cp "$work/protocol.lean" "$work/protocol.original"
 export CHEZEMAX_NO_INIT=1 CHEZEMAX_PROGRAM="$root/chezemax.wasm" CHEZ_TESTER_EXIT=1
 unset CHEZ_TESTER_AUTORUN CHEZ_TESTER_KEEP_REFERENCE
 printf 'wait 700\nkeys \\exchez-tester\\r\nwait 100\nkeys ^A^K%s\\r\n' "$work/docs" > "$work/keys"
-for runtime in compiled femtoscheme; do
- export CHEZEMAX_SCHEME=$runtime CHEZ_TESTER_DIR="$work/$runtime"
+for runtime in compiled; do
+ export CHEZ_TESTER_DIR="$work/$runtime"
  "$work/pty" "$work/keys" 180 /dev/null ./chezemax "$work/protocol.lean"
  report="$CHEZ_TESTER_DIR/summary.txt"
  grep -q '^status=PASS$' "$report"

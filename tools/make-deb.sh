@@ -19,7 +19,7 @@ root=$(pwd)
 
 for f in chezweb chezweb-gui chezweb-server irene-dixe schemer-compile chezemax.wasm \
          schemer/compiler.wasm Chezweb.html build/chezweb.js build/chezweb.wasm \
-         femtoscheme/femtoscheme.boot runtime/wasmtime/lib/libwasmtime.so; do
+         runtime/wasmtime/lib/libwasmtime.so; do
  [ -e "$f" ] || { echo "make-deb: $f is missing: run make (with SDL2 installed) and make browser first" >&2; exit 1; }
 done
 command -v dpkg-deb >/dev/null && command -v dpkg-shlibdeps >/dev/null ||
@@ -35,9 +35,9 @@ out="$root/build/deb"
 stage="$out/chezweb_${version}_$arch"
 rm -rf "$stage"
 opt="$stage/opt/chezweb"
-mkdir -p "$opt/build" "$opt/femtoscheme" "$opt/ttfy" "$opt/Chinese" "$opt/schemer" \
+mkdir -p "$opt/build" "$opt/ttfy" "$opt/Chinese" "$opt/schemer" \
          "$opt/runtime/wasmtime/lib" "$opt/compiled/scripts" "$opt/browser-licenses" \
-         "$opt/scheme/languages" "$opt/scheme/extensions" "$opt/scheme/modes" \
+         "$opt/scheme/languages" \
          "$stage/usr/bin" "$stage/usr/share/applications" "$stage/usr/share/doc/chezweb" \
          "$stage/DEBIAN"
 
@@ -47,13 +47,11 @@ for f in chezweb chezweb-gui chezweb-server irene-dixe schemer-compile; do
 done
 install -m 0644 chezemax.wasm Chezweb.html "$opt/"
 install -m 0644 build/chezweb.js build/chezweb.wasm "$opt/build/"
-install -m 0644 femtoscheme/femtoscheme.boot "$opt/femtoscheme/"
 install -m 0644 ttfy/plots-guidelines.md "$opt/ttfy/"
 install -m 0644 Chinese/pinyin.txt Chinese/lianxiang.txt Chinese/README.md "$opt/Chinese/"
-install -m 0644 scheme/*.scm "$opt/scheme/"
+# the files of scheme/ that compiled/scripts/ORDER compiles
+install -m 0644 scheme/theme.scm "$opt/scheme/"
 install -m 0644 scheme/languages/*.scm "$opt/scheme/languages/"
-install -m 0644 scheme/extensions/*.scm "$opt/scheme/extensions/"
-install -m 0644 scheme/modes/*.scm "$opt/scheme/modes/"
 install -m 0644 schemer/*.scm schemer/compiler.wasm "$opt/schemer/"
 rm -f "$opt/schemer/native-compile.scm" "$opt/schemer/page.scm"
 install -m 0644 runtime/wasmtime/lib/libwasmtime.so "$opt/runtime/wasmtime/lib/"

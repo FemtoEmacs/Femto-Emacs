@@ -1,8 +1,7 @@
 /*
  * system.c -- files, programs and the system, for the scripts
  *
- * Plain C, for both runtimes: the femtoscheme builtins (primitives.c,
- * extra.c) and the functions of compiled Scheme (bridge-more.c) are thin
+ * Plain C: the functions of compiled Scheme (bridge-more.c) are thin
  * wrappers around these.  Nothing here exits or longjmps: failures are
  * returned.
  */

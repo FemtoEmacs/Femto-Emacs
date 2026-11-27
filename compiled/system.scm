@@ -1,9 +1,8 @@
-;;;; system.scm -- the scripts' C functions beyond src/native.c's table
+;;;; system.scm -- the scripts' C functions beyond src/editor-functions.def
 ;;;;
 ;;;; Buffer text in bulk, the command and hint tables, files, programs, the
-;;;; system, the highlighters and the assistants (src/bridge-more.c, around
-;;;; the same C as femtoscheme's builtins), with the signatures the scripts
-;;;; know.  Text comes back as strings; colours as bytevectors.
+;;;; system, the highlighters and the assistants (src/bridge-more.c), with
+;;;; the signatures the scripts know (femtoscheme's builtins had them).  Text comes back as strings; colours as bytevectors.
 
 (define buffer-substring (foreign-procedure "buffer-substring" (long long) string))
 (define buffer-bytes (foreign-procedure "buffer-bytes" (long long) u8*))   ; the same text as bytes

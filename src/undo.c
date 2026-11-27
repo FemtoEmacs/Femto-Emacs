@@ -47,7 +47,7 @@ long fe_undo_recording(long on)
 /*
  * The most bytes one change may have and still be sent to undo.scm: its
  * *undo-limit*, told by the scripts (undo.scm, before every key); -1, no
- * limit (femtoscheme's scripts, which do not tell).  A larger change
+ * limit (until they tell).  A larger change
  * cannot be undone: undo.scm dropped it, and the history with it
  * (Lean/undo-visit.lean, trim_oversized), but only after its bytes had
  * been copied into the compiled program, where a byte of a bytevector

@@ -123,7 +123,4 @@ got=$(cat "$work/a.txt")
 [ "$got" = "$expected" ] || { printf 'got:\n%s\n' "$got"; fail "the keys did not make the expected file"; }
 echo "ok    typed, a key and a variable set by ~/.chezemax/init.scm, C-c q closing the [?] menu and the help page, M-: compiled (a session), C-x C-s, C-x C-c"
 
-# femtoscheme still runs the scripts when asked to (until step 5)
-[ "$(CHEZEMAX_SCHEME=femtoscheme CHEZEMAX_NO_INIT=1 ./chezemax --eval '(bound? (quote load-scripts))')" = "#t" ] ||
-    fail "CHEZEMAX_SCHEME=femtoscheme"
 echo "PASS the editor runs on the compiled program"

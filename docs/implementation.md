@@ -166,15 +166,13 @@ logic remain the compiled Scheme implementations. Backups are under `bkp/`.
 Chezemax is Schememax's successor (a copy of it, made on 1 November 2026). Its C core owns `main()`, startup, the
 event loop and both screen backends (terminal and window); key bindings,
 editing commands, indentation, highlighting, undo, menus, help, the shell
-window and the assistants are Scheme scripts (`scheme/`).
+window and the assistants are Scheme scripts (`compiled/scripts/`).
 
-**The goal: no femtoscheme.** Today Chezemax is still Schememax inside: the scripts
-run on femtoscheme, with Schemer (the Chez-inspired compiler to WasmGC,
-`schemer/`) compiling some commands and expressions. Chezemax will run every
-script on Schemer, compiled ahead of time, with the C core calling it through
-Wasmtime; femtoscheme will then be deleted, and the same compiled program
-will run in the browser. PORT-TO-SCHEMER.md is the plan and the inventory of
-what femtoscheme does for the editor today.
+**No femtoscheme.** Every script is compiled ahead of time by Schemer (the
+Chez-inspired compiler to WasmGC, `schemer/`) into `chezemax.wasm`, which
+the C core runs through Wasmtime, in the terminal, the window and the
+browser. femtoscheme, which ran the scripts until the port, was removed on
+27 November 2026. PORT-TO-SCHEMER.md tells how the port went.
 
 The keys, menus and behaviour follow Schememax and SBEmacs before it.
 FEATURE-PARITY.md lists what was ported from SBEmacs.
@@ -187,17 +185,18 @@ make
 ./chezemax --gui paper.md     # window (SDL2), when built
 make app                       # macOS application bundle
 open Chezemax.app
-make check                     # femtoscheme suites and the editor's tests
+make check                     # the scripts' cases and the editor's tests
 make check-ui                  # search, assistant protocols, PDF rendering
 ```
 
 The terminal uses the system curses library; the window uses SDL2 and
-SDL2_ttf. The Scheme runtime is bundled source: no Scheme installation or
-package manager is needed. `make` builds the window version when its
+SDL2_ttf. Schemer is bundled (its compiler is compiled Scheme, run by
+Wasmtime): no Scheme installation or package manager is needed. `make` builds the window version when its
 libraries are found through pkg-config.
 
-Keep the executable beside the `scheme/`, `schemer/`, `runtime/`, `femtoscheme/` and `ttfy/`
-folders; `make app` copies them into Chezemax.app.
+Keep the executable beside `chezemax.wasm` and the `compiled/`, `scheme/`,
+`schemer/`, `runtime/` and `ttfy/` folders; `make app` copies them into
+Chezweb.app.
 
 ## Compiled Scheme runtime
 
@@ -208,12 +207,8 @@ definitions persist, so defining `fib` and then evaluating `(time (fib 40))`
 runs compiled recursion. Compatible editing commands compile on first use.
 `M-x schemer-status` reports compilation and editor-callback counts.
 
-The compiler and old editor dialect are not fully compatible. Legacy macros,
-ports, shared mutable objects and higher-order native callbacks retain
-compatibility handlers. The compiler itself is self-hosted WasmGC and does
-not use the interpreter. The editor core still uses the interpreter; it has
-not been removed. `CHEZEMAX_SCHEME=legacy ./chezemax` temporarily
-selects the interpreter for comparison or troubleshooting.
+The compiler itself is self-hosted WasmGC. There is no interpreter: without
+`chezemax.wasm` the editor says so and stops (`src/start.c`).
 
 The first `make` downloads a checksum-verified Wasmtime 50.0.1 C SDK using
 curl and tar (unzip under Windows/MSYS2). `make fetch-wasmtime` downloads it
@@ -238,11 +233,10 @@ interpreter linkage. Native backend details are in
 
 | Path | Contents |
 |---|---|
-| `src/` | The C sources: editor core, screen backends (`term.c`, `gui.c`), the femtoscheme bridge (`hooks.c`, `native.c`, `primitives.c`) and the tokenizers (`highlight.c`) |
-| `femtoscheme/` | The bundled Scheme, built by its own Makefile |
-| `scheme/` | The scripts, in load order: `core`, `api`, `highlight`, `indent`, `theme`, `undo`, `gui`, `languages/`, `defaults`, `extensions/` |
-| `scheme/modes/` | The Python and Nim modes and their loader (M-x load-mode) |
-| `tests/` | `run-tests.scm` (`make check`) and the C and protocol tests (`make check-ui`) |
+| `src/` | The C sources: editor core, screen backends (`term.c`, `gui.c`), the hooks into the compiled program (`hooks.c`, `compiled-program.c`, `start.c`), the bridge (`bridge.c`, `editor-functions.def`) and the tokenizers (`highlight.c`) |
+| `compiled/` | The compiled program: the bridge, the library, `compat.scm` and `start.scm`; `compiled/scripts/` the scripts, in the order of `ORDER` |
+| `scheme/` | `theme.scm` and `languages/`, which `ORDER` compiles too |
+| `tests/` | `scripts-cases.scm` and `scripts-expected.txt` (`make check-scripts`), the C, PTY and protocol tests (`make check`, `make check-ui`) |
 | `reference/sbcl-lisp/` | SBEmacs's Lisp scripts, the specification of the port |
 | `docs/` | Historical FemtoEmacs documentation |
 

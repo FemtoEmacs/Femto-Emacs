@@ -8,7 +8,7 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
 cc=${CC:-cc}
 $cc -O2 tests/pty-keys.c -o "$work/pty" -lutil 2>/dev/null ||
  $cc -O2 tests/pty-keys.c -o "$work/pty"
-for runtime in compiled femtoscheme; do
+for runtime in compiled; do
  for scenario in literal undo readonly; do
   printf 'Start\n' > "$work/text.md"
   cp "$work/text.md" "$work/expected"
@@ -29,7 +29,7 @@ keys ^X^S
 wait 150
 keys ^X^C
 KEYS
-  if (cd "$work"; CHEZEMAX_NO_INIT=1 CHEZEMAX_SCHEME=$runtime "$work/pty" "$work/keys" 30 "$work/screen" "$root/chezemax" text.md); then :
+  if (cd "$work"; CHEZEMAX_NO_INIT=1 "$work/pty" "$work/keys" 30 "$work/screen" "$root/chezemax" text.md); then :
   else
    status=$?
    echo "FAIL $runtime bracketed paste: $scenario (exit $status)" >&2
