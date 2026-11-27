@@ -153,7 +153,7 @@
 "summarize-kill" ("line one" "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" "ação" "")
 "dired paths" ("/a/b" "/" "/a" "/" "a" "/a/b" "/a/b" "/b")
 "dired listing" ((".hidden" #t) ("sub" #t) (".dot" #f) ("Makefile" #f) ("a.lisp" #f) ("ab.txt" #f) ("olá.txt" #f) ("with space.md" #f))
-"dired line" ("            12  1969-12-31 21:00  f.txt\n" "  d                               d/\n")
+"dired line" ("            12  1970-01-01 00:00  f.txt\n" "  d                               d/\n")
 "grep" (("g.txt" 2 "Two needle") ("g.txt" 3 "three NEEDLE é"))
 "grep files" ("ab.txt" "g.txt" "olá.txt")
 "relative-name" ("/not/here" "x/y")

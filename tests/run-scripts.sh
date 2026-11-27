@@ -10,6 +10,8 @@
 #
 #   KEEP=1 sh tests/run-scripts.sh     keeps the work folder
 set -eu
+# The recorded epoch timestamp has one answer on every machine.
+TZ=UTC0; export TZ
 cd "$(dirname "$0")/.."
 work=$(mktemp -d "${TMPDIR:-/tmp}/chezemax-scripts.XXXXXX")
 trap '[ -n "${KEEP:-}" ] || rm -rf "$work"' EXIT HUP INT TERM
