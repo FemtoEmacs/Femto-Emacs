@@ -1,0 +1,53 @@
+name: Package and upload the macOS app
+description: Sign the app and retry transient artifact-service failures without rebuilding it.
+runs:
+  using: composite
+  steps:
+    - name: Package and verify the macOS app
+      shell: bash
+      run: |
+        set -euo pipefail
+        make app
+        bash tools/bundle-macos-libraries.sh Chezweb.app
+        codesign --force --deep --sign - Chezweb.app
+        codesign --verify --deep --strict Chezweb.app
+        ./chezweb --version | grep -F "Chezweb 1."
+        ditto -c -k --keepParent Chezweb.app "Chezweb-macOS-$(uname -m).zip"
+    - name: Upload macOS app (attempt 1)
+      id: upload_first
+      continue-on-error: true
+      uses: actions/upload-artifact@v7.0.2
+      with:
+        name: Chezweb-macOS-${{ runner.arch }}
+        path: Chezweb-macOS-*.zip
+        if-no-files-found: error
+        compression-level: 0
+    - name: Wait before retrying the upload
+      if: steps.upload_first.outcome == 'failure'
+      shell: bash
+      run: sleep 15
+    - name: Upload macOS app (attempt 2)
+      id: upload_second
+      if: steps.upload_first.outcome == 'failure'
+      continue-on-error: true
+      uses: actions/upload-artifact@v7.0.2
+      with:
+        name: Chezweb-macOS-${{ runner.arch }}
+        path: Chezweb-macOS-*.zip
+        if-no-files-found: error
+        compression-level: 0
+        overwrite: true
+    - name: Wait before the last upload attempt
+      if: steps.upload_second.outcome == 'failure'
+      shell: bash
+      run: sleep 45
+    # No continue-on-error here: persistent failures must remain visible.
+    - name: Upload macOS app (final attempt)
+      if: steps.upload_second.outcome == 'failure'
+      uses: actions/upload-artifact@v7.0.2
+      with:
+        name: Chezweb-macOS-${{ runner.arch }}
+        path: Chezweb-macOS-*.zip
+        if-no-files-found: error
+        compression-level: 0
+        overwrite: true

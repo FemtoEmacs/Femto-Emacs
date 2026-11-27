@@ -1,0 +1,33 @@
+name: Recover macOS app upload
+# For an upload-only failure after Portable build has already passed its
+# editor tests. Rebuild the signed app and retry the upload, not the tests.
+on:
+  workflow_dispatch:
+    inputs:
+      runner:
+        description: Mac architecture to recover
+        type: choice
+        options:
+          - macos-15
+          - macos-15-intel
+        default: macos-15
+permissions:
+  contents: read
+jobs:
+  recover:
+    name: Rebuild and upload the macOS app
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Mac build libraries
+        run: brew install pkg-config sdl2 sdl2_ttf
+      - name: Build with the common makefile
+        run: make -j2
+      - name: Verify browser bundle and editor version
+        run: |
+          make check-browser-assets
+          ./chezweb --version
+      - name: Package and upload the macOS app
+        timeout-minutes: 20
+        uses: ./.github/actions/package-macos
