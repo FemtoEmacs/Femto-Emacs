@@ -114,6 +114,7 @@ void record_change(buffer_t *bp, int kind, point_t pos, const char_t *text, long
 	/* display.c: b_epage, and what it knows of a long line, are stale --
 	   unless the text was only saved */
 	if (bp != NULL && kind != 's') bp->b_changes++;
+	if (bp != NULL && kind != 's') sexp_changed(bp, (long) pos);   /* sexp.c: what it knew after POS */
 	if (bp != NULL) mark_change(bp, kind, pos, len);
 	if (bp != NULL && bp->b_nfolds > 0)     /* fold.c: folds follow the text */
 		fold_change(bp, kind, pos, len);

@@ -362,6 +362,11 @@ check-backup: chezemax chezemax.wasm chezemax.cwasm
 	sh tests/backup.sh
 check: check-backup
 
+.PHONY: check-sexp-scan
+check-sexp-scan: chezemax chezemax.wasm chezemax.cwasm
+	sh tests/sexp-scan.sh
+check: check-sexp-scan
+
 .PHONY: check-shards
 check-shards: chezemax chezemax.wasm chezemax.cwasm
 	sh tests/shards.sh

@@ -1,0 +1,51 @@
+dem-balanced.gls -- dem-balanced.scm
+
+The file (made by sh dem-make.sh): 8 MB of good Scheme, every paren
+closed; Chez Scheme loads it.  What makes it demanding is what a reader
+must not take for a paren:
+  line 1      a comment
+  line 3-4    (define deep '((((... 1,000,000 deep, on one line of 2 MB,
+              "the bottom, with ) and ( in a string" ...)))))
+  line 6-8    #| a block comment with ( and ), and #| one nested in it,
+              with a ) |# |#
+  line 10     (define table (quote (
+  line 12...  80,000 rows like
+                (row 000001 "a ) in a string" #\( #\) |a (symbol| 3.14) ; a ( in a comment
+  line 80012  the ))) that closes the table
+  line 80014  (define (after-all) (vector-length (list->vector table)))
+
+Emacs (scheme-mode) and Neovim struggle with files like this; Chezweb
+reads Lisp from checkpoints kept every 64 KB (src/sexp.c), and each key
+below takes well under a second.  To measure: dem-read-me.gls, item 3.
+
+Open:   chezweb dem-balanced.scm
+
+1. C-n C-n  (the start of (define deep)  C-M-f
+   Expect: the cursor after the ) that closes (define deep ...), at the
+   end of line 4, at once.
+2. C-M-b     Expect: back to the start of (define deep, at once.
+3. C-n  C-a  C-f C-f  (after the quote)  C-M-f  then  C-M-b
+   Expect: over the list 1,000,000 deep, to just before the last ) of the
+   line, and back: the ) and ( in the string at the bottom are not
+   counted.
+4. M-g 40000 RET  C-M-f
+   Expect: the cursor after the row of line 40000 (row 039989): its ")",
+   "(", #\(, #\), |a (symbol| and ; a ( in a comment are not parens.
+5. M-g 80012 RET  C-e   (after the last ) of the table's )))
+   Expect: "Matches line 10: (define table" at the bottom: the paren
+   highlight found the open paren of (define table, 80,000 lines above,
+   past every paren in strings, characters and comments.
+6. M->  then C-M-b four times
+   Expect: the start of (define (after-all), of (define table, of
+   (define deep, then "No expression before the cursor": the block
+   comment between them, with its parens, is skipped.
+7. M-g 4 RET  C-f C-f C-f C-f C-f  x  DEL
+   Expect: typing in the line of 2 MB, at once each.
+8. M-<  C-n C-n  C-M-k   then  C-/
+   Expect: the whole (define deep ...) cut (2 MB), at once; C-/ brings it
+   back.
+9. C-x k RET, then "y": not saved.  The file is made again by
+   sh dem-make.sh.
+
+To compare: open it in Emacs (M-x find-file) and in Neovim, and try
+steps 1, 5 and 6 there.

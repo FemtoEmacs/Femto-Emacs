@@ -17,7 +17,7 @@ case $(uname -s) in
  CYGWIN*|MINGW*|MSYS*) gc="-Wl,--gc-sections,--exclude-all-symbols -fno-asynchronous-unwind-tables -fno-unwind-tables" ;;
  *) gc=-Wl,--gc-sections ;;
 esac
-files="tests/fuzz-core.c tests/no-terminal.c src/data.c src/command.c src/gap.c src/display.c src/width.c src/buffer.c src/narrow.c src/fold.c src/undo.c src/interface.c"
+files="tests/fuzz-core.c tests/no-terminal.c src/data.c src/command.c src/gap.c src/display.c src/width.c src/buffer.c src/narrow.c src/fold.c src/undo.c src/interface.c src/sexp.c"
 if $cc -g -O1 -fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer \
      -ffunction-sections -fdata-sections $gc -Isrc $files -o "$work/fuzz" 2> "$work/log"; then
 	sanitizers="AddressSanitizer and UndefinedBehaviorSanitizer"

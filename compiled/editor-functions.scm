@@ -101,6 +101,7 @@
 (define fe-narrow-start (foreign-procedure "fe-narrow-start" () long))
 (define fe-narrow-end (foreign-procedure "fe-narrow-end" () long))
 (define fe-char-width (foreign-procedure "fe-char-width" (long) int))
+(define fe-scan-sexp (foreign-procedure "fe-scan-sexp" (long long) long))
 (define fe-cluster-width (foreign-procedure "fe-cluster-width" (long long) int))
 (define fe-term-open (foreign-procedure "fe-term-open" () string))
 (define fe-term-state (foreign-procedure "fe-term-state" () int))

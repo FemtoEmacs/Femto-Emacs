@@ -100,7 +100,7 @@ jobs:
           mkdir -p build/test-tmp
           export TMPDIR="$PWD/build/test-tmp" ENDURANCE_KEEP=1 CHEZWEB_PTY_TRACE=1
           make check-clipboard-capacity check-compiled check-fuzz-core check-fuzz-found check-big-edit check-boundaries-quick
-          make check-stray-bytes check-accent-motion check-cluster-motion check-backup check-shards check-esc-nul check-comment-context check-syntax-open check-org-eval check-speed-report check-sexp-speed check-block-fill
+          make check-stray-bytes check-accent-motion check-cluster-motion check-backup check-shards check-esc-nul check-comment-context check-syntax-open check-org-eval check-speed-report check-sexp-speed check-sexp-scan check-block-fill
           make check-utf8-typing check-markdown-blank-newline check-bracketed-paste check-backdoor-guard check-char-width check-ghost-window check-line-motion check-chinese-input check-polytonic check-org-mode
       - name: Cache compiled Windows product
         if: steps.product.outputs.cache-hit != 'true'
