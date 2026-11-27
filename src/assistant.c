@@ -9,27 +9,8 @@
 #include <sys/wait.h>
 #include <signal.h>
 #include <time.h>
-#include "llt/llt.h"
-#include "flisp.h"
 #include "pdf-pages.h"
 extern char **environ;
-extern long fe_buffer_size(void);
-extern long fe_copy_text(long, long, char *);
-extern int getfilename(char *, char *, int);
-static value_t pdf_file_prompt(value_t *args, uint32_t n) {
-    (void)args;argcount("ttfy-file-prompt",n,0);
-    char path[4096]="";
-    if(!getfilename("Textify PDF: ",path,sizeof(path)-1))path[0]=0;
-    return string_from_cstrn(path,strlen(path));
-}
-static value_t buffer_text(value_t *args, uint32_t n) {
-    (void)args; argcount("buffer-string", n, 0);
-    long length = fe_buffer_size();
-    char *s = malloc((size_t)length + 1);
-    if (!s) lerror(MemoryError, "buffer-string allocation failed");
-    fe_copy_text(0, length, s); s[length] = 0;
-    value_t result = string_from_cstrn(s, (size_t)length); free(s); return result;
-}
 /* The provider's answer, or a message saying why there is none (both
  * malloc'd); NULL, and *ERROR, when the request could not be made */
 static char *run_request(const char *provider, const char *prompt,
@@ -95,16 +76,6 @@ static char *run_request(const char *provider, const char *prompt,
 char *assistant_ask(const char *provider, const char *prompt, const char **error) {
     return run_request(provider,prompt,NULL,NULL,0,error);
 }
-static value_t answer_value(char *answer, const char *error) {
-    if(!answer)lerror(IOError,error);
-    value_t result=string_from_cstrn(answer,strlen(answer));free(answer);return result;
-}
-static value_t ask(value_t *args, uint32_t n) {
-    argcount("assistant-request",n,2);
-    const char *error="";
-    char *answer=assistant_ask(tostring(args[0],"assistant-request"),tostring(args[1],"assistant-request"),&error);
-    return answer_value(answer,error);
-}
 /* (ttfy-request provider pdf range guidelines): Markdown, or why not */
 char *assistant_textify(const char *provider, const char *path, const char *range,
                         const char *guidelines, const char **error) {
@@ -146,15 +117,4 @@ char *assistant_textify(const char *provider, const char *path, const char *rang
     snprintf(prompt+used,capacity-used,"\nFollow these plot and transcription rules:\n%s",guidelines);
     char *result=run_request(provider,prompt,directory,images,count,error);
     free(prompt);free(images);return result;
-}
-static value_t textify(value_t *args, uint32_t n) {
-    argcount("ttfy-request",n,4);
-    const char *error="";
-    char *answer=assistant_textify(tostring(args[0],"ttfy-request"),tostring(args[1],"ttfy-request"),
-                                   tostring(args[2],"ttfy-request"),tostring(args[3],"ttfy-request"),&error);
-    return answer_value(answer,error);
-}
-void assistant_init(void) {
-    static builtinspec_t functions[]={{"buffer-string",buffer_text},{"assistant-request",ask},{"ttfy-request",textify},{"ttfy-file-prompt",pdf_file_prompt},{NULL,NULL}};
-    assign_global_builtins(functions);
 }

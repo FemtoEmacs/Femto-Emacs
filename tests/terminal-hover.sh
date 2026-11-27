@@ -16,8 +16,8 @@ keys \e[<35;1;1M
 keys ^X^C
 KEYS
 editor=${CHEZWEB_HOVER_EDITOR:-./chezemax}
-for runtime in compiled femtoscheme; do
- CHEZEMAX_NO_INIT=1 CHEZEMAX_SCHEME=$runtime "$work/pty" "$work/keys" 30 "$work/screen" "$editor" || { cat "$work/screen" >&2; exit 1; }
+for runtime in compiled; do
+ CHEZEMAX_NO_INIT=1 "$work/pty" "$work/keys" 30 "$work/screen" "$editor" || { cat "$work/screen" >&2; exit 1; }
  grep -Fq "$(printf '\033[?1003h')" "$work/screen"
  grep -Fq "$(printf '\033[?1003l')" "$work/screen"
  echo "PASS $runtime terminal passive hover, SAVE description and mouse cleanup"

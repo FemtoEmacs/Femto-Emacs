@@ -1,7 +1,7 @@
 /*
  * highlight.h -- the tokenizers behind syntax highlighting (highlight.c),
- * for both runtimes: femtoscheme's builtins and compiled Scheme's
- * (bridge-more.c).  Text and colours are bytes; colours are faces.
+ * for compiled Scheme (bridge-more.c).  Text and colours are bytes;
+ * colours are faces.
  */
 #ifndef CHEZEMAX_HIGHLIGHT_H
 #define CHEZEMAX_HIGHLIGHT_H

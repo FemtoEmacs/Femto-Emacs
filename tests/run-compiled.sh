@@ -19,4 +19,3 @@ for expected in tests/compiled-fixtures/*.out; do
     fi
     echo "ok    compiled $name"
 done
-CHEZEMAX_SCHEME=femtoscheme CHEZEMAX_TEST_DIR="$task_tmp" CHEZEMAX_NO_INIT=1 ./chezemax --eval '(load "tests/compiled.scm")'

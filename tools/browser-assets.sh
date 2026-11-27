@@ -8,12 +8,12 @@ hash_files() {
 }
 source_files() {
  (
-  find src femtoscheme schemer compiled scheme web -type d -name bkp -prune -o \
+  find src schemer compiled scheme web -type d -name bkp -prune -o \
    -type d -path web/prebuilt -prune -o \
    -type f \( -name '*.c' -o -name '*.h' -o -name '*.scm' -o -name '*.js' \) \
    ! -path src/bridge-functions.c ! -path compiled/editor-functions.scm -print
-  printf '%s\n' compiled/PROGRAM compiled/scripts/ORDER web/makefile.inc web/shell.html \
-   femtoscheme/femtoscheme.boot schemer/compiler.wasm tools/gen-bridge.awk tools/gen-bridge-scheme.awk
+  printf '%s\n' src/editor-functions.def compiled/PROGRAM compiled/scripts/ORDER web/makefile.inc web/shell.html \
+   schemer/compiler.wasm tools/gen-bridge.awk tools/gen-bridge-scheme.awk
  ) | LC_ALL=C sort -u
 }
 verify() {
@@ -60,7 +60,7 @@ case ${1:-} in
   cp "$input/chezweb.js" web/prebuilt/chezweb.js
   cp "$input/chezweb.wasm" web/prebuilt/chezweb.wasm
   # Track authoritative C/JS and Scheme inputs, never generated bridge files
-  # (their generators/native.c are tracked), native objects or caches.
+  # (their generators/editor-functions.def are tracked), native objects or caches.
   # The compiler and boot image are portable Wasm/data, not native executables.
   (
    hash_files web/prebuilt/chezweb.js web/prebuilt/chezweb.wasm

@@ -1,0 +1,16 @@
+* Bug list according to Claude
+This document presents a list of bugs found in Chezweb, as Claude sees
+them. Each bug has a title, a short description, and how it was fixed.
+
+** Misplaced status line
+On a single window pane, the status line appears in the middle of the
+pane, as there were two windows. To test this bug, Mens van der Lus
+preserved a fossilized version of Chezweb in ~/mysand/xbug.
+
+** False enumerate environment in LaTeX
+When I paste a reference to an Org mode file, then I press M-q,
+sometimes the year goes to a new line, and the LaTeX converter
+considers it as an enumerate environment. In Org mode, the stranded
+year appears in red. In LaTeX, it can't be seen anywhere.
+
+

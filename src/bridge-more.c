@@ -1,11 +1,10 @@
 /*
  * bridge-more.c -- the C functions of the scripts that are not in
- * src/native.c's table (bridge-functions.c): buffer text in bulk, the
+ * src/editor-functions.def (bridge-functions.c): buffer text in bulk, the
  * command and hint tables, files, programs, the system, the highlighters
  * and the assistants.  Each is a wrapper, for compiled Scheme, around the
- * same C as femtoscheme's builtin of the same name (primitives.c, extra.c,
- * highlight.c, assistant.c, system.c); compiled/system.scm gives them the
- * scripts' signatures.
+ * C of highlight.c, assistant.c and system.c; compiled/system.scm gives
+ * them the scripts' signatures (they were femtoscheme's builtins).
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -467,7 +466,7 @@ static void b_highlight_nim(bridge_in *in, bridge_out *out)
 }
 
 /* (fe-highlight-markdown text): (colours ((start end info) ...)), the
- * blocks of code last first, as femtoscheme's builtin gives them */
+ * blocks of code last first */
 static void b_highlight_markdown(bridge_in *in, bridge_out *out)
 {
 	size_t n;

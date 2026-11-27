@@ -83,11 +83,32 @@ START-LINE-P (text line-start) tells where scanning may safely begin."
 
 (define (word-byte-p* b) (or (and (<= 48 b) (<= b 57)) (and (<= 65 b) (<= b 90)) (and (<= 97 b) (<= b 122)) (= b 95) (>= b 128)))
 
+;;; The scans below run for every byte or every element of a definition,
+;;; which may be megabytes: plain loops, no case-lambda (its dispatch cost
+;;; some 6 microseconds a call, a loop's step a hundredth of that), and no
+;;; bitwise-and for a UTF-8 continuation byte.  C-M-\ of three lines inside
+;;; a list of 6.8 MB took minutes (demanding/dem-long-list.gls, step 8,
+;;; 27 November 2026).
+
 (define (line-start-index text i)
-  (let ((p (byte-position-back text 10 (min i (blen text))))) (if p (+ p 1) 0)))
+  (let loop ((k (- (min i (blen text)) 1)))
+    (cond ((< k 0) 0)
+          ((= (bytevector-u8-ref text k) 10) (+ k 1))
+          (else (loop (- k 1))))))
 
 (define (line-end-index text i)
-  (or (byte-position text 10 (min i (blen text))) (blen text)))
+  (let ((n (blen text)))
+    (let loop ((k (min i n)))
+      (cond ((>= k n) n)
+            ((= (bytevector-u8-ref text k) 10) k)
+            (else (loop (+ k 1)))))))
+
+(define (newline-before text from to)
+  "The first newline in [FROM, TO), or #f."
+  (let loop ((k from))
+    (cond ((>= k to) #f)
+          ((= (bytevector-u8-ref text k) 10) k)
+          (else (loop (+ k 1))))))
 
 (define skip-blanks
   (case-lambda
@@ -96,17 +117,23 @@ START-LINE-P (text line-start) tells where scanning may safely begin."
      (let ((end (or end (blen text))))
        (let loop ((i i)) (if (and (< i end) (blank-byte-p (b@ text i))) (loop (+ i 1)) i))))))
 
-(define (column-at text i)
-  "Screen column of byte I (tabs every 8 columns, UTF-8 aware)."
-  (let loop ((k (line-start-index text i)) (col 0))
+(define (column-from text ls i)
+  "Screen column of byte I, whose line starts at LS."
+  (let loop ((k ls) (col 0))
     (if (>= k i) col
-        (let ((b (b@ text k)))
+        (let ((b (bytevector-u8-ref text k)))
           (loop (+ k 1)
                 (cond ((= b 9) (* 8 (+ 1 (quotient col 8))))
-                      ((= (bitwise-and b #xC0) #x80) col)
+                      ((and (>= b 128) (< b 192)) col)     ; a continuation byte
                       (else (+ col 1))))))))
 
-(define (first-nonblank text ls) (skip-blanks text ls (line-end-index text ls)))
+(define (column-at text i)
+  "Screen column of byte I (tabs every 8 columns, UTF-8 aware)."
+  (column-from text (line-start-index text i) i))
+
+(define (first-nonblank text ls)
+  (let ((end (line-end-index text ls)))
+    (let loop ((i ls)) (if (and (< i end) (blank-byte-p (bytevector-u8-ref text i))) (loop (+ i 1)) i))))
 (define (indentation-at text ls) (column-at text (first-nonblank text ls)))
 
 (define (line-blank-p text ls)
@@ -155,7 +182,7 @@ COMMENT, a prefix) a comment-only line."
   (let loop ((ls from) (best #f))
     (if (>= ls to) best
         (let ((best (if (predicate text ls) ls best))
-              (nl (byte-position text 10 ls to)))
+              (nl (newline-before text ls to)))
           (if nl (loop (+ nl 1) best) best)))))
 
 (define (make-context spec raw from pos)
@@ -168,7 +195,7 @@ to find a safe place to start scanning."
          (ls (line-start-index raw rel))
          (le (line-end-index raw rel))
          (first-ls (if (= from 0) 0
-                       (let ((nl (byte-position raw 10 0 ls))) (if nl (+ nl 1) ls))))
+                       (let ((nl (newline-before raw 0 ls))) (if nl (+ nl 1) ls))))
          (scan-start (cond ((not start-p) first-ls)
                            ((find-start-line raw first-ls ls start-p))
                            ((= from 0) 0)
@@ -237,7 +264,7 @@ block, #f.  RET after (define (fib n) in an Org block indented nothing
           (if (>= ls (blen text))
               (> with-tabs with-spaces)
               (let* ((b (b@ text ls))
-                     (nl (byte-position text 10 ls)))
+                     (nl (newline-before text ls (blen text))))
                 (let ((wt (if (= b 9) (+ with-tabs 1) with-tabs))
                       (ws (if (and (= b 32) (< (+ ls 1) (blen text)) (= (b@ text (+ ls 1)) 32))
                               (+ with-spaces 1) with-spaces)))
@@ -424,15 +451,17 @@ and the state at TO: 'code, 'string or 'comment."
         (let ((f (car stack)))
           (vector-set! f 4 (+ 1 (lf-count f)))
           (case (lf-count f)
-            ((1) (vector-set! f 5 (column-at text pos)))
-            ((2) (vector-set! f 6 (column-at text pos)) (vector-set! f 7 line))))))
+            ;; positions now, columns at the end (below), for the lists
+            ;; still open: most close long before TO
+            ((1) (vector-set! f 5 pos))
+            ((2) (vector-set! f 6 pos) (vector-set! f 7 line))))))
     (let loop ()
       (when (and (< i to) (eq? state 'code))
         (let ((b (b@ text i)))
           (cond
             ((= b 10) (set! line (+ line 1)) (set! i (+ i 1)))
             ((blank-byte-p b) (set! i (+ i 1)))
-            ((= b 59) (set! i (or (byte-position text 10 i to) to)))
+            ((= b 59) (set! i (or (newline-before text i to) to)))
             ((and (= b 35) (< (+ i 1) to) (= (b@ text (+ i 1)) 124))     ; #| ... |#
              (let ((e (search-bytes "|#" text (+ i 2) to)))
                (if (not e) (set! state 'comment)
@@ -447,7 +476,7 @@ and the state at TO: 'code, 'string or 'comment."
             ((or (= b 40) (= b 91))
              (let ((start-pos (or pending i)) (quoted (and pending #t)))
                (note start-pos)
-               (set! stack (cons (make-lisp-frame i (column-at text i) line quoted
+               (set! stack (cons (make-lisp-frame i i line quoted
                                                   (if (pair? stack) (lf-count (car stack)) 0)
                                                   (if (pair? stack) (car stack) #f))
                                  stack))
@@ -470,11 +499,19 @@ and the state at TO: 'code, 'string or 'comment."
             (else                                                         ; an atom
              (let ((j (let skip ((j i)) (if (and (< j to) (not (lisp-delimiter-p (b@ text j)))) (skip (+ j 1)) j))))
                (when (and (pair? stack) (= 0 (lf-count (car stack))) (not pending))
-                 (vector-set! (car stack) 3 (string-downcase (bytes->string text i j))))
+                 (vector-set! (car stack) 3 (cons i j)))       ; its name, at the end
                (note (or pending i))
                (set! pending #f)
                (set! i (max j (+ i 1)))))))
         (loop)))
+    ;; the open lists' columns and names, from the positions kept
+    (for-each (lambda (f)
+                (let ((op (vector-ref f 3)))
+                  (when (pair? op) (vector-set! f 3 (string-downcase (bytes->string text (car op) (cdr op))))))
+                (vector-set! f 1 (column-at text (vector-ref f 1)))
+                (when (vector-ref f 5) (vector-set! f 5 (column-at text (vector-ref f 5))))
+                (when (vector-ref f 6) (vector-set! f 6 (column-at text (vector-ref f 6)))))
+              stack)
     (values stack state)))
 
 (define (strip-package op)

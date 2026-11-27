@@ -1,0 +1,240 @@
+"trim" "buf"
+"trim-bytes" ("a" "a")
+"split-lines" (("a" "b" "") ("") "a\nb")
+"count-byte" (3 2 1)
+"byte-position" (1 #f 3 1)
+"bytes of UTF-8" (4 195 "mundo" "olá")
+"string-search" (3 #f 3 3)
+"padding" ("ab  " "  ab" "abcde" "  ")
+"plural, concat" ("1 file" "2 files" "a1bc")
+"bytes replaced" ("a b" "abc" "a b c")
+"describe-error" ("Error: boom bang" "Error: x")
+"file names" ("b.txt" "/a/" "" "/x" #t #t #f)
+"config-file" #t
+"starts-with" (#t #t #f)
+"normalize-key" ("esc d" "esc C-f" "esc backspace" "C-x C-i" "C-_" "esc C-space" "esc [1;5C" "C-x left" "C-a" "C-m" "F1")
+"display-key" ("C-M-f" "M-d" "C-x TAB" "M-DEL" "C-SPC" "C-right")
+"global-set-key" test-hook-fn
+"global-unset-key" #f
+"command-procedure" (#t #f "trim" "x")
+"define-command, command" (#t (dc))
+"editor-event command" (#t (dc) #f)
+"editor-event key" (#t (key) #f "C-c 8")
+"an error in a command" #t
+"hooks" ((test-hook-fn) ((1 2)))
+"the kill ring" ("k2" "k1")
+"value->string" ("(1 \"a\" #\\b)" "#<procedure trim>")
+"call-quietly" (5 . "hi")
+"insert, point" (12 12)
+"lines" (5 4 12 1 2)
+"char-after" (#\o #f)
+"goto-char" (1 1 3)
+"mark" ((2 #t) (#f #f))
+"buffers" ("*scratch*" #f #t)
+"message" #t
+"colours" (4 1 200 33488896 17 0)
+"bad colours" error
+"builtin-command-names" ("apropos" "chez-tester" "run-tester" "backdoor-claude" "backdoor-codex" "backspace" "backward-character" "backward-page" "backward-word" "beginning-of-buffer" "beginning-of-line" "clear-message-line" "copy-region" "cursor-position" "delete-left" "delete-other-windows" "delete-window" "enlarge-window" "describe-key" "discard-undo-history" "end-of-buffer" "end-of-line" "eval-block" "exec-lisp-command" "exit" "find-file" "forward-character" "forward-delete-char" "forward-page" "forward-word" "find-file-shards" "goto-line" "insert-file" "kill-buffer" "kmacro-end-and-call-macro" "kmacro-end-macro" "kmacro-start-macro" "kill-line" "kill-region" "list-bindings" "list-buffers" "list-undo" "move-beginning-of-line" "move-end-of-line" "recover-file" "delete-old-backups" "delete-auto-saves" "list-stats-undo" "next-buffer" "previous-buffer" "next-line" "other-window" "previous-line" "query-replace" "recenter" "refresh" "resize-terminal" "save-buffer" "search-backward" "search-forward" "set-mark" "shard-first" "shard-goto" "shard-last" "shard-next" "shard-previous" "shell-command" "show-version" "split-window" "split-window-right" "toggle-overwrite-mode" "undo" "write-file" "yank")
+"version" "Chezweb 1.22, compiled Scheme, Public Domain"
+"C keywords, numbers, comments" ((4 . "int") (6 . "42") (7 . "// hi"))
+"C block comment and string" ((8 . "/* a */") (9 . "\"s\\\"q\""))
+"C char literal with a double quote" ((9 . "'\"'") (4 . "return"))
+"identifiers with digits" ((6 . "1.5e3"))
+"Lisp: hyphenated words" ((4 . "defun") (4 . "let") (6 . "1"))
+"Lisp is case-insensitive" ((4 . "DEFUN"))
+"Lisp block comment" ((8 . "#| x |#") (7 . "; y"))
+"Scheme" ((4 . "define") (4 . "let") (6 . "1") (9 . "\"s\"") (7 . "; c"))
+"Haskell, Lean, ML, Prolog, Ruby" (((4 . "do") (7 . "-- c")) ((4 . "theorem") (4 . "by") (8 . "/- c -/")) ((4 . "let") (4 . "rec") (8 . "(* c *)") (6 . "1")) ((4 . ":-") (7 . "% c")) ((4 . "def") (7 . "# c")))
+"UTF-8 keywords and strings" ((4 . "ação") (9 . "«olá» fim -- até"))
+"no language" ((6 . "42"))
+"file-extension" (".c" "" ".gz" "" ".hidden")
+"language-for-file" ("C" "C" "Common Lisp" "Text" "Scheme")
+"find-language" ("Common Lisp" #f)
+"normalise-extension" (".c" ".lisp")
+"plist-get" (2 0 none)
+"highlight-buffer-text" (4 4 4 1 5 1 1 7 7 7 7 7)
+"Lisp: defun body" 2
+"Lisp: distinguished argument" 4
+"Lisp: let bindings line up" 6
+"Lisp: function arguments line up" 5
+"Lisp: if branches line up" 6
+"Lisp: quoted data" 2
+"Lisp: flet function body" 9
+"Lisp: top level" 0
+"Lisp: inside a string" #f
+"Lisp: #\\( is not a paren" 0
+"Lisp: ;;; comments stay" #f
+"Lisp: UTF-8 columns" 5
+"Lisp: #| |# comments" 1
+"Scheme: define" 2
+"Scheme: defcommand" 2
+"Scheme: let and lambda" (2 7)
+"C: block" 4
+"C: statement after if" 8
+"C: closing brace" 4
+"C: arguments line up" 8
+"C: case labels" 12
+"C: preprocessor" 4
+"C: comment continuation" 5
+"C: brace on its own line" 0
+"C: strings and tabs" 10
+"Python: block" 4
+"Python: after return" 0
+"Python: else matches its if" 4
+"Python: brackets" 8
+"Python: inside a docstring" #f
+"Python: backslash continuation" 0
+"Ruby: def ... end" 0
+"Ruby: do |x|" 2
+"Ruby: one line" 0
+"Haskell: do" 4
+"Lean: by" 2
+"Prolog: clause body" 4
+"Prolog: next clause" 0
+"ML: let" 2
+"no indentation" error
+"indent-line, newline-and-indent in *scratch*" (#f #f)
+"text helpers" ("ab cd" "ab" 9 #f 2 10 9 "\t  " "   ")
+"undo: typing joins" ((((insert 0 "abcé"))) 0 5 #f)
+"undo: a command is a group" ((((insert 0 "zz")) ((delete 0 "a")) ((insert 0 "abcé"))) 0 8 #f)
+"undo: DEL and C-d join" ((((delete 4 "yxwv"))) 0 4 #f)
+"undo: saved, then forgotten" (((((delete 4 "yxwv"))) 0 4 #t) (() 0 0 #t))
+"undo: empty changes and *undoing*" (() 0 0 #t)
+"undo: the limit" ((((insert 4 "5")) ((insert 2 "34"))) 0 3 #f)
+"undo, redo keys" (undo undo undo redo redo)
+"themes" (#t #t default-theme dark (dark light))
+"gui font" ("x.ttf" "y.ttf" "y.ttf" 20 #t)
+"HTML: tags, attributes, values, comments, entities" ((4 . "<p") (6 . "class") (9 . "\"x\"") (4 . ">") (6 . "&amp;") (4 . "</p>") (7 . "<!-- c -->"))
+"HTML: headings, bold, links" ((4 . "<h1>") (11 . "T") (4 . "</h1><b>") (13 . "B") (4 . "</b><a") (6 . "href") (9 . "\"u\"") (4 . ">") (14 . "L") (4 . "</a>"))
+"HTML: script, doctype, UTF-8" ((4 . "<!DOCTYPE html><script>") (9 . "if (a<b) x") (4 . "</script><em>") (12 . "olá") (4 . "</em>") (6 . "&#169;"))
+"HTML: entities" ("&" "©" "α" #f #f)
+"TeX commands" ((4 . "\\section") (11 . "A") (7 . "% c"))
+"LaTeX: math, emphasis, references, environments" ((9 . "$x^2$") (4 . "\\emph") (12 . "a") (4 . "\\cite") (14 . "k") (4 . "\\begin") (6 . "itemize"))
+"LaTeX: a math environment" ((4 . "\\begin") (6 . "equation") (9 . "E=mc") (4 . "\\end") (6 . "equation"))
+"LaTeX: \\[ \\], $$, options, UTF-8" ((9 . "\\[a\\]") (9 . "$$b$$") (4 . "\\section") (11 . "Introdução") (6 . "12"))
+"TeX: \\end" 0
+"TeX: inside an environment" 2
+"Markdown heading" ((11 . "# Title"))
+"Markdown emphasis, strong, code, snake_case" ((13 . "**b**") (12 . "*c*") (9 . "`d`"))
+"Markdown list, link, quotation" ((4 . "- ") (14 . "[l]") (7 . "(u)") (7 . "> q"))
+"Markdown setext heading and rule" ((11 . "T\n==") (7 . "---"))
+"Markdown code block in its own language" ((7 . "```c") (4 . "int") (7 . "```"))
+"Markdown code in Lisp, unknown, UTF-8" ((7 . "```lisp") (4 . "defun") (7 . "```") (7 . "```zzz") (9 . "x\n") (7 . "```"))
+"Markdown multi-line comment" ((8 . "<!-- a") (8 . "b -->"))
+"Markdown: under the text of the item above" (2 5 0 0)
+"Markdown: code in ``` indented by the fence's language" (8 0 4)
+"Markdown: code in ``` with no known language" (4 4)
+"Markdown: the language of a ``` block" ("Scheme" 16 #f)
+"Markdown: after the block, prose again" 0
+"Markdown: RET continues a list" (("- " #f) ("  3. " #f) ("- " end) ("> " #f) ("- [ ] " #f) (#f #f) (#f #f) ("10) " #f))
+"Markdown: TAB levels" (0 2 2 4)
+"Markdown wraps" (("one two " "three") ("abcd" "efgh" "ij") ("café " "ação") ("abcd\n" "ef") ("a\n" "\n" "b") ("a\tb " "cd") ("one two  " "three " "four") ("abcd  \n" "ef") ("abcd\r\n" "ef"))
+"word wrap files" (-1 -1 -1 -1 -1 -1 -1 0 0 -1 0 0 -1)
+"TeX wrap" (29 "\\section{Introdução} café ação e texto")
+"wrap: combining accents and wide characters" (("áb́ćd́é " "f́ǵh́íj́") ("中文中" "文 abc " "中文中") (1 0 0 1 2 2 2))
+"what-day" ("Saturday" "Monday" "Tuesday" "unknown")
+"read-string" (2016 8 31)
+"sexp-before" (0 4 0 0 6 #f #f 3)
+"file-name-completions" (("a.lisp" "ab.txt") ("Makefile" "a.lisp" "ab.txt" "olá.txt" "sub/" "with space.md") (".dot" ".hidden/") ("sub/x.lisp") ("a.lisp") ("with space.md") () () ("olá.txt") ("ab.txt"))
+"char-equal-for-files" (#t #t #t #f)
+"copy-on-select, keys" (#f (eval-last-sexp insert-day indent-two enlarge-window-command reload-scripts))
+"HTML without tags" ("Title\n\na & b\n\n- one\n" ((0 4 5 #t #f) (5 9 1 #f 1) (6 14 1 #f 1) (7 17 2 #t #f) (9 19 1 #f #f) (10 24 2 #t #f) (12 26 1 #f 1) (13 30 1 #f 1) (14 34 2 #f 1) (16 38 3 #t #f) (19 46 1 #f 1)))
+"HTML without tags: UTF-8, scripts, comments" ("Olá\n\nação — ☺" 7)
+"LaTeX without commands" "Intro\nSome new work [k1].\n\n- one\n"
+"LaTeX without commands: refs, escapes, ~, \\\\, titles with options" "Introdução\na b x 50% \n c é"
+"the cursor keeps its place in the text" (6 "wörld" 12 0 22)
+"tag-view faces" (13 1 12)
+"C-c TAB, C-c l" (html-toggle-tags latex-toggle-tags #t)
+"help text" "PRESS i (OR CLICK [CLOSE]) TO CLOSE THIS PAGE and return to your file.\nThis page is read-only: j and k (or the arrows) move down and up, Ctrl-d\nand Ctrl-u a page, gg and G to the top and the end, / searches (n: again).\nCtrl-c h shows this page.  Ctrl-c r (hold down the Ctrl key and press c;\nrelease and press r) asks Claude for help, Ctrl-c g asks ChatGPT; you must\nsubscribe to them.\n\nC-x means Ctrl-x.  M-x means Esc, then x (or Alt-x; Option-x on a Mac).\n\nHelp and assistants\n  C-c h       this page (also C-h and F1)\n  C-h         this page (also F1)\n  C-x ?       what does a key do?\n  M-x         run a command by name (TAB completes)\n  C-c r       Claude: a menu for hints, a question or a discussion\n  C-c y       insert the answer's code, or make the buffer it proposes\n  C-c t       in the discussion: insert the snippet under the cursor\n  C-c q       close the help menu or page, the assistant's or the shell's window\n  C-c g       write a request for ChatGPT (Codex); C-c g again sends it\n  C-c f       textify a PDF into Markdown, with ChatGPT or Claude\n  C-c p       plot, or show, the table at the cursor (curves or data)\n\nFiles\n  C-x C-f     open a file\n  C-x C-s     save\n  C-x C-w     save as\n  C-x s       save every modified file, asking\n  C-x i       insert a file at the cursor\n  C-x C-v     open another file in place of this one\n  C-x d       list a directory\n  C-x C-c     quit\n\nLines and rows\n              A line ends at a newline. The screen cuts a line longer than the\n              window into rows: between words in Markdown, TeX and text files,\n              at the window's edge in code (C-c w switches). A line of 64 KB or\n              more is always cut at the edge. Every line is shown this way:\n              there is no visual-line-mode to turn on, and C-c w only changes\n              where the rows are cut.\n  C-a         start of the row the cursor is on (beginning-of-visual-line)\n  C-e         end of the row (end-of-visual-line); on a short line, C-a and\n              C-e are the line's own ends\n  C-n C-p     next and previous row, keeping the column, not the next line\n  M-m         first non-blank character of the line\n  M-x move-beginning-of-line \n              start of the line, however many rows it takes\n  M-x move-end-of-line \n              end of the line, however many rows it takes\n              Both keep to the part of the file shown: narrowed (C-x n n), the\n              ends of the narrowed part; on a folded Org heading, the end of the\n              heading's own text; in a file in shards, a line cut between shards\n              ends at the shard's end (C-c C-v ] goes on to the next shard).\n\nMoving\n  C-f         forward one character (also the right arrow)\n  C-b         back one character (also the left arrow)\n  C-n         next line (also the down arrow)\n  C-p         previous line (also the up arrow)\n  M-f         forward one word\n  M-b         back one word\n  C-a         beginning of the row shown (see Lines and rows)\n  C-e         end of the row shown (see Lines and rows)\n  M-m         first non-blank character of the line\n  M-a         back to the start of the sentence\n  M-e         forward to the end of the sentence\n  M-{         back one paragraph\n  M-}         forward one paragraph\n  C-v         next screen\n  M-v         previous screen\n  M-<         beginning of the file\n  M->         end of the file\n  M-g         go to a line number\n  C-l         put the cursor's line in the middle of the window\n  C-M-f       forward over an expression (Lisp: an s-expression)\n  C-M-b       back over an expression\n  C-M-u       out to the enclosing parenthesis\n  C-M-d       into the next parenthesis\n  C-M-a       beginning of the definition (defun, function)\n  C-M-e       end of the definition\n\nSelecting (the region is shaded)\n  C-SPC       set the mark: the region runs from it to the cursor\n  mouse       click to move the cursor or choose a window; drag to select\n  [SAVE] ...  the buttons of the mode line do what their keys do\n  file name   click it on the mode line: lines, words, size, full name\n  C-x h       select the whole file\n  M-h         select the paragraph\n  M-@         select to the end of the word\n  C-M-SPC     select to the end of the expression\n  C-x C-x     swap the cursor and the mark\n  C-g         unselect; cancel a command\n\nKilling (cutting) and yanking (pasting)\n  C-w         kill the region\n  M-w         copy the region\n  C-y         yank the last kill\n  M-y         right after C-y: replace it with the kill before\n  C-k         kill to the end of the line (again: joins the kills)\n  M-d         kill the next word\n  M-DEL       kill the previous word\n  M-k         kill to the end of the sentence\n  C-M-k       kill the next expression\n  M-z         kill up to and including a character\n  C-d         delete the character under the cursor\n  DEL         delete the character before the cursor (Backspace)\n  C-c i       choose a kill to insert\n  C-c k       browse the kill ring\n\nChanging text\n  C-/         undo the last command; again: the one before (also C-x u, C-u)\n  C-\\         redo what undo took back (also C-M-_ and M-_)\n  init.scm    (set! *undo-limit* (* 64 1024 1024)): 64 MB of undo per buffer\n  C-t         swap the two characters at the cursor\n  M-t         swap two words\n  C-x C-t     swap this line with the one above\n  M-u         upper-case the next word\n  M-l         lower-case the next word\n  M-c         capitalize the next word\n  C-x C-u     upper-case the region\n  C-x C-l     lower-case the region\n  C-o         open a line after the cursor\n  C-j         new line, indented\n  TAB         indent the line (again: other levels, in Python)\n  C-x TAB     indent the region (also C-M-\\)\n  C-x >       insert two spaces\n  C-x <       delete two characters back\n  M-^         join this line to the previous one\n  M-\\         delete the spaces around the cursor\n  M-SPC       leave just one space\n  C-x C-o     delete blank lines\n  M-q         refill the paragraph or comment\n  C-c w       word wrap on or off for this file (also MORE > Word wrap)\n  C-c TAB     hide the HTML tags (read-only view); again, show them\n  C-c l       hide the LaTeX commands (read-only view); again, show them\n  M-;         comment: add one, or (un)comment the region\n  C-q         insert the next key as it is (C-q TAB: a tab)\n  INS         overwrite mode on or off\n  C-x C-q     read-only on or off: keys move, nothing edits (see below)\n\nSearching and replacing\n  C-s         search forward (C-s again: next match)\n  C-r         search backward\n  M-%         replace, asking each time (also M-r)\n  C-x C-g     grep: search files\n  C-x !       next grep match\n\nNarrowing (only a part shown; Narrow on the mode line)\n  C-x n n     narrow to the region\n  C-x n s     narrow to the Org subtree point is in (.org files)\n  C-x n w     widen: the whole text again\n\nFiles in shards (above 1 GB, or M-x find-file-shards)\n  C-c C-v n   the next shard (the mode line shows [3/41])\n  C-c C-v p   the previous shard\n  C-c C-v g   go to shard N\n  C-c C-v [   the first shard, at its start\n  C-c C-v ]   the last shard, at its end\n  M-g         a line of the whole file\n  C-s         failing in this shard: C-s again searches the shards after it\n  C-x C-s     save the whole file; until then edits stay in memory\n  M-%         replace in this shard; the region and undo stay in it too\n  M-:         (fe-shard-size 1024): shards of 1 KB for files opened next\n  M-:         (fe-shard-threshold 2000000): C-x C-f shards files over 2 MB\n  init.scm    the same lines in ~/.chezemax/init.scm keep the sizes\n\nBuffers and windows\n  C-x b       switch to a buffer by name\n  C-x C-b     buffer menu\n  C-x <right> next buffer (Ctrl-x, then the right arrow)\n  C-x <left>  previous buffer (Ctrl-x, then the left arrow)\n  C-x k       close a buffer\n  C-x 2       split the window top and bottom\n  C-x 3       split the window side by side\n  C-x o       go to the other window (or click it)\n  C-x 0       close this window\n  C-x 1       close the other windows\n  C-x w       make this window taller\n\nKeyboard macros\n  C-x (       start recording keys\n  C-x )       stop recording\n  C-x e       replay them; then e replays again\n\nTerminal (M-x term: a shell in a buffer)\n  M-x term    open *terminal*, or go to it; vim, less, htop work in it\n              The keys go to the shell, except C-c, which is the editor's:\n  C-c C-c     C-c to the shell: interrupt the program\n  C-c C-j     copy mode (Copy on the mode line): the editor's keys in the\n              terminal's text and history: C-s, C-SPC, M-w ... it does not\n              change; the shell's output keeps coming in\n  C-c C-k     back from copy mode to the shell (Term on the mode line)\n  C-y         in the shell: paste what M-w copied, as one paste\n  C-c b       another buffer; C-c o, the other window; C-c 2, C-c 3 split\n  C-c k       close the terminal, and its shell with it\n  C-c M-x     M-x; C-c C-x is C-x (C-c C-x C-c quits the editor)\n              Copying: C-c C-j, move to the text, C-SPC, move to its end,\n              M-w, C-c C-k, then C-y in the shell or C-y in another buffer.\n              The mouse stays the editor's: clicks and the wheel. Not in the\n              browser: a web page cannot start a shell.\n\nBackups and auto-save (in ~/.chezemax)\n              Saving. C-x C-s writes a temporary file beside yours, forces it\n              onto the disk and renames it over the file in one step: after a\n              power cut there is the old file or the new one, whole.\n              Backups. The first C-x C-s of a file in a session keeps the\n              version before it in ~/.chezemax/backup, named by its whole path\n              with / as !: !Users!you!notes.md.~1~ the newest, then .~2~, .~3~.\n              None for files in the temporary folder ($TMPDIR), as in Emacs.\n              Auto-save. Changes not saved go to ~/.chezemax/auto-save, as\n              #!Users!you!notes.md#, after 30 s without a key and every 300\n              keys, for files up to 10 MB (not in shards, not in the browser).\n              A larger file, or one in shards, is not auto-saved: changed, it\n              shows ** after its name on the mode line, not *, and its first\n              change says so. Only C-x C-s keeps its changes.\n              C-x C-s removes the auto-save; opening a file with a newer one\n              says so. Each auto-save says: Auto-saving notes.md...done\n  M-x recover-file \n              the auto-save's text in place of the buffer's (C-/ undoes it)\n  C-x d       ~/.chezemax/backup RET (or auto-save): look at them\n              A backup is an ordinary file: C-x C-f opens it, C-x i inserts it.\n              Cleaning. Both commands ask how many days (30; 0: all), then say\n              how many go and how many stay, and ask y/n before deleting:\n  M-x delete-old-backups \n              the backups older than that many days\n  M-x delete-auto-saves \n              the auto-saves older than that, never those of buffers open now\n              with changes (an auto-save is the one copy of changes not saved)\n              Only files the editor made there are deleted. In a shell, the\n              same: find ~/.chezemax/auto-save -type f -mtime +30 -delete\n\nScheme\n  C-x C-e     evaluate the expression before the cursor\n  C-M-x       evaluate the top-level form around the cursor\n  M-:         evaluate an expression typed at the bottom\n  M-]         evaluate the block and insert the value\n  M-!         shell command window (TAB completes; Enter: more lines)\n  C-c m       shell command in minibuffer (TAB completes; Enter runs)\n  C-c s       in that window: run the command; its output follows it\n  C-c q       close the shell window ([CLOSE]); back to the file\n  C-x C-r     reload the Scheme scripts (no rebuild needed)\n"
+"help lines" (#t #t #t #t "\nRead-only and vim mode (M-x read-only or C-x C-q; M-x vim-mode)\n  h j k l     left, down, up, right (the arrows too; space: right)\n  w b e       next word, back a word, end of the word\n  0 ^ $       start of the line, its first non-blank, its last character\n  gg G        first line, last line (5G: line 5)\n  Enter + -   next visual row, next visual row, previous visual row\n  C-d C-u     a page down, a page up\n  / ? n N     search forward / back; next / previous match\n  %           jump to the matching paren, bracket or brace\n  5j 3w ...   a count first repeats a motion\n  yy          yy copies a whole line; 3yy copies 3 lines\n  v           select by moving; then y copies (both modes are copy-only)\n  i           back to Emacs, from either mode (on this help page: close it)\n  vim-mode    copy-only: v selects, yy and v-move-y copy; i returns to Emacs\n              delete, paste, undo, redo, replace and open-line keys are disabled\n")
+"help scrolling" (1 81 11)
+"help keys" (help help help 202 #f)
+"bufm-name-from-line" ("a very long buffer name.scm" "café.scm" "" "")
+"summarize-kill" ("line one" "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" "ação" "")
+"dired paths" ("/a/b" "/" "/a" "/" "a" "/a/b" "/a/b" "/b")
+"dired listing" ((".hidden" #t) ("sub" #t) (".dot" #f) ("Makefile" #f) ("a.lisp" #f) ("ab.txt" #f) ("olá.txt" #f) ("with space.md" #f))
+"dired line" ("            12  1969-12-31 21:00  f.txt\n" "  d                               d/\n")
+"grep" (("g.txt" 2 "Two needle") ("g.txt" 3 "three NEEDLE é"))
+"grep files" ("ab.txt" "g.txt" "olá.txt")
+"relative-name" ("/not/here" "x/y")
+"words" (5 4 4 5)
+"sentences" (4 8 5 0 13)
+"paragraphs" (4 2 3)
+"forward sexp" (11 9 10 9 #f 2 2 2 5 11)
+"backward sexp" (1 1 2 2 2 0)
+"punctuation motion always advances" #t
+"lists" (3 3)
+"defuns" (17 17 17)
+"UTF-8 characters" error
+"fill" ("aaa bbb ccc\nddd eee" "  ;; aaa bbb\n  ;; ccc" "    # " "- aaa bbb\n  ccc ddd" "ação é uma\npalavra\nlonga")
+"list items, blocks" ("  - " "10. " #f #f #t #t #t #f)
+"comments" (14 12 #f 10)
+"buffer picker" (("*codex-chat*") "alp" "" (accept accept complete insert))
+"string-capitalize" ("Save" "Hello World X-Y" "Ação É")
+"transpose, case, spaces" ("ba cd" "two one" "y\nx" ("AÇÃO Bem" 10) "a b" "a b" "a\n\nb")
+"kills" ((" two three\nfour" "one") (" two ee\nfour" "thr" 5) (" two \nfour" "ee"))
+"motion commands" (7 10 16 13 0)
+"mark commands" (2 2 (8 0))
+"emacs keys" (kill-line-command forward-word-command forward-sexp fill-paragraph comment-dwim switch-to-buffer save-some-buffers describe-key eval-expression quoted-insert)
+"mode line widths" #t
+"mode line: a long name" "...ci/src/fib.lisp*, L. 1 [?][SAVE][UNDO][Select][MORE][TTFY]                       [QUIT]"
+"mode line: narrow" ("teste.lisp, L. 1 [?][SAVE][UNDO][MORE][TTFY]          [QUIT]" "este.lisp, L. 1 [?][MORE][TTFY]   [QUIT]" " [?][MORE]    [QUIT]")
+"mode line: MORE survives" #t
+"mode line: clickable pieces" (#t #f #t #t)
+"mode line: marks" ("a.txt*, L. 7" "ação.txt*%%, L. 1 [?][SAVE][UNDO][MORE][TTFY]         [QUIT]")
+"mode line: a hint" "*x*, L. 2 [?] C-c t tangle"
+"mode line: names" ("...-long-name.lisp, L. 1 [?][SAVE][UNDO][Select][MORE][TTFY]                                                                                                                                      [QUIT]" "eighteen-chars.txt, L. 1 [?][SAVE][UNDO][Select][MORE][TTFY]                                                                                                                                      [QUIT]")
+"mode line: no buttons" #f
+"mode line: own buttons, help, assistants" ("*own*, L. 1 [?][ONE][TWO]" "*chezemax-help*, L. 1 [CLOSE] i closes help | j k gg G / % move" "*assistant*, L. 1 [CLOSE]" "*own*, L. 1 [?][SAVE][UNDO][Select][MORE][TTFY]                                                                   [QUIT]")
+"mode line: selection" ("?" "SAVE" "UNDO" "COPY" "DELETE" "MORE" "TTFY" "QUIT")
+"more menu text" ("More actions\nArrows + Enter, or click an option then [RUN]. q or C-c q closes.\n\n 1  Help                C-h\n 2  Quit                C-x C-c\n 3  Comment / uncomment M-;\n 4  Next definition     next-def\n 5  Mixed               x\n" "Word wrap on/off (C-c w)" "Textify with ChatGPT")
+"encode-pieces, shorten" ("...gh" "bc" "a  b")
+"file info" ((3 6) (1 2))
+"menu keys, run-mode-line-button" (close-tool-window #t "C-x C-c")
+"vim: classes" (#f space space word word word punct)
+"vim: motions" ((4 #f) (2 #f) (0 #f) (1 #f) (0 #f) (21 #t) (19 #f) (0 #f) (0 #f) (40 #t) (0 #t) (19 #f) (23 #t) #f)
+"vim: matching brackets" (14 5 13 0 5)
+"vim: lines" (3 2 5 7 0)
+"vim: tags, modes" ("" " READ" " NORMAL" ("" #f))
+"vim: keys" (#t 4 #t 0 #t #t "one two\nthree" #t #t "one two\nthree" #t)
+"vim: read-only refuses edits" (#t "abc" #t)
+"json-read" ((("a" 1 #t null) ("b" . "x\né😀")) (-150.0 () () "olá\t\"q\"" #f) "bad" #f)
+"json-read errors" (error error)
+"json-string" ("\"a\\\"b\\\\c\\n\\r\\t\\u0001é\"" "olá \"q\"" "000a" "001f")
+"proposed code and snippets" ("x = 1\ny = 2" #f #f ("(f 1)" "(g)\n(h)") ("(f)") ("ação é"))
+"fenced blocks: byte offsets" (((5 19 "ação")) () ((0 7 "")) "ação" #f)
+"proposed buffers" ((("naia-questions" . "1. Why?\n\n<<FILE>>")) "sarcoma-naia-que" (("*new*" . "x")) ("new-buffer  n1  more") "head\nthe\nfile\ntail" "*new*" "açãoçãoçãoçãoção")
+"assistant answers and questions" (("C-c y create buffer & close" "C-c y insert code & close" "C-c q close") #f "a b" "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx..." "CTX\n\nGive hints about the code at the cursor." "CTX\n\nQuestion: why?" "Claude" "Codex" error)
+"assistant buffers" ((#t #t #f #f) (#t #t #f) #t #t (#t #t) (ask-claude assistant-insert ask-codex assistant-discussion-tangle shell-command-window shell-command-window shell-command-run minibuffer-command one-window plot-at-point ttfy-menu #f))
+"discussions" ("Discussion with Claude about a.scm\nC-c r sends what you write after the last You:\nC-c t inserts the snippet under the cursor into a.scm\nC-c q closes this window; C-c r, then d, brings it back\n======================================================================\n\nYou:\n" "next question\n" #f "\n\nClaude:\nan\nswer\n\nYou:\n" "\nCodex:\nx\n\nYou:\n")
+"buffer context" ("File: *scratch*\nLanguage: Text\nCursor: line 2\n\nText:\n```\n(define (f x)\n  <<CURSOR>>(* x ação))\n\n```" (#t #t) #t)
+"programs" ("SH" "/bin/sh" #f #f "TMP" #t ("olá\n" "" 0) ("" "err\n" 3))
+"codex prompt and arguments" (1181 ("exec" "--sandbox" "read-only" "--ephemeral" "--ignore-rules" "--skip-git-repo-check" "--color" "never" "--cd=/tmp/project/" "-") ("exec" "--sandbox" "read-only" "--ephemeral" "--ignore-rules" "--skip-git-repo-check" "--color" "never" "--cd=/tmp/project/" "--model" "m1" "-") #t #t "/bin/sh")
+"codex errors" ("Error: Codex exited with code 1: authentication failed. Run codex login and sign in with ChatGPT." "Error: Codex exited with code 2: some output here" "Error: Codex exited with code 3: bad thing")
+"shell command lines" ("ls -l" "echo one \\\n  two \\\nthree" "echo a \\\nb" "" "$ echo a\n  b\na b\n" "$ false\n[exit status 1]\n" "$ x\nout\n")
+"shell runs" (("one two\n" 0) (#t #t) ("SLASH-TMP\na\nç" 0))
+"shell completion" ((("ls " "a" ("ls")) ("echo " "a b" ("echo")) ("x | " "gr" ()) ("cd " "some dir/fi" ("cd")) ("a\\ b " "c" ("a b")) ("ação " "ç" ("ação")) ("" "" ())) ("a\\ b" "x\\'y" "\\$HOME" "plain" "ç\\&") ("" "abc" "ab" "") (("cat a.lisp" "cat ab.txt") ("cd sub/") ("cat with\\ space.md") ("ls ; cat olá.txt") #t) (#t #t #f))
+"sketch numbers" (("0.8" "2.7" "24" "-0.25" "0.5" "0.01" "x" "0") ("0.0" "1.0" "0.75" "2.5" "100.0" "0") (0.0 0.2 0.4 0.6000000000000001 0.8 1.0) (0 5 10 15 20) (0.0) (200.0 400.0 600.0 800.0 1000.0))
+"sketch forms" (590 13 13 13 #f #f #f #f (0 15 30 49) 14 #f (#t #f #t) error (estimator-plot :x 1.5 :y "s" :z (a b)))
+"Kaplan-Meier drawing" ("sketch 1" "title T" "subtitle " "xaxis 0.0 12.0 Months" "xticks 0.0 2.0 4.0 6.0 8.0 10.0 12.0" "yaxis 0.0 1.0 " "yticks 0.0 0.2 0.4 0.6000000000000001 0.8 1.0" "series 0 214 39 40 0 Arm A" "seg 0 0.0 1.0 2.0 1.0" "seg 0 2.0 1.0 2.0 0.9" "seg 0 2.0 0.9 5.0 0.9" "seg 0 5.0 0.8 5.0 0.75" "seg 0 5.0 0.75 11.0 0.75" "censor 0 3.0 0.9" "gap 0 0.0 1.0 dense" "note Arm A: at time 5 the drop starts at 0.8, but the curve was at 0.9" "risktimes 0.0 6.0 12.0" "risk 0 20 12 5")
+"Kaplan-Meier landmarks" ("sketch 1" "title Kaplan-Meier curves" "subtitle " "xaxis 0.0 24.0 " "xticks 0.0 5.0 10.0 15.0 20.0" "yaxis 0.0 1.0 " "yticks 0.0 0.2 0.4 0.6000000000000001 0.8 1.0" "series 2 60 60 60 0 A / B (overlapping)" "link 2 0.0 1.0 6.0 0.8" "point 2 6.0 0.8" "series 0 31 119 180 0 A" "link 0 12.0 0.7 18.0 0.6" "point 0 12.0 0.7" "point 0 18.0 0.6" "point 0 20.0 0.55" "stat Median, A: 15 month" "stat Median, B: not reached" "stat p < .001 (A vs B)" "stat p = .2")
+"Kaplan-Meier statistics as a plist" ("sketch 1" "title Kaplan-Meier curves" "subtitle " "xaxis 0.0 5.0 " "xticks 0.0 1.0 2.0 3.0 4.0 5.0" "yaxis 0.0 100.0 " "yticks 0.0 20.0 40.0 60.0 80.0 100.0" "series 0 31 119 180 1 A" "seg 0 1.0 100.0 1.0 90.0" "link 0 1.0 90.0 3.0 80.0" "link 0 3.0 80.0 4.0 80.0" "point 0 3.0 80.0" "point 0 4.0 80.0" "note A: unknown row kind :odd" "note A: a row without a numeric :time was skipped" "note A: row kind :mystery drawn as a sampled point" "series 1 214 39 40 0 b" "point 1 5.0 70.0" "stat A: 10 patients, 3 events, median 2.5 months (CI 1-4.25)" "stat HR 0.5 (CI 0.2-0.9), p 0.03, vs b" "remark note one")
+"Kaplan-Meier errors" (error error)
+"data tables" (("table 1" "title Table 1. Cohort" "subtitle [p.pdf, PDF page 3]" "header\tCharacteristic\tA, No. (%)\tp" "row 0 1\tStage\t\t<0.001" "row 1 0\tLocal\t18,053 (82.3)\t" "row 0 0\tMedian\t33.0 (141–NA)\t—" "remark NA, not reached.") "Table 1. Cohort\n[p.pdf, PDF page 3]\n\nCharacteristic     A, No. (%)       p\n-------------------------------------\nStage                          <0.001\n  Local         18,053 (82.3)        \nMedian          33.0 (141–NA)       —\n-------------------------------------\nNA, not reached.\n\nInstall irene-dixe (make) and use a display to see this table in a window." ("" "" "a\"b" "18,053" "-123,456.5" "NA" "x" "<0.001" "5" "1 (2–3)" "a b") ("1234" "12,345" "-1,234,567.25" "76.4") error)
+"character plots" ("T\n\n     1 |AAAAAAAAAAA                                                     \n       |          A                                                     \n       |          AAAAAA+AAAAAAAAAA                                     \n   0.8 |                          A                                     \n       |                          AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA     \n       |                                                                \n       |                                                                \n   0.6 |                                                                \n       |                                                                \n       |                                                                \n   0.4 |                                                                \n       |                                                                \n       |                                                                \n       |                                                                \n   0.2 |                                                                \n       |                                                                \n       |                                                                \n     0 |                                                                \n       +----------------------------------------------------------------\n        0                                                             12\n        Months\n\nCurves (+ = censored; lower case = shape unknown between sampled points):\n  A = Arm A\n\n  unresolved, curve A, 0 to 1: dense\n  Arm A: at time 5 the drop starts at 0.8, but the curve was at 0.9\n\nA rough sketch: install irene-dixe (make) and use a display for the real plot." "Kaplan-Meier curves\n\n     1 |cccc                          \n   0.8 |    cccC                      \n       |              Aaaaa           \n   0.6 |                   aaaA A     \n   0.4 |                              \n       |                              \n   0.2 |                              \n     0 |                              \n       +------------------------------\n        0                           24\n        \n\nCurves (+ = censored; lower case = shape unknown between sampled points):\n  C = A / B (overlapping)\n  A = A\n\n  Median, A: 15 month\n  Median, B: not reached\n  p < .001 (A vs B)\n  p = .2\n\nA rough sketch: install irene-dixe (make) and use a display for the real plot.")
+"sketch pieces" ("a b c" 200 (214 39 40) (214 39 40) none () ("lbl" 0 12 (0 5)) ((1 2 "")) #t #f 4)
+"ttfy pipe tables" (((5 . 8)) (#t #f #f #t) (#f #t #f) (#t #t #t #f) ("codex" "claude"))
+"ttfy reading" ((a b) #f #f #f ((1 . "(x\n y)") (5 . "(z)")) ("the lisp block at line 1 does not read as one S-expression") "## 2. Tables\nrules\n" "nothing" ("(a 1)" "(b 2)" #f) (a b) (d) ())
+"ttfy tokens and layout" (("(" "a" "\"b \\\" c\"" "1.0" "(" "ação" ")" "\"open") ("x" ("y" "z") "w") "(data-table\n  :table \"1\"\n  :cells (33.0 1.00))" #t "(data-table\n  :schema schememax/data-table/1\n  :table \"1\"\n  :caption \"Cohort\"\n  :provenance (:source \"p.pdf\" :pdf-page 3)\n  :basis :printed\n  :stub \"Characteristic\"\n  :columns ((:id c1 :label \"A, No. (%)\")\n            (:id c2 :label \"p\"))\n  :rows ((:label \"Stage\" :cells (nil (:< 0.001))\n          :rows ((:label \"Local\" :cells ((:count 18053 :percent 82.3) nil))))\n         (:label \"Median\" :cells ((:value 33.0 :ci (141 :na)) \"—\")))\n  :notes (\"NA, not reached.\")\n  :abbreviations nil)" "(:label \"a long label that goes on and on\"\n :cells (1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18)\n :rows ((:a 1)\n        (:b 2))\n :note \"ação ação ação ação ação ação ação\")" "(0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30\n     31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58\n     59)" "not (one" "a\n```lisp\n(data-table\n  :x 1)\n```\nb\n```lisp\nnever closed" "" "<!-- TTFY table check: one; two. -->\n\n")
+"ttfy fixing tables" (("T\n\n```lisp\n(data-table\n  :table \"1\"\n  :rows ((:label \"a\" :cells (1))))\n```\n\nEnd") ("the pipe table at line 1 could not be rewritten as an S-expression") ("the pipe table at line 1 could not be rewritten as an S-expression") 502)
+"eval-string" (3 49 6 (0 1 2 3 4) (1 2 3 4 (n 6)) (1 2 3) mid other 10 (#f 3 1) (1 2) "caught x" sym "boom" (#t #t) (1 2 3) (1 (2 3)) 10 42 2 b 2 "a12" 3 #t #f #f (11 22) 2 100000 #(0 x 0) abc (a . b) #\a error error error error handled yes yes 2 (3 2 1.0 1024) body "out\"q\"" "(1 \"two\" #\\3)")
+"eval and the editor" ("olXá" #t test-eval-cmd "3" "x => 5" #t)
+"eval: definitions, redefinitions" (10946 0 3 9 error)
+"editing modes" (("python" "nim" "ok-1_x" error error) ("nim" "python") ("py" ("python-mode" "pyx-mode")) ("z" ()) #t (#f))
+"python indentation" (4 0 4 8 #f 0 0 0 4 4 5 0)
+"python lexer" ((name 0 1 "x" "" #t) (operator 2 3 "=" "" #t) (string 4 11 "f'a{b}'" "f" #t) (operator 12 13 "+" "" #t) (number 14 18 "0x1F" "" #t) (comment 19 23 "# ç" "" #t) (newline 23 24 "\n" "" #t) (string 24 37 "r\"\"\"doc é\"\"\"" "r" #t) (number 38 45 "3.5e-2j" "" #t) (string 46 51 "'open" "" #f))
+"python definitions" ((0 16 27 56) (#t #t #f #f))
+"nim indentation" (2 4 0 0 0 #f 2 2)
+"nim lexer" ((comment 0 17 "#[ a #[ b ]# c ]#" #t) (name 18 22 "proc" #t) (name 23 26 "`+`" #t) (operator 26 27 "(" #t) (name 27 28 "x" #t) (operator 28 29 ":" #t) (name 30 33 "int" #t) (operator 33 34 ")" #t) (operator 34 35 ":" #t) (name 36 39 "int" #t) (operator 40 41 "=" #t) (string 42 49 "r\"a\"\"b\"" #t) (operator 50 51 "&" #t) (string 52 59 "\"\"\"t\"\"\"" #t) (comment 60 66 "## doc" #t) (newline 66 67 "\n" #t) (name 67 70 "let" #t) (name 71 73 "é" #t) (operator 74 75 "=" #t) (number 76 80 "1'i8" #t) (operator 81 82 "." #t) (operator 82 83 "." #t) (number 83 84 "2" #t))
+"nim pieces" (("Foobar" "foo" "" "x") "nim c -r --hints:off 'my file'\"'\"'s.nim' a b" "nim c --hints:off 'a.nim'" "'it'\"'\"'s'" (#t #t #f #f))
+"use-tabs-p" (#t #t)

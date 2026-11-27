@@ -1,7 +1,7 @@
 #!/bin/sh
 # run-library.sh -- make check-library: Schemer's library for the scripts
-# (tests/schemer-library.scm), femtoscheme's names and the scripts' forms
-# (compiled/femtoscheme.scm, compiled/syntax.scm), compiled and run.
+# (tests/schemer-library.scm), the older names and the scripts' forms
+# (compiled/compat.scm, compiled/syntax.scm), compiled and run.
 set -eu
 cd "$(dirname "$0")/.."
 work=$(mktemp -d "${TMPDIR:-/tmp}/chezemax-library.XXXXXX")
@@ -15,5 +15,5 @@ run() {   # NAME FILE...: compile the files as one program, run it, expect PASS
     grep -q '^PASS ' "$work/$name.out"
 }
 run library tests/schemer-library.scm
-run femtoscheme compiled/bridge.scm compiled/syntax.scm compiled/femtoscheme.scm tests/compiled-femtoscheme.scm
+run compat compiled/bridge.scm compiled/syntax.scm compiled/compat.scm tests/compiled-compat.scm
 echo "PASS Schemer's library for the scripts"

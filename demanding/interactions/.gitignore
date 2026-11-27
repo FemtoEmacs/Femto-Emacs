@@ -1,0 +1,10 @@
+# The working copies that make-tests.sh puts here from fresh/, and what
+# a run of the tests creates: only fresh/ is the source.
+/natbrowser-interaction.org
+/natbrowser-test.md
+/natbrowser-copy.md
+/vsplit.md
+/vsplit-test.md
+/vsplit-test.c
+/#*#
+/bkp/

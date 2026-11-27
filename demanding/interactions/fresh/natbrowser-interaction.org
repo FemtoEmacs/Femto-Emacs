@@ -1,0 +1,135 @@
+#+TITLE: Testing the browser and the native window: one rule for saving
+#+DATE: 15 November 2026 (second run: C-x k fixed)
+
+The rule: *C-x C-s in either window saves the file and puts its text in
+the other window.* Unsaved edits in the other window are not lost: they
+go to the recovery file =#natbrowser-test.md#=, beside the file.
+
+Keep this script in one terminal window. Run the editor in another
+terminal window, with Chrome beside it. The test file,
+=natbrowser-test.md=, is disposable; so are =natbrowser-copy.md= and
+=#natbrowser-test.md#=, which the steps create. Leave all three for me
+when you finish: I will check them with the backdoor's record.
+
+The backdoor records your keys in the native window, and every save
+between the windows (lines that start with =chezweb:=). Keys typed in
+Chrome are not recorded, so at the end of each step write a note in the
+native window: M-: and then
+
+: (fe-backdoor-note "STEP 3 ok")
+
+or, when something went wrong, what you saw:
+
+: (fe-backdoor-note "STEP 3 the native window kept N3")
+
+In each step, "type B1 and a space" means: go to the end of the file's
+second line (M-< C-n C-e) and type the two characters B1, then a space. The mode line of a
+modified native buffer shows =*= after the name.
+
+* 0. Build and start
+- [ ] In ~/mysand/chezmoi:
+  #+begin_src sh
+  make browser-rebuild
+  make
+  #+end_src
+  This run has two more things to check: what C-x k shows (steps 3, 4
+  and 6), and the backdoor's lines for each save between the windows
+  (they start with =chezweb:=).
+- [ ] In the other terminal window:
+  #+begin_src sh
+  cd demanding/interactions      (from the Chezweb source folder)
+  chezweb natbrowser-test.md
+  #+end_src
+- [ ] M-x backdoor-claude (B/D in the mode line).
+- [ ] C-c d. Chrome opens with the same text.
+
+* 1. The browser saves; the native window follows
+- [ ] In Chrome: type B1 and a space, then C-x C-s.
+- [ ] Chrome says "Saved .../natbrowser-test.md".
+- [ ] The native window shows B1 at once (the next key there, at the
+  latest), with no =*= in its mode line.
+- [ ] Note: =STEP 1 ok=.
+
+* 2. The native window saves; the browser follows
+- [ ] In the native window: type N2 and a space, then C-x C-s.
+- [ ] Within a second Chrome shows N2 and says "Synced from the native
+  window."
+- [ ] Note: =STEP 2 ok=.
+
+* 3. Both edited; the browser saves
+- [ ] In the native window: type N3 and a space. Do not save.
+- [ ] In Chrome: type B3 and a space, then C-x C-s.
+- [ ] Chrome says "Saved ...; previous native edits saved in
+  #natbrowser-test.md#."
+- [ ] The native window shows B3 and no longer N3; no =*=.
+- [ ] The recovery file has N3: in the native window, C-x C-f
+  #natbrowser-test.md# RET, look, then C-x k RET.
+- [ ] C-x k brings the window back to natbrowser-test.md (in the first
+  run it showed *backdoor*).
+- [ ] Note: =STEP 3 ok=.
+
+* 4. Both edited; the native window saves
+- [ ] In Chrome: type B4 and a space. Do not save.
+- [ ] In the native window: type N4 and a space, then C-x C-s.
+- [ ] Within a second Chrome shows N4 and no longer B4, and says
+  "Synced. Previous browser edits saved in #natbrowser-test.md#."
+- [ ] The recovery file now has B4 (C-x C-f, as in step 3). C-x k RET
+  comes back to natbrowser-test.md.
+- [ ] Note: =STEP 4 ok=.
+
+* 5. A read-only native buffer
+- [ ] In the native window: C-x C-q (the buffer becomes read-only).
+- [ ] In Chrome: type B5 and a space, then C-x C-s.
+- [ ] Chrome refuses, in red: "Not saved: the native buffer of
+  .../natbrowser-test.md is read-only (C-x C-q there makes it
+  writable). Browser changes remain unsaved." The native window still
+  shows no B5.
+- [ ] In the native window: C-x C-q (writable again).
+- [ ] In Chrome: C-x C-s. Now it saves, and the native window shows B5.
+- [ ] Note: =STEP 5 ok=.
+
+* 6. The native buffer closed and opened again
+- [ ] In the native window: C-x k RET. The window shows *scratch*, the
+  only other buffer you could have used; never *backdoor*.
+- [ ] C-x C-f natbrowser-test.md RET.
+- [ ] In Chrome: type B6 and a space, then C-x C-s. The native window shows B6.
+- [ ] In the native window: type N6 and a space, then C-x C-s. Chrome shows N6.
+- [ ] Note: =STEP 6 ok=.
+
+* 7. Save As in the native window
+- [ ] In the native window: C-x C-w, clear the name it offers (C-a C-k),
+  type natbrowser-copy.md, RET. The native
+  window now visits the copy.
+- [ ] In Chrome: type B7 and a space, then C-x C-s. Chrome saves
+  natbrowser-test.md; the native window (the copy) does not change.
+- [ ] In the native window: C-x C-f natbrowser-test.md RET. It shows B7.
+- [ ] Type N7 and a space, then C-x C-s. Chrome shows N7.
+- [ ] Note: =STEP 7 ok=.
+
+* 8. A prompt open in the native window
+- [ ] In the native window: C-x C-f, and leave the prompt open.
+- [ ] In Chrome: type B8 and a space, then C-x C-s. After about ten seconds Chrome
+  says "Save not confirmed. Close any native prompt and retry; your
+  browser changes remain unsaved." The file has no B8.
+- [ ] In the native window: C-g.
+- [ ] In Chrome: C-x C-s again. It saves, and the native window shows B8.
+- [ ] Note: =STEP 8 ok=.
+
+* 9. A save into a granted folder
+- [ ] In the native window: type N9 and a space. Do not save.
+- [ ] In Chrome: press the *Choose folder* button and choose
+  the folder demanding/interactions of the Chezweb source folder. Then C-x C-f, TAB, choose natbrowser-test.md. Chrome
+  opens it from the folder.
+- [ ] Type B9 and a space, then C-x C-s. Chrome says "Saved ...".
+- [ ] The native window says "Saved from the browser; this buffer has the
+  text, and the native edits are in #natbrowser-test.md#." It shows
+  B9, not N9, and no =*web-1*= buffer appears (C-x C-b).
+- [ ] Note: =STEP 9 ok=.
+
+* 10. Closing
+- [ ] In Chrome: C-x C-c. The tab closes; the native window stays.
+- [ ] In the native window: M-x backdoor-claude (B/D goes away).
+- [ ] C-x C-c.
+- [ ] Tell me "Done." I will read ~/.chezemax/backdoor.txt and the three
+  test files. The previous backdoor configuration (for C-x 3) is in
+  ~/.chezemax/bkp/backdoor-claude.conf.vsplit.

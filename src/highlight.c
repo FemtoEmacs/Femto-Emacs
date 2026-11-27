@@ -8,8 +8,8 @@
  * fe-highlight-tokens.  The scanning itself is here, in C, because it runs
  * over the visible text (and 16 KB above it) at every redisplay; in
  * femtoscheme's bytecode it cost tens of milliseconds a key.  The Python and
- * Nim modes' highlighters (scheme/modes/) are here for the same reason, as
- * SBEmacs had a native Nim highlighter.
+ * Nim modes' highlighters (compiled/scripts/) are here for the same reason,
+ * as SBEmacs had a native Nim highlighter.
  *
  * Everything works on the raw UTF-8 bytes, so the colours stay aligned with
  * the C buffer; bytes >= 128 are word constituents.  This is a port of
@@ -17,8 +17,7 @@
  */
 #include <stdlib.h>
 #include <string.h>
-#include "llt/llt.h"
-#include "flisp.h"
+#include <stdio.h>
 #include "highlight.h"
 
 enum { F_SYMBOL = 1, F_KEYWORD = 4, F_ALPHA = 5, F_DIGITS = 6, F_COMMENT = 7,
@@ -46,35 +45,6 @@ typedef struct {
 
 static language_t **languages = NULL;
 static int n_languages = 0;
-
-static bytes_t copy_bytes(value_t v, const char *who)
-{
-	bytes_t b;
-	if (!fl_isstring(v)) lerror(ArgError, who);
-	b.n = (int) cvalue_len(v);
-	b.s = malloc((size_t) b.n + 1);
-	if (!b.s) lerror(MemoryError, who);
-	memcpy(b.s, cvalue_data(v), (size_t) b.n);
-	b.s[b.n] = 0;
-	return b;
-}
-
-static int list_length(value_t l)
-{
-	int n = 0;
-	while (iscons(l)) { n++; l = cdr_(l); }
-	return n;
-}
-
-static bytes_t *string_list(value_t l, int *count, const char *who)
-{
-	int n = list_length(l), i = 0;
-	bytes_t *v = calloc((size_t) (n ? n : 1), sizeof(bytes_t));
-	if (!v) lerror(MemoryError, who);
-	for (; iscons(l); l = cdr_(l)) v[i++] = copy_bytes(car_(l), who);
-	*count = n;
-	return v;
-}
 
 static int longer_first(const void *a, const void *b)
 {
@@ -142,50 +112,6 @@ int highlight_define_language(const hl_language_spec *spec)
 	languages = realloc(languages, sizeof(language_t *) * (size_t) (n_languages + 1));
 	languages[n_languages] = L;
 	return n_languages++;
-}
-
-static void free_list(bytes_t *v, int n)
-{
-	for (int i = 0; i < n; i++) free(v[i].s);
-	free(v);
-}
-
-static value_t define_token_language(value_t *a, uint32_t n)
-{
-	const char *who = "fe-define-token-language";
-	argcount((char *) who, n, 9);
-	hl_language_spec spec;
-	memset(&spec, 0, sizeof spec);
-	spec.word_chars = copy_bytes(a[0], who);
-	spec.line_comments = string_list(a[1], &spec.n_line, who);
-	spec.n_block = list_length(a[2]);
-	bytes_t *opens = calloc((size_t) (spec.n_block ? spec.n_block : 1), sizeof(bytes_t));
-	bytes_t *closes = calloc((size_t) (spec.n_block ? spec.n_block : 1), sizeof(bytes_t));
-	if (!opens || !closes) lerror(MemoryError, who);
-	int k = 0;
-	for (value_t l = a[2]; iscons(l); l = cdr_(l), k++) {
-		value_t pair = car_(l);
-		if (!iscons(pair)) lerror(ArgError, who);
-		opens[k] = copy_bytes(car_(pair), who);
-		closes[k] = copy_bytes(cdr_(pair), who);
-	}
-	spec.block_open = opens;
-	spec.block_close = closes;
-	spec.strings = string_list(a[3], &spec.n_strings, who);
-	spec.escape = isfixnum(a[4]) ? (int) numval(a[4]) : -1;
-	if (fl_isstring(a[5])) spec.char_prefix = copy_bytes(a[5], who);
-	spec.backslash_commands = a[6] != FL_F;
-	spec.case_insensitive = a[7] != FL_F;
-	spec.keywords = string_list(a[8], &spec.n_keywords, who);
-	int id = highlight_define_language(&spec);
-	free(spec.word_chars.s);
-	free_list(spec.line_comments, spec.n_line);
-	free_list(opens, spec.n_block);
-	free_list(closes, spec.n_block);
-	free_list(spec.strings, spec.n_strings);
-	free(spec.char_prefix.s);
-	free_list(spec.keywords, spec.n_keywords);
-	return fixnum(id);
 }
 
 static int match_at(const uchar *t, int len, int i, const bytes_t *p, int ci)
@@ -413,24 +339,7 @@ int highlight_open_id(int id, const unsigned char *text, int len)
 	return open_construct(languages[id], text, len);
 }
 
-static uchar *colors_of(value_t v, int len, const char *who)
-{
-	if (!iscvalue(v) || (int) cvalue_len(v) < len) lerror(ArgError, who);
-	return (uchar *) cvalue_data(v);
-}
-
 /* (fe-highlight-tokens id text colors) */
-static value_t highlight_tokens_builtin(value_t *a, uint32_t n)
-{
-	const char *who = "fe-highlight-tokens";
-	argcount((char *) who, n, 3);
-	fixnum_t id = tofixnum(a[0], (char *) who);
-	if (id < 0 || id >= n_languages || !fl_isstring(a[1])) lerror(ArgError, who);
-	int len = (int) cvalue_len(a[1]);
-	highlight_tokens(languages[id], (const uchar *) cvalue_data(a[1]), len, colors_of(a[2], len, who));
-	return FL_T;
-}
-
 int highlight_tokens_id(int id, const unsigned char *text, int len, unsigned char *colors)
 {
 	if (id < 0 || id >= n_languages) return 0;
@@ -453,7 +362,7 @@ static void push_token(tokens_t *ts, int kind, int start, int end, int prefix, i
 	if (ts->n == ts->cap) {
 		ts->cap = ts->cap ? 2 * ts->cap : 256;
 		ts->v = realloc(ts->v, sizeof(token_t) * (size_t) ts->cap);
-		if (!ts->v) lerror(MemoryError, "highlight");
+		if (!ts->v) { fputs("chezweb: out of memory (highlight)\n", stderr); abort(); }
 	}
 	token_t *t = &ts->v[ts->n++];
 	t->kind = kind; t->start = start; t->end = end;
@@ -709,16 +618,6 @@ static void py_paint_tokens(const uchar *s, const token_t *v, int n, uchar *colo
 }
 
 /* (fe-highlight-python text colors) */
-static value_t highlight_python(value_t *a, uint32_t n)
-{
-	const char *who = "fe-highlight-python";
-	argcount((char *) who, n, 2);
-	if (!fl_isstring(a[0])) lerror(ArgError, who);
-	int len = (int) cvalue_len(a[0]);
-	highlight_python_text((const uchar *) cvalue_data(a[0]), len, colors_of(a[1], len, who));
-	return FL_T;
-}
-
 void highlight_python_text(const unsigned char *s, int len, unsigned char *colors)
 {
 	tokens_t ts = { NULL, 0, 0 };
@@ -833,16 +732,6 @@ static int nim_word_in(const uchar *s, int a, int b, const char *const *words)
 }
 
 /* (fe-highlight-nim text colors) */
-static value_t highlight_nim(value_t *a, uint32_t n)
-{
-	const char *who = "fe-highlight-nim";
-	argcount((char *) who, n, 2);
-	if (!fl_isstring(a[0])) lerror(ArgError, who);
-	int len = (int) cvalue_len(a[0]);
-	highlight_nim_text((const uchar *) cvalue_data(a[0]), len, colors_of(a[1], len, who));
-	return FL_T;
-}
-
 void highlight_nim_text(const unsigned char *s, int len, unsigned char *colors)
 {
 	tokens_t ts = { NULL, 0, 0 };
@@ -1147,44 +1036,3 @@ int highlight_markdown_text(const unsigned char *t, int len, unsigned char *c, h
 	return n_blocks;
 }
 
-/* the femtoscheme builtin: the blocks, last first, as (start end info) */
-static value_t highlight_markdown(value_t *a, uint32_t nargs)
-{
-	const char *who = "fe-highlight-markdown";
-	argcount((char *) who, nargs, 2);
-	if (!fl_isstring(a[0])) lerror(ArgError, who);
-	int len = (int) cvalue_len(a[0]);
-	colors_of(a[1], len, who);
-	uchar *t = malloc((size_t) len + 1), *c = malloc((size_t) len + 1);
-	if (!t || !c) lerror(MemoryError, who);
-	memcpy(t, cvalue_data(a[0]), (size_t) len);
-	hl_block *found;
-	int n = highlight_markdown_text(t, len, c, &found);
-	memcpy(cvalue_data(a[1]), c, (size_t) len);
-	value_t blocks = FL_NIL, info = FL_NIL, block = FL_NIL;
-	fl_gc_handle(&blocks); fl_gc_handle(&info); fl_gc_handle(&block);
-	for (int k = 0; k < n; k++) {
-		info = cvalue_string((size_t) (found[k].info_end - found[k].info_start));
-		memcpy(cvalue_data(info), t + found[k].info_start, (size_t) (found[k].info_end - found[k].info_start));
-		block = fl_cons(info, FL_NIL);
-		block = fl_cons(fixnum(found[k].end), block);
-		block = fl_cons(fixnum(found[k].start), block);
-		blocks = fl_cons(block, blocks);
-	}
-	fl_free_gc_handles(3);
-	free(found); free(t); free(c);
-	return blocks;
-}
-
-void highlight_init(void)
-{
-	static builtinspec_t functions[] = {
-		{ "fe-define-token-language", define_token_language },
-		{ "fe-highlight-tokens", highlight_tokens_builtin },
-		{ "fe-highlight-python", highlight_python },
-		{ "fe-highlight-nim", highlight_nim },
-		{ "fe-highlight-markdown", highlight_markdown },
-		{ NULL, NULL }
-	};
-	assign_global_builtins(functions);
-}

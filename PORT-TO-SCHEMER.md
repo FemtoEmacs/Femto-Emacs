@@ -482,10 +482,32 @@ exists twice: a change to `scheme/x.scm` must be made in
     data keeps its value (M-x scheme-reset forgets them).
   - Found: Schemer's `write` writes `#\tab` as `#\` and a tab; the program
     text avoids it.  To fix in the prelude.
-- Left: step 5, deleting femtoscheme.  What still needs it: the
-  `CHEZEMAX_SCHEME=femtoscheme` path and its tests (`run-tests.scm`,
-  `compiled.scm`, `run-scripts.sh`'s first half), the `--eval` test
-  builtins of `compiled-program.c`, and `flcall.c`'s start-up.
+- **Step 5: femtoscheme deleted (27 November 2026).**  `femtoscheme/` is
+  gone, and with it `flcall.c`, `compiled.c`, `native.c`, `primitives.c`,
+  `extra.c` and the femtoscheme halves of `hooks.c`, `highlight.c`,
+  `assistant.c` and `compiled-program.c`.
+  - Start-up (`src/start.c`): the install folder is the executable's
+    (`src/exepath.c`, from femtoscheme's `llt/dirpath.c`); the program is
+    loaded, then the event "init".  Without a program that runs the
+    scripts, the editor says why and what to run, and stops: the old copies
+    in `scheme/` it fell back to had none of the work since the switch
+    (Org, narrowing, shards, the terminal ...), so they were no safety net.
+  - `src/native.c`, femtoscheme's wrappers of the C functions, was also the
+    list the bridge is generated from: it is now `src/editor-functions.def`,
+    read by awk only (the generated files are byte for byte the same).
+  - `scheme/` keeps only what `compiled/scripts/ORDER` compiles:
+    `theme.scm` and `languages/` (but html, markdown and tex, which are
+    compiled/scripts/).  `compiled/femtoscheme.scm` is now
+    `compiled/compat.scm`: the older names the scripts still use.
+  - Tests: femtoscheme was the oracle of `make check-scripts`; its answers
+    to the 240 cases are recorded in `tests/scripts-expected.txt` (the
+    compiled scripts gave the same), and the compiled scripts are compared
+    with them.  `chezemax --test STEP...` (`src/test-hooks.c`) calls the
+    hooks one by one, as `(fe-compiled-event ...)` did from femtoscheme.
+    `tests/run-tests.scm` (258 checks) and `tests/compiled.scm` tested
+    femtoscheme's own copies of the scripts and its legacy path: they went
+    with it; 52 of the checks are among the cases of `scripts-cases.scm`.
+  - The browser no longer links femtoscheme nor embeds its boot file.
 
 ## 5. The order of the work
 

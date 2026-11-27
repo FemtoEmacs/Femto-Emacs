@@ -4,14 +4,12 @@
 ;;;; scripts are compiled before it; here the C core's hooks are given to
 ;;;; them, and what scheme/init.scm did when femtoscheme ran the scripts is
 ;;;; done: the user's own files (~/.chezemax) are loaded, by EVAL
-;;;; (eval.scm).  From now on femtoscheme runs no script: Chezemax starts
-;;;; with CHEZEMAX_SCHEME=femtoscheme to have them run as before.
+;;;; (eval.scm).  femtoscheme is gone (27 November 2026): this program is
+;;;; the only one that runs the scripts.
 
-;;; CHEZEMAX_SCHEME=femtoscheme (or legacy): the scripts run there, as
-;;; before; this program then takes no hook and loads no file
-(define *compiled-scripts*
-  (let ((mode (getenv "CHEZEMAX_SCHEME")))
-    (or (not mode) (string=? mode "") (string=? mode "compiled"))))
+;;; Until femtoscheme was removed, CHEZEMAX_SCHEME=femtoscheme made this
+;;; program take no hook; now it always takes them
+(define *compiled-scripts* #t)
 
 (define (start-hook! n procedure) (when *compiled-scripts* (compiled-hook! n procedure)))
 

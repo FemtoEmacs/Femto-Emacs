@@ -8,7 +8,7 @@ compiled/bridge.scm
 compiled/editor-functions.scm
 compiled/system.scm
 compiled/syntax.scm
-compiled/femtoscheme.scm
+compiled/compat.scm
 compiled/editor.scm
 <ORDER>
 compiled/eval-compiled.scm

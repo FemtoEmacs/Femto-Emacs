@@ -1,0 +1,10 @@
+* Minor nuissance
+When I paste a reference to a file like this, then I pressed M-q, sometimes the year goes to a new line, and the LaTeX converter considers it as an ennumerate environment. In Org mode, the strandled year appears in red. In LaTeX, it can't be seen anywhere.
+
+** References
+
+[19] Plato. Republic. Vol. 2, Books VI–X. Loeb Classical Library 276.
+Bla, bla, bla. Cambridge, MA: Harvard University Press,
+1935. Book VII, 525b.
+
+[20] Plato. Republic. Vol. 2, Books VI–X.  Loeb Classical Library 276. Cambridge, MA: Harvard University Press, 1935. Book VII, 527b.

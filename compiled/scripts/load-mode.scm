@@ -32,8 +32,10 @@
   "Register definitions without activating them; INSTALLER activates them."
   (hashtable-set! *editing-modes* (editing-mode-name name) installer))
 
+;; the bundled modes are compiled (%editing-mode-names); files of modes are
+;; only yours
 (define (editing-mode-directories)
-  (list (config-file "modes") (string-append *install-dir* "/scheme/modes")))
+  (list (config-file "modes")))
 
 ;; only your own modes are loaded from files: the bundled ones are compiled
 (define (editing-mode-path name)

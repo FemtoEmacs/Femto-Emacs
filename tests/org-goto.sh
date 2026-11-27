@@ -2,7 +2,7 @@
 # Going about an Org file, and narrowing (compiled/scripts/org-goto.scm,
 # narrow.scm, src/narrow.c), through a terminal on a disposable notes.org:
 # C-c C-j lists the headings, RET goes to one, a click goes to one, q goes
-# back; C-x n s narrows to a subtree (M-< and M-> stop at its ends, search
+# back, C-s in the list finds one and RET goes there (27 November 2026); C-x n s narrows to a subtree (M-< and M-> stop at its ends, search
 # does not leave it, the mode line says Narrow); C-x n n narrows to the
 # region; C-x n w widens.  The Ask Claude menu leaves no buffer behind.
 # Disposable home, file and PTY.
@@ -96,4 +96,31 @@ grep -q 'C-x n x is not bound' "$work/screen" || fail 'C-x n x'
 before=$(grep -o '(BEFORE [0-9]*)' "$work/screen" | head -n 1 | tr -dc 0-9)
 after=$(grep -o '(AFTER [0-9]*)' "$work/screen" | head -n 1 | tr -dc 0-9)
 [ -n "$before" ] && [ "$before" = "$after" ] || fail "the Ask Claude menu left a buffer behind ($before buffers, then $after)"
-echo 'PASS C-c C-j (RET, a click, q), C-x n s, C-x n n, C-x n w; search stays inside; menus leave no buffer'
+# C-s in the list: 300 chapters, the middle one found by searching (the
+# arrows alone could not reach the middle of 30,000 headings,
+# demanding/dem-headings.gls); M-g a line of the list
+awk 'BEGIN { for (i = 1; i <= 300; i++) printf "* Chapter %05d\ntext\n", i }' > "$work/long.org"
+cat > "$work/keys2" <<'KEYS'
+await-screen [SAVE]
+keys ^C^J
+await-screen Headings of long.org
+keys ^SChapter 00150\r
+wait 300
+keys \r
+wait 300
+keys %
+keys ^C^J
+await-screen Headings of long.org
+keys \eg5\r
+wait 300
+keys \r
+wait 300
+keys &
+keys ^X^S
+wait 300
+keys ^X^C
+KEYS
+(cd "$work"; HOME="$work/home" LC_ALL=C.UTF-8 CHEZEMAX_NO_INIT=1 "$work/pty" "$work/keys2" 60 "$work/screen2" "$root/chezemax" long.org) || true
+grep -qx '%\* Chapter 00150' "$work/long.org" || fail 'C-s in the list of headings did not go to Chapter 00150'
+grep -qx '&\* Chapter 00003' "$work/long.org" || fail 'M-g 5 in the list of headings did not go to Chapter 00003'
+echo 'PASS C-c C-j (RET, a click, q, C-s, M-g), C-x n s, C-x n n, C-x n w; search stays inside; menus leave no buffer'

@@ -35,7 +35,14 @@ int main(int argc, char **argv)
     }
 #endif
     if (argc == 2 && strcmp(argv[1], "--version") == 0) { puts(VERSION); return 0; }
-    init_scheme(1024);
+    /* chezemax --test STEP...: the hooks one by one, for the tests */
+    if (argc > 1 && strcmp(argv[1], "--test") == 0) {
+        extern int test_hooks(int, char **);
+        init_scheme(0);
+        if (curbp == NULL) curbp = find_buffer(str_scratch, TRUE);
+        return test_hooks(argc - 2, argv + 2);
+    }
+    init_scheme(1);
     if (argc == 3 && strcmp(argv[1], "--eval") == 0) {
         /* a *scratch* buffer (no window, no screen), so that buffer
            functions work in --eval too (tests/run-bridge.sh) */
