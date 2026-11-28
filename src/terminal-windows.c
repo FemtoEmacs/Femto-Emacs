@@ -139,6 +139,11 @@ const char *windows_terminal_open(windows_terminal **result, int rows, int cols)
 
     failure = "Cannot attach a Windows shell to the pseudo-terminal";
     start.StartupInfo.cb = sizeof start;
+    /* A Cygwin PTY (or redirected host) has pipe std handles. Without
+     * this flag Windows can give those pipes to cmd.exe instead of the
+     * new console. Explicit NULL handles let ConPTY supply its own.
+     * https://github.com/microsoft/terminal/issues/11276 */
+    start.StartupInfo.dwFlags = STARTF_USESTDHANDLES;
     InitializeProcThreadAttributeList(NULL, 1, 0, &bytes);
     start.lpAttributeList = malloc(bytes);
     if (!start.lpAttributeList ||

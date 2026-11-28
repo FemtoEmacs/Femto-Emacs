@@ -12,6 +12,7 @@ jobs:
     uses: ./.github/workflows/build-windows-installer.yml
     with:
       source_ref: ${{ github.sha }}
+      installed_smoke_test: true
 
   publish:
     needs: package

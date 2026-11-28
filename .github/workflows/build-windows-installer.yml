@@ -8,6 +8,10 @@ on:
         default: false
   workflow_call:
     inputs:
+      installed_smoke_test:
+        description: Test the installed CLI, GUI and terminal before publication
+        type: boolean
+        default: false
       source_ref:
         type: string
         default: windows
@@ -182,14 +186,14 @@ jobs:
             windows-build.log
           retention-days: 30
       - name: Build terminal transport probe
-        if: github.event_name == 'workflow_dispatch' && inputs.installed_smoke_test
+        if: inputs.installed_smoke_test
         shell: C:\cygwin64\bin\bash.exe --noprofile --norc -o igncr -eo pipefail {0}
         run: |
           export PATH=/usr/bin:$PATH
           cd "$(cygpath -u "$GITHUB_WORKSPACE")"
           gcc -O2 -Wall -Isrc .github/scripts/windows-terminal-probe.c src/terminal-windows.c -o build/windows/terminal-probe.exe
       - name: Install into a clean directory and test
-        if: github.event_name == 'workflow_dispatch' && inputs.installed_smoke_test
+        if: inputs.installed_smoke_test
         timeout-minutes: 12
         shell: pwsh
         run: |
