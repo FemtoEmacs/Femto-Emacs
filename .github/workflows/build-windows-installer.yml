@@ -204,8 +204,13 @@ jobs:
           $pathBeforeSmoke = [Environment]::GetEnvironmentVariable("Path", "User")
           if (($pathBeforeSmoke -split ";") -notcontains "$dest\command") { throw "Chezweb command is absent from the user PATH" }
           $env:PATH = "$env:SystemRoot\system32;$env:SystemRoot;$pathBeforeSmoke"
-          $version = & cmd.exe /d /c chezweb --version
-          if ($LASTEXITCODE -ne 0 -or $version -notmatch "^Chezweb ") { throw "chezweb command failed: $version" }
+          # cmd searches the current directory before PATH; do not accidentally
+          # launch the repository executable without its installed DLLs.
+          Push-Location $env:RUNNER_TEMP
+          try {
+            $version = & cmd.exe /d /c chezweb --version 2>&1
+            if ($LASTEXITCODE -ne 0 -or -not ($version -match "^Chezweb ")) { throw "chezweb command failed: $version" }
+          } finally { Pop-Location }
           $env:PATH = "$dest\bin;$dest\app;$env:SystemRoot\system32;$env:SystemRoot"
           function Invoke-InstalledCheck([string] $phase, [int] $timeoutMs) {
             $info = [System.Diagnostics.ProcessStartInfo]::new()
