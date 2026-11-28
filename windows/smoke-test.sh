@@ -11,6 +11,7 @@ mkdir -p "$HOME"
 # Wait for the shell itself, not just the editor's terminal-mode notice.
 export PROMPT='CHEZWEB-PROMPT>'
 
+terminal_smoke() {
 # Exercise M-x term through the installed executable, including ConPTY
 # input, output and exit status after the compiled editor has started.
 cat > "$root/tmp/term-keys" <<'KEYS'
@@ -25,9 +26,8 @@ paste exit 7\r
 await-screen [Process exited with status 7]
 keys ^X^C
 KEYS
-# The test driver only needs a byte-stream PTY. Leave native console
-# handling to the separate ConPTY that M-x term explicitly creates.
-CYGWIN="${CYGWIN:+$CYGWIN }disable_pcon" CHEZWEB_PTY_TRACE=1 "$helper" "$root/tmp/term-keys" 90 "$root/tmp/term-screen" "$root/app/chezweb.exe" &
+# Use the default Cygwin PTY mode, as in the installed terminal launcher.
+CHEZWEB_PTY_TRACE=1 "$helper" "$root/tmp/term-keys" 90 "$root/tmp/term-screen" "$root/app/chezweb.exe" &
 term_pid=$!
 (
   set +x
@@ -49,6 +49,15 @@ if [ "$status" -ne 0 ]; then
   exit "$status"
 fi
 echo 'PASS installed M-x term through ConPTY'
+
+}
+
+case "${3:-all}" in
+ terminal) terminal_smoke; exit ;;
+ cli) ;;
+ all) terminal_smoke ;;
+ *) echo 'Expected cli, terminal or all' >&2; exit 2 ;;
+esac
 
 [ "$(chezweb --eval '(+ 20 22)')" = 42 ]
 [ "$(chezweb --eval '(let fib ((n 20)) (if (< n 2) n (+ (fib (- n 1)) (fib (- n 2)))))')" = 6765 ]

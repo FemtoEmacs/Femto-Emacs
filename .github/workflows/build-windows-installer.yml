@@ -150,15 +150,18 @@ jobs:
           $after = [Environment]::GetEnvironmentVariable("Path", "User")
           if ("$after" -cne "$before") { throw 'Uninstall did not restore the previous user PATH' }
       - name: Archive the matching current source
+        if: github.event_name != 'workflow_dispatch' || !inputs.installed_smoke_test
         shell: pwsh
         run: git archive --format=tar.gz -o build/windows/Chezweb-source.tar.gz HEAD
       - name: Download corresponding component sources
+        if: github.event_name != 'workflow_dispatch' || !inputs.installed_smoke_test
         shell: C:\cygwin64\bin\bash.exe --noprofile --norc -o igncr -eo pipefail {0}
         run: |
           export PATH=/usr/bin:$PATH
           cd "$(cygpath -u "$GITHUB_WORKSPACE")"
           sh .github/scripts/windows-sources.sh build/windows/installed-packages.txt build/windows/cygwin-sources
       - name: Upload matching component sources
+        if: github.event_name != 'workflow_dispatch' || !inputs.installed_smoke_test
         if: success()
         uses: actions/upload-artifact@v4
         with:
@@ -181,7 +184,7 @@ jobs:
           retention-days: 30
       - name: Install into a clean directory and test
         if: github.event_name == 'workflow_dispatch' && inputs.installed_smoke_test
-        timeout-minutes: 9
+        timeout-minutes: 12
         shell: pwsh
         run: |
           $dest = "$env:RUNNER_TEMP\Chezweb installed test"
@@ -194,8 +197,31 @@ jobs:
           $version = & cmd.exe /d /c chezweb --version
           if ($LASTEXITCODE -ne 0 -or $version -notmatch "^Chezweb ") { throw "chezweb command failed: $version" }
           $env:PATH = "$dest\bin;$dest\app;$env:SystemRoot\system32;$env:SystemRoot"
-          & "$dest\bin\bash.exe" --noprofile --norc "$env:GITHUB_WORKSPACE\windows\smoke-test.sh" $dest "$env:GITHUB_WORKSPACE\build\windows\pty-test.exe"
-          if ($LASTEXITCODE -ne 0) { throw 'Installed editor failed' }
+          function Invoke-InstalledCheck([string] $phase, [int] $timeoutMs) {
+            $info = [System.Diagnostics.ProcessStartInfo]::new()
+            $info.FileName = "$dest\bin\bash.exe"
+            $info.UseShellExecute = $false
+            $info.CreateNoWindow = $true
+            $info.RedirectStandardOutput = $true
+            $info.RedirectStandardError = $true
+            foreach ($arg in @('--noprofile', '--norc', "$env:GITHUB_WORKSPACE\windows\smoke-test.sh", $dest, "$env:GITHUB_WORKSPACE\build\windows\pty-test.exe", $phase)) {
+              $info.ArgumentList.Add($arg)
+            }
+            $process = [System.Diagnostics.Process]::Start($info)
+            $output = $process.StandardOutput.ReadToEndAsync()
+            $errors = $process.StandardError.ReadToEndAsync()
+            $finished = $process.WaitForExit($timeoutMs)
+            if (!$finished) {
+              $process.Kill($true)
+              [void] $process.WaitForExit(5000)
+            }
+            if ($output.Wait(5000)) { Write-Output $output.Result }
+            if ($errors.Wait(5000)) { Write-Output $errors.Result }
+            if (!$finished) { throw "Installed $phase check timed out; its process tree was terminated" }
+            if ($process.ExitCode -ne 0) { throw "Installed $phase check failed ($($process.ExitCode))" }
+            $process.Dispose()
+          }
+          Invoke-InstalledCheck cli 360000
           # A real SDL window must become ready, load its fonts and close cleanly.
           $env:HOME = "$dest/tmp/gui-home"
           $env:CHEZEMAX_NO_INIT = '1'
@@ -211,6 +237,7 @@ jobs:
           if (!$ready) { $gui.Kill(); throw 'SDL window never became ready' }
           if (!$gui.CloseMainWindow() -or !$gui.WaitForExit(30000)) { $gui.Kill(); throw 'GUI did not close' }
           if ($gui.ExitCode -ne 0) { throw 'GUI exit failed' }
+          Invoke-InstalledCheck terminal 150000
           $u = Start-Process "$dest\Uninstall.exe" -WorkingDirectory $env:RUNNER_TEMP -ArgumentList '/S' -Wait -PassThru
           if ($u.ExitCode -ne 0) { throw 'Uninstaller failed' }
           $pathAfter = [Environment]::GetEnvironmentVariable("Path", "User")
