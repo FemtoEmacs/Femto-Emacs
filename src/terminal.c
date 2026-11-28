@@ -817,6 +817,11 @@ void term_take_key(void)
 		to_shell(t, seq, 2);
 		return;
 	}
+#ifdef __CYGWIN__
+	/* curses translates the Enter key to LF. ConPTY forwards it literally,
+	 * but cmd.exe submits a command on CR, not on LF. */
+	if (c == '\n') c = '\r';
+#endif
 	seq[0] = (char) c;
 	if (c >= 0xc2 && c <= 0xf4) {                      /* a whole UTF-8 character */
 		int need = c >= 0xf0 ? 4 : c >= 0xe0 ? 3 : 2, n = 1, b;
