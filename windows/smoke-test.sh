@@ -12,6 +12,14 @@ mkdir -p "$HOME"
 export PROMPT='CHEZWEB-PROMPT>'
 
 terminal_smoke() {
+# Same transport first without a surrounding Cygwin PTY, then within one.
+"$root/tmp/terminal-probe.exe" "$(cygpath -w "$root/bin/wasmtime.dll")" > "$root/tmp/transport-native.log" 2>&1
+cat > "$root/tmp/transport-keys" <<'PROBE'
+await-screen OUTER-INPUT-READY
+keys go\r
+await-screen PASS transport probe
+PROBE
+"$helper" "$root/tmp/transport-keys" 35 "$root/tmp/transport-screen" "$root/tmp/terminal-probe.exe" "$(cygpath -w "$root/bin/wasmtime.dll")" outer > "$root/tmp/transport-outer.log" 2>&1
 # Exercise M-x term through the installed executable, including ConPTY
 # input, output and exit status after the compiled editor has started.
 cat > "$root/tmp/term-keys" <<'KEYS'

@@ -181,6 +181,13 @@ jobs:
             build/windows/installed-packages.txt
             windows-build.log
           retention-days: 30
+      - name: Build terminal transport probe
+        if: github.event_name == 'workflow_dispatch' && inputs.installed_smoke_test
+        shell: C:\cygwin64\bin\bash.exe --noprofile --norc -o igncr -eo pipefail {0}
+        run: |
+          export PATH=/usr/bin:$PATH
+          cd "$(cygpath -u "$GITHUB_WORKSPACE")"
+          gcc -O2 -Wall -Isrc .github/scripts/windows-terminal-probe.c src/terminal-windows.c -o build/windows/terminal-probe.exe
       - name: Install into a clean directory and test
         if: github.event_name == 'workflow_dispatch' && inputs.installed_smoke_test
         timeout-minutes: 12
@@ -236,7 +243,14 @@ jobs:
           if (!$ready) { $gui.Kill(); throw 'SDL window never became ready' }
           if (!$gui.CloseMainWindow() -or !$gui.WaitForExit(30000)) { $gui.Kill(); throw 'GUI did not close' }
           if ($gui.ExitCode -ne 0) { throw 'GUI exit failed' }
-          Invoke-InstalledCheck terminal 150000
+          Copy-Item "$env:GITHUB_WORKSPACE\build\windows\terminal-probe.exe" "$dest/tmp/terminal-probe.exe"
+          try { Invoke-InstalledCheck terminal 150000 }
+          finally {
+            foreach ($file in @('transport-native.log', 'transport-outer.log', 'transport-screen', 'term-screen')) {
+              $path = "$dest/tmp/$file"
+              if (Test-Path $path) { Write-Output "--- $file"; Get-Content $path -Tail 60 }
+            }
+          }
           $u = Start-Process "$dest\Uninstall.exe" -WorkingDirectory $env:RUNNER_TEMP -ArgumentList '/S' -Wait -PassThru
           if ($u.ExitCode -ne 0) { throw 'Uninstaller failed' }
           $pathAfter = [Environment]::GetEnvironmentVariable("Path", "User")
