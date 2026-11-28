@@ -27,10 +27,10 @@ await-screen [SAVE]
 keys \exterm\r
 await-screen Terminal: C-c C-c interrupts
 await-screen CHEZWEB-PROMPT>
-paste set "CHEZWEB_TAIL=PTY-OK"\r
-paste echo CHEZWEB-CON%CHEZWEB_TAIL%\r
+keys set "CHEZWEB_TAIL=PTY-OK"\r
+keys echo CHEZWEB-CON%CHEZWEB_TAIL%\r
 await-screen CHEZWEB-CONPTY-OK
-paste exit 7\r
+keys exit 7\r
 await-screen [Process exited with status 7]
 keys ^X^C
 KEYS
