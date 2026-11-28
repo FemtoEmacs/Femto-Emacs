@@ -114,6 +114,14 @@ the line [LS, LE)."
                   ((and (= (b@ text j) 93) (= (b@ text (+ j 1)) 93))
                    (org-paint! colors i (+ j 2) +link+) (loop (+ j 2)))
                   (else (find (+ j 1))))))
+         ;; Double tildes share Markdown's strike syntax; a single tilde
+         ;; keeps Org's existing ~code~ meaning.
+         ((and (= b 126) (< (+ i 1) le) (= (b@ text (+ i 1)) 126))
+          (let find ((j (+ i 2)))
+            (cond ((>= (+ j 1) le) (loop (+ i 2)))
+                  ((and (= (b@ text j) 126) (= (b@ text (+ j 1)) 126))
+                   (org-paint! colors i (+ j 2) +strike+) (loop (+ j 2)))
+                  (else (find (+ j 1))))))
          ((and (org-emphasis-face b)
                (or (= i ls) (org-before-ok? (b@ text (- i 1))))
                (< (+ i 1) le) (not (memv (b@ text (+ i 1)) (list 32 9 b))))

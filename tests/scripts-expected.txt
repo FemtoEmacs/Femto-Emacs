@@ -35,7 +35,7 @@
 "colours" (4 1 200 33488896 17 0)
 "bad colours" error
 "builtin-command-names" ("apropos" "chez-tester" "run-tester" "backdoor-claude" "backdoor-codex" "backspace" "backward-character" "backward-page" "backward-word" "beginning-of-buffer" "beginning-of-line" "clear-message-line" "copy-region" "cursor-position" "delete-left" "delete-other-windows" "delete-window" "enlarge-window" "describe-key" "discard-undo-history" "end-of-buffer" "end-of-line" "eval-block" "exec-lisp-command" "exit" "find-file" "forward-character" "forward-delete-char" "forward-page" "forward-word" "find-file-shards" "goto-line" "insert-file" "kill-buffer" "kmacro-end-and-call-macro" "kmacro-end-macro" "kmacro-start-macro" "kill-line" "kill-region" "list-bindings" "list-buffers" "list-undo" "move-beginning-of-line" "move-end-of-line" "recover-file" "delete-old-backups" "delete-auto-saves" "list-stats-undo" "next-buffer" "previous-buffer" "next-line" "other-window" "previous-line" "query-replace" "recenter" "refresh" "resize-terminal" "save-buffer" "search-backward" "search-forward" "set-mark" "shard-first" "shard-goto" "shard-last" "shard-next" "shard-previous" "shell-command" "show-version" "split-window" "split-window-right" "toggle-overwrite-mode" "undo" "write-file" "yank")
-"version" "Chezweb 1.25, compiled Scheme, Public Domain"
+"version" "Chezweb 1.26, compiled Scheme, Public Domain"
 "C keywords, numbers, comments" ((4 . "int") (6 . "42") (7 . "// hi"))
 "C block comment and string" ((8 . "/* a */") (9 . "\"s\\\"q\""))
 "C char literal with a double quote" ((9 . "'\"'") (4 . "return"))

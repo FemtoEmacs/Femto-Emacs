@@ -17,6 +17,7 @@
 (define +heading+ 11)
 (define +emphasis+ 12)
 (define +strong+ 13)
+(define +strike+ 35)
 (define +link+ 14)
 
 ;; A language is a vector; the accessors name its fields.

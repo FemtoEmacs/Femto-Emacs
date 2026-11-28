@@ -26,7 +26,7 @@
 #define FALSE 0
 #endif
 
-#define VERSION	 "Chezweb 1.25, compiled Scheme, Public Domain"
+#define VERSION	 "Chezweb 1.26, compiled Scheme, Public Domain"
 #define EXIT_OK         0               /* Success */
 #define EXIT_ERROR      1               /* Unknown error. */
 #define EXIT_USAGE      2               /* Usage */
@@ -66,7 +66,8 @@
 #define ID_COLOR_TERM0     17      /* terminal.c: the 16 ANSI colours, 17-32 */
 #define ID_COLOR_TERM_REVERSE 33   /*   and reverse video */
 #define ID_COLOR_TERM_CURSOR 34    /*   the cursor, drawn by the editor */
-#define ID_COLOR_TERM_POOL 35      /*   then faces made for the colour pairs */
+#define ID_COLOR_STRIKE    35      /* prose: ~~struck text~~ */
+#define ID_COLOR_TERM_POOL 36      /*   then faces made for the colour pairs */
 #define ID_COLOR_LAST      127     /*   programs use (backgrounds, 256 colours) */
 extern void term_face(int id, long fg, long bg, int attr);   /* interface.c */
 

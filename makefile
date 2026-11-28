@@ -571,3 +571,8 @@ check: check-boundaries-quick
 check-clipboard-capacity:
 	sh tests/clipboard-capacity.sh
 check: check-clipboard-capacity
+
+.PHONY: check-strikethrough
+check-strikethrough: chezemax chezemax.wasm
+	sh tests/strikethrough.sh
+check: check-strikethrough

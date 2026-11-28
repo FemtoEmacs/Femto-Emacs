@@ -36,7 +36,8 @@ Module.browsered=(function(){
    if(cp===-1)continue;
    var s=String.fromCodePoint(cp);for(var m=4;m<CELL&&grid[i+m];m++)s+=String.fromCodePoint(grid[i+m]);
    ctx.fillStyle=rgb(y===r&&x===c?back:fg);ctx.font=(style&2?'italic ':'')+(style&1?'bold ':'')+points+'px Menlo,Consolas,monospace';
-   if(x+1<nc&&grid[i+CELL]===-1)wideText(s,pad+x*cw,pad+y*ch);else ctx.fillText(s,pad+x*cw,pad+y*ch+points);line+=s;
+   if(x+1<nc&&grid[i+CELL]===-1)wideText(s,pad+x*cw,pad+y*ch);else ctx.fillText(s,pad+x*cw,pad+y*ch+points);
+   if(style&8){var left=Math.round(pad+x*cw),right=Math.round(pad+(x+(x+1<nc&&grid[i+CELL]===-1?2:1))*cw);ctx.fillRect(left,pad+y*ch+Math.round(points*0.65),right-left,1);}line+=s;
   }lines.push(line);}document.getElementById('screen-text').textContent=lines.join('\n');
  }
   var shiftedPunct = { "`": "~", "1": "!", "2": "@", "3": "#", "4": "$", "5": "%",
