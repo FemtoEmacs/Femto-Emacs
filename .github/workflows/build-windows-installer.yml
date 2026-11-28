@@ -161,8 +161,7 @@ jobs:
           cd "$(cygpath -u "$GITHUB_WORKSPACE")"
           sh .github/scripts/windows-sources.sh build/windows/installed-packages.txt build/windows/cygwin-sources
       - name: Upload matching component sources
-        if: github.event_name != 'workflow_dispatch' || !inputs.installed_smoke_test
-        if: success()
+        if: success() && (github.event_name != 'workflow_dispatch' || !inputs.installed_smoke_test)
         uses: actions/upload-artifact@v4
         with:
           name: Chezweb-Windows-corresponding-source
