@@ -8,6 +8,8 @@ cd -- "${root:-/}"
 export CHEZEMAX_NO_INIT=1
 export PATH="$root/bin:$root/app" HOME="$root/tmp/test-home" TERM=xterm-256color
 mkdir -p "$HOME"
+# Wait for the shell itself, not just the editor's terminal-mode notice.
+export PROMPT='CHEZWEB-PROMPT>'
 
 # Exercise M-x term through the installed executable, including ConPTY
 # input, output and exit status after the compiled editor has started.
@@ -15,10 +17,11 @@ cat > "$root/tmp/term-keys" <<'KEYS'
 await-screen [SAVE]
 keys \exterm\r
 await-screen Terminal: C-c C-c interrupts
-keys set "CHEZWEB_TAIL=PTY-OK"\r
-keys echo CHEZWEB-CON%CHEZWEB_TAIL%\r
+await-screen CHEZWEB-PROMPT>
+paste set "CHEZWEB_TAIL=PTY-OK"\r
+paste echo CHEZWEB-CON%CHEZWEB_TAIL%\r
 await-screen CHEZWEB-CONPTY-OK
-keys exit 7\r
+paste exit 7\r
 await-screen [Process exited with status 7]
 keys ^X^C
 KEYS
