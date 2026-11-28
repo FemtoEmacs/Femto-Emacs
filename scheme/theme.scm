@@ -55,6 +55,7 @@
     (theme-face 'heading       (c 'brace) 'default 'bold)
     (theme-face 'emphasis      (c 'foreground) 'default 'italic)
     (theme-face 'strong        (c 'foreground) 'default 'bold)
+    (theme-face 'strike        (c 'foreground) 'default 'strike)
     (theme-face 'link          (c 'link) 'default 'underline)
     ;; the mode line menu: yellow (dark) or blue (light) buttons, lit when clicked
     (theme-face 'menu          (c 'cursor) (c 'selection) 'bold)
@@ -72,6 +73,7 @@
     (theme-face 'heading  (if many 25 'blue) 'default 'bold)
     (theme-face 'emphasis 'default 'default 'italic)
     (theme-face 'strong   'default 'default 'bold)
+    (theme-face 'strike   'default 'default 'strike)
     (theme-face 'link     (if many 30 'cyan) 'default 'underline)
     ;; the mode line menu: yellow on black, black on yellow when clicked
     (theme-face 'menu         (if many 226 'yellow) 'black 'bold)

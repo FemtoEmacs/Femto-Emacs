@@ -873,6 +873,8 @@ static void render(void)
 			cell_colors(c, &fg, &bg, &style, &underline);
 			draw_cell(c, style, x, y, fg,
 			          j + 1 < cols && grid[i * cols + j + 1].cp == WIDE_TAIL ? 2 : 1);
+			if (face_attr[c->face] & SCR_STRIKE)
+				fill(x, y + cell_h / 2, cell_w, (int) scale, fg);
 			if (underline)
 				fill(x, y + cell_h - (int) scale - 1, cell_w, (int) scale, fg);
 		}
@@ -891,6 +893,8 @@ static void render(void)
 			/* as wide as the emoji, CJK character it is on */
 			fill(x, y, span * cell_w, cell_h, cursor_color);
 			draw_cell(c, style, x, y, bg, span);
+			if (face_attr[c->face] & SCR_STRIKE)
+				fill(x, y + cell_h / 2, span * cell_w, (int) scale, bg);
 		} else {
 			SDL_Color cc = rgb(cursor_color);
 			SDL_Rect r;

@@ -24,7 +24,7 @@ extern void set_scrap(unsigned char *);
 extern char *scheme_eval(char *);
 extern void web_layer_update(void);
 
-#define MAX_FACE 16
+#define MAX_FACE 127             /* same face IDs as the native back ends */
 
 /* one cell as the page reads it: 10 int32 words (web/page.js, CELL) */
 #define NMARK 6         /* 👨‍👩‍👧: the man, then four more */
@@ -32,7 +32,7 @@ typedef struct {
 	int cp;         /* Unicode code point, 0 = blank, -1 = the right half
 	                   of the wide character in the cell before */
 	int fg, bg;     /* 24-bit colours, resolved */
-	int style;      /* 1 bold, 2 italic, 4 underline */
+	int style;      /* 1 bold, 2 italic, 4 underline, 8 strike */
 	int mark[NMARK];/* drawn with cp, 0 = none: combining accents (width.c),
 	                   and the rest of an emoji sequence */
 } cell_t;
@@ -391,7 +391,7 @@ static void render(void)
 		grid[i].fg = (int) fg;
 		grid[i].bg = (int) bg;
 		grid[i].style = ((a & SCR_BOLD) ? 1 : 0) | ((a & SCR_ITALIC) ? 2 : 0)
-			      | ((a & SCR_UNDERLINE) ? 4 : 0);
+			      | ((a & SCR_UNDERLINE) ? 4 : 0) | ((a & SCR_STRIKE) ? 8 : 0);
 	}
 	web_paint((int) grid, rows, cols, cur_row, cur_col, (int) dbg,
 		  (int) (cursor_color & 0xFFFFFF));

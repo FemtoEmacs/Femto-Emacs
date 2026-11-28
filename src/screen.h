@@ -25,6 +25,7 @@
 #define SCR_REVERSE   4
 #define SCR_DIM       8
 #define SCR_ITALIC   16
+#define SCR_STRIKE   32
 
 /* OR-ed into a character given to screen_addch(): draw it in reverse video */
 #define SCR_REVERSE_CHAR 0x10000

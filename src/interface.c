@@ -145,6 +145,7 @@ static void default_theme(int many_colors)
 	face(ID_COLOR_HEADING, -1, -1, FE_BOLD);
 	face(ID_COLOR_EMPHASIS, -1, -1, FE_ITALIC);
 	face(ID_COLOR_STRONG, -1, -1, FE_BOLD);
+	face(ID_COLOR_STRIKE, -1, -1, SCR_STRIKE);
 	face(ID_COLOR_LINK, -1, -1, FE_UNDERLINE);
 	/* a terminal's colours (terminal.c): the 16 ANSI colours, the bright
 	 * eight as the eight in bold where the terminal has only eight */

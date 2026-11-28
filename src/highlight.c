@@ -765,7 +765,7 @@ void highlight_nim_text(const unsigned char *s, int len, unsigned char *colors)
 /* Markdown (scheme/languages/markdown.scm)                            */
 /* ------------------------------------------------------------------ */
 
-enum { F_STRONG = 13 };
+enum { F_STRONG = 13, F_STRIKE = 35 };
 
 static int md_skip_spaces(const uchar *t, int i, int end)
 {
@@ -907,7 +907,7 @@ static void md_inline(const uchar *t, int start, int end, uchar *c)
 			next = stop;
 		} else if (b == '~' && i + 1 < end && t[i + 1] == '~') {   /* ~~strike~~ */
 			int close = md_find(t, i + 2, end, "~~");
-			if (close >= 0) { paint(c, i, close + 2, F_COMMENT); next = close + 2; }
+			if (close >= 0) { paint(c, i, close + 2, F_STRIKE); next = close + 2; }
 		} else if (b == '*' || b == '_') {              /* *emphasis*, **strong** */
 			int j = i;
 			while (j < end && t[j] == b && j - i < 3) j++;

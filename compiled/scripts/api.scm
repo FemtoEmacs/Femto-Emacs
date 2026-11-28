@@ -168,14 +168,14 @@ GET-KEY-NAME and GET-KEY-BINDING then describe."
   '((symbol . 1) (modeline . 2) (brace . 3) (keyword . 4) (alpha . 5)
     (digits . 6) (comment . 7) (block-comment . 8) (string . 9)
     (region . 10) (heading . 11) (emphasis . 12) (strong . 13) (link . 14)
-    (menu . 15) (menu-pressed . 16)))
+    (menu . 15) (menu-pressed . 16) (strike . 35)))
 
 (define *basic-colors*
   '((default . -1) (black . 0) (red . 1) (green . 2) (yellow . 3)
     (blue . 4) (magenta . 5) (cyan . 6) (white . 7)))
 
 (define *face-attributes*
-  '((bold . 1) (underline . 2) (reverse . 4) (dim . 8) (italic . 16)))
+  '((bold . 1) (underline . 2) (reverse . 4) (dim . 8) (italic . 16) (strike . 32)))
 
 (define +rgb-flag+ #x1000000)
 

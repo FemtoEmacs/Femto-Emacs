@@ -24,6 +24,96 @@ extern int term_poll_ms(void);
 static int active = 0;
 static int mouse_on = 0;
 
+/* ncurses has no strike attribute. Keep just the struck glyphs and draw
+ * them with SGR 9 after refresh; ncurses still owns layout and input. */
+extern int char_width(unsigned long);
+typedef struct { char text[32]; unsigned char face, reverse; } strike_cell;
+static strike_cell *struck;
+static int strike_rows, strike_cols, strike_face = 1, strike_was_drawn;
+static int face_style[MAX_FACE + 1];
+static short face_fg[MAX_FACE + 1], face_bg[MAX_FACE + 1];
+
+static void strike_size(void)
+{
+	if (strike_rows == LINES && strike_cols == COLS) return;
+	free(struck);
+	struck = calloc((size_t) LINES * COLS, sizeof *struck);
+	strike_rows = LINES; strike_cols = COLS;
+}
+
+static void strike_text(const char *s, int reverse)
+{
+	int y, x;
+	getyx(stdscr, y, x);
+	strike_size();
+	while (*s && y < LINES) {
+		const unsigned char *p = (const unsigned char *)s;
+		int n = *p < 0xc0 ? 1 : *p < 0xe0 ? 2 : *p < 0xf0 ? 3 : 4;
+		unsigned long cp = n == 1 ? *p : *p & ((1 << (7 - n)) - 1);
+		for (int j = 1; j < n; j++) {
+			if (!p[j] || (p[j] & 0xc0) != 0x80) { n = 1; cp = *p; break; }
+			cp = (cp << 6) | (p[j] & 63);
+		}
+		if (cp == '\n') {
+			/* addch(newline) clears the rest of the curses row too.
+			 * Its old strike records must disappear with those cells. */
+			if (struck && x >= 0 && x < COLS)
+				memset(struck + y * COLS + x, 0, (size_t)(COLS - x) * sizeof *struck);
+			y++; x = 0; s += n; continue;
+		}
+		int w = cp == '\t' ? 8 - x % 8 : char_width(cp);
+		if (w < 0) w = 1;
+		if (struck && x >= 0 && x < COLS) {
+			if (w == 0 && x > 0) {
+				int at = y * COLS + x - 1;
+				if (!struck[at].text[0] && x > 1) at--;
+				size_t used = strlen(struck[at].text);
+				if (used && used + n < sizeof struck[at].text)
+					memcpy(struck[at].text + used, s, (size_t)n);
+			} else {
+				for (int j = 0; j < w && x + j < COLS; j++)
+					memset(&struck[y * COLS + x + j], 0, sizeof *struck);
+				if (face_style[strike_face] & SCR_STRIKE) {
+					strike_cell *c = &struck[y * COLS + x];
+					memcpy(c->text, s, (size_t)n);
+					c->face = (unsigned char)strike_face; c->reverse = reverse;
+				}
+			}
+		}
+		x += w;
+		if (x >= COLS) { x = 0; y++; }
+		s += n;
+	}
+}
+
+static void strike_refresh(void)
+{
+	int y, x, any = 0;
+	getyx(stdscr, y, x);
+	strike_size();
+	if (strike_was_drawn) redrawwin(stdscr); /* erase old SGR-only decoration */
+	refresh();
+	if (struck) for (int i = 0; i < LINES * COLS; i++) {
+		strike_cell *c = &struck[i];
+		if (!c->text[0]) continue;
+		int f = c->face, a = face_style[f];
+		if (!(a & SCR_STRIKE)) continue;
+		if (!any) vidattr(A_NORMAL); /* keep curses and real SGR state in agreement */
+		printf("\033[%d;%dH\033[0;9", i / COLS + 1, i % COLS + 1);
+		if (a & SCR_BOLD) fputs(";1", stdout);
+		if (a & SCR_DIM) fputs(";2", stdout);
+		if (a & SCR_ITALIC) fputs(";3", stdout);
+		if (a & SCR_UNDERLINE) fputs(";4", stdout);
+		if (!!(a & SCR_REVERSE) != !!c->reverse) fputs(";7", stdout);
+		if (face_fg[f] >= 0) printf(";38;5;%d", face_fg[f]);
+		if (face_bg[f] >= 0) printf(";48;5;%d", face_bg[f]);
+		printf("m%s\033[0m", c->text);
+		any = 1;
+	}
+	if (any) { printf("\033[%d;%dH", y + 1, x + 1); fflush(stdout); }
+	strike_was_drawn = any;
+}
+
 /*
  * xterm mouse reporting: 1003 includes passive motion for button hints;
  * 1006 is the SGR encoding (ESC [ < b ; x ; y M/m),
@@ -78,6 +168,7 @@ void screen_end(void)
 	noraw();
 	endwin();
 	active = 0;
+	free(struck); struck = NULL; strike_rows = strike_cols = strike_was_drawn = 0;
 }
 
 int screen_active(void) { return active; }
@@ -98,12 +189,19 @@ void screen_move(int row, int col)      { move(row, col); }
 void screen_addstr(const char *s)
 {
 	if (strcmp(s, "\xEF\xB8\x8F") == 0) return;
+	strike_text(s, 0);
 	addstr(s);
 }
-void screen_mvaddstr(int r, int c, const char *s) { mvaddstr(r, c, s); }
-void screen_clrtoeol(void)              { clrtoeol(); }
-void screen_clear(void)                 { clear(); }
-void screen_refresh(void)               { refresh(); }
+void screen_mvaddstr(int r, int c, const char *s) { move(r, c); screen_addstr(s); }
+void screen_clrtoeol(void)
+{
+	int y, x; getyx(stdscr, y, x); strike_size();
+	if (struck && y >= 0 && y < LINES && x >= 0 && x < COLS)
+		memset(struck + y * COLS + x, 0, (size_t)(COLS - x) * sizeof *struck);
+	clrtoeol();
+}
+void screen_clear(void) { strike_size(); if (struck) memset(struck, 0, (size_t)LINES * COLS * sizeof *struck); clear(); }
+void screen_refresh(void) { strike_refresh(); }
 const char *screen_unctrl(int c)        { return unctrl((chtype) (c & 0xFF)); }
 
 void screen_addch(int c)
@@ -111,6 +209,8 @@ void screen_addch(int c)
 	chtype ch = (chtype) (c & 0xFF);
 	if (c & SCR_REVERSE_CHAR)
 		ch |= A_REVERSE;
+	char text[2] = { (char)(c & 0xff), 0 };
+	strike_text(text, (c & SCR_REVERSE_CHAR) != 0);
 	addch(ch);
 }
 
@@ -236,6 +336,9 @@ void screen_set_face(int id, long fg, long bg, int attrs)
 		init_pair((short) id, terminal_color(fg), terminal_color(bg));
 		a |= COLOR_PAIR(id);
 	}
+	face_style[id] = attrs;
+	face_fg[id] = has_colors() ? terminal_color(fg) : -1;
+	face_bg[id] = has_colors() ? terminal_color(bg) : -1;
 	face_attrs[id] = a;
 	if (id == 1)                        /* the default face is the background */
 		bkgd((chtype) (' ' | (has_colors() ? COLOR_PAIR(1) : 0)));
@@ -244,7 +347,7 @@ void screen_set_face(int id, long fg, long bg, int attrs)
 void screen_face(int id)
 {
 	if (id >= 1 && id <= MAX_FACE)
-		attrset(face_attrs[id]);
+		{ strike_face = id; attrset(face_attrs[id]); }
 }
 
 /*
